@@ -1,24 +1,20 @@
 import React from "react";
-import Head from "next/head";
-import dynamic from "next/dynamic";
+import { Hero } from "../components/landingPage/heroSection/hero";
+import { Features } from "../components/landingPage/featuresSection/features";
+import { SocialProof } from "../components/landingPage/socialProof/socialProof";
+import { DemoSection } from "../components/landingPage/demoSection/demoSection";
+import { Pricing } from "../components/landingPage/pricingSection/pricing";
+import { Footer } from "../components/landingPage/footer/footer";
 
-const AppWithoutSSR = dynamic(() => import("@/App"), { ssr: false });
-
-export default function Home() {
+export default function LandingPage() {
     return (
-        <>
-            <Head>
-                <title>Gather Is Bad</title>
-                <meta name="description" content="" />
-                <meta
-                    name="viewport"
-                    content="width=device-width, initial-scale=1"
-                />
-                <link rel="icon" href="/favicon.png" />
-            </Head>
-            <main className="w-screen h-screen relative">
-                <AppWithoutSSR />
-            </main>
-        </>
+        <div className="w-full min-h-screen bg-slate-950 text-slate-200 selection:bg-cyan-500/30 selection:text-cyan-200">
+            <Hero />
+            <Features />
+            <SocialProof />
+            <Pricing />
+            <DemoSection />
+            <Footer />
+        </div>
     );
 }
