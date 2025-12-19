@@ -1,19 +1,11 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-    CrownIcon,
-    ShieldIcon,
-    SwordIcon,
-    ZapIcon,
-    StarIcon,
-} from "lucide-react";
 const npcs = [
     {
         id: 1,
-        name: 'Sarah "Glitch" Chen',
-        role: "Tech Lead @ CyberCorp",
-        avatarColor: "bg-cyan-500",
-        icon: ZapIcon,
+        name: "Martin Enghoy",
+        role: "Tech Lead @ Theoria Medical",
+        logo: "/landing-page/logos/theoria-logo.jpg",
         quote: "This platform leveled up our remote culture instantly. It's like an MMO for work.",
         stats: {
             lvl: 42,
@@ -23,10 +15,9 @@ const npcs = [
     },
     {
         id: 2,
-        name: 'Marcus "Tank" O.',
-        role: "Product Owner @ IronForge",
-        avatarColor: "bg-orange-500",
-        icon: ShieldIcon,
+        name: "Ivan Golosinda",
+        role: "Product Owner @ Maya",
+        logo: "/landing-page/logos/maya-logo.jpg",
         quote: "Finally, a workspace that feels like a guild hall. The presence features are epic.",
         stats: {
             lvl: 35,
@@ -36,10 +27,9 @@ const npcs = [
     },
     {
         id: 3,
-        name: 'Elena "Mage" V.',
-        role: "Design Director @ Aether",
-        avatarColor: "bg-purple-500",
-        icon: StarIcon,
+        name: "Feter Banua",
+        role: "Design Director @ Odoo",
+        logo: "/landing-page/logos/odoo-logo.webp",
         quote: "The visual fidelity and sprite customization allows us to express our true selves.",
         stats: {
             lvl: 50,
@@ -49,10 +39,9 @@ const npcs = [
     },
     {
         id: 4,
-        name: 'Alex "Rogue" K.',
-        role: "DevOps @ ShadowSys",
-        avatarColor: "bg-emerald-500",
-        icon: SwordIcon,
+        name: "Ronchi Miong",
+        role: "DevOps @ Unionbank",
+        logo: "/landing-page/logos/ub-logo.jpeg",
         quote: "Stealth mode for deep work, party mode for celebrations. Perfect balance.",
         stats: {
             lvl: 28,
@@ -62,10 +51,9 @@ const npcs = [
     },
     {
         id: 5,
-        name: 'Diana "Queen" R.',
-        role: "CEO @ Nexus",
-        avatarColor: "bg-pink-500",
-        icon: CrownIcon,
+        name: "Brett Galvez",
+        role: "CEO @ Gcash",
+        logo: "/landing-page/logos/gcash-logo.jpg",
         quote: "We've seen a +50% buff in team engagement since switching to this engine.",
         stats: {
             lvl: 99,
@@ -77,7 +65,7 @@ const npcs = [
 export function SocialProof() {
     const [hoveredId, setHoveredId] = useState<number | null>(null);
     return (
-        <section className="py-20 bg-slate-950 border-y border-slate-800 relative overflow-hidden">
+        <section className="py-20 bg-slate-950 border-y border-slate-800 relative">
             {/* Background Grid */}
             <div className="absolute inset-0 bg-grid-pattern opacity-10" />
 
@@ -114,15 +102,19 @@ export function SocialProof() {
                         >
                             {/* Character Card */}
                             <motion.div
-                                className={`
-                  w-16 h-16 md:w-20 md:h-20 rounded-xl ${npc.avatarColor} 
+                                className="
+                  w-16 h-16 md:w-20 md:h-20 rounded-xl bg-white
                   flex items-center justify-center cursor-pointer
-                  border-2 border-white/20 group-hover:border-white group-hover:scale-110
+                  group-hover:border-white group-hover:scale-110
                   transition-all duration-300 shadow-lg shadow-black/50
                   relative overflow-hidden
-                `}
+                "
                             >
-                                <npc.icon className="w-8 h-8 md:w-10 md:h-10 text-white drop-shadow-md" />
+                                <img
+                                    src={npc.logo}
+                                    alt={npc.name}
+                                    className="w-full h-full object-cover"
+                                />
 
                                 {/* Shine effect */}
                                 <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
