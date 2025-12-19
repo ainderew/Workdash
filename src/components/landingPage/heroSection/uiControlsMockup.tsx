@@ -12,10 +12,8 @@ import {
 function UiControlsMockup() {
     return (
         <div className="absolute bottom-14 left-1/2 -translate-x-1/2 h-18 bg-slate-900/95 backdrop-blur-sm border border-slate-700/50 rounded-2xl flex justify-center items-center gap-3 px-4">
-            {/* Character/Profile Button */}
             <div className="flex items-center gap-3 bg-slate-800/80 rounded-xl px-3 py-1 border border-slate-600/50">
                 <div className="w-5 h-4 rounded-full bg-gradient-to-br from-green-400 to-green-600 border-2 border-green-400 flex items-center justify-center overflow-hidden">
-                    {/* Pixel avatar placeholder */}
                     <div className="w-3 h-3 bg-green-500 rounded-xs relative">
                         <div className="absolute top-1 left-1 right-1 h-3 bg-amber-200 rounded-t-sm" />
                         <div className="absolute bottom-0 left-0 right-0 h-4 bg-cyan-400 rounded-b-sm" />
@@ -31,7 +29,6 @@ function UiControlsMockup() {
                 </div>
             </div>
 
-            {/* Divider */}
             <div className="h-8 w-px bg-slate-700/50" />
 
             {/* Video Button - Off State (Red) */}
@@ -67,7 +64,6 @@ function UiControlsMockup() {
                 <MessageCircle className="w-5 h-5 text-slate-300 group-hover:text-cyan-400 transition-colors" />
             </button>
 
-            {/* Online Members Button */}
             <button className="flex items-center gap-2 bg-slate-800/80 rounded-xl px-3 py-2 border border-slate-600/50 hover:border-cyan-400/50 hover:bg-cyan-900/20 transition-all group">
                 <Users className="w-3 h-3 text-slate-300 group-hover:text-cyan-400 transition-colors" />
                 <span className="text-slate-300 text-xs group-hover:text-cyan-400 transition-colors">

@@ -20,7 +20,7 @@ const tiers = [
     {
         name: "Guild Upgrade",
         level: 50,
-        price: "12",
+        price: "7",
         icon: ShieldIcon,
         color: "purple",
         features: [

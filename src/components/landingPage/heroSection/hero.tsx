@@ -30,14 +30,11 @@ export function Hero() {
     }, []);
     return (
         <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-slate-950 pt-20">
-            {/* Background Elements */}
             <div className="absolute inset-0 bg-grid-pattern opacity-20" />
             <div className="absolute inset-0 bg-gradient-to-b from-slate-950/50 via-transparent to-slate-950 pointer-events-none" />
 
-            {/* Scanlines */}
             <div className="scanlines absolute inset-0 scanlines opacity-30 pointer-events-none z-20" />
 
-            {/* Animated Particles/Orbs */}
             <motion.div
                 style={{
                     x: mousePosition.x * 10,
@@ -53,7 +50,6 @@ export function Hero() {
                 className="absolute top-1/4 right-1/3 w-96 h-96 bg-purple-500/40 rounded-full blur-[100px]"
             />
 
-            {/* HUD Overlay Elements */}
             <div className="absolute top-24 left-6 md:left-12 flex flex-col gap-2 opacity-50 pointer-events-none">
                 <div className="flex items-center gap-2 text-xs font-mono text-cyan-400">
                     <WifiIcon className="w-3 h-3" />
@@ -75,9 +71,7 @@ export function Hero() {
                 </div>
             </div>
 
-            {/* Main Content */}
             <div className="relative z-10 max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-12 items-center">
-                {/* Text Content */}
                 <motion.div
                     initial={{
                         opacity: 0,
@@ -142,7 +136,6 @@ export function Hero() {
                         </button>
                     </div>
 
-                    {/* Stats Row */}
                     <div className="mt-12 flex items-center gap-8 border-t border-slate-800 pt-8">
                         <div>
                             <div className="text-2xl font-bold text-white font-mono">
@@ -192,7 +185,6 @@ export function Hero() {
                             </div>
                         </div>
 
-                        {/* Game Scene Mockup */}
                         <div className="relative h-full w-full bg-slate-950 p-8">
                             {/* Grid Floor */}
                             <div className="absolute inset-0 bg-[linear-gradient(rgba(0,243,255,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(0,243,255,0.05)_1px,transparent_1px)] bg-[size:40px_40px] [transform:perspective(500px)_rotateX(60deg)] origin-top" />
@@ -216,11 +208,9 @@ export function Hero() {
                                         className="w-12 h-12 drop-shadow-[0_0_15px_rgba(0,243,255,0.5)] z-10 relative object-cover"
                                     />
 
-                                    {/* Name Tag */}
                                     <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-900/80 px-2 py-1 rounded text-[10px] text-cyan-400 whitespace-nowrap border border-cyan-500/30">
                                         Dev_Andrew
                                     </div>
-                                    {/* Voice Bubble */}
                                     <motion.div
                                         initial={{
                                             scale: 0,
@@ -267,12 +257,10 @@ export function Hero() {
                                 </div>
                             </motion.div>
 
-                            {/* Interactive Elements */}
                             <UiControlsMockup />
                         </div>
                     </div>
 
-                    {/* Decorative Floating Elements */}
                     <motion.div
                         style={{
                             y: y2,
@@ -299,7 +287,6 @@ export function Hero() {
                 </motion.div>
             </div>
 
-            {/* Scroll Indicator */}
             <motion.div
                 className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-50"
                 animate={{

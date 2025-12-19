@@ -66,7 +66,6 @@ export function SocialProof() {
     const [hoveredId, setHoveredId] = useState<number | null>(null);
     return (
         <section className="py-20 bg-slate-950 border-y border-slate-800 relative">
-            {/* Background Grid */}
             <div className="absolute inset-0 bg-grid-pattern opacity-10" />
 
             <div className="max-w-7xl mx-auto px-6 relative z-10">
@@ -100,7 +99,6 @@ export function SocialProof() {
                                 delay: npc.id * 0.1,
                             }}
                         >
-                            {/* Character Card */}
                             <motion.div
                                 className="
                   w-16 h-16 md:w-20 md:h-20 rounded-xl bg-white
@@ -120,7 +118,6 @@ export function SocialProof() {
                                 <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
                             </motion.div>
 
-                            {/* Tooltip / Popover */}
                             <AnimatePresence>
                                 {hoveredId === npc.id && (
                                     <motion.div
@@ -142,10 +139,8 @@ export function SocialProof() {
                                         className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 w-64 md:w-80 z-50 pointer-events-none"
                                     >
                                         <div className="bg-slate-900/95 backdrop-blur-xl border border-slate-700 rounded-lg p-4 shadow-2xl relative">
-                                            {/* Arrow */}
                                             <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-slate-900 border-b border-r border-slate-700 rotate-45" />
 
-                                            {/* Header */}
                                             <div className="flex items-start justify-between mb-3">
                                                 <div>
                                                     <h4 className="font-bold text-white text-sm">
@@ -170,14 +165,12 @@ export function SocialProof() {
                                                 </div>
                                             </div>
 
-                                            {/* Quote */}
                                             <div className="relative bg-slate-800/50 p-3 rounded border border-slate-700/50">
                                                 <p className="text-xs text-slate-300 italic leading-relaxed">
                                                     &quot;{npc.quote}&qupt;
                                                 </p>
                                             </div>
 
-                                            {/* Stats Grid */}
                                             <div className="grid grid-cols-2 gap-2 mt-3">
                                                 <div className="flex items-center gap-2 text-[10px] text-slate-400 font-mono">
                                                     <span className="text-red-400">

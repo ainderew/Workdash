@@ -47,19 +47,30 @@ export function Footer() {
             {/* Footer Links */}
             <div className="border-t border-slate-800 py-8 px-6">
                 <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
-                    <div className="text-slate-500 text-sm">
-                        © 2024 WorkDash. Building better remote culture.
+                    <div className="flex flex-col md:flex-row items-center gap-4">
+                        <div className="text-slate-500 text-sm">
+                            © 2024 WorkDash. Building better remote culture.
+                        </div>
+                        <a
+                            href="https://buymeacoffee.com/andrewapinon"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-4 py-1.5 bg-yellow-500 hover:bg-yellow-400 text-slate-900 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                        >
+                            <span>☕</span>
+                            Buy Me a Coffee
+                        </a>
                     </div>
 
                     <div className="flex gap-8 text-sm text-slate-400">
                         <a
-                            href="#"
+                            href="/privacy"
                             className="hover:text-white transition-colors"
                         >
                             Privacy
                         </a>
                         <a
-                            href="#"
+                            href="/terms"
                             className="hover:text-white transition-colors"
                         >
                             Terms
