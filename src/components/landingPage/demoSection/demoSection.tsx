@@ -3,7 +3,10 @@ import { motion } from "framer-motion";
 import { PlayIcon, Gamepad2Icon } from "lucide-react";
 export function DemoSection() {
     return (
-        <section className="py-24 bg-slate-900 border-y border-slate-800 relative overflow-hidden">
+        <section
+            id="demo"
+            className="py-24 bg-slate-900 border-y border-slate-800 relative overflow-hidden"
+        >
             <div className="absolute inset-0 scanlines opacity-10 pointer-events-none" />
 
             <div className="max-w-7xl mx-auto px-6 text-center relative z-10">
@@ -37,7 +40,7 @@ export function DemoSection() {
 
                     <div className="relative aspect-video group cursor-pointer">
                         <img
-                            src="https://cdn.magicpatterns.com/uploads/pVsitjZ6rPTE3jH2ULXp3T/Screenshot_2025-12-07_at_4.00.03_AM.png"
+                            src="https://camo.githubusercontent.com/5d8964ce817418a7658dc7228a2d2a603bba41a970f96183af33d7324a07100e/68747470733a2f2f63646e2e737461746963616c6c792e696f2f67682f61696e64657265772f61696e6465726577406d61737465722f776f726b646173682e706e67"
                             alt="Game Interface"
                             className="w-full h-full object-cover opacity-80 group-hover:opacity-40 transition-opacity duration-500"
                         />

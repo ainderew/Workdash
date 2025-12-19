@@ -1,6 +1,6 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { CheckIcon, SwordIcon, CrownIcon, ShieldIcon } from "lucide-react";
+import { CheckIcon, SwordIcon, ShieldIcon } from "lucide-react";
 const tiers = [
     {
         name: "Small Party",
@@ -20,12 +20,12 @@ const tiers = [
     {
         name: "Guild Upgrade",
         level: 50,
-        price: "7",
+        price: "5",
         icon: ShieldIcon,
         color: "purple",
         features: [
+            "All features from Small Party*",
             "Up to 50 Players",
-            "Custom Map Builder",
             "HD Video Streams",
             "Custom Emotes",
             "Role Management",
@@ -34,27 +34,13 @@ const tiers = [
         highlight: true,
         xp: 75,
     },
-    {
-        name: "Epic Mode",
-        level: 99,
-        price: "Custom",
-        icon: CrownIcon,
-        color: "yellow",
-        features: [
-            "Unlimited Players",
-            "Dedicated Server",
-            "SSO Login",
-            "Audit Logs",
-            "24/7 GM Support",
-        ],
-        cta: "Contact Admins",
-        xp: 100,
-    },
 ];
 export function Pricing() {
     return (
-        <section className="py-32 bg-slate-950 relative overflow-hidden">
-            {/* Background Effects */}
+        <section
+            id="pricing"
+            className="py-32 bg-slate-950 relative overflow-hidden"
+        >
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-purple-900/20 via-slate-950 to-slate-950" />
 
             <div className="max-w-7xl mx-auto px-6 relative z-10">
@@ -70,7 +56,7 @@ export function Pricing() {
                     </p>
                 </div>
 
-                <div className="grid md:grid-cols-3 gap-8 items-start">
+                <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto items-start">
                     {tiers.map((tier, index) => {
                         const isHighlight = tier.highlight;
                         const colorClass =
@@ -104,7 +90,7 @@ export function Pricing() {
                                 }}
                                 className={`
                   relative group min-h-full flex flex-col rounded-2xl p-8 border-2 transition-all duration-300
-                  ${isHighlight ? "bg-slate-900/80 border-purple-500 shadow-[0_0_30px_rgba(168,85,247,0.15)] scale-105 z-10" : "bg-slate-900/50 border-slate-800 hover:border-slate-600"}
+                  ${isHighlight ? "bg-slate-900/80 border-purple-500 shadow-[0_0_30px_rgba(168,85,247,0.15)]  z-10" : "bg-slate-900/50 border-slate-800 hover:border-slate-600"}
                 `}
                             >
                                 {isHighlight && (
@@ -149,7 +135,6 @@ export function Pricing() {
                                     />
                                 </div>
 
-                                {/* Price */}
                                 <div className="flex items-baseline gap-1 mb-8">
                                     <span className="text-4xl font-bold text-white">
                                         {tier.price === "Custom"
@@ -187,12 +172,6 @@ export function Pricing() {
                                 >
                                     {tier.cta}
                                 </button>
-
-                                {/* Decorative Pixel Corners */}
-                                <div className="absolute -top-2 -left-2 w-5 h-5 border-t-5 border-l-5 border-white/20" />
-                                <div className="absolute -top-2 -right-2 w-5 h-5 border-t-5 border-r-5 border-white/20" />
-                                <div className="absolute -bottom-2 -left-2 w-5 h-5 border-b-5 border-l-5 border-white/20" />
-                                <div className="absolute -bottom-2 -right-2 w-5 h-5 border-b-5 border-r-5 border-white/20" />
                             </motion.div>
                         );
                     })}

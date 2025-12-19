@@ -253,7 +253,10 @@ const PresenceDemo = () => (
 );
 export function Features() {
     return (
-        <section className="py-32 bg-slate-950 relative overflow-hidden">
+        <section
+            id="features"
+            className="py-32 bg-slate-950 relative overflow-hidden"
+        >
             {/* Section Header */}
             <div className="max-w-7xl mx-auto px-6 mb-24 text-center relative z-10">
                 <motion.h2

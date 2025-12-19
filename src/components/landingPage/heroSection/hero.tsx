@@ -8,7 +8,7 @@ import {
     CpuIcon,
 } from "lucide-react";
 import { useRouter } from "next/router";
-import UiControlsMockup from "./uiControlsMockup";
+import VirtualInterface from "./virtualInterface";
 export function Hero() {
     const router = useRouter();
     const { scrollY } = useScroll();
@@ -132,7 +132,7 @@ export function Hero() {
 
                         <button className="group cursor-pointer flex-1 justify-center px-8 py-4 bg-slate-900/50 border border-slate-700 text-white font-bold text-sm uppercase tracking-wider hover:border-cyan-500/50 hover:text-cyan-400 transition-all flex items-center gap-2">
                             <PlayIcon className="w-4 h-4" />
-                            Watch Trailer
+                            Watch Guides
                         </button>
                     </div>
 
@@ -167,124 +167,7 @@ export function Hero() {
                 </motion.div>
 
                 {/* Visual/Interactive Side */}
-                <motion.div
-                    style={{
-                        y: y1,
-                    }}
-                    className="relative hidden lg:block h-[600px] w-full"
-                >
-                    {/* Main "Game Window" Container */}
-                    <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-md border border-slate-700 rounded-2xl overflow-hidden shadow-2xl box-glow transform rotate-y-12 perspective-1000">
-                        {/* Window Header */}
-                        <div className="h-8 bg-slate-800 border-b border-slate-700 flex items-center px-4 gap-2">
-                            <div className="w-3 h-3 rounded-full bg-red-500/50" />
-                            <div className="w-3 h-3 rounded-full bg-yellow-500/50" />
-                            <div className="w-3 h-3 rounded-full bg-green-500/50" />
-                            <div className="ml-auto text-[10px] font-mono text-slate-500">
-                                v2.0.4-beta
-                            </div>
-                        </div>
-
-                        <div className="relative h-full w-full bg-slate-950 p-8">
-                            {/* Grid Floor */}
-                            <div className="absolute inset-0 bg-[linear-gradient(rgba(0,243,255,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(0,243,255,0.05)_1px,transparent_1px)] bg-[size:40px_40px] [transform:perspective(500px)_rotateX(60deg)] origin-top" />
-
-                            {/* Floating Sprites */}
-                            <motion.div
-                                animate={{
-                                    y: [0, -10, 0],
-                                }}
-                                transition={{
-                                    duration: 4,
-                                    repeat: Infinity,
-                                    ease: "easeInOut",
-                                }}
-                                className="absolute top-1/3 left-1/3"
-                            >
-                                <div className="relative group cursor-pointer">
-                                    <img
-                                        src="/assets/landing-male.png"
-                                        alt=""
-                                        className="w-12 h-12 drop-shadow-[0_0_15px_rgba(0,243,255,0.5)] z-10 relative object-cover"
-                                    />
-
-                                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-900/80 px-2 py-1 rounded text-[10px] text-cyan-400 whitespace-nowrap border border-cyan-500/30">
-                                        Dev_Andrew
-                                    </div>
-                                    <motion.div
-                                        initial={{
-                                            scale: 0,
-                                            opacity: 0,
-                                        }}
-                                        animate={{
-                                            scale: [0, 1, 1, 0],
-                                            opacity: [0, 1, 1, 0],
-                                        }}
-                                        transition={{
-                                            duration: 3,
-                                            repeat: Infinity,
-                                            repeatDelay: 2,
-                                        }}
-                                        className="absolute -right-24 -top-4 bg-white text-slate-900 px-3 py-1 rounded-lg rounded-bl-none text-xs font-bold"
-                                    >
-                                        Deploying! 🚀
-                                    </motion.div>
-                                </div>
-                            </motion.div>
-
-                            <motion.div
-                                animate={{
-                                    y: [0, -15, 0],
-                                }}
-                                transition={{
-                                    duration: 5,
-                                    repeat: Infinity,
-                                    ease: "easeInOut",
-                                    delay: 1,
-                                }}
-                                className="absolute top-1/2 right-1/3"
-                            >
-                                <div className="relative group cursor-pointer">
-                                    <img
-                                        src="/assets/landing-female.png"
-                                        alt=""
-                                        className="w-12 h-12 drop-shadow-[0_0_15px_rgba(188,19,254,0.5)] z-10 relative object-cover"
-                                    />
-
-                                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-900/80 px-2 py-1 rounded text-[10px] text-purple-400 whitespace-nowrap border border-purple-500/30">
-                                        Designer_Marj
-                                    </div>
-                                </div>
-                            </motion.div>
-
-                            <UiControlsMockup />
-                        </div>
-                    </div>
-
-                    <motion.div
-                        style={{
-                            y: y2,
-                        }}
-                        className="absolute -right-12 top-20 w-48 p-4 bg-slate-800/90 backdrop-blur border border-slate-600 rounded-lg shadow-xl z-20"
-                    >
-                        <div className="flex items-center gap-3 mb-2">
-                            <div className="w-8 h-8 rounded bg-green-500 flex items-center justify-center text-xs font-bold text-slate-900">
-                                JS
-                            </div>
-                            <div>
-                                <div className="text-xs font-bold text-white">
-                                    Andrew Pinon
-                                </div>
-                                <div className="text-[10px] text-green-400">
-                                    Online • In Meeting
-                                </div>
-                            </div>
-                        </div>
-                        <div className="h-1 w-full bg-slate-700 rounded-full overflow-hidden">
-                            <div className="h-full w-full bg-green-500 animate-pulse" />
-                        </div>
-                    </motion.div>
-                </motion.div>
+                <VirtualInterface y1={y1} y2={y2} />
             </div>
 
             <motion.div
