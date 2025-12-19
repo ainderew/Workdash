@@ -160,11 +160,13 @@ export function Hero() {
                                 Team Created
                             </div>
                         </div>
-                        <div className="flex items-center gap-[-10px]">
-                            {[1, 2, 3, 4].map((i) => (
-                                <div
+                        <div className="flex items-center">
+                            {[1, 2, 3, 4, 5].map((i) => (
+                                <img
                                     key={i}
-                                    className={`w-8 h-8 rounded-full border-2 border-slate-950 bg-slate-800 -ml-3 first:ml-0 z-${10 - i}`}
+                                    src={`/landing-page/users/p${i}.png`}
+                                    alt={`User ${i}`}
+                                    className={`w-8 h-8 rounded-full border-2 border-slate-950 -ml-3 first:ml-0 z-${10 - i} object-cover`}
                                 />
                             ))}
                         </div>
