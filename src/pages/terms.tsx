@@ -80,7 +80,7 @@ const TermsPage = () => {
         <section className="space-y-3 bg-slate-800/50 p-6 rounded-lg border border-slate-700">
           <h2 className="text-2xl font-semibold text-white">8. Limitation of Liability</h2>
           <p className="text-slate-300 leading-relaxed">
-            The App is provided "as is" without warranties. WorkDash is not responsible for:
+            The App is provided &quot;as is&quot; without warranties. WorkDash is not responsible for:
           </p>
           <ul className="list-disc ml-6 space-y-2 text-slate-300">
             <li>Loss or corruption of data</li>

@@ -14,7 +14,7 @@ const PrivacyPage = () => {
         <section className="space-y-3 bg-slate-800/50 p-6 rounded-lg border border-slate-700">
           <h2 className="text-2xl font-semibold text-white">1. Introduction</h2>
           <p className="text-slate-300 leading-relaxed">
-            WorkDash ("we," "us," or "our") is committed to protecting your privacy. This Privacy Policy
+            WorkDash (&quot;we,&quot; &quot;us,&quot; or &quot;our&quot;) is committed to protecting your privacy. This Privacy Policy
             explains how we collect, use, disclose, and safeguard your information when you use our application
             and services.
           </p>
@@ -148,7 +148,7 @@ const PrivacyPage = () => {
         </section>
 
         <section className="space-y-3 bg-slate-800/50 p-6 rounded-lg border border-slate-700">
-          <h2 className="text-2xl font-semibold text-white">10. Children's Privacy</h2>
+          <h2 className="text-2xl font-semibold text-white">10. Children&apos;s Privacy</h2>
           <p className="text-slate-300 leading-relaxed">
             Our services are not intended for users under 13 years of age. We do not knowingly collect
             information from children. If we discover we have collected data from a child, we will delete
