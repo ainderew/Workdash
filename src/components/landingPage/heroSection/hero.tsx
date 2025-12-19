@@ -285,7 +285,7 @@ export function Hero() {
                             </div>
                             <div>
                                 <div className="text-xs font-bold text-white">
-                                    Mongo Loyd
+                                    Andrew Pinon
                                 </div>
                                 <div className="text-[10px] text-green-400">
                                     Online • In Meeting

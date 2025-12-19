@@ -35,12 +35,9 @@ export function Footer() {
                         </p>
 
                         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                            <button className="group px-8 py-4 bg-gradient-to-r from-orange-500 to-pink-500 text-white rounded-full font-semibold text-lg hover:shadow-2xl hover:shadow-orange-500/50 transition-all hover:scale-105 flex items-center justify-center gap-2">
+                            <button className="group px-8 py-2 bg-gradient-to-r from-orange-500 to-pink-500 text-white rounded-full font-semibold text-lg hover:shadow-2xl hover:shadow-orange-500/50 transition-all hover:scale-105 flex items-center justify-center gap-2">
                                 Get started free
-                                <ArrowRightIcon className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                            </button>
-                            <button className="px-8 py-4 bg-slate-800 text-white rounded-full font-semibold text-lg hover:bg-slate-700 transition-all border border-slate-700">
-                                Schedule a demo
+                                <ArrowRightIcon className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                             </button>
                         </div>
                     </motion.div>
@@ -51,7 +48,7 @@ export function Footer() {
             <div className="border-t border-slate-800 py-8 px-6">
                 <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
                     <div className="text-slate-500 text-sm">
-                        © 2024 Your Company. Building better remote culture.
+                        © 2024 WorkDash. Building better remote culture.
                     </div>
 
                     <div className="flex gap-8 text-sm text-slate-400">
