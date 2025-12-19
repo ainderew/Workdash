@@ -173,7 +173,7 @@ export function SocialProof() {
                                             {/* Quote */}
                                             <div className="relative bg-slate-800/50 p-3 rounded border border-slate-700/50">
                                                 <p className="text-xs text-slate-300 italic leading-relaxed">
-                                                    "{npc.quote}"
+                                                    &quot;{npc.quote}&qupt;
                                                 </p>
                                             </div>
 

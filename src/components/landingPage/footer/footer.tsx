@@ -30,8 +30,8 @@ export function Footer() {
                         </h2>
 
                         <p className="text-xl text-slate-400 mb-10 max-w-2xl mx-auto">
-                            Join teams who've discovered that remote work
-                            doesn't mean disconnected work.
+                            Join teams who&apos;ve discovered that remote work
+                            doesn&apos;t mean disconnected work.
                         </p>
 
                         <div className="flex flex-col sm:flex-row gap-4 justify-center">
