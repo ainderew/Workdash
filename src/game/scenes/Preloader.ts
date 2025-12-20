@@ -2,27 +2,31 @@ import { Scene } from "phaser";
 import { SpriteKeys } from "../commmon/enums";
 
 export class Preloader extends Scene {
-    private readonly GRADIENT_KEY = "progress-gradient";
+    private readonly PROGRESS_KEY = "progress-fill";
+    private readonly NEURAL_CANVAS_KEY = "neural-link-bg";
+
     private progressSprite!: Phaser.GameObjects.Sprite;
+    private neuralTexture!: Phaser.Textures.CanvasTexture;
+    private nodes: {
+        x: number;
+        y: number;
+        vx: number;
+        vy: number;
+        color: string;
+    }[] = [];
     private barWidth: number = 0;
+    private readonly NODE_COUNT = 90;
+    private readonly LINK_DISTANCE = 120;
 
     constructor() {
         super("Preloader");
     }
 
     preload() {
-        const width = this.cameras.main.width;
-        const height = this.cameras.main.height;
+        const { width, height } = this.cameras.main;
 
-        this.load.image("loading-bg", "assets/loading-screen.jpg");
-
-        // Background Image Layer
-        this.load.once("filecomplete-image-loading-bg", () => {
-            const bg = this.add.image(width / 2, height / 2, "loading-bg");
-            bg.setOrigin(0.5).setDepth(-10);
-            const scale = Math.max(width / bg.width, height / bg.height);
-            bg.setScale(0.6);
-        });
+        this.initNeuralCanvas(width, height);
+        this.add.image(0, 0, this.NEURAL_CANVAS_KEY).setOrigin(0).setDepth(0);
 
         this.barWidth = width * 0.45;
         const barHeight = 20;
@@ -30,15 +34,14 @@ export class Preloader extends Scene {
         const barY = height * 0.82;
         const borderRadius = barHeight / 2;
 
-        this.createGradientTexture(this.barWidth, barHeight);
+        this.createProgressTexture(this.barWidth, barHeight);
 
-        // 4. Solid HD Border & Track (Background of the bar)
-        const progressUI = this.add.graphics();
-        progressUI.setDepth(1);
+        const ui = this.add.graphics().setDepth(10);
 
-        // Solid Track Background
-        progressUI.fillStyle(0x000000, 0.8);
-        progressUI.fillRoundedRect(
+        ui.fillStyle(0x050510, 0.9);
+        ui.fillRoundedRect(barX, barY, this.barWidth, barHeight, borderRadius);
+        ui.lineStyle(2, 0x00ffff, 1);
+        ui.strokeRoundedRect(
             barX,
             barY,
             this.barWidth,
@@ -46,58 +49,105 @@ export class Preloader extends Scene {
             borderRadius,
         );
 
-        // Solid HD Border (Crisp Cyan)
-        progressUI.lineStyle(2, 0x00ffff, 1);
-        progressUI.strokeRoundedRect(
-            barX,
-            barY,
-            this.barWidth,
-            barHeight,
-            borderRadius,
-        );
-
-        // 5. The Actual Gradient Sprite (The Fill)
-        // We use setCrop to simulate the loading fill
         this.progressSprite = this.add.sprite(
             barX + 2,
             barY + 2,
-            this.GRADIENT_KEY,
+            this.PROGRESS_KEY,
         );
-        this.progressSprite.setOrigin(0, 0).setDepth(2);
-
-        // Adjust the sprite slightly to fit inside the 2px border
+        this.progressSprite.setOrigin(0, 0).setDepth(11);
         this.progressSprite.setDisplaySize(this.barWidth - 4, barHeight - 4);
-
-        // Initialize with 0 width visible
         this.progressSprite.setCrop(0, 0, 0, barHeight);
 
-        // 6. Minimalist Text
         this.add
-            .text(width / 2, barY - 25, "SYNCHRONIZING ASSETS", {
-                fontSize: 20,
-                fontFamily: "'Inter', sans-serif",
+            .text(width / 2, barY - 25, "LOADING ASSETS", {
+                fontSize: "12px",
+                fontFamily: "sans-serif",
                 color: "#ffffff",
             })
             .setOrigin(0.5)
-            .setLetterSpacing(4);
-
-        // --- LOAD EVENTS ---
+            .setLetterSpacing(5);
 
         this.load.on("progress", (value: number) => {
-            // value is 0 to 1. We crop the texture based on this value.
-            // setCrop(x, y, width, height)
-            const totalWidth = this.barWidth - 4;
-            this.progressSprite.setCrop(0, 0, totalWidth * value, barHeight);
+            const currentFill = (this.barWidth - 4) * value;
+            this.progressSprite.setCrop(0, 0, currentFill, barHeight);
         });
 
         this.load.on("complete", () => {
-            this.time.delayedCall(300, () => this.scene.start("Game"));
+            this.time.delayedCall(500, () => this.scene.start("Game"));
         });
 
         this.loadGameAssets();
     }
 
-    private createGradientTexture(width: number, height: number): void {
+    private initNeuralCanvas(width: number, height: number) {
+        this.neuralTexture = this.textures.createCanvas(
+            this.NEURAL_CANVAS_KEY,
+            width,
+            height,
+        )!;
+
+        for (let i = 0; i < this.NODE_COUNT; i++) {
+            this.nodes.push({
+                x: Math.random() * width,
+                y: Math.random() * height,
+                vx: (Math.random() - 0.5) * 0.8,
+                vy: (Math.random() - 0.5) * 0.8,
+                color: Math.random() > 0.5 ? "#00ffff" : "#9d00ff",
+            });
+        }
+    }
+
+    update() {
+        if (!this.neuralTexture) return;
+
+        const ctx = this.neuralTexture.context;
+        const { width, height } = this.neuralTexture;
+
+        ctx.fillStyle = "#050510";
+        ctx.fillRect(0, 0, width, height);
+
+        this.nodes.forEach((node) => {
+            node.x += node.vx;
+            node.y += node.vy;
+
+            if (node.x < 0 || node.x > width) node.vx *= -1;
+            if (node.y < 0 || node.y > height) node.vy *= -1;
+        });
+
+        ctx.lineWidth = 0.8;
+        for (let i = 0; i < this.nodes.length; i++) {
+            const p1 = this.nodes[i];
+
+            for (let j = i + 1; j < this.nodes.length; j++) {
+                const p2 = this.nodes[j];
+                const dx = p1.x - p2.x;
+                const dy = p1.y - p2.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance < this.LINK_DISTANCE) {
+                    const opacity = 1 - distance / this.LINK_DISTANCE;
+                    ctx.strokeStyle =
+                        p1.color === "#00ffff"
+                            ? `rgba(0, 255, 255, ${opacity * 0.4})`
+                            : `rgba(157, 0, 255, ${opacity * 0.4})`;
+
+                    ctx.beginPath();
+                    ctx.moveTo(p1.x, p1.y);
+                    ctx.lineTo(p2.x, p2.y);
+                    ctx.stroke();
+                }
+            }
+
+            ctx.fillStyle = p1.color;
+            ctx.beginPath();
+            ctx.arc(p1.x, p1.y, 1.5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        this.neuralTexture.refresh();
+    }
+
+    private createProgressTexture(width: number, height: number) {
         const canvas = document.createElement("canvas");
         canvas.width = width;
         canvas.height = height;
@@ -105,20 +155,20 @@ export class Preloader extends Scene {
 
         const gradient = ctx.createLinearGradient(0, 0, width, 0);
         gradient.addColorStop(0, "#00ffff");
-        gradient.addColorStop(0.4, "#00ffff");
+        gradient.addColorStop(0.6, "#00ffff");
         gradient.addColorStop(1, "#9d00ff");
 
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, width, height);
 
-        if (this.textures.exists(this.GRADIENT_KEY)) {
-            this.textures.remove(this.GRADIENT_KEY);
-        }
-        this.textures.addCanvas(this.GRADIENT_KEY, canvas);
+        if (this.textures.exists(this.PROGRESS_KEY))
+            this.textures.remove(this.PROGRESS_KEY);
+        this.textures.addCanvas(this.PROGRESS_KEY, canvas);
     }
 
     private loadGameAssets() {
         this.load.setPath("assets");
+        // Tilesets
         this.load.image(
             "Exterior",
             "tile-sets/Modern_Exteriors_Complete_Tileset_32x32.png",
@@ -130,14 +180,15 @@ export class Preloader extends Scene {
                 `tile-sets/Interiors_32x32_part_${i}.png`,
             );
         }
+        // Map & UI
         this.load.tilemapTiledJSON("map", "map1.json");
         this.load.image("star", "star.png");
         this.load.image("background", "theoria.jpg");
         this.load.image("active-voice", "sound.png");
 
-        const loadChar = (key: string, path: string, w: number, h: number) =>
-            this.load.spritesheet(key, path, { frameWidth: w, frameHeight: h });
-
+        // Spritesheets
+        const loadChar = (k: string, p: string, w: number, h: number) =>
+            this.load.spritesheet(k, p, { frameWidth: w, frameHeight: h });
         loadChar(
             SpriteKeys.ADAM_ATTACK,
             "characters/Adam_phone_16x16.png",
