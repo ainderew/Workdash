@@ -8,7 +8,7 @@ export default function Game() {
     return (
         <>
             <Head>
-                <title>Gather Is Bad</title>
+                <title>WorkDash</title>
                 <meta name="description" content="" />
                 <meta
                     name="viewport"

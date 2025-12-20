@@ -46,7 +46,6 @@ export default function VirtualInterface({ y1, y2 }: VirtualInterfaceProps) {
                             alt=""
                             className="w-10 h-10 drop-shadow-[0_4px_6px_rgba(0,0,0,0.4)] z-10 relative object-contain"
                         />
-                        {/* Name tag */}
                         <div className="absolute -top-7 left-1/2 -translate-x-1/2 bg-white/90 dark:bg-slate-900/90 px-2 py-0.5 rounded text-[10px] text-slate-900 dark:text-white whitespace-nowrap flex items-center gap-1 shadow-lg">
                             <span className="w-1.5 h-1.5 bg-green-400 rounded-full" />
                             You
@@ -54,7 +53,7 @@ export default function VirtualInterface({ y1, y2 }: VirtualInterfaceProps) {
                     </div>
                 </motion.div>
 
-                {/* Character 2 - Marj (positioned near the couches) */}
+                {/*Girlie pop */}
                 <motion.div
                     animate={{ y: [0, -5, 0] }}
                     transition={{
@@ -71,10 +70,9 @@ export default function VirtualInterface({ y1, y2 }: VirtualInterfaceProps) {
                             alt=""
                             className="w-10 h-10 drop-shadow-[0_4px_6px_rgba(0,0,0,0.4)] z-10 relative object-contain"
                         />
-                        {/* Name tag */}
                         <div className="absolute -top-7 left-1/2 -translate-x-1/2 bg-white/90 dark:bg-slate-900/90 px-2 py-0.5 rounded text-[10px] text-slate-900 dark:text-white whitespace-nowrap flex items-center gap-1 shadow-lg">
                             <span className="w-1.5 h-1.5 bg-green-400 rounded-full" />
-                            Marj
+                            Manuelene
                         </div>
                     </div>
                 </motion.div>
@@ -85,9 +83,19 @@ export default function VirtualInterface({ y1, y2 }: VirtualInterfaceProps) {
                         style={{ y: videoBubble1Y }}
                         className="w-28 h-20 bg-slate-100 dark:bg-slate-800 rounded-lg border-2 border-slate-300 dark:border-slate-600 overflow-hidden relative shadow-xl"
                     >
-                        <div className="absolute inset-0 bg-gradient-to-br from-slate-200 dark:from-slate-700 to-slate-300 dark:to-slate-900" />
-                        {/* Placeholder for video - could use actual image */}
-                        <div className="absolute inset-2 bg-slate-400/50 dark:bg-slate-600/50 rounded" />
+                        <video
+                            poster="/assets/male-video-call-placeholder.jpg"
+                            autoPlay
+                            loop
+                            muted
+                            playsInline
+                            className="absolute inset-0 w-full h-full object-cover"
+                        >
+                            <source
+                                src="/assets/male-video-call.mp4"
+                                type="video/mp4"
+                            />
+                        </video>
                         <div className="absolute bottom-1 left-1 bg-white/90 dark:bg-slate-900/90 px-1.5 py-0.5 rounded text-[8px] text-slate-900 dark:text-white flex items-center gap-1">
                             <span className="w-1 h-1 bg-green-400 rounded-full" />
                             You
@@ -97,8 +105,19 @@ export default function VirtualInterface({ y1, y2 }: VirtualInterfaceProps) {
                         style={{ y: videoBubble2Y }}
                         className="w-28 h-20 bg-slate-100 dark:bg-slate-800 rounded-lg border-2 border-slate-300 dark:border-slate-600 overflow-hidden relative shadow-xl"
                     >
-                        <div className="absolute inset-0 bg-gradient-to-br from-slate-200 dark:from-slate-700 to-slate-300 dark:to-slate-900" />
-                        <div className="absolute inset-2 bg-slate-400/50 dark:bg-slate-600/50 rounded" />
+                        <video
+                            poster="/assets/female-video-call-placeholder.jpg"
+                            autoPlay
+                            loop
+                            muted
+                            playsInline
+                            className="absolute inset-0 w-full h-full object-cover"
+                        >
+                            <source
+                                src="/assets/female-video-call.mp4"
+                                type="video/mp4"
+                            />
+                        </video>
                     </motion.div>
                 </div>
 
@@ -110,7 +129,9 @@ export default function VirtualInterface({ y1, y2 }: VirtualInterfaceProps) {
                             A
                         </div>
                         <div className="text-[10px]">
-                            <div className="text-slate-900 dark:text-white font-medium">Andrew</div>
+                            <div className="text-slate-900 dark:text-white font-medium">
+                                Andrew
+                            </div>
                             <div className="text-green-400">Available</div>
                         </div>
                     </div>
@@ -173,7 +194,9 @@ export default function VirtualInterface({ y1, y2 }: VirtualInterfaceProps) {
                         >
                             <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" />
                         </svg>
-                        <span className="text-[10px] text-slate-900 dark:text-white">2 Online</span>
+                        <span className="text-[10px] text-slate-900 dark:text-white">
+                            2 Online
+                        </span>
                         <span className="w-1.5 h-1.5 bg-green-400 rounded-full" />
                     </div>
                 </div>
