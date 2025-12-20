@@ -29,9 +29,9 @@ export function Hero() {
         return () => window.removeEventListener("mousemove", handleMouseMove);
     }, []);
     return (
-        <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-slate-950 pt-20">
+        <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-slate-50 dark:bg-slate-950 pt-20">
             <div className="absolute inset-0 bg-grid-pattern opacity-20" />
-            <div className="absolute inset-0 bg-gradient-to-b from-slate-950/50 via-transparent to-slate-950 pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-b from-slate-50/50 dark:from-slate-950/50 via-transparent to-slate-50 dark:to-slate-950 pointer-events-none" />
 
             <div className="scanlines absolute inset-0 scanlines opacity-30 pointer-events-none z-20" />
 
@@ -40,33 +40,33 @@ export function Hero() {
                     x: mousePosition.x * 10,
                     y: mousePosition.y * 10,
                 }}
-                className="absolute top-1/4 right-1/3 w-64 h-64 bg-cyan-500/40 rounded-full blur-[100px]"
+                className="absolute top-1/4 right-1/3 w-64 h-64 bg-cyan-500/20 dark:bg-cyan-500/40 rounded-full blur-[100px]"
             />
             <motion.div
                 style={{
                     x: mousePosition.x * 10,
                     y: mousePosition.y * 10,
                 }}
-                className="absolute top-1/4 right-1/3 w-96 h-96 bg-purple-500/40 rounded-full blur-[100px]"
+                className="absolute top-1/4 right-1/3 w-96 h-96 bg-purple-500/20 dark:bg-purple-500/40 rounded-full blur-[100px]"
             />
 
             <div className="absolute top-24 left-6 md:left-12 flex flex-col gap-2 opacity-50 pointer-events-none">
-                <div className="flex items-center gap-2 text-xs font-mono text-cyan-400">
+                <div className="flex items-center gap-2 text-xs font-mono text-cyan-600 dark:text-cyan-400">
                     <WifiIcon className="w-3 h-3" />
                     <span>NET_STATUS: ONLINE</span>
                 </div>
-                <div className="flex items-center gap-2 text-xs font-mono text-cyan-400">
+                <div className="flex items-center gap-2 text-xs font-mono text-cyan-600 dark:text-cyan-400">
                     <CpuIcon className="w-3 h-3" />
                     <span>SYS_LOAD: 12%</span>
                 </div>
             </div>
 
             <div className="absolute top-24 right-6 md:right-12 flex flex-col items-end gap-2 opacity-50 pointer-events-none">
-                <div className="flex items-center gap-2 text-xs font-mono text-cyan-400">
+                <div className="flex items-center gap-2 text-xs font-mono text-cyan-600 dark:text-cyan-400">
                     <span>BATTERY</span>
                     <BatteryIcon className="w-3 h-3" />
                 </div>
-                <div className="text-xs font-mono text-cyan-400">
+                <div className="text-xs font-mono text-cyan-600 dark:text-cyan-400">
                     LOC: LOBBY_01
                 </div>
             </div>
@@ -99,20 +99,20 @@ export function Hero() {
                         transition={{
                             delay: 0.2,
                         }}
-                        className="inline-flex items-center gap-2 px-3 py-1 bg-cyan-950/30 border border-cyan-500/30 rounded-full text-cyan-400 text-xs font-mono mb-6"
+                        className="inline-flex items-center gap-2 px-3 py-1 bg-cyan-100/50 dark:bg-cyan-950/30 border border-cyan-500/30 rounded-full text-cyan-700 dark:text-cyan-400 text-xs font-mono mb-6"
                     >
-                        <span className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse" />
+                        <span className="w-2 h-2 bg-cyan-600 dark:bg-cyan-400 rounded-full animate-pulse" />
                         MISSION: REMOTE_WORK_REVOLUTION
                     </motion.div>
 
-                    <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight tracking-tight">
+                    <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-slate-900 dark:text-white mb-6 leading-tight tracking-tight">
                         WORK TOGETHER. <br />
                         <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 text-glow-cyan">
                             PLAY TOGETHER.
                         </span>
                     </h1>
 
-                    <p className="text-lg text-slate-400 mb-8 max-w-xl leading-relaxed">
+                    <p className="text-lg text-slate-600 dark:text-slate-400 mb-8 max-w-xl leading-relaxed">
                         Transform your boring video calls into an immersive 2D
                         MMO. Walk up to colleagues, join guilds, and build your
                         digital HQ in a world that feels alive.
@@ -130,15 +130,15 @@ export function Hero() {
                             </span>
                         </button>
 
-                        <button className="group cursor-pointer flex-1 justify-center px-8 py-4 bg-slate-900/50 border border-slate-700 text-white font-bold text-sm uppercase tracking-wider hover:border-cyan-500/50 hover:text-cyan-400 transition-all flex items-center gap-2">
+                        <button className="group cursor-pointer flex-1 justify-center px-8 py-4 bg-slate-100 dark:bg-slate-900/50 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white font-bold text-sm uppercase tracking-wider hover:border-cyan-500/50 hover:text-cyan-600 dark:hover:text-cyan-400 transition-all flex items-center gap-2">
                             <PlayIcon className="w-4 h-4" />
                             Watch Guides
                         </button>
                     </div>
 
-                    <div className="mt-12 flex items-center gap-8 border-t border-slate-800 pt-8">
+                    <div className="mt-12 flex items-center gap-8 border-t border-slate-200 dark:border-slate-800 pt-8">
                         <div>
-                            <div className="text-2xl font-bold text-white font-mono">
+                            <div className="text-2xl font-bold text-slate-900 dark:text-white font-mono">
                                 1
                             </div>
                             <div className="text-xs text-slate-500 uppercase tracking-wider">
@@ -146,7 +146,7 @@ export function Hero() {
                             </div>
                         </div>
                         <div>
-                            <div className="text-2xl font-bold text-white font-mono">
+                            <div className="text-2xl font-bold text-slate-900 dark:text-white font-mono">
                                 1
                             </div>
                             <div className="text-xs text-slate-500 uppercase tracking-wider">
@@ -159,7 +159,7 @@ export function Hero() {
                                     key={i}
                                     src={`/landing-page/users/p${i}.png`}
                                     alt={`User ${i}`}
-                                    className={`w-8 h-8 rounded-full border-2 border-slate-950 -ml-3 first:ml-0 z-${10 - i} object-cover`}
+                                    className={`w-8 h-8 rounded-full border-2 border-slate-50 dark:border-slate-950 -ml-3 first:ml-0 z-${10 - i} object-cover`}
                                 />
                             ))}
                         </div>
@@ -180,10 +180,10 @@ export function Hero() {
                     repeat: Infinity,
                 }}
             >
-                <div className="text-[10px] font-mono uppercase tracking-widest text-cyan-400 font-bold z-10">
+                <div className="text-[10px] font-mono uppercase tracking-widest text-cyan-600 dark:text-cyan-400 font-bold z-10">
                     Scroll to Start
                 </div>
-                <div className="w-px h-12 bg-gradient-to-b from-cyan-400 to-transparent" />
+                <div className="w-px h-12 bg-gradient-to-b from-cyan-600 dark:from-cyan-400 to-transparent" />
             </motion.div>
         </section>
     );

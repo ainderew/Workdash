@@ -183,10 +183,10 @@ body {
 }
 
 @layer utilities {
-  .clip-path-polygon {
-    clip-path: polygon(92% 0, 100% 25%, 100% 100%, 8% 100%, 0% 75%, 0 0);
-  }
-  .clip-path-polygon-sm {
-    clip-path: polygon(90% 0, 100% 30%, 100% 100%, 10% 100%, 0% 70%, 0 0);
-  }
+    .clip-path-polygon {
+        clip-path: polygon(92% 0, 100% 25%, 100% 100%, 8% 100%, 0% 75%, 0 0);
+    }
+    .clip-path-polygon-sm {
+        clip-path: polygon(90% 0, 100% 30%, 100% 100%, 10% 100%, 0% 70%, 0 0);
+    }
 }

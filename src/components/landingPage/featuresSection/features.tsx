@@ -18,7 +18,7 @@ const features: Feature[] = [
         description:
             "Just walk up to a colleague to start talking. Audio fades in naturally as you approach, just like in real life.",
         icon: MicIcon,
-        color: "text-cyan-400",
+        color: "text-cyan-600 dark:text-cyan-400",
     },
     {
         id: "f2",
@@ -27,7 +27,7 @@ const features: Feature[] = [
         description:
             "Step into a meeting room and your video feed instantly pops up. No links, no waiting rooms, just presence.",
         icon: VideoIcon,
-        color: "text-purple-400",
+        color: "text-purple-600 dark:text-purple-400",
     },
     {
         id: "f3",
@@ -36,7 +36,7 @@ const features: Feature[] = [
         description:
             "Send coffee, throw confetti, or dance. Rich interactions that bring joy back to remote work.",
         icon: SparklesIcon,
-        color: "text-pink-400",
+        color: "text-pink-600 dark:text-pink-400",
     },
     {
         id: "f4",
@@ -45,12 +45,12 @@ const features: Feature[] = [
         description:
             "See where everyone is at a glance. Focus zones, social lounges, and collaboration tables.",
         icon: UsersIcon,
-        color: "text-yellow-400",
+        color: "text-yellow-600 dark:text-yellow-400",
     },
 ];
 // Micro-interaction Components
 const WalkTalkDemo = () => (
-    <div className="relative w-full h-full bg-slate-900/50 flex items-center justify-center overflow-hidden">
+    <div className="relative w-full h-full bg-slate-100/50 dark:bg-slate-900/50 flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 bg-grid-pattern opacity-30" />
         {/* Avatar 1 (User) */}
         <motion.div
@@ -71,7 +71,7 @@ const WalkTalkDemo = () => (
             />
             {/* <div className="w-12 h-12 rounded-lg flex items-center justify-center text-slate-950 font-bold bg-[url('/assets/landing-female.png')] bg-cover bg-center" /> */}
             <motion.div
-                className="absolute -top-10 -right-20 bg-white text-slate-900 px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap"
+                className="absolute -top-10 -right-20 bg-white dark:bg-white text-slate-900 px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap"
                 animate={{
                     opacity: [0, 1, 1, 0],
                     scale: [0.8, 1, 1, 0.8],
@@ -95,7 +95,7 @@ const WalkTalkDemo = () => (
                 className="w-12 h-12 drop-shadow-[0_0_15px_rgba(188,19,254,0.5)] z-10 relative object-cover"
             />
             <motion.div
-                className="absolute top-15 -left-20 bg-white text-slate-900 px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap"
+                className="absolute top-15 -left-20 bg-white dark:bg-white text-slate-900 px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap"
                 animate={{
                     opacity: [0, 0, 1, 0],
                     scale: [0.8, 0.8, 1, 0.8],
@@ -125,10 +125,10 @@ const WalkTalkDemo = () => (
     </div>
 );
 const VideoPodsDemo = () => (
-    <div className="relative w-full h-full bg-slate-900/50 flex flex-col items-center justify-center p-8">
+    <div className="relative w-full h-full bg-slate-100/50 dark:bg-slate-900/50 flex flex-col items-center justify-center p-8">
         <div className="absolute inset-0 bg-grid-pattern opacity-30" />
         {/* Meeting Room Floor */}
-        <div className="w-48 h-32 border-2 border-slate-600 rounded-xl relative mb-4 bg-slate-800/30">
+        <div className="w-48 h-32 border-2 border-slate-400 dark:border-slate-600 rounded-xl relative mb-4 bg-slate-200/50 dark:bg-slate-800/30">
             <div className="absolute inset-0 flex items-center justify-center text-xs text-slate-500 font-mono">
                 MEETING_ROOM_01
             </div>
@@ -156,7 +156,7 @@ const VideoPodsDemo = () => (
 
         {/* Video Popup */}
         <motion.div
-            className="absolute top-8 right-8 w-32 h-20 bg-slate-800 border border-purple-500 rounded-lg shadow-2xl overflow-hidden z-20"
+            className="absolute top-8 right-8 w-32 h-20 bg-slate-100 dark:bg-slate-800 border border-purple-500 rounded-lg shadow-2xl overflow-hidden z-20"
             initial={{
                 scale: 0,
                 opacity: 0,
@@ -172,7 +172,7 @@ const VideoPodsDemo = () => (
                 delay: 0.5,
             }}
         >
-            <div className="w-full h-full bg-slate-700 flex items-center justify-center">
+            <div className="w-full h-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center">
                 <VideoIcon className="w-8 h-8 text-slate-500" />
             </div>
             <div className="absolute bottom-1 right-1 w-2 h-2 bg-green-500 rounded-full" />
@@ -180,7 +180,7 @@ const VideoPodsDemo = () => (
     </div>
 );
 const ReactionsDemo = () => (
-    <div className="relative w-full h-full bg-slate-900/50 flex items-center justify-center">
+    <div className="relative w-full h-full bg-slate-100/50 dark:bg-slate-900/50 flex items-center justify-center">
         <div className="absolute inset-0 bg-grid-pattern opacity-30" />
         <div className="relative">
             <img
@@ -214,20 +214,20 @@ const ReactionsDemo = () => (
     </div>
 );
 const PresenceDemo = () => (
-    <div className="relative w-full h-full bg-slate-900/50 p-6">
+    <div className="relative w-full h-full bg-slate-100/50 dark:bg-slate-900/50 p-6">
         <div className="absolute inset-0 bg-grid-pattern opacity-30" />
         <div className="grid grid-cols-2 gap-4 h-full">
-            <div className="border border-green-500/30 bg-green-500/5 rounded-lg p-2 relative">
-                <div className="text-[10px] text-green-400 font-mono mb-2">
+            <div className="border border-green-600/30 dark:border-green-500/30 bg-green-600/5 dark:bg-green-500/5 rounded-lg p-2 relative">
+                <div className="text-[10px] text-green-600 dark:text-green-400 font-mono mb-2">
                     FOCUS_ZONE
                 </div>
                 <div className="flex gap-1">
-                    <div className="w-6 h-6 bg-slate-700 rounded opacity-50" />
-                    <div className="w-6 h-6 bg-slate-700 rounded opacity-50" />
+                    <div className="w-6 h-6 bg-slate-200 dark:bg-slate-700 rounded opacity-50" />
+                    <div className="w-6 h-6 bg-slate-200 dark:bg-slate-700 rounded opacity-50" />
                 </div>
             </div>
-            <div className="border border-yellow-500/30 bg-yellow-500/5 rounded-lg p-2 relative">
-                <div className="text-[10px] text-yellow-400 font-mono mb-2">
+            <div className="border border-yellow-600/30 dark:border-yellow-500/30 bg-yellow-600/5 dark:bg-yellow-500/5 rounded-lg p-2 relative">
+                <div className="text-[10px] text-yellow-600 dark:text-yellow-400 font-mono mb-2">
                     LUNCH_AREA
                 </div>
                 <div className="flex gap-1 flex-wrap">
@@ -255,7 +255,7 @@ export function Features() {
     return (
         <section
             id="features"
-            className="py-32 bg-slate-950 relative overflow-hidden"
+            className="py-32 bg-slate-50 dark:bg-slate-950 relative overflow-hidden"
         >
             {/* Section Header */}
             <div className="max-w-7xl mx-auto px-6 mb-24 text-center relative z-10">
@@ -271,14 +271,14 @@ export function Features() {
                     viewport={{
                         once: true,
                     }}
-                    className="text-4xl md:text-5xl font-bold text-white mb-6"
+                    className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-white mb-6"
                 >
                     GAMEPLAY{" "}
                     <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-400">
                         FEATURES
                     </span>
                 </motion.h2>
-                <p className="text-slate-400 max-w-2xl mx-auto text-lg">
+                <p className="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto text-lg">
                     Work doesn&apos;t have to be boring. We&apos;ve gamified the
                     office experience to bring back serendipity and culture.
                 </p>
@@ -316,12 +316,12 @@ export function Features() {
                             {/* Interactive Module */}
                             <div className="w-full lg:w-1/2 aspect-video relative group">
                                 <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/20 to-purple-500/20 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-500 opacity-50" />
-                                <div className="relative h-full bg-slate-900 border border-slate-700 rounded-2xl overflow-hidden shadow-2xl group-hover:border-cyan-500/50 transition-colors duration-300">
+                                <div className="relative h-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-2xl overflow-hidden shadow-2xl group-hover:border-cyan-500/50 transition-colors duration-300">
                                     {/* HUD Header */}
-                                    <div className="h-8 bg-slate-800/50 border-b border-slate-700 flex items-center px-4 justify-between">
+                                    <div className="h-8 bg-slate-200/50 dark:bg-slate-800/50 border-b border-slate-300 dark:border-slate-700 flex items-center px-4 justify-between">
                                         <div className="flex gap-1.5">
-                                            <div className="w-2 h-2 rounded-full bg-slate-600" />
-                                            <div className="w-2 h-2 rounded-full bg-slate-600" />
+                                            <div className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600" />
+                                            <div className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600" />
                                         </div>
                                         <div className="text-[10px] font-mono text-slate-500 uppercase">
                                             Module_{feature.id}
@@ -347,15 +347,15 @@ export function Features() {
                                         System Active
                                     </span>
                                 </div>
-                                <h3 className="text-3xl md:text-4xl font-bold text-white mb-6 leading-tight">
+                                <h3 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white mb-6 leading-tight">
                                     {feature.title}
                                 </h3>
-                                <p className="text-lg text-slate-400 leading-relaxed">
+                                <p className="text-lg text-slate-600 dark:text-slate-400 leading-relaxed">
                                     {feature.description}
                                 </p>
 
                                 <button
-                                    className={`mt-8 text-sm font-bold uppercase tracking-widest ${feature.color} hover:text-white transition-colors flex items-center gap-2 ${isEven ? "" : "lg:ml-auto"}`}
+                                    className={`mt-8 text-sm font-bold uppercase tracking-widest ${feature.color} hover:text-slate-900 dark:hover:text-white transition-colors flex items-center gap-2 ${isEven ? "" : "lg:ml-auto"}`}
                                 >
                                     Learn More{" "}
                                     <span className="text-lg">→</span>

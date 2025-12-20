@@ -5,6 +5,18 @@ export default function Document() {
         <Html lang="en">
             <Head />
             <body>
+                <script
+                    dangerouslySetInnerHTML={{
+                        __html: `
+                            try {
+                                const theme = localStorage.getItem('workdash-theme') || 'system';
+                                if (theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                                    document.documentElement.classList.add('dark');
+                                }
+                            } catch (e) {}
+                        `,
+                    }}
+                />
                 <Main />
                 <NextScript />
             </body>

@@ -39,19 +39,19 @@ export function Pricing() {
     return (
         <section
             id="pricing"
-            className="py-32 bg-slate-950 relative overflow-hidden"
+            className="py-32 bg-slate-50 dark:bg-slate-950 relative overflow-hidden"
         >
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-purple-900/20 via-slate-950 to-slate-950" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-purple-900/10 dark:from-purple-900/20 via-slate-50 dark:via-slate-950 to-slate-50 dark:to-slate-950" />
 
             <div className="max-w-7xl mx-auto px-6 relative z-10">
                 <div className="text-center mb-20">
-                    <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
+                    <h2 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-white mb-6">
                         CHOOSE YOUR{" "}
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-400">
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-600 dark:from-cyan-400 to-purple-600 dark:to-purple-400">
                             DIFFICULTY
                         </span>
                     </h2>
-                    <p className="text-slate-400">
+                    <p className="text-slate-600 dark:text-slate-400">
                         Scale your server capacity as your guild grows.
                     </p>
                 </div>
@@ -61,10 +61,10 @@ export function Pricing() {
                         const isHighlight = tier.highlight;
                         const colorClass =
                             tier.color === "cyan"
-                                ? "text-cyan-400 border-cyan-500/30"
+                                ? "text-cyan-600 dark:text-cyan-400 border-cyan-500/30"
                                 : tier.color === "purple"
-                                  ? "text-purple-400 border-purple-500/30"
-                                  : "text-yellow-400 border-yellow-500/30";
+                                  ? "text-purple-600 dark:text-purple-400 border-purple-500/30"
+                                  : "text-yellow-600 dark:text-yellow-400 border-yellow-500/30";
                         const bgClass =
                             tier.color === "cyan"
                                 ? "bg-cyan-500"
@@ -90,7 +90,7 @@ export function Pricing() {
                                 }}
                                 className={`
                   relative group min-h-full flex flex-col rounded-2xl p-8 border-2 transition-all duration-300
-                  ${isHighlight ? "bg-slate-900/80 border-purple-500 shadow-[0_0_30px_rgba(168,85,247,0.15)]  z-10" : "bg-slate-900/50 border-slate-800 hover:border-slate-600"}
+                  ${isHighlight ? "bg-white dark:bg-slate-900/80 border-purple-600 dark:border-purple-500 shadow-[0_0_30px_rgba(168,85,247,0.15)]  z-10" : "bg-white/50 dark:bg-slate-900/50 border-slate-300 dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-600"}
                 `}
                             >
                                 {isHighlight && (
@@ -103,23 +103,23 @@ export function Pricing() {
                                 <div className="flex justify-between items-start mb-6">
                                     <div>
                                         <div
-                                            className={`text-sm font-mono font-bold uppercase mb-1 ${tier.color === "cyan" ? "text-cyan-400" : tier.color === "purple" ? "text-purple-400" : "text-yellow-400"}`}
+                                            className={`text-sm font-mono font-bold uppercase mb-1 ${tier.color === "cyan" ? "text-cyan-600 dark:text-cyan-400" : tier.color === "purple" ? "text-purple-600 dark:text-purple-400" : "text-yellow-600 dark:text-yellow-400"}`}
                                         >
                                             LVL {tier.level}
                                         </div>
-                                        <h3 className="text-2xl font-bold text-white">
+                                        <h3 className="text-2xl font-bold text-slate-900 dark:text-white">
                                             {tier.name}
                                         </h3>
                                     </div>
                                     <div
-                                        className={`p-3 rounded-xl bg-slate-800 ${colorClass} border`}
+                                        className={`p-3 rounded-xl bg-slate-100 dark:bg-slate-800 ${colorClass} border`}
                                     >
                                         <tier.icon className="w-6 h-6" />
                                     </div>
                                 </div>
 
                                 {/* XP Bar */}
-                                <div className="w-full h-2 bg-slate-800 rounded-full mb-8 overflow-hidden">
+                                <div className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full mb-8 overflow-hidden">
                                     <motion.div
                                         initial={{
                                             width: 0,
@@ -136,7 +136,7 @@ export function Pricing() {
                                 </div>
 
                                 <div className="flex items-baseline gap-1 mb-8">
-                                    <span className="text-4xl font-bold text-white">
+                                    <span className="text-4xl font-bold text-slate-900 dark:text-white">
                                         {tier.price === "Custom"
                                             ? "Custom"
                                             : `$${tier.price}`}
@@ -153,10 +153,10 @@ export function Pricing() {
                                     {tier.features.map((feature) => (
                                         <li
                                             key={feature}
-                                            className="flex items-center gap-3 text-sm text-slate-300"
+                                            className="flex items-center gap-3 text-sm text-slate-700 dark:text-slate-300"
                                         >
                                             <CheckIcon
-                                                className={`w-4 h-4 ${tier.color === "cyan" ? "text-cyan-400" : tier.color === "purple" ? "text-purple-400" : "text-yellow-400"}`}
+                                                className={`w-4 h-4 ${tier.color === "cyan" ? "text-cyan-600 dark:text-cyan-400" : tier.color === "purple" ? "text-purple-600 dark:text-purple-400" : "text-yellow-600 dark:text-yellow-400"}`}
                                             />
                                             {feature}
                                         </li>
@@ -167,7 +167,7 @@ export function Pricing() {
                                 <button
                                     className={`
                   w-full py-4 rounded-xl font-bold text-sm uppercase tracking-wider transition-all mt-auto
-                  ${isHighlight ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:shadow-lg hover:shadow-purple-500/25" : "bg-slate-800 text-white hover:bg-slate-700"}
+                  ${isHighlight ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:shadow-lg hover:shadow-purple-500/25" : "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white hover:bg-slate-200 dark:hover:bg-slate-700"}
                 `}
                                 >
                                     {tier.cta}

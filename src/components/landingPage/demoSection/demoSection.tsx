@@ -5,7 +5,7 @@ export function DemoSection() {
     return (
         <section
             id="demo"
-            className="py-24 bg-slate-900 border-y border-slate-800 relative overflow-hidden"
+            className="py-24 bg-slate-100 dark:bg-slate-900 border-y border-slate-200 dark:border-slate-800 relative overflow-hidden"
         >
             <div className="absolute inset-0 scanlines opacity-10 pointer-events-none" />
 
@@ -22,17 +22,17 @@ export function DemoSection() {
                     viewport={{
                         once: true,
                     }}
-                    className="relative rounded-2xl overflow-hidden border border-slate-700 bg-slate-950 shadow-2xl"
+                    className="relative rounded-2xl overflow-hidden border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 shadow-2xl"
                 >
                     {/* Fake Browser/Game Header */}
-                    <div className="h-10 bg-slate-800 flex items-center px-4 gap-2 border-b border-slate-700">
+                    <div className="h-10 bg-slate-200 dark:bg-slate-800 flex items-center px-4 gap-2 border-b border-slate-300 dark:border-slate-700">
                         <div className="flex gap-1.5">
                             <div className="w-3 h-3 rounded-full bg-red-500" />
                             <div className="w-3 h-3 rounded-full bg-yellow-500" />
                             <div className="w-3 h-3 rounded-full bg-green-500" />
                         </div>
                         <div className="flex-1 text-center">
-                            <div className="inline-block px-4 py-1 bg-slate-900 rounded text-[10px] font-mono text-slate-400">
+                            <div className="inline-block px-4 py-1 bg-slate-100 dark:bg-slate-900 rounded text-[10px] font-mono text-slate-600 dark:text-slate-400">
                                 https://workdash.site/app
                             </div>
                         </div>
@@ -57,7 +57,7 @@ export function DemoSection() {
                         </div>
 
                         <div className="absolute bottom-8 left-0 right-0 text-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                            <span className="inline-flex items-center gap-2 px-4 py-2 bg-black/50 backdrop-blur rounded-full text-cyan-400 font-mono text-sm border border-cyan-500/30">
+                            <span className="inline-flex items-center gap-2 px-4 py-2 bg-black/50 backdrop-blur rounded-full text-cyan-600 dark:text-cyan-400 font-mono text-sm border border-cyan-600/30 dark:border-cyan-500/30">
                                 <Gamepad2Icon className="w-4 h-4" /> Click to
                                 Enter Demo Mode
                             </span>
