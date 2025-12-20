@@ -122,7 +122,7 @@ export default function VirtualInterface({ y1, y2 }: VirtualInterfaceProps) {
                 </div>
 
                 {/* Bottom Control Bar */}
-                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm rounded-full px-4 py-2 border border-slate-300 dark:border-slate-600 shadow-xl">
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm rounded-lg px-4 py-2 border border-slate-300 dark:border-slate-600 shadow-xl">
                     {/* User avatar */}
                     <div className="flex items-center gap-2 pr-3 border-r border-slate-300 dark:border-slate-600">
                         <div className="w-7 h-7 rounded-full bg-green-600 flex items-center justify-center text-[10px] font-bold text-white">
@@ -147,7 +147,7 @@ export default function VirtualInterface({ y1, y2 }: VirtualInterfaceProps) {
                                 <path d="M20 15.5c-1.25 0-2.45-.2-3.57-.57a1.02 1.02 0 00-1.02.24l-2.2 2.2a15.045 15.045 0 01-6.59-6.59l2.2-2.21a.96.96 0 00.25-1A11.36 11.36 0 018.5 4c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1 0 9.39 7.61 17 17 17 .55 0 1-.45 1-1v-3.5c0-.55-.45-1-1-1z" />
                             </svg>
                         </button>
-                        <button className="w-8 h-8 rounded-full bg-blue-600 hover:bg-blue-500 flex items-center justify-center text-white transition-colors">
+                        <button className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 hover:bg-blue-500 flex items-center justify-center text-white transition-colors">
                             <svg
                                 className="w-4 h-4"
                                 fill="currentColor"
@@ -174,7 +174,7 @@ export default function VirtualInterface({ y1, y2 }: VirtualInterfaceProps) {
                                 <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
                             </svg>
                         </button>
-                        <button className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 flex items-center justify-center text-yellow-400 transition-colors">
+                        <button className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 flex items-center justify-center text-slate-700 dark:text-slate-300 transition-colors">
                             <svg
                                 className="w-4 h-4"
                                 fill="currentColor"
