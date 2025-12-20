@@ -65,16 +65,16 @@ const npcs = [
 export function SocialProof() {
     const [hoveredId, setHoveredId] = useState<number | null>(null);
     return (
-        <section className="py-20 bg-slate-950 border-y border-slate-800 relative">
+        <section className="py-20 bg-slate-100 dark:bg-slate-950 border-y border-slate-200 dark:border-slate-800 relative">
             <div className="absolute inset-0 bg-grid-pattern opacity-10" />
 
             <div className="max-w-7xl mx-auto px-6 relative z-10">
                 <div className="flex items-center gap-4 mb-12">
-                    <div className="h-px flex-1 bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent" />
-                    <h3 className="text-cyan-400 font-mono text-sm tracking-widest uppercase">
+                    <div className="h-px flex-1 bg-gradient-to-r from-transparent via-cyan-600/50 dark:via-cyan-500/50 to-transparent" />
+                    <h3 className="text-cyan-600 dark:text-cyan-400 font-mono text-sm tracking-widest uppercase">
                         Trusted by Top Guilds
                     </h3>
-                    <div className="h-px flex-1 bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent" />
+                    <div className="h-px flex-1 bg-gradient-to-r from-transparent via-cyan-600/50 dark:via-cyan-500/50 to-transparent" />
                 </div>
 
                 <div className="flex flex-wrap justify-center gap-6 md:gap-8">
@@ -101,9 +101,9 @@ export function SocialProof() {
                         >
                             <motion.div
                                 className="
-                  w-16 h-16 md:w-20 md:h-20 rounded-xl bg-white
+                  w-16 h-16 md:w-20 md:h-20 rounded-xl bg-white border border-slate-200 dark:border-transparent
                   flex items-center justify-center cursor-pointer
-                  group-hover:border-white group-hover:scale-110
+                  group-hover:border-slate-300 dark:group-hover:border-white group-hover:scale-110
                   transition-all duration-300 shadow-lg shadow-black/50
                   relative overflow-hidden
                 "
@@ -138,23 +138,23 @@ export function SocialProof() {
                                         }}
                                         className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 w-64 md:w-80 z-50 pointer-events-none"
                                     >
-                                        <div className="bg-slate-900/95 backdrop-blur-xl border border-slate-700 rounded-lg p-4 shadow-2xl relative">
-                                            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-slate-900 border-b border-r border-slate-700 rotate-45" />
+                                        <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-300 dark:border-slate-700 rounded-lg p-4 shadow-2xl relative">
+                                            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white dark:bg-slate-900 border-b border-r border-slate-300 dark:border-slate-700 rotate-45" />
 
                                             <div className="flex items-start justify-between mb-3">
                                                 <div>
-                                                    <h4 className="font-bold text-white text-sm">
+                                                    <h4 className="font-bold text-slate-900 dark:text-white text-sm">
                                                         {npc.name}
                                                     </h4>
-                                                    <p className="text-xs text-cyan-400 font-mono">
+                                                    <p className="text-xs text-cyan-600 dark:text-cyan-400 font-mono">
                                                         {npc.role}
                                                     </p>
                                                 </div>
-                                                <div className="flex flex-col items-end text-[10px] font-mono text-slate-400">
+                                                <div className="flex flex-col items-end text-[10px] font-mono text-slate-600 dark:text-slate-400">
                                                     <span>
                                                         LVL {npc.stats.lvl}
                                                     </span>
-                                                    <div className="w-16 h-1 bg-slate-800 rounded-full mt-1 overflow-hidden">
+                                                    <div className="w-16 h-1 bg-slate-200 dark:bg-slate-800 rounded-full mt-1 overflow-hidden">
                                                         <div
                                                             className="h-full bg-yellow-400"
                                                             style={{
@@ -165,18 +165,18 @@ export function SocialProof() {
                                                 </div>
                                             </div>
 
-                                            <div className="relative bg-slate-800/50 p-3 rounded border border-slate-700/50">
-                                                <p className="text-xs text-slate-300 italic leading-relaxed">
+                                            <div className="relative bg-slate-100/50 dark:bg-slate-800/50 p-3 rounded border border-slate-300/50 dark:border-slate-700/50">
+                                                <p className="text-xs text-slate-700 dark:text-slate-300 italic leading-relaxed">
                                                     &quot;{npc.quote}&qupt;
                                                 </p>
                                             </div>
 
                                             <div className="grid grid-cols-2 gap-2 mt-3">
-                                                <div className="flex items-center gap-2 text-[10px] text-slate-400 font-mono">
+                                                <div className="flex items-center gap-2 text-[10px] text-slate-600 dark:text-slate-400 font-mono">
                                                     <span className="text-red-400">
                                                         STR
                                                     </span>
-                                                    <div className="flex-1 h-1 bg-slate-800 rounded-full">
+                                                    <div className="flex-1 h-1 bg-slate-200 dark:bg-slate-800 rounded-full">
                                                         <div
                                                             className="h-full bg-red-400"
                                                             style={{
@@ -185,11 +185,11 @@ export function SocialProof() {
                                                         />
                                                     </div>
                                                 </div>
-                                                <div className="flex items-center gap-2 text-[10px] text-slate-400 font-mono">
+                                                <div className="flex items-center gap-2 text-[10px] text-slate-600 dark:text-slate-400 font-mono">
                                                     <span className="text-blue-400">
                                                         INT
                                                     </span>
-                                                    <div className="flex-1 h-1 bg-slate-800 rounded-full">
+                                                    <div className="flex-1 h-1 bg-slate-200 dark:bg-slate-800 rounded-full">
                                                         <div
                                                             className="h-full bg-blue-400"
                                                             style={{

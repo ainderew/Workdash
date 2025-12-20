@@ -9,7 +9,7 @@ import { Navbar } from "@/components/navbar/navbar";
 
 export default function LandingPage() {
     return (
-        <div className="w-full min-h-screen bg-slate-950 text-slate-200 selection:bg-cyan-500/30 selection:text-cyan-200">
+        <div className="w-full min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-200 selection:bg-cyan-500/30 selection:text-cyan-200">
             <Navbar />
             <Hero />
             <Features />

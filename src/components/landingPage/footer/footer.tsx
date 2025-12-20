@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { ArrowRightIcon } from "lucide-react";
 export function Footer() {
     return (
-        <footer className="bg-slate-900 border-t border-slate-800">
+        <footer className="bg-slate-100 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800">
             {/* CTA Section */}
             <section className="py-24 px-6">
                 <div className="max-w-4xl mx-auto text-center">
@@ -23,13 +23,13 @@ export function Footer() {
                             duration: 0.6,
                         }}
                     >
-                        <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
+                        <h2 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-white mb-6">
                             Ready to transform your
                             <br />
                             remote culture?
                         </h2>
 
-                        <p className="text-xl text-slate-400 mb-10 max-w-2xl mx-auto">
+                        <p className="text-xl text-slate-600 dark:text-slate-400 mb-10 max-w-2xl mx-auto">
                             Join teams who&apos;ve discovered that remote work
                             doesn&apos;t mean disconnected work.
                         </p>
@@ -45,10 +45,10 @@ export function Footer() {
             </section>
 
             {/* Footer Links */}
-            <div className="border-t border-slate-800 py-8 px-6">
+            <div className="border-t border-slate-200 dark:border-slate-800 py-8 px-6">
                 <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
                     <div className="flex flex-col md:flex-row items-center gap-4">
-                        <div className="text-slate-500 text-sm">
+                        <div className="text-slate-600 dark:text-slate-400 text-sm">
                             © 2024 WorkDash. Building better remote culture.
                         </div>
                         <a
@@ -62,22 +62,22 @@ export function Footer() {
                         </a>
                     </div>
 
-                    <div className="flex gap-8 text-sm text-slate-400">
+                    <div className="flex gap-8 text-sm text-slate-600 dark:text-slate-400">
                         <a
                             href="/privacy"
-                            className="hover:text-white transition-colors"
+                            className="hover:text-slate-900 dark:hover:text-white transition-colors"
                         >
                             Privacy
                         </a>
                         <a
                             href="/terms"
-                            className="hover:text-white transition-colors"
+                            className="hover:text-slate-900 dark:hover:text-white transition-colors"
                         >
                             Terms
                         </a>
                         <a
                             href="#"
-                            className="hover:text-white transition-colors"
+                            className="hover:text-slate-900 dark:hover:text-white transition-colors"
                         >
                             Contact
                         </a>
