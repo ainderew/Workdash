@@ -35,116 +35,14 @@ export class Game extends Scene {
     }
 
     preload() {
-        this.load.setPath("assets");
-        this.load.image(
-            "Exterior",
-            "tile-sets/Modern_Exteriors_Complete_Tileset_32x32.png",
-        );
-
-        this.load.image("Interior_2", "tile-sets/Room_Builder_32x32.png");
-
-        for (let i = 0; i < 9; i++) {
-            this.load.image(
-                `Interior_Tile_${i}`,
-                `tile-sets/Interiors_32x32_part_${i}.png`,
-            );
-        }
-
-        this.load.tilemapTiledJSON("map", "map1.json");
-
-        this.load.image("logo", "logo.png");
-        this.load.image("logo", "logo.png");
-        this.load.image("star", "star.png");
-        this.load.image("background", "theoria.jpg");
-        this.load.image("active-voice", "sound.png");
-
-        this.load.spritesheet(
-            SpriteKeys.ADAM_ATTACK,
-            "characters/Adam_phone_16x16.png",
-            {
-                frameWidth: 16,
-                frameHeight: 32,
-            },
-        );
-        this.load.spritesheet(
-            SpriteKeys.ADAM,
-            "characters/Adam_idle_16x16.png",
-            {
-                frameWidth: 16,
-                frameHeight: 32,
-            },
-        );
-        this.load.spritesheet(
-            SpriteKeys.ADAM_WALK,
-            "characters/Adam_walk_16x16.png",
-            {
-                frameWidth: 16,
-                frameHeight: 32,
-            },
-        );
-
-        this.load.spritesheet(
-            SpriteKeys.ORC,
-            "characters/Characters/Orc/OrcWithShadow/Orc.png",
-            {
-                frameWidth: 100,
-                frameHeight: 100,
-            },
-        );
-
-        this.load.spritesheet(
-            SpriteKeys.SOLDIER,
-            "characters/Characters/Soldier/SoldierWithShadow/Soldier.png",
-            {
-                frameWidth: 100,
-                frameHeight: 100,
-            },
-        );
-
-        this.load.spritesheet(
-            SpriteKeys.SOLDIER_ATTACK,
-            "characters/Characters/Soldier/SoldierWithShadow/Soldier-Attack01.png",
-            {
-                frameWidth: 100,
-                frameHeight: 100,
-            },
-        );
-
-        this.load.spritesheet(
-            SpriteKeys.ORC_ATTACK,
-            "characters/Characters/Orc/OrcWithShadow/Orc-Attack01.png",
-            {
-                frameWidth: 100,
-                frameHeight: 100,
-            },
-        );
-
-        //Walking
-        this.load.spritesheet(
-            SpriteKeys.SOLDIER_WALK,
-            "characters/Characters/Soldier/Soldier/Soldier-Walk.png",
-            {
-                frameWidth: 100,
-                frameHeight: 100,
-            },
-        );
-
-        this.load.spritesheet(
-            SpriteKeys.ORC_WALK,
-            "characters/Characters/Orc/OrcWithShadow/Orc-Walk.png",
-            {
-                frameWidth: 100,
-                frameHeight: 100,
-            },
-        );
-
-        this.load.once("complete", () => {
-            console.log("All assets loaded");
-            this.multiplayer.connectToserver();
-        });
+        // Assets are now loaded in the Preloader scene
+        // This scene is started after all assets are loaded
     }
 
     create() {
+        // Connect to multiplayer server
+        this.multiplayer.connectToserver();
+
         const map = this.make.tilemap({
             key: "map",
             tileWidth: 32,

@@ -1,10 +1,12 @@
+import { Boot } from "./scenes/Boot";
+import { Preloader } from "./scenes/Preloader";
 import { Game as GameScene } from "./scenes/Game";
 import { AUTO, Game } from "phaser";
 
 const config: Phaser.Types.Core.GameConfig = {
     type: AUTO,
     parent: "game-container",
-    backgroundColor: "#737373",
+    backgroundColor: "#000",
     title: "Gather Is Bad",
     disableContextMenu: true,
 
@@ -15,7 +17,7 @@ const config: Phaser.Types.Core.GameConfig = {
         width: "100%",
         height: "100%",
     },
-    scene: [GameScene],
+    scene: [Boot, Preloader, GameScene],
     pixelArt: true,
     antialias: true,
     roundPixels: true,
