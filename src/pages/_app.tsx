@@ -32,7 +32,7 @@ export default function App({
     pageProps: { session, ...pageProps },
 }: AppProps) {
     return (
-        <SessionProvider session={session}>
+        <SessionProvider session={session} refetchOnWindowFocus={false}>
             <ThemeProvider
                 attribute="class"
                 defaultTheme="system"

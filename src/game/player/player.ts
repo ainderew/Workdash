@@ -2,17 +2,21 @@ import Phaser, { Scene } from "phaser";
 import {
     AttackAnimationKeys,
     IdleAnimationKeys,
-    SpriteKeys,
     WalkAnimationKeys,
 } from "../commmon/enums";
 import { ReactionData } from "@/communication/reaction/_types";
 import { AvailabilityStatus } from "./_enums";
+import { CharacterCustomization } from "../character/_types";
+import { CharacterCompositor } from "../character/CharacterCompositor";
+import { CharacterAnimationManager } from "../character/CharacterAnimationManager";
 
 export class Player extends Phaser.Physics.Arcade.Sprite {
     public id: string;
     public name: string;
     private sprite: string;
     public scene: Scene;
+    private characterCustomization: CharacterCustomization | null = null;
+    private isChangingSprite: boolean = false;
     x: number;
     y: number;
     vx: number;
@@ -23,7 +27,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         vx: 0,
         vy: 0,
         t: Date.now(),
-    }; // latest server target
+    };
     prevPos = { x: this.x, y: this.y, t: Date.now() };
     public availabilityStatus: AvailabilityStatus = AvailabilityStatus.ONLINE;
     private statusCircle: Phaser.GameObjects.Graphics;
@@ -36,7 +40,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     } | null = null;
 
     public playerProducerIds: string[];
-
     private nameText: Phaser.GameObjects.Text;
     voiceIndicator: Phaser.GameObjects.Image;
     uiContainer: Phaser.GameObjects.Container;
@@ -60,19 +63,21 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         y: number,
         availabilityStatus: AvailabilityStatus,
         sprite: string,
+        customization: CharacterCustomization | null,
         ops: { isLocal: boolean },
     ) {
         super(scene, x, y, sprite);
 
         this.name = name as string;
         this.availabilityStatus = availabilityStatus;
+        this.characterCustomization = customization;
         scene.add.existing(this);
         scene.physics.add.existing(this);
 
-        this.setCollideWorldBounds(false);
+        this.setCollideWorldBounds(true);
         this.setMaxVelocity(500, 500);
         this.setBounce(0.1);
-        this.setScale(2);
+        this.setScale(1);
         this.setPushable(false);
         this.sprite = sprite;
 
@@ -99,7 +104,13 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         }
 
         this.initializeNameTag();
-        this.idleAnimation();
+
+        if (customization) {
+            this.changeSprite(customization);
+        } else {
+            this.idleAnimation();
+        }
+
         this.setupUiEventListener();
     }
 
@@ -136,14 +147,12 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             })
             .setOrigin(0.5, 0.5);
 
-        // Get text dimensions for bubble sizing
         const textBounds = emojiText.getBounds();
         const padding = 12;
         const bubbleWidth = textBounds.width + padding * 2;
         const bubbleHeight = textBounds.height + padding * 2;
         const tailHeight = 10;
 
-        // Create speech bubble background
         const bubble = this.scene.add.graphics();
 
         this.createBubble(
@@ -219,14 +228,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         y: number,
     ) {
         graphics.clear();
-
         graphics.fillStyle(0xffffff, 1);
-
         const cornerRadius = 8;
         const bubbleX = x - width / 2;
         const bubbleY = y - height / 2;
 
-        // Draw rounded rectangle
         graphics.fillRoundedRect(bubbleX, bubbleY, width, height, cornerRadius);
         graphics.strokeRoundedRect(
             bubbleX,
@@ -236,17 +242,16 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             cornerRadius,
         );
 
-        // Draw speech bubble tail pointing down
         const tailX = x;
         const tailY = bubbleY + height;
 
         graphics.fillTriangle(
             tailX - 8,
-            tailY, // Left point
+            tailY,
             tailX + 8,
-            tailY, // Right point
+            tailY,
             tailX,
-            tailY + tailHeight, // Bottom point
+            tailY + tailHeight,
         );
         graphics.strokeTriangle(
             tailX - 8,
@@ -270,10 +275,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
         this.statusCircle = this.scene.add.graphics();
         const circleRadius = 4;
-
         this.updateStatusCircle();
 
-        // Calculate dimensions including the status circle
         const nameWidth = this.nameText.width;
         const nameHeight = this.nameText.height;
         const padding = 8;
@@ -292,7 +295,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             8,
         );
 
-        // Position elements relative to center
         const circleX = -totalWidth / 2 + circleRadius;
         const nameX = circleX + circleRadius + gap + nameWidth / 2;
 
@@ -311,7 +313,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     private updateStatusCircle() {
         const displayRadius = 4;
         const drawRadius = 44;
-
         let statusColor: number;
         switch (this.availabilityStatus) {
             case AvailabilityStatus.ONLINE:
@@ -327,7 +328,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         this.statusCircle.clear();
         this.statusCircle.fillStyle(statusColor, 1);
         this.statusCircle.fillCircle(0, 0, drawRadius);
-
         this.statusCircle.setScale(displayRadius / drawRadius);
     }
 
@@ -340,25 +340,88 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     }
 
     public idleAnimation() {
-        this.anims.play(IdleAnimationKeys[this.sprite], true);
+        const animKey = IdleAnimationKeys[this.sprite];
+        if (animKey && this.scene.anims.exists(animKey)) {
+            this.anims.play(animKey, true);
+        }
     }
 
-    private walkAnimation() {
-        this.anims.play(WalkAnimationKeys[this.sprite], true);
+    // Helper to play generic or specific walk animations
+    private playWalkAnimation(directionKey?: string) {
+        if (!directionKey) {
+            const animKey = WalkAnimationKeys[this.sprite]; // Default (usually down)
+            if (animKey && this.scene.anims.exists(animKey)) {
+                this.anims.play(animKey, true);
+            }
+            return;
+        }
+
+        const animKey = WalkAnimationKeys[directionKey];
+        if (animKey && this.scene.anims.exists(animKey)) {
+            this.anims.play(animKey, true);
+        } else {
+            // Fallback to generic walk if specific direction missing
+            const fallbackKey = WalkAnimationKeys[this.sprite];
+            if (fallbackKey && this.scene.anims.exists(fallbackKey)) {
+                this.anims.play(fallbackKey, true);
+            }
+        }
     }
 
     private attackAnimation() {
-        this.anims.play(AttackAnimationKeys[this.sprite], true);
+        const animKey = AttackAnimationKeys[this.sprite];
+        if (animKey && this.scene.anims.exists(animKey)) {
+            this.anims.play(animKey, true);
+        }
     }
 
-    private changeSprite() {
-        this.sprite = SpriteKeys.ORC;
-        this.setTexture(SpriteKeys.ORC);
-        this.idleAnimation();
+    public async changeSprite(
+        newCustomization: CharacterCustomization,
+    ): Promise<void> {
+        if (this.isChangingSprite) {
+            return;
+        }
+        this.isChangingSprite = true;
+
+        try {
+            const compositor = new CharacterCompositor(this.scene);
+            const animManager = new CharacterAnimationManager(this.scene);
+            const characterKey = `custom-${this.id}`;
+            const spritesheetKey = `${characterKey}-spritesheet`;
+
+            await compositor.createAnimatedSpritesheet(
+                newCustomization,
+                spritesheetKey,
+            );
+
+            if (!this.scene.textures.exists(spritesheetKey)) {
+                console.error(`Texture ${spritesheetKey} was not created`);
+                return;
+            }
+
+            animManager.createCharacterAnimations(characterKey, spritesheetKey);
+            animManager.updateAnimationKeys(characterKey);
+
+            this.sprite = characterKey;
+            this.setTexture(spritesheetKey);
+            this.setFrame(0);
+            this.characterCustomization = newCustomization;
+
+            this.idleAnimation();
+        } catch (error) {
+            console.error("Error changing sprite:", error);
+        } finally {
+            this.isChangingSprite = false;
+        }
     }
 
     private setupUiEventListener() {
-        window.addEventListener("change-sprite", this.changeSprite.bind(this));
+        window.addEventListener("update-character", (event: Event) => {
+            const customEvent = event as CustomEvent<CharacterCustomization>;
+            if (this.isLocal && customEvent.detail) {
+                this.changeSprite(customEvent.detail);
+            }
+        });
     }
 
     public update() {
@@ -384,12 +447,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         if (up) vy -= this.moveSpeed;
         if (down) vy += this.moveSpeed;
 
+        const attackAnimKey = AttackAnimationKeys[this.sprite];
         const isAnimateAttacking =
-            this.anims.currentAnim?.key === AttackAnimationKeys[this.sprite];
+            this.anims.currentAnim?.key === attackAnimKey;
 
         if (isAnimateAttacking && this.anims.isPlaying) {
-            // Don't interrupt attack animation
-            // Optionally prevent movement during attack:
             return;
         }
 
@@ -397,37 +459,38 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             this.isAttacking = false;
         }
 
-        if (left) {
-            this.setFlipX(true);
-        } else if (right) {
-            this.setFlipX(false);
-        }
-
+        // Logic for Walking Directions
+        // Note: We do NOT use setFlipX(true) for left because the sprite sheet
+        // has specific "Walk Left" frames. We ensure flip is false so it draws correctly.
         if (left || right || up || down) {
             if (up) {
-                this.anims.play(WalkAnimationKeys.ADAM_UP, true);
+                this.setFlipX(false);
+                this.playWalkAnimation(`${this.sprite}_UP`);
             } else if (down) {
-                this.anims.play(WalkAnimationKeys.ADAM_DOWN, true);
-            } else {
-                this.walkAnimation();
+                this.setFlipX(false);
+                this.playWalkAnimation(`${this.sprite}_DOWN`);
+            } else if (left) {
+                this.setFlipX(false); // Do not flip; use the drawn left frames
+                this.playWalkAnimation(`${this.sprite}_LEFT`);
+            } else if (right) {
+                this.setFlipX(false);
+                this.playWalkAnimation(`${this.sprite}_RIGHT`);
             }
         } else if (space) {
-            if (
-                this.anims.currentAnim!.key !== AttackAnimationKeys[this.sprite]
-            ) {
+            const currentAnimKey = this.anims.currentAnim?.key;
+            if (currentAnimKey !== attackAnimKey) {
                 this.isAttacking = true;
                 this.attackAnimation();
             }
         } else {
-            if (
-                this.anims.currentAnim!.key !== IdleAnimationKeys[this.sprite]
-            ) {
-                console.log("idle");
+            const idleAnimKey = IdleAnimationKeys[this.sprite];
+            const currentAnimKey = this.anims.currentAnim?.key;
+            if (currentAnimKey !== idleAnimKey) {
                 this.idleAnimation();
             }
         }
 
-        // normalize diagonal movement so speed is consistent
+        // normalize diagonal movement
         if (vx !== 0 && vy !== 0) {
             vx *= Math.SQRT1_2;
             vy *= Math.SQRT1_2;
@@ -439,8 +502,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     }
 
     private interpolateRemote() {
+        const attackAnimKey = AttackAnimationKeys[this.sprite];
         const isAnimateAttacking =
-            this.anims.currentAnim?.key === AttackAnimationKeys[this.sprite];
+            this.anims.currentAnim?.key === attackAnimKey;
 
         if (isAnimateAttacking && this.anims.isPlaying) {
             return;
@@ -449,7 +513,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         if (!this.targetPos) return;
 
         const now = Date.now();
-        const elapsed = (now - this.targetPos.t) / 1000; // seconds
+        const elapsed = (now - this.targetPos.t) / 1000;
 
         const predictedX =
             this.targetPos.x + (this.targetPos.vx || 0) * elapsed;
@@ -460,32 +524,30 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         this.x += (predictedX - this.x) * lerpFactor;
         this.y += (predictedY - this.y) * lerpFactor;
 
-        if (this.targetPos.vx < -1) {
-            this.setFlipX(true);
-        } else if (this.targetPos.vx > 1) {
-            this.setFlipX(false);
-        }
-
+        // Remote Movement Logic
         const isMoving =
             Math.abs(this.targetPos.vx || 0) > 10 ||
             Math.abs(this.targetPos.vy || 0) > 10;
 
-        if (this.isAttacking) {
-            if (
-                this.anims.currentAnim?.key !== AttackAnimationKeys[this.sprite]
-            ) {
-                this.attackAnimation();
-            }
-        } else if (isMoving) {
-            if (
-                this.anims.currentAnim?.key !== WalkAnimationKeys[this.sprite]
-            ) {
-                this.walkAnimation();
+        const currentAnimKey = this.anims.currentAnim?.key;
+
+        // Use velocity to determine direction for remote players
+        if (isMoving) {
+            this.setFlipX(false);
+            const vx = this.targetPos.vx || 0;
+            const vy = this.targetPos.vy || 0;
+
+            // Prioritize the axis with larger movement
+            if (Math.abs(vx) > Math.abs(vy)) {
+                if (vx > 0) this.playWalkAnimation(`${this.sprite}_RIGHT`);
+                else this.playWalkAnimation(`${this.sprite}_LEFT`);
+            } else {
+                if (vy > 0) this.playWalkAnimation(`${this.sprite}_DOWN`);
+                else this.playWalkAnimation(`${this.sprite}_UP`);
             }
         } else {
-            if (
-                this.anims.currentAnim?.key !== IdleAnimationKeys[this.sprite]
-            ) {
+            const idleAnimKey = IdleAnimationKeys[this.sprite];
+            if (currentAnimKey !== idleAnimKey) {
                 this.idleAnimation();
             }
         }

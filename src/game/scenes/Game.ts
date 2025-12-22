@@ -9,6 +9,9 @@ import {
 } from "../commmon/enums";
 import usePlayersStore from "@/common/store/playerStore";
 import { AvailabilityStatus } from "../player/_enums";
+import { CharacterCustomization } from "../character/_types";
+import { CharacterCompositor } from "../character/CharacterCompositor";
+import { CharacterAnimationManager } from "../character/CharacterAnimationManager";
 
 export class Game extends Scene {
     //Game setup
@@ -21,6 +24,9 @@ export class Game extends Scene {
     localPlayerId: string;
     players: Map<string, Player>;
 
+    // FIX: Track players currently loading to prevent duplicate spawns during async waits
+    loadingPlayers: Set<string> = new Set();
+
     playersLayer: Phaser.Physics.Arcade.Group;
 
     // Multiplayer Logic
@@ -31,16 +37,21 @@ export class Game extends Scene {
     constructor() {
         super("Game");
         this.players = new Map();
-        this.multiplayer = new Multiplayer();
-    }
-
-    preload() {
-        // Assets are now loaded in the Preloader scene
-        // This scene is started after all assets are loaded
     }
 
     create() {
-        // Connect to multiplayer server
+        // Get JWT from window global (set by React wrapper)
+        const jwtToken = this.getJwtToken();
+
+        if (!jwtToken) {
+            console.error(
+                "JWT token is missing! Cannot connect to multiplayer server.",
+            );
+        } else {
+            console.log("JWT token found, connecting to multiplayer...");
+        }
+
+        this.multiplayer = new Multiplayer(jwtToken);
         this.multiplayer.connectToserver();
 
         const map = this.make.tilemap({
@@ -111,6 +122,11 @@ export class Game extends Scene {
             this.destroyPlayer.bind(this),
         );
         this.multiplayer.watchPlayerMovement(this.players);
+
+        // Explicitly join the game to spawn the character
+        // We spawn at a default location (e.g., 800, 800) or load from DB
+        this.multiplayer.joinGame(800, 800);
+
         this.startAnimation();
         this.initializeCollisions(
             wallLayer,
@@ -127,38 +143,101 @@ export class Game extends Scene {
         this.setupChatBlur();
     }
 
-    public createPlayer(
+    // FIX: Added 'async' keyword here so 'await' can be used inside
+    public async createPlayer(
         id: string,
         name: string | undefined,
         x: number,
         y: number,
         availabilityStatus: AvailabilityStatus = AvailabilityStatus.ONLINE,
+        customization: CharacterCustomization | null,
         opts: { isLocal: boolean },
-    ): void {
-        if (this.players.has(id)) {
+    ): Promise<void> {
+        // FIX: Check if player exists OR is currently loading to prevent race conditions
+        if (this.players.has(id) || this.loadingPlayers.has(id)) {
             return;
         }
 
+        this.loadingPlayers.add(id);
         console.log("Creating player:", id, name);
-        const playerInstance = new Player(
-            this,
-            name,
-            id,
-            x,
-            y,
-            availabilityStatus,
-            SpriteKeys.ADAM,
-            {
-                isLocal: opts.isLocal,
-            },
-        );
 
-        usePlayersStore.getState().addPlayerToMap(id, playerInstance as Player);
-        this.players.set(id, playerInstance);
-        this.playersLayer.add(playerInstance);
+        try {
+            let spriteKey: string;
 
-        if (opts.isLocal) {
-            this.setupLocalPlayer(playerInstance);
+            if (customization) {
+                // Create custom character
+                const characterKey = `custom-${id}`;
+                const spritesheetKey = `${characterKey}-spritesheet`;
+
+                const compositor = new CharacterCompositor(this);
+                const animManager = new CharacterAnimationManager(this);
+
+                try {
+                    // FIX: await ensures texture is ready before we try to use it
+                    await compositor.createAnimatedSpritesheet(
+                        customization,
+                        spritesheetKey,
+                    );
+
+                    // Double check texture exists
+                    if (this.textures.exists(spritesheetKey)) {
+                        animManager.createCharacterAnimations(
+                            characterKey,
+                            spritesheetKey,
+                        );
+                        animManager.updateAnimationKeys(characterKey);
+                        spriteKey = characterKey;
+                    } else {
+                        console.warn(
+                            `Texture ${spritesheetKey} missing after creation, using default`,
+                        );
+                        spriteKey = SpriteKeys.ADAM;
+                        customization = null;
+                    }
+                } catch (error) {
+                    console.error(
+                        "Error creating custom character texture:",
+                        error,
+                    );
+                    spriteKey = SpriteKeys.ADAM;
+                    customization = null;
+                }
+            } else {
+                // Fallback to default sprite
+                spriteKey = SpriteKeys.ADAM;
+            }
+
+            // Final check to ensure player wasn't added by another event while we were awaiting
+            if (this.players.has(id)) return;
+
+            const playerInstance = new Player(
+                this,
+                name,
+                id,
+                x,
+                y,
+                availabilityStatus,
+                spriteKey,
+                // Pass customization if we want Player to store it,
+                // but if we already loaded the texture, Player doesn't need to re-run changeSprite immediately.
+                customization,
+                {
+                    isLocal: opts.isLocal,
+                },
+            );
+
+            usePlayersStore
+                .getState()
+                .addPlayerToMap(id, playerInstance as Player);
+            this.players.set(id, playerInstance);
+            this.playersLayer.add(playerInstance);
+
+            if (opts.isLocal) {
+                this.setupLocalPlayer(playerInstance);
+            }
+        } finally {
+            // Always remove from loading set, even if error occurred
+            this.loadingPlayers.delete(id);
         }
     }
 
@@ -174,6 +253,7 @@ export class Game extends Scene {
             p.destroy();
             this.players.delete(id);
         }
+        this.loadingPlayers.delete(id);
     }
 
     /**
@@ -371,5 +451,10 @@ export class Game extends Scene {
                 active.blur();
             }
         });
+    }
+
+    private getJwtToken(): string {
+        // Get JWT token from window global (set by React wrapper)
+        return (window as any).__BACKEND_JWT__ || "";
     }
 }

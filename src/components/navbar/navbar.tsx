@@ -112,8 +112,8 @@ export function Navbar() {
                         className="relative group px-6 py-2 overflow-hidden"
                     >
                         <div className="absolute inset-0 bg-cyan-500/10 border border-cyan-500/50 clip-path-polygon-sm group-hover:bg-cyan-500 transition-all duration-300" />
-                        <span className="relative text-cyan-600 dark:text-cyan-400 group-hover:text-slate-950 text-[10px] font-mono font-bold tracking-widest flex items-center gap-2">
-                            LAUNCH_APP <ChevronRight className="w-3 h-3" />
+                        <span className="relative text-cyan-600 dark:text-cyan-400 dark:group-hover:text-slate-950 group-hover:text-slate-950 text-[10px] font-mono font-bold tracking-widest flex items-center gap-2">
+                            Login <ChevronRight className="w-3 h-3" />
                         </span>
                     </button>
                 </div>
@@ -152,7 +152,9 @@ export function Navbar() {
                         <div className="flex flex-col gap-8 mt-16">
                             {/* Theme toggle in mobile menu */}
                             <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
-                                <span className="text-xs font-mono text-slate-600 dark:text-slate-300">Theme</span>
+                                <span className="text-xs font-mono text-slate-600 dark:text-slate-300">
+                                    Theme
+                                </span>
                                 <ThemeToggle />
                             </div>
 

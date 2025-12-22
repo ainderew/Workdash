@@ -1,3 +1,5 @@
+import { CharacterCustomization } from "../character/_types";
+
 export interface PlayerDto {
     id: string;
     name?: string;
@@ -8,6 +10,7 @@ export interface PlayerDto {
     vx: number;
     vy: number;
     t?: Date;
+    characterCustomization?: CharacterCustomization;
     opts: {
         isLocal: boolean;
     };

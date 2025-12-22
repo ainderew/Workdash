@@ -49,98 +49,68 @@ const PrivacyPage = () => {
                             IP address, browser type, device information, and
                             operating system.
                         </li>
-                        <li>
-                            <strong className="text-white">
-                                Communication Metadata:
-                            </strong>{" "}
-                            Call duration and participant counts. Media content
-                            is never stored.
-                        </li>
                     </ul>
                 </section>
 
-                <section className="space-y-3 bg-slate-800/50 p-6 rounded-lg border border-slate-700">
+                <section className="space-y-3 bg-slate-800/50 p-6 rounded-lg border border-orange-500/30">
                     <h2 className="text-2xl font-semibold text-white">
-                        3. Google User Data
+                        3. Google User Data Policy & Limited Use
                     </h2>
 
-                    <p className="text-slate-300 leading-relaxed">
-                        Workdash uses Google APIs only after you log in and
-                        explicitly opt in to connect your Google account. Access
-                        is limited to read-only Google Calendar data.
-                    </p>
-
-                    <p className="text-slate-300 leading-relaxed mt-2">
-                        The following Google Calendar data may be accessed on
-                        demand:
-                    </p>
-
-                    <ul className="list-disc ml-6 space-y-2 text-slate-300">
-                        <li>Event titles</li>
-                        <li>Event dates and times</li>
-                        <li>Event descriptions</li>
-                        <li>
-                            Meeting or conference links included in calendar
-                            events (e.g., Zoom links)
-                        </li>
-                    </ul>
-
-                    <p className="text-slate-300 leading-relaxed mt-3">
-                        This data is used solely to:
-                    </p>
-
-                    <ul className="list-disc ml-6 space-y-2 text-slate-300">
-                        <li>Display your schedule inside Workdash</li>
-                        <li>
-                            Allow you to join meetings directly when a meeting
-                            link is present
-                        </li>
-                    </ul>
-
-                    <p className="text-slate-300 leading-relaxed mt-3">
-                        Google Calendar data is fetched directly from Google’s
-                        servers on demand when you use this feature. The data is
-                        processed in memory for real-time display purposes only.
-                    </p>
-
-                    <p className="text-slate-300 leading-relaxed mt-3">
-                        Workdash does{" "}
-                        <strong className="text-white">not</strong>:
-                    </p>
-
-                    <ul className="list-disc ml-6 space-y-2 text-slate-300">
-                        <li>Store Google Calendar data at rest</li>
-                        <li>Cache Google Calendar data</li>
-                        <li>Log calendar event contents</li>
-                        <li>Modify Google Calendar events</li>
-                        <li>Share Google user data with third parties</li>
-                        <li>
-                            Use Google user data for advertising, profiling, or
-                            machine learning
-                        </li>
-                    </ul>
-
-                    <p className="text-slate-300 leading-relaxed mt-3">
-                        You may revoke Workdash’s access to Google data at any
-                        time through your Google Account permissions. Once
-                        access is revoked, Workdash immediately loses the
-                        ability to query Google Calendar data.
-                    </p>
-
-                    <p className="text-slate-300 leading-relaxed mt-3">
-                        Workdash’s use of information received from Google APIs
-                        strictly complies with the
-                        <strong className="text-white">
-                            {" "}
+                    <p className="text-slate-300 leading-relaxed bg-slate-900/50 p-4 rounded border border-slate-700">
+                        Workdash’s use and transfer to any other app of
+                        information received from Google APIs will adhere to the{" "}
+                        <a
+                            href="https://developers.google.com/terms/api-services-user-data-policy"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-orange-400 underline hover:text-orange-300"
+                        >
                             Google API Services User Data Policy
-                        </strong>
-                        , including the
-                        <strong className="text-white">
-                            {" "}
-                            Limited Use requirements
-                        </strong>
-                        .
+                        </a>
+                        , including the Limited Use requirements.
                     </p>
+
+                    <div className="space-y-4 text-slate-300 mt-4">
+                        <p>
+                            We access Google Calendar data (Read-Only) solely to
+                            display your schedule and provide 1-click access to
+                            meeting links within the Workdash interface.
+                        </p>
+
+                        <strong className="text-white block mt-2">
+                            Data Protection Standards:
+                        </strong>
+                        <ul className="list-disc ml-6 space-y-2">
+                            <li>
+                                We do{" "}
+                                <span className="text-white font-bold">
+                                    not
+                                </span>{" "}
+                                share Google user data with third-party
+                                toolsets, platforms, or individuals.
+                            </li>
+                            <li>
+                                We do{" "}
+                                <span className="text-white font-bold">
+                                    not
+                                </span>{" "}
+                                use Google user data for serving advertisements.
+                            </li>
+                            <li>
+                                We do{" "}
+                                <span className="text-white font-bold">
+                                    not
+                                </span>{" "}
+                                use Google user data for training machine
+                                learning or AI models.
+                            </li>
+                            <li>
+                                Data is processed in-memory and is not stored at
+                                rest on our servers.
+                            </li>
+                        </ul>
+                    </div>
                 </section>
 
                 <section className="space-y-3 bg-slate-800/50 p-6 rounded-lg border border-slate-700">
@@ -148,45 +118,34 @@ const PrivacyPage = () => {
                         4. Voice, Video, and Screen Sharing
                     </h2>
                     <p className="text-slate-300 leading-relaxed">
-                        Workdash uses WebRTC and Mediasoup to provide real-time
-                        voice, video, and screen sharing. Media streams are
-                        encrypted in transit and are not recorded, stored, or
-                        accessed by Workdash.
+                        Workdash uses WebRTC to provide real-time communication.
+                        Media streams are encrypted in transit and are{" "}
+                        <span className="text-white font-bold">never</span>{" "}
+                        recorded or stored.
                     </p>
                 </section>
 
                 <section className="space-y-3 bg-slate-800/50 p-6 rounded-lg border border-slate-700">
                     <h2 className="text-2xl font-semibold text-white">
-                        5. Data Security
-                    </h2>
-                    <ul className="list-disc ml-6 space-y-2 text-slate-300">
-                        <li>Encrypted data transmission (HTTPS / TLS)</li>
-                        <li>
-                            Restricted server access and authentication controls
-                        </li>
-                        <li>Regular monitoring and system updates</li>
-                    </ul>
-                </section>
-
-                <section className="space-y-3 bg-slate-800/50 p-6 rounded-lg border border-slate-700">
-                    <h2 className="text-2xl font-semibold text-white">
-                        6. Data Retention
+                        5. Data Deletion & Your Rights
                     </h2>
                     <p className="text-slate-300 leading-relaxed">
-                        Account data is retained while your account is active.
-                        Google Calendar data and real-time communication data
-                        are not stored after use.
+                        You may access, update, or delete your account data at
+                        any time. To request permanent deletion of your account
+                        and associated data, please contact us at the email
+                        below.
                     </p>
-                </section>
-
-                <section className="space-y-3 bg-slate-800/50 p-6 rounded-lg border border-slate-700">
-                    <h2 className="text-2xl font-semibold text-white">
-                        7. Your Rights
-                    </h2>
-                    <p className="text-slate-300 leading-relaxed">
-                        You may access, update, or delete your personal
-                        information at any time. For privacy-related requests,
-                        contact us at workdash@gmail.com.
+                    <p className="text-slate-300">
+                        You can revoke Google API access at any time via your{" "}
+                        <a
+                            href="https://myaccount.google.com/permissions"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-orange-400 underline"
+                        >
+                            Google Security Settings
+                        </a>
+                        .
                     </p>
                 </section>
 
@@ -195,7 +154,11 @@ const PrivacyPage = () => {
                         Contact Us
                     </h2>
                     <p className="text-slate-300 leading-relaxed">
-                        Email: workdash@gmail.com
+                        For any privacy-related inquiries, please contact:
+                        <br />
+                        <span className="text-orange-400 font-medium">
+                            workdash@gmail.com
+                        </span>
                     </p>
                 </section>
             </div>

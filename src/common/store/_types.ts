@@ -1,14 +1,17 @@
 import { Player } from "@/game/player/player";
+import { CharacterCustomization } from "@/game/character/_types";
 
 export type User = {
     name: string;
     producerIds: string[];
+    characterCustomization?: CharacterCustomization;
 };
 
 export interface UserStore {
     user: User;
     setUser: (user: User) => void;
     updateUser: (updates: Partial<User>) => void;
+    setCharacterCustomization: (customization: CharacterCustomization) => void;
 }
 
 export interface PlayersStore {

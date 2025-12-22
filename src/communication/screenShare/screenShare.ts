@@ -77,12 +77,4 @@ export class ScreenShareService {
         //     this.systemAudioProducer = null;
         // }
     }
-
-    /**
-     * When users exit without stopping screen share manually
-     * This emits the producerClosed automatically to handle cleanup
-     */
-    public cleanupListener() {
-        window.addEventListener("pagehide", this.stopScreenShare.bind(this));
-    }
 }

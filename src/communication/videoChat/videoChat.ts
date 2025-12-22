@@ -68,14 +68,6 @@ export class VideoChatService {
         }
     }
 
-    /**
-     * When users exit without stopping video cam manually
-     * This emits the producerClosed automatically to handle cleanup
-     */
-    public cleanUpListener() {
-        window.addEventListener("pagehide", this.stopVideoChat.bind(this));
-    }
-
     public getCurrentStream() {
         return this.currentStream;
     }

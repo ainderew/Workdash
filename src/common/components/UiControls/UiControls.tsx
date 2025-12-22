@@ -9,6 +9,7 @@ import {
     VideoOff,
     ScreenShare as ScreenShareIcon,
     CalendarFold,
+    User,
 } from "lucide-react";
 import useUiControls from "./hooks/useUiControls";
 import ChatWindow from "../TextChat/ChatWindow";
@@ -20,6 +21,7 @@ import MembersUi from "../Members/MembersUi";
 import { VideoChatService } from "@/communication/videoChat/videoChat";
 import CalendarMenu from "../Google/CalendarMenu";
 import ReactionButton from "./ReactionButton";
+import { CharacterCustomizationButton } from "./CharacterCustomizationButton";
 
 function UiControls() {
     const {
@@ -122,6 +124,7 @@ function UiControls() {
                     icon={MessageCircle}
                     label={"Chat"}
                 />
+                <CharacterCustomizationButton />
                 <UiOnlineButton onClick={toggleMembersUi} />
             </div>
 

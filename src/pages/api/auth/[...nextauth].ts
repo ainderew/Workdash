@@ -57,12 +57,67 @@ export const authOptions: AuthOptions = {
                 params: {
                     scope: "openid email profile https://www.googleapis.com/auth/calendar.readonly",
                     access_type: "offline",
+                    include_granted_scopes: true,
                     prompt: "consent",
                 },
             },
         }),
     ],
     callbacks: {
+        async signIn({ user, account }) {
+            if (account?.provider === "google") {
+                try {
+                    const backendUrl = `${process.env.EXPRESS_API_URL}/api/auth/google-sync`;
+                    console.log("Attempting to sync with backend:", backendUrl);
+                    console.log("User data:", {
+                        email: user.email,
+                        name: user.name,
+                    });
+
+                    // Send the user data to your Express Backend
+                    const response = await fetch(backendUrl, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                            email: user.email,
+                            name: user.name,
+                            // image: user.image, // Optional: if you want to save their avatar
+                        }),
+                    });
+
+                    console.log("Backend response status:", response.status);
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        console.log("Backend sync successful, received token");
+
+                        // Store backend JWT token in the account object
+                        // This will be accessible in the jwt callback
+                        (account as any).backendJwt = data.token;
+                        (account as any).backendUser = data.user;
+                        (account as any).backendCharacter = data.character;
+
+                        return true; // Login successful
+                    } else {
+                        const errorText = await response.text();
+                        console.error("Failed to sync user with backend");
+                        console.error("Status:", response.status);
+                        console.error("Response:", errorText);
+                        return false; // Blocks login if backend sync fails
+                    }
+                } catch (error) {
+                    console.error("Backend sync error:", error);
+                    console.error(
+                        "EXPRESS_API_URL:",
+                        process.env.EXPRESS_API_URL,
+                    );
+                    return false;
+                }
+            }
+            return true;
+        },
         async jwt({ token, account }: { token: JWT; account: Account | null }) {
             if (account) {
                 return {
@@ -71,6 +126,9 @@ export const authOptions: AuthOptions = {
                         ? account.expires_at * 1000
                         : Date.now() + 3600 * 1000,
                     refreshToken: account.refresh_token,
+                    backendJwt: (account as any).backendJwt,
+                    backendUser: (account as any).backendUser,
+                    backendCharacter: (account as any).backendCharacter,
                     user: token.user,
                 };
             }
@@ -86,6 +144,18 @@ export const authOptions: AuthOptions = {
         async session({ session, token }: { session: Session; token: JWT }) {
             if (token.accessToken) {
                 session.accessToken = token.accessToken as string;
+            }
+
+            if (token.backendJwt) {
+                session.backendJwt = token.backendJwt as string;
+            }
+
+            if (token.backendUser) {
+                session.backendUser = token.backendUser as any;
+            }
+
+            if (token.backendCharacter) {
+                session.backendCharacter = token.backendCharacter as any;
             }
 
             if (token.error) {

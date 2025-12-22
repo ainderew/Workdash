@@ -1,6 +1,7 @@
 "use-client";
 import Phaser from "phaser";
 import React, { useEffect, useRef, useState } from "react";
+import { useSession } from "next-auth/react";
 import { IRefPhaserGame, PhaserGame } from "./PhaserGame";
 import AudioButton from "./common/components/AudioButton";
 import UiControls from "./common/components/UiControls/UiControls";
@@ -20,8 +21,26 @@ import { ScreenShareService } from "./communication/screenShare/screenShare";
 
 function App() {
     const [isInitialized, setIsInitialized] = useState(false);
+    const { data: session, status } = useSession({
+        refetchOnWindowFocus: false,
+    });
+
     useEffect(() => {
-        const transport = MediaTransportService.getInstance();
+        // Only initialize when we have an authenticated session
+        if (status !== "authenticated" || !session?.backendJwt) {
+            console.log(
+                "Waiting for authenticated session before initializing...",
+            );
+            return;
+        }
+
+        console.log("Session authenticated, initializing services...");
+
+        // Get JWT token from session or window global
+        const jwtToken =
+            session.backendJwt || (window as any).__BACKEND_JWT__ || "";
+
+        const transport = MediaTransportService.getInstance(jwtToken);
         const screenShare = ScreenShareService.getInstance();
         const screenShareViewer = ScreenShareViewer.getInstance();
         const videoChat = VideoChatService.getInstance();
@@ -30,28 +49,27 @@ function App() {
         const reactionService = ReactionService.getInstance();
 
         const init = async () => {
-            transport.connect();
-            await transport.initializeSfu();
+            try {
+                await transport.connect();
+                await transport.initializeSfu();
 
-            screenShareViewer.loadExistingProducers();
-            videoChatViewer.loadExistingProducers();
-            textChat.setupMessageListener();
-            reactionService.setupReactionListener();
-            reactionService.uiUpdater = (emojiData) => {
-                reactionService.routeReactionToPlayer(emojiData);
-            };
+                screenShareViewer.loadExistingProducers();
+                videoChatViewer.loadExistingProducers();
+                textChat.setupMessageListener();
+                reactionService.setupReactionListener();
+                reactionService.uiUpdater = (emojiData) => {
+                    reactionService.routeReactionToPlayer(emojiData);
+                };
 
-            setIsInitialized(true);
-        };
-
-        const cleanup = async () => {
-            videoChat.cleanUpListener();
-            screenShare.cleanupListener();
+                console.log("Services initialized successfully");
+                setIsInitialized(true);
+            } catch (error) {
+                console.error("Failed to initialize services:", error);
+            }
         };
 
         init();
-        cleanup();
-    }, []);
+    }, [session, status]);
 
     const phaserRef = useRef<IRefPhaserGame | null>(null);
     const currentScene = (scene: Phaser.Scene) => {
@@ -73,7 +91,39 @@ function App() {
     const user = useUserStore((state: UserStore) => state.user);
 
     if (!user.name) return <SplashScreen />;
-    if (!isInitialized) return <div>Loading...</div>;
+
+    // Wait for session to load before initializing game
+    if (status === "loading") {
+        return (
+            <div className="w-full h-full flex items-center justify-center bg-black text-white">
+                Loading session...
+            </div>
+        );
+    }
+
+    // Check if user is authenticated
+    if (status === "unauthenticated") {
+        return (
+            <div className="w-full h-full flex items-center justify-center bg-black text-white">
+                Please log in to continue
+            </div>
+        );
+    }
+
+    if (!isInitialized) {
+        return (
+            <div className="w-full h-full flex items-center justify-center bg-black text-white">
+                <div className="text-center">
+                    <div className="text-cyan-400 font-mono text-sm mb-2">
+                        Initializing services...
+                    </div>
+                    <div className="text-slate-500 text-xs">
+                        Check console for details
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div

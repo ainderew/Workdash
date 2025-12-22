@@ -78,7 +78,7 @@ export default function VirtualInterface({ y1, y2 }: VirtualInterfaceProps) {
                 </motion.div>
 
                 {/* Video call bubbles */}
-                <div className="absolute top-8 left-1/2 -translate-x-1/2 flex gap-2">
+                <div className="absolute top-10 left-1/2 -translate-x-1/2 flex gap-2">
                     <motion.div
                         style={{ y: videoBubble1Y }}
                         className="w-28 h-20 bg-slate-100 dark:bg-slate-800 rounded-lg border-2 border-slate-300 dark:border-slate-600 overflow-hidden relative shadow-xl"

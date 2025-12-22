@@ -1,46 +1,34 @@
 import { Scene } from "phaser";
 import { SpriteKeys } from "../commmon/enums";
+import { CharacterAssetLoader } from "../character/CharacterAssetLoader";
 
 export class Preloader extends Scene {
     private readonly PROGRESS_KEY = "progress-fill";
-    private readonly NEURAL_CANVAS_KEY = "neural-link-bg";
 
     private progressSprite!: Phaser.GameObjects.Sprite;
-    private neuralTexture!: Phaser.Textures.CanvasTexture;
-    private nodes: {
-        x: number;
-        y: number;
-        vx: number;
-        vy: number;
-        color: string;
-    }[] = [];
     private barWidth: number = 0;
-    private readonly NODE_COUNT = 90;
-    private readonly LINK_DISTANCE = 120;
 
     constructor() {
         super("Preloader");
     }
 
     preload() {
+        this.scene.launch("NeuralCanvas");
         const { width, height } = this.cameras.main;
 
-        this.initNeuralCanvas(width, height);
-        this.add.image(0, 0, this.NEURAL_CANVAS_KEY).setOrigin(0).setDepth(0);
-
-        this.barWidth = width * 0.45;
+        this.barWidth = width * 0.4;
         const barHeight = 20;
         const barX = width / 2 - this.barWidth / 2;
         const barY = height * 0.82;
-        const borderRadius = barHeight / 2;
+        const borderRadius = barHeight / 10;
 
         this.createProgressTexture(this.barWidth, barHeight);
 
         const ui = this.add.graphics().setDepth(10);
 
-        ui.fillStyle(0x050510, 0.9);
+        ui.fillStyle(0x050510, 0.5);
         ui.fillRoundedRect(barX, barY, this.barWidth, barHeight, borderRadius);
-        ui.lineStyle(2, 0x00ffff, 1);
+        ui.lineStyle(2, 0xc0c0c0, 10);
         ui.strokeRoundedRect(
             barX,
             barY,
@@ -68,83 +56,16 @@ export class Preloader extends Scene {
             .setLetterSpacing(5);
 
         this.load.on("progress", (value: number) => {
-            const currentFill = (this.barWidth - 4) * value;
+            const currentFill = this.barWidth * value;
             this.progressSprite.setCrop(0, 0, currentFill, barHeight);
         });
 
         this.load.on("complete", () => {
-            this.time.delayedCall(500, () => this.scene.start("Game"));
+            this.scene.stop("NeuralCanvas");
+            this.scene.start("Game");
         });
 
         this.loadGameAssets();
-    }
-
-    private initNeuralCanvas(width: number, height: number) {
-        this.neuralTexture = this.textures.createCanvas(
-            this.NEURAL_CANVAS_KEY,
-            width,
-            height,
-        )!;
-
-        for (let i = 0; i < this.NODE_COUNT; i++) {
-            this.nodes.push({
-                x: Math.random() * width,
-                y: Math.random() * height,
-                vx: (Math.random() - 0.5) * 0.8,
-                vy: (Math.random() - 0.5) * 0.8,
-                color: Math.random() > 0.5 ? "#00ffff" : "#9d00ff",
-            });
-        }
-    }
-
-    update() {
-        if (!this.neuralTexture) return;
-
-        const ctx = this.neuralTexture.context;
-        const { width, height } = this.neuralTexture;
-
-        ctx.fillStyle = "#050510";
-        ctx.fillRect(0, 0, width, height);
-
-        this.nodes.forEach((node) => {
-            node.x += node.vx;
-            node.y += node.vy;
-
-            if (node.x < 0 || node.x > width) node.vx *= -1;
-            if (node.y < 0 || node.y > height) node.vy *= -1;
-        });
-
-        ctx.lineWidth = 0.8;
-        for (let i = 0; i < this.nodes.length; i++) {
-            const p1 = this.nodes[i];
-
-            for (let j = i + 1; j < this.nodes.length; j++) {
-                const p2 = this.nodes[j];
-                const dx = p1.x - p2.x;
-                const dy = p1.y - p2.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
-
-                if (distance < this.LINK_DISTANCE) {
-                    const opacity = 1 - distance / this.LINK_DISTANCE;
-                    ctx.strokeStyle =
-                        p1.color === "#00ffff"
-                            ? `rgba(0, 255, 255, ${opacity * 0.4})`
-                            : `rgba(157, 0, 255, ${opacity * 0.4})`;
-
-                    ctx.beginPath();
-                    ctx.moveTo(p1.x, p1.y);
-                    ctx.lineTo(p2.x, p2.y);
-                    ctx.stroke();
-                }
-            }
-
-            ctx.fillStyle = p1.color;
-            ctx.beginPath();
-            ctx.arc(p1.x, p1.y, 1.5, 0, Math.PI * 2);
-            ctx.fill();
-        }
-
-        this.neuralTexture.refresh();
     }
 
     private createProgressTexture(width: number, height: number) {
@@ -161,13 +82,19 @@ export class Preloader extends Scene {
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, width, height);
 
-        if (this.textures.exists(this.PROGRESS_KEY))
+        if (this.textures.exists(this.PROGRESS_KEY)) {
             this.textures.remove(this.PROGRESS_KEY);
+        }
         this.textures.addCanvas(this.PROGRESS_KEY, canvas);
     }
 
     private loadGameAssets() {
-        this.load.setPath("assets");
+        this.load.setPath("/assets");
+
+        // Load Character_Generator assets for customization
+        const characterLoader = new CharacterAssetLoader(this);
+        characterLoader.loadAllCharacterAssets();
+
         // Tilesets
         this.load.image(
             "Exterior",
@@ -183,7 +110,6 @@ export class Preloader extends Scene {
         // Map & UI
         this.load.tilemapTiledJSON("map", "map1.json");
         this.load.image("star", "star.png");
-        this.load.image("background", "theoria.jpg");
         this.load.image("active-voice", "sound.png");
 
         // Spritesheets
