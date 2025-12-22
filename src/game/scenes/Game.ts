@@ -159,6 +159,12 @@ export class Game extends Scene {
         }
 
         this.loadingPlayers.add(id);
+        const existingPlayer = this.players.get(id);
+        if (existingPlayer) {
+            // Switch to a fallback texture immediately so the renderer doesn't crash
+            // when we delete the custom texture a few lines down.
+            existingPlayer.setTexture(SpriteKeys.ADAM);
+        }
         console.log("Creating player:", id, name);
 
         try {
@@ -173,6 +179,7 @@ export class Game extends Scene {
                 const animManager = new CharacterAnimationManager(this);
 
                 try {
+                    animManager.removeCharacterAnimations(characterKey);
                     // FIX: await ensures texture is ready before we try to use it
                     await compositor.createAnimatedSpritesheet(
                         customization,

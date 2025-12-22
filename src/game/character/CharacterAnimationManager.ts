@@ -12,6 +12,26 @@ export class CharacterAnimationManager {
         this.scene = scene;
     }
 
+    /**
+     * Call this explicitly before destroying the texture
+     */
+    removeCharacterAnimations(characterKey: string): void {
+        const animKeys = [
+            `${characterKey}-idle`,
+            `${characterKey}-walk-right`,
+            `${characterKey}-walk-up`,
+            `${characterKey}-walk-left`,
+            `${characterKey}-walk-down`,
+            `${characterKey}-attack`,
+        ];
+
+        for (const key of animKeys) {
+            if (this.scene.anims.exists(key)) {
+                this.scene.anims.remove(key);
+            }
+        }
+    }
+
     createCharacterAnimations(
         characterKey: string,
         spritesheetKey: string,
@@ -98,9 +118,20 @@ export class CharacterAnimationManager {
 
         for (const config of animConfigs) {
             // Remove existing if rebuilding
-            if (this.scene.anims.exists(config.key))
-                this.scene.anims.remove(config.key);
-
+            // FIX: Robust removal
+            if (this.scene.anims.exists(config.key)) {
+                try {
+                    this.scene.anims.remove(config.key);
+                } catch (e) {
+                    console.warn(
+                        `Force clearing animation ${config.key} failed gracefully`,
+                        e,
+                    );
+                    // If remove fails (due to texture missing), we can sometimes manually delete it from the cache
+                    // to prevent it blocking the new creation, but usually try-catch is enough.
+                    this.scene.anims.remove(config.key);
+                }
+            }
             const lRow = getLogicalRow(config.vRow);
             const rowStartIdx = lRow * COLS;
 
@@ -127,9 +158,6 @@ export class CharacterAnimationManager {
     updateAnimationKeys(characterKey: string): void {
         AttackAnimationKeys[characterKey] = `${characterKey}-attack`;
         IdleAnimationKeys[characterKey] = `${characterKey}-idle`;
-
-        // Register directional keys
-        // Note: We use the base key for generic walking, but specific keys for direction
         WalkAnimationKeys[characterKey] = `${characterKey}-walk-down`;
         WalkAnimationKeys[`${characterKey}_DOWN`] = `${characterKey}-walk-down`;
         WalkAnimationKeys[`${characterKey}_UP`] = `${characterKey}-walk-up`;

@@ -2,6 +2,7 @@ import NextAuth, { AuthOptions, Account } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import { JWT } from "next-auth/jwt";
 import { Session } from "next-auth";
+import { CONFIG } from "@/common/utils/config";
 
 /**
  * Takes a token, and returns a new token with updated
@@ -67,7 +68,7 @@ export const authOptions: AuthOptions = {
         async signIn({ user, account }) {
             if (account?.provider === "google") {
                 try {
-                    const backendUrl = `${process.env.EXPRESS_API_URL}/api/auth/google-sync`;
+                    const backendUrl = `${CONFIG.SFU_SERVER_URL}/api/auth/google-sync`;
                     console.log("Attempting to sync with backend:", backendUrl);
                     console.log("User data:", {
                         email: user.email,
@@ -109,10 +110,7 @@ export const authOptions: AuthOptions = {
                     }
                 } catch (error) {
                     console.error("Backend sync error:", error);
-                    console.error(
-                        "EXPRESS_API_URL:",
-                        process.env.EXPRESS_API_URL,
-                    );
+                    console.error("EXPRESS_API_URL:", CONFIG.SFU_SERVER_URL);
                     return false;
                 }
             }
