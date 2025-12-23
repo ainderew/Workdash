@@ -84,7 +84,7 @@ export const authOptions: AuthOptions = {
                         body: JSON.stringify({
                             email: user.email,
                             name: user.name,
-                            // image: user.image, // Optional: if you want to save their avatar
+                            image: user.image, // Optional: if you want to save their avatar
                         }),
                     });
 
@@ -128,6 +128,7 @@ export const authOptions: AuthOptions = {
                     backendUser: (account as any).backendUser,
                     backendCharacter: (account as any).backendCharacter,
                     user: token.user,
+                    ...token,
                 };
             }
 

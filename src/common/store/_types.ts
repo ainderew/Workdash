@@ -3,8 +3,11 @@ import { CharacterCustomization } from "@/game/character/_types";
 
 export type User = {
     name: string;
+    email?: string;
+    image?: string;
     producerIds: string[];
     characterCustomization?: CharacterCustomization;
+    spriteSheetDataUrl?: string;
 };
 
 export interface UserStore {

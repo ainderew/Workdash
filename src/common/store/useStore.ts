@@ -3,7 +3,12 @@ import { User, UserStore } from "./_types";
 import { CharacterCustomization } from "@/game/character/_types";
 
 const useUserStore = create<UserStore>((set) => ({
-    user: { name: "", producerIds: [] },
+    user: {
+        name: "",
+        producerIds: [],
+        image: undefined,
+        spriteSheetDataUrl: undefined,
+    },
     setUser: (user: User) => set({ user }),
     updateUser: (updates: Partial<User>) =>
         set((state) => ({ user: { ...state.user, ...updates } })),

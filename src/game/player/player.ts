@@ -9,6 +9,7 @@ import { AvailabilityStatus } from "./_enums";
 import { CharacterCustomization } from "../character/_types";
 import { CharacterCompositor } from "../character/CharacterCompositor";
 import { CharacterAnimationManager } from "../character/CharacterAnimationManager";
+import { EVENT_TYPES } from "../character/_enums";
 
 export class Player extends Phaser.Physics.Arcade.Sprite {
     public id: string;
@@ -264,6 +265,10 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     }
 
     public initializeNameTag() {
+        if (this.uiContainer) {
+            this.uiContainer.destroy();
+        }
+
         this.nameText = this.scene.add
             .text(0, 0, this.name, {
                 font: "16px Arial",
@@ -274,11 +279,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             .setOrigin(0.5, 0.5);
 
         this.statusCircle = this.scene.add.graphics();
-        const circleRadius = 4;
         this.updateStatusCircle();
 
         const nameWidth = this.nameText.width;
         const nameHeight = this.nameText.height;
+        const circleRadius = 4;
         const padding = 8;
         const gap = 6;
         const totalWidth = circleRadius * 2 + gap + nameWidth;
@@ -416,10 +421,24 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     }
 
     private setupUiEventListener() {
-        window.addEventListener("update-character", (event: Event) => {
-            const customEvent = event as CustomEvent<CharacterCustomization>;
+        window.addEventListener(
+            EVENT_TYPES.UPDATE_CHARACTER,
+            (event: Event) => {
+                const customEvent =
+                    event as CustomEvent<CharacterCustomization>;
+                if (this.isLocal && customEvent.detail) {
+                    this.changeSprite(customEvent.detail);
+                }
+            },
+        );
+
+        window.addEventListener(EVENT_TYPES.UPDATE_NAME, (event: Event) => {
+            const customEvent = event as CustomEvent<{ newName: string }>;
+            console.log(customEvent);
+
             if (this.isLocal && customEvent.detail) {
-                this.changeSprite(customEvent.detail);
+                this.name = customEvent.detail.newName;
+                this.initializeNameTag();
             }
         });
     }

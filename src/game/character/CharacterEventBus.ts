@@ -1,3 +1,4 @@
+import { EVENT_TYPES } from "./_enums";
 import { CharacterCustomization } from "./_types";
 
 /**
@@ -15,6 +16,14 @@ export class CharacterEventBus {
         window.dispatchEvent(
             new CustomEvent(this.UPDATE_CHARACTER, {
                 detail: customization,
+            }),
+        );
+    }
+
+    static emitNameUpdate(newName: string): void {
+        window.dispatchEvent(
+            new CustomEvent(EVENT_TYPES.UPDATE_NAME, {
+                detail: { newName },
             }),
         );
     }

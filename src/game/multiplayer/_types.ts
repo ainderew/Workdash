@@ -14,4 +14,5 @@ export interface PlayerDto {
     opts: {
         isLocal: boolean;
     };
+    character?: CharacterCustomization;
 }

@@ -16,17 +16,14 @@ import { VideoChatViewer } from "./communication/videoChat/videoChatViewer";
 import { TextChatService } from "./communication/textChat/textChat";
 import { ReactionService } from "./communication/reaction/reaction";
 import ReactionToast from "./common/components/RaiseHandToast/RaiseHandToast";
-import { VideoChatService } from "./communication/videoChat/videoChat";
-import { ScreenShareService } from "./communication/screenShare/screenShare";
+// import { VideoChatService } from "./communication/videoChat/videoChat";
+// import { ScreenShareService } from "./communication/screenShare/screenShare";
 
 function App() {
     const [isInitialized, setIsInitialized] = useState(false);
-    const { data: session, status } = useSession({
-        refetchOnWindowFocus: false,
-    });
+    const { data: session, status } = useSession();
 
     useEffect(() => {
-        // Only initialize when we have an authenticated session
         if (status !== "authenticated" || !session?.backendJwt) {
             console.log(
                 "Waiting for authenticated session before initializing...",
@@ -41,9 +38,9 @@ function App() {
             session.backendJwt || (window as any).__BACKEND_JWT__ || "";
 
         const transport = MediaTransportService.getInstance(jwtToken);
-        const screenShare = ScreenShareService.getInstance();
+        // const screenShare = ScreenShareService.getInstance();
         const screenShareViewer = ScreenShareViewer.getInstance();
-        const videoChat = VideoChatService.getInstance();
+        // const videoChat = VideoChatService.getInstance();
         const videoChatViewer = VideoChatViewer.getInstance();
         const textChat = TextChatService.getInstance();
         const reactionService = ReactionService.getInstance();
@@ -90,7 +87,7 @@ function App() {
 
     const user = useUserStore((state: UserStore) => state.user);
 
-    if (!user.name) return <SplashScreen />;
+    // if (!user.name) return <SplashScreen />;
 
     // Wait for session to load before initializing game
     if (status === "loading") {

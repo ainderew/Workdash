@@ -1,12 +1,11 @@
-import React, { useState } from "react";
-import { useSession } from "next-auth/react"; // Import useSession
+import React, { useState, useMemo } from "react";
+import { useSession } from "next-auth/react";
 import { CharacterCustomization } from "@/game/character/_types";
 import { CharacterCreationScreen } from "../CharacterCreation/CharacterCreationScreen";
 import { CharacterPersistence } from "@/game/character/CharacterPersistence";
 import { CharacterEventBus } from "@/game/character/CharacterEventBus";
 import useStore from "@/common/store/useStore";
 import { CONFIG } from "@/common/utils/config";
-// import { toast } from "react-toastify"; // Optional
 
 interface CharacterCustomizationMenuProps {
     isOpen: boolean;
@@ -17,22 +16,20 @@ export function CharacterCustomizationMenu({
     isOpen,
     onClose,
 }: CharacterCustomizationMenuProps) {
-    const { data: session } = useSession(); // Get session to access JWT
+    const { data: session } = useSession();
     const user = useStore((state) => state.user);
     const setCharacterCustomization = useStore(
         (state) => state.setCharacterCustomization,
     );
     const [isSaving, setIsSaving] = useState(false);
 
-    const [initialCustomization] = useState<CharacterCustomization | undefined>(
-        () => {
-            return (
-                user.characterCustomization ||
-                CharacterPersistence.load() ||
-                CharacterPersistence.getDefault()
-            );
-        },
-    );
+    const currentCustomization = useMemo(() => {
+        return (
+            user.characterCustomization ||
+            CharacterPersistence.load() ||
+            CharacterPersistence.getDefault()
+        );
+    }, [user.characterCustomization, isOpen]);
 
     const handleComplete = async (customization: CharacterCustomization) => {
         setIsSaving(true);
@@ -62,25 +59,13 @@ export function CharacterCustomizationMenu({
                 }
             }
 
-            // 2. Save to localStorage (Backup/Fast load)
             CharacterPersistence.save(customization);
-
-            // 3. Update Global React Store
             setCharacterCustomization(customization);
-
-            // 4. Emit event to Game (Phaser) for real-time visual update
             CharacterEventBus.emitCharacterUpdate(customization);
 
-            // toast.success("Character saved!");
-
-            // 5. Close menu
             onClose();
         } catch (error) {
             console.error("Failed to save character:", error);
-            // toast.error("Failed to save changes. Please try again.");
-
-            // Optional: Decide if you want to close the menu on error or keep it open
-            // onClose();
         } finally {
             setIsSaving(false);
         }
@@ -90,7 +75,8 @@ export function CharacterCustomizationMenu({
 
     return (
         <CharacterCreationScreen
-            initialCustomization={initialCustomization}
+            key={isOpen ? "open" : "closed"}
+            initialCustomization={currentCustomization}
             onComplete={handleComplete}
             onCancel={onClose}
             mode="edit"

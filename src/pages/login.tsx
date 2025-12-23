@@ -59,10 +59,10 @@ export default function AuthPage() {
                     </div>
                     <div className="flex flex-col gap-3 pt-4">
                         <button
-                            onClick={() => router.push("/")}
+                            onClick={() => router.push("/app")}
                             className="w-full px-6 py-3 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-lg transition-all transform active:scale-[0.98]"
                         >
-                            Continue to Dashboard
+                            Continue to office
                         </button>
                         <button
                             onClick={() => signOut({ callbackUrl: "/login" })}

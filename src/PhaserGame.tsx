@@ -24,9 +24,9 @@ export const PhaserGame = forwardRef<IRefPhaserGame, IProps>(
             // Set window globals first
             if (session?.backendJwt) {
                 console.log("PhaserGame: Setting JWT in window global");
-                (window as any).__BACKEND_JWT__ = session.backendJwt;
-                (window as any).__BACKEND_USER__ = session.backendUser;
-                (window as any).__BACKEND_CHARACTER__ = session.backendCharacter;
+                window.__BACKEND_JWT__ = session.backendJwt;
+                window.__BACKEND_USER__ = session.backendUser;
+                window.__BACKEND_CHARACTER__ = session.backendCharacter;
             } else {
                 console.warn("PhaserGame: No backendJwt in session yet");
             }

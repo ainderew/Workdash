@@ -12,6 +12,8 @@ import { AvailabilityStatus } from "../player/_enums";
 import { CharacterCustomization } from "../character/_types";
 import { CharacterCompositor } from "../character/CharacterCompositor";
 import { CharacterAnimationManager } from "../character/CharacterAnimationManager";
+import { useStore } from "zustand";
+import useUserStore from "@/common/store/useStore";
 
 export class Game extends Scene {
     //Game setup
@@ -68,7 +70,7 @@ export class Game extends Scene {
         this.physics.world.setBounds(0, 0, 4064, 3200);
 
         // Camera setup
-        // this.cameras.main.setBounds(0, 0, 4064, 3200);
+        this.cameras.main.setBounds(0, 0, 4064, 3200);
 
         const interiorTilesets = [];
 
@@ -114,18 +116,13 @@ export class Game extends Scene {
         const trees2Layer = map.createLayer("Trees2", allTilesets, 0, 0)!;
         const treesLayer = map.createLayer("Trees", allTilesets, 0, 0)!;
 
-        // treesLayer.setDepth(20);
-        // wallLayer.setDepth(10);
-
         this.multiplayer.watchNewPlayers(
             this.createPlayer.bind(this),
             this.destroyPlayer.bind(this),
         );
         this.multiplayer.watchPlayerMovement(this.players);
 
-        // Explicitly join the game to spawn the character
-        // We spawn at a default location (e.g., 800, 800) or load from DB
-        this.multiplayer.joinGame(800, 800);
+        this.multiplayer.joinGame(1000, 1000);
 
         this.startAnimation();
         this.initializeCollisions(
@@ -143,7 +140,6 @@ export class Game extends Scene {
         this.setupChatBlur();
     }
 
-    // FIX: Added 'async' keyword here so 'await' can be used inside
     public async createPlayer(
         id: string,
         name: string | undefined,
@@ -153,7 +149,6 @@ export class Game extends Scene {
         customization: CharacterCustomization | null,
         opts: { isLocal: boolean },
     ): Promise<void> {
-        // FIX: Check if player exists OR is currently loading to prevent race conditions
         if (this.players.has(id) || this.loadingPlayers.has(id)) {
             return;
         }
@@ -161,8 +156,6 @@ export class Game extends Scene {
         this.loadingPlayers.add(id);
         const existingPlayer = this.players.get(id);
         if (existingPlayer) {
-            // Switch to a fallback texture immediately so the renderer doesn't crash
-            // when we delete the custom texture a few lines down.
             existingPlayer.setTexture(SpriteKeys.ADAM);
         }
         console.log("Creating player:", id, name);
@@ -171,7 +164,7 @@ export class Game extends Scene {
             let spriteKey: string;
 
             if (customization) {
-                // Create custom character
+                //create custom character
                 const characterKey = `custom-${id}`;
                 const spritesheetKey = `${characterKey}-spritesheet`;
 
@@ -180,13 +173,12 @@ export class Game extends Scene {
 
                 try {
                     animManager.removeCharacterAnimations(characterKey);
-                    // FIX: await ensures texture is ready before we try to use it
                     await compositor.createAnimatedSpritesheet(
                         customization,
                         spritesheetKey,
                     );
 
-                    // Double check texture exists
+                    //check texture exists
                     if (this.textures.exists(spritesheetKey)) {
                         animManager.createCharacterAnimations(
                             characterKey,
@@ -241,6 +233,8 @@ export class Game extends Scene {
 
             if (opts.isLocal) {
                 this.setupLocalPlayer(playerInstance);
+                const state = useUserStore.getState();
+                state.setCharacterCustomization(customization!);
             }
         } finally {
             // Always remove from loading set, even if error occurred
@@ -461,7 +455,6 @@ export class Game extends Scene {
     }
 
     private getJwtToken(): string {
-        // Get JWT token from window global (set by React wrapper)
         return (window as any).__BACKEND_JWT__ || "";
     }
 }
