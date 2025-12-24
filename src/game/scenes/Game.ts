@@ -32,6 +32,7 @@ export class Game extends Scene {
     multiplayer: Multiplayer;
     lastTick: number = 0;
     Hz: number = 1000 / 30; // 20hz
+    private wasAttacking: boolean = false;
 
     constructor() {
         super("Game");
@@ -267,6 +268,7 @@ export class Game extends Scene {
         this.multiplayer.watchPlayerMovement(this.players);
         this.multiplayer.watchCharacterUpdates(this.players);
         this.multiplayer.watchNameUpdates(this.players);
+        this.multiplayer.watchPlayerActions(this.players);
 
         this.multiplayer.joinGame(1000, 1000);
 
@@ -414,6 +416,16 @@ export class Game extends Scene {
 
         for (const p of this.players.values()) {
             p.update();
+
+            if (p.isLocal) {
+                // Detect attack start and broadcast immediately
+                if (p.isAttacking && !this.wasAttacking) {
+                    this.multiplayer.emitPlayerAction("attack");
+                    this.wasAttacking = true;
+                } else if (!p.isAttacking) {
+                    this.wasAttacking = false;
+                }
+            }
 
             if (p.isLocal && tickRate) {
                 this.multiplayer.emitPlayerMovement({

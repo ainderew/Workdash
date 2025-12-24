@@ -108,6 +108,10 @@ export class Multiplayer {
         this.send("updateCharacter", data);
     }
 
+    public emitPlayerAction(action: string) {
+        this.send("playerAction", { action });
+    }
+
     public watchNewPlayers(
         createPlayer: (
             id: string,
@@ -254,6 +258,30 @@ export class Multiplayer {
                 } else {
                     console.warn(
                         `Player ${data.playerId} not found for name update`,
+                    );
+                }
+            },
+        );
+    }
+
+    public watchPlayerActions(players: Map<string, Player>) {
+        this.socket.on(
+            "playerAction",
+            (data: { playerId: string; action: string }) => {
+                console.log(
+                    "Player action received:",
+                    data.playerId,
+                    data.action,
+                );
+
+                const targetPlayer = players.get(data.playerId);
+                if (targetPlayer) {
+                    if (data.action === "attack") {
+                        targetPlayer.isAttacking = true;
+                    }
+                } else {
+                    console.warn(
+                        `Player ${data.playerId} not found for action`,
                     );
                 }
             },

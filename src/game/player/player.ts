@@ -532,7 +532,19 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         const isAnimateAttacking =
             this.anims.currentAnim?.key === attackAnimKey;
 
+        // If attack animation is playing, let it finish
         if (isAnimateAttacking && this.anims.isPlaying) {
+            return;
+        }
+
+        // Reset attack state when animation completes
+        if (this.isAttacking && !this.anims.isPlaying) {
+            this.isAttacking = false;
+        }
+
+        // Trigger attack animation if player is attacking
+        if (this.isAttacking && !isAnimateAttacking) {
+            this.attackAnimation();
             return;
         }
 

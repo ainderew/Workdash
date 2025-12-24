@@ -46,6 +46,7 @@ export class CharacterAnimationManager {
 
         /**
          * MAPPER: Maps Visual Row to Logical Sheet Row
+         * change this to attack name instead of old vRow implem
          */
         const getLogicalRow = (vRow: number): number => {
             switch (vRow) {
