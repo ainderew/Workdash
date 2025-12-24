@@ -96,6 +96,7 @@ export class Preloader extends Scene {
         characterLoader.loadAllCharacterAssets();
 
         // Tilesets
+
         this.load.image(
             "Exterior",
             "tile-sets/Modern_Exteriors_Complete_Tileset_32x32.png",
@@ -107,6 +108,34 @@ export class Preloader extends Scene {
                 `tile-sets/Interiors_32x32_part_${i}.png`,
             );
         }
+        //Animated Tileset
+        this.load.spritesheet(
+            "Sliding_Door",
+            "tile-sets/animated_door_glass_sliding_32x32.png",
+            { frameWidth: 64, frameHeight: 64 },
+        );
+        this.load.spritesheet(
+            "Animated_Coffee",
+            "tile-sets/animated_coffee_32x32.png",
+            { frameWidth: 32, frameHeight: 64 },
+        );
+        this.load.spritesheet(
+            "Animated_Control_Panel",
+            "tile-sets/animated_control_room_screens_32x32.png",
+            { frameWidth: 128, frameHeight: 96 },
+        );
+        this.load.spritesheet(
+            "Animated_Fish_Tank",
+            "tile-sets/animated_fishtank_red_32x32.png",
+            { frameWidth: 64, frameHeight: 64 },
+        );
+
+        this.load.spritesheet(
+            "Animated_Server",
+            "tile-sets/animated_control_room_server_32x32.png",
+            { frameWidth: 32, frameHeight: 96 },
+        );
+
         // Map & UI
         this.load.tilemapTiledJSON("map", "map1.json");
         this.load.image("star", "star.png");

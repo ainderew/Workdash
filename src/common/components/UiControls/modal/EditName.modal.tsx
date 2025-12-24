@@ -76,7 +76,24 @@ export function EditNameModal({
             // We explicitly pick 'name' to ensure we don't overwrite client-side
             // fields (like producerIds) with backend data that might be missing them.
             updateUser({ name: updatedUserFromBackend.name });
+
+            // Emit local event for immediate update
             CharacterEventBus.emitNameUpdate(name.trim());
+
+            // Emit socket event to backend for real-time broadcast to other players
+            const multiplayer = window.__MULTIPLAYER__;
+            if (
+                multiplayer &&
+                typeof multiplayer.emitNameUpdate === "function"
+            ) {
+                multiplayer.emitNameUpdate(name.trim());
+                console.log("Name update emitted to backend via socket");
+            } else {
+                console.warn(
+                    "Multiplayer instance not available for name update broadcast",
+                );
+            }
+
             onClose();
         } catch (err) {
             console.error("Failed to update name:", err);
@@ -121,6 +138,15 @@ export function EditNameModal({
                                 className="w-full mt-2 bg-neutral-800 border border-neutral-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-amber-500/50 transition-all placeholder:text-neutral-600"
                                 placeholder="Enter your name..."
                                 autoFocus
+                                onKeyDown={(e) => {
+                                    e.stopPropagation();
+                                    if (e.key === "Enter" && !e.shiftKey) {
+                                        e.preventDefault();
+                                        handleSave(e);
+                                    } else if (e.key === "Escape") {
+                                        onClose();
+                                    }
+                                }}
                             />
                         </div>
 

@@ -34,8 +34,29 @@ export function CharacterCustomizationMenu({
     const handleComplete = async (customization: CharacterCustomization) => {
         setIsSaving(true);
         try {
-            const token = session?.backendJwt;
+            // Save locally first
+            setCharacterCustomization(customization);
+            CharacterPersistence.save(customization);
 
+            // Emit to local game for immediate update
+            CharacterEventBus.emitCharacterUpdate(customization);
+
+            // Emit socket event to backend for real-time broadcast to other players
+            const multiplayer = window.__MULTIPLAYER__;
+            if (
+                multiplayer &&
+                typeof multiplayer.emitCharacterUpdate === "function"
+            ) {
+                multiplayer.emitCharacterUpdate(customization);
+                console.log("Character update emitted to backend via socket");
+            } else {
+                console.warn(
+                    "Multiplayer instance not available for character update broadcast",
+                );
+            }
+
+            // Persist to backend database
+            const token = session?.backendJwt;
             if (!token) {
                 console.warn("No backend JWT found, skipping server save.");
             } else {
@@ -57,15 +78,15 @@ export function CharacterCustomizationMenu({
                         `Server responded with ${response.status}: ${errorText}`,
                     );
                 }
-            }
 
-            CharacterPersistence.save(customization);
-            setCharacterCustomization(customization);
-            CharacterEventBus.emitCharacterUpdate(customization);
+                console.log("Character saved to server successfully");
+            }
 
             onClose();
         } catch (error) {
             console.error("Failed to save character:", error);
+            // Still close on error - local save succeeded
+            onClose();
         } finally {
             setIsSaving(false);
         }

@@ -21,6 +21,7 @@ export class CharacterCompositor {
     public async createAnimatedSpritesheet(
         customization: CharacterCustomization,
         outputKey: string,
+        isLocal: boolean = false,
     ): Promise<void> {
         const layerPaths = getCharacterLayerPathsArray(
             customization,
@@ -54,9 +55,12 @@ export class CharacterCompositor {
 
         const imageData = canvas.toDataURL("image/png");
 
-        useUserStore.getState().updateUser({
-            spriteSheetDataUrl: imageData,
-        });
+        // Only update the global user store for the local player
+        if (isLocal) {
+            useUserStore.getState().updateUser({
+                spriteSheetDataUrl: imageData,
+            });
+        }
 
         await new Promise<void>((resolve) => {
             const img = new Image();

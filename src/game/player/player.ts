@@ -105,6 +105,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         }
 
         this.initializeNameTag();
+        this.depth = 0;
 
         if (customization) {
             this.changeSprite(customization);
@@ -265,14 +266,19 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     }
 
     public initializeNameTag() {
+        let color = "#ffffff";
         if (this.uiContainer) {
             this.uiContainer.destroy();
+        }
+
+        if (this.isLocal) {
+            color = "#00f55a";
         }
 
         this.nameText = this.scene.add
             .text(0, 0, this.name, {
                 font: "16px Arial",
-                color: "#ffffff",
+                color,
                 stroke: "#000000",
                 strokeThickness: 3,
             })
@@ -312,7 +318,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             this.nameText,
         ]);
 
-        this.uiContainer.setDepth(10);
+        this.uiContainer.setDepth(200);
     }
 
     private updateStatusCircle() {
@@ -397,6 +403,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             await compositor.createAnimatedSpritesheet(
                 newCustomization,
                 spritesheetKey,
+                this.isLocal, // Only update global store for local player
             );
 
             if (!this.scene.textures.exists(spritesheetKey)) {

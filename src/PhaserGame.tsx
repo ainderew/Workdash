@@ -4,6 +4,19 @@ import StartGame from "./game/main";
 import { EventBus } from "./game/EventBus";
 import { User } from "./common/store/_types";
 
+// Extend Window interface for global Phaser/Backend references
+declare global {
+    interface Window {
+        __BACKEND_JWT__?: string;
+        __BACKEND_USER__?: any;
+        __BACKEND_CHARACTER__?: any;
+        __MULTIPLAYER__?: {
+            emitCharacterUpdate: (data: any) => void;
+            emitNameUpdate: (name: string) => void;
+        };
+    }
+}
+
 export interface IRefPhaserGame {
     game: Phaser.Game | null;
     scene: Phaser.Scene | null;

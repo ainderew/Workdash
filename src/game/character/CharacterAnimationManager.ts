@@ -54,7 +54,7 @@ export class CharacterAnimationManager {
                 case 2:
                     return 2; // Walk (Contains all directions: Right, Up, Left, Down)
                 case 6:
-                    return 6; // Attack
+                    return 9; // Attack
                 default:
                     return vRow;
             }
@@ -109,8 +109,8 @@ export class CharacterAnimationManager {
             {
                 key: `${characterKey}-attack`,
                 vRow: 6,
-                startCol: 0,
-                endCol: 5,
+                startCol: 13,
+                endCol: 24,
                 rate: 10,
                 repeat: 0,
             },

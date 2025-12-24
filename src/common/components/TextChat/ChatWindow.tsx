@@ -138,6 +138,7 @@ function ChatWindow({ isOpen, onClose }: ChatWindowProps) {
                 <div className="flex gap-2 items-end">
                     <Textarea
                         id="chat-input"
+                        autoFocus
                         value={message}
                         onChange={(e) => setMessage(e.target.value)}
                         onKeyDown={(e) => {
@@ -145,6 +146,8 @@ function ChatWindow({ isOpen, onClose }: ChatWindowProps) {
                             if (e.key === "Enter" && !e.shiftKey) {
                                 e.preventDefault();
                                 sendMessage();
+                            } else if (e.key === "Escape") {
+                                onClose();
                             }
                         }}
                         placeholder="Message the team"

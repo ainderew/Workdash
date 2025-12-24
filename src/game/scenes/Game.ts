@@ -12,7 +12,6 @@ import { AvailabilityStatus } from "../player/_enums";
 import { CharacterCustomization } from "../character/_types";
 import { CharacterCompositor } from "../character/CharacterCompositor";
 import { CharacterAnimationManager } from "../character/CharacterAnimationManager";
-import { useStore } from "zustand";
 import useUserStore from "@/common/store/useStore";
 
 export class Game extends Scene {
@@ -22,17 +21,15 @@ export class Game extends Scene {
     gameText: Phaser.GameObjects.Text;
     inputElement: HTMLInputElement;
 
-    // Players
     localPlayerId: string;
     players: Map<string, Player>;
 
     // FIX: Track players currently loading to prevent duplicate spawns during async waits
     loadingPlayers: Set<string> = new Set();
-
     playersLayer: Phaser.Physics.Arcade.Group;
+    doors: Phaser.GameObjects.GameObject[] = [];
 
-    // Multiplayer Logic
-    multiplayer;
+    multiplayer: Multiplayer;
     lastTick: number = 0;
     Hz: number = 1000 / 30; // 20hz
 
@@ -55,6 +52,9 @@ export class Game extends Scene {
 
         this.multiplayer = new Multiplayer(jwtToken);
         this.multiplayer.connectToserver();
+
+        // Make multiplayer instance globally accessible for character updates
+        window.__MULTIPLAYER__ = this.multiplayer;
 
         const map = this.make.tilemap({
             key: "map",
@@ -93,9 +93,72 @@ export class Game extends Scene {
             throw new Error("Tileset 'tiles_1' not found!");
         }
 
+        this.anims.create({
+            key: "door_open",
+            frames: this.anims.generateFrameNumbers("Sliding_Door", {
+                start: 0,
+                end: 6,
+            }),
+            frameRate: 15,
+            repeat: 0,
+        });
+
+        // Frames 7-13 look like "Closing" (optional, if you want it to close behind them)
+        this.anims.create({
+            key: "door_close",
+            frames: this.anims.generateFrameNumbers("Sliding_Door", {
+                start: 7,
+                end: 13,
+            }),
+            frameRate: 15,
+            repeat: 0,
+        });
+
+        // After your door animations, add these:
+        this.anims.create({
+            key: "coffee_anim",
+            frames: this.anims.generateFrameNumbers("Animated_Coffee", {
+                start: 0,
+                end: 4,
+            }),
+            frameRate: 5,
+            repeat: -1,
+        });
+
+        this.anims.create({
+            key: "control_panel_anim",
+            frames: this.anims.generateFrameNumbers("Animated_Control_Panel", {
+                start: 0,
+                end: 9,
+            }), // adjust frame count
+            frameRate: 10,
+            repeat: -1,
+        });
+
+        this.anims.create({
+            key: "fish_tank_anim",
+            frames: this.anims.generateFrameNumbers("Animated_Fish_Tank", {
+                start: 0,
+                end: 6,
+            }), // adjust frame count
+            frameRate: 7,
+            repeat: -1,
+        });
+
+        this.anims.create({
+            key: "server_anim",
+            frames: this.anims.generateFrameNumbers("Animated_Server", {
+                start: 0,
+                end: 2,
+            }), // adjust frame count
+            frameRate: 3,
+            repeat: -1,
+        });
+
         /**
          * Don't touch the order it will mess with rendering
          */
+
         const floorLayer = map.createLayer("Floor", allTilesets, 0, 0)!;
         const rugLayer = map.createLayer("Rugs", allTilesets, 0, 0)!;
         const wallLayer = map.createLayer("Wall", allTilesets, 0, 0)!;
@@ -112,15 +175,98 @@ export class Game extends Scene {
             0,
             0,
         )!;
+
         const buildingsLayer = map.createLayer("Buildings", allTilesets, 0, 0)!;
         const trees2Layer = map.createLayer("Trees2", allTilesets, 0, 0)!;
         const treesLayer = map.createLayer("Trees", allTilesets, 0, 0)!;
+
+        const fishTankObjects = map.createFromObjects("Doors", {
+            name: "fish_tank",
+            key: "Animated_Fish_Tank",
+            frame: 0,
+            classType: Phaser.GameObjects.Sprite,
+        });
+
+        const coffeeObjects = map.createFromObjects("Doors", {
+            name: "coffee",
+            key: "Animated_Coffee",
+            frame: 0,
+            classType: Phaser.GameObjects.Sprite,
+        });
+
+        const controlPanelObjects = map.createFromObjects("Doors", {
+            name: "control_panel",
+            key: "Animated_Control_Panel",
+            frame: 0,
+            classType: Phaser.GameObjects.Sprite,
+        });
+
+        const serverObjects = map.createFromObjects("Doors", {
+            name: "server",
+            key: "Animated_Server",
+            frame: 0,
+            classType: Phaser.GameObjects.Sprite,
+        });
+
+        fishTankObjects.forEach((obj) => {
+            const sprite = obj as Phaser.GameObjects.Sprite;
+            sprite.setDepth(100);
+            sprite.play("fish_tank_anim");
+        });
+
+        coffeeObjects.forEach((obj) => {
+            const sprite = obj as Phaser.GameObjects.Sprite;
+            sprite.setDepth(100);
+            sprite.play("coffee_anim");
+        });
+
+        controlPanelObjects.forEach((obj) => {
+            const sprite = obj as Phaser.GameObjects.Sprite;
+            sprite.setDepth(100);
+            sprite.play("control_panel_anim");
+        });
+
+        serverObjects.forEach((obj) => {
+            const sprite = obj as Phaser.GameObjects.Sprite;
+            sprite.setDepth(100);
+            sprite.play("server_anim");
+        });
+
+        this.doors = map.createFromObjects("Doors", {
+            name: "door1", // Must match the name you gave it in Tiled
+            key: "Sliding_Door", // The key we loaded in step 1
+            frame: 0, // Start closed
+            classType: Phaser.GameObjects.Sprite,
+        });
+        console.log("Doors created:", this.doors.length);
+        console.log("Animation exists:", this.anims.exists("door_open"));
+        // Add Physics to the door sprites
+        this.physics.world.enable(this.doors);
+        this.doors.forEach((object) => {
+            const door = object as Phaser.GameObjects.Sprite;
+            console.log("Door body:", door.body);
+            // OR adjust position instead:
+            // door.setPosition(door.x + 16, door.y + 16);
+            console.log("Door texture key:", door.texture.key);
+            console.log("Door frame:", door.frame.name);
+            door.setDepth(100);
+            door.setData("isOpen", false);
+
+            const body = door.body as Phaser.Physics.Arcade.Body;
+            if (body) {
+                body.setImmovable(true);
+                body.setSize(64, 64);
+                body.setOffset(0, 0);
+            }
+        });
 
         this.multiplayer.watchNewPlayers(
             this.createPlayer.bind(this),
             this.destroyPlayer.bind(this),
         );
         this.multiplayer.watchPlayerMovement(this.players);
+        this.multiplayer.watchCharacterUpdates(this.players);
+        this.multiplayer.watchNameUpdates(this.players);
 
         this.multiplayer.joinGame(1000, 1000);
 
@@ -176,6 +322,7 @@ export class Game extends Scene {
                     await compositor.createAnimatedSpritesheet(
                         customization,
                         spritesheetKey,
+                        opts.isLocal, // Only update global store for local player
                     );
 
                     //check texture exists
@@ -280,6 +427,17 @@ export class Game extends Scene {
                 });
 
                 this.lastTick = time;
+            }
+        }
+
+        for (const obj of this.doors) {
+            const door = obj as Phaser.GameObjects.Sprite;
+
+            if (door.getData("touchedThisFrame")) {
+                door.setData("touchedThisFrame", false);
+            } else if (door.getData("isOpen") && !door.anims.isPlaying) {
+                door.setData("isOpen", false);
+                door.play("door_close");
             }
         }
     }
@@ -413,6 +571,17 @@ export class Game extends Scene {
         this.physics.add.collider(this.playersLayer, furnitureLayer);
         this.physics.add.collider(this.playersLayer, treesLayer);
         this.physics.add.collider(this.playersLayer, trees2Layer);
+
+        this.physics.add.overlap(this.playersLayer, this.doors, (door) => {
+            console.log("Door overlap triggered!");
+            const doorSprite = door as Phaser.GameObjects.Sprite;
+            if (!doorSprite.getData("isOpen")) {
+                doorSprite.setData("isOpen", true);
+                doorSprite.play("door_open");
+            }
+
+            doorSprite.setData("touchedThisFrame", true);
+        });
 
         wallLayer.setCollisionBetween(0, 100000, true);
         furnitureLayer.setCollisionBetween(0, 200000, true);

@@ -1,13 +1,12 @@
 /*eslint-disable @typescript-eslint/no-explicit-any*/
-
 import io from "socket.io-client";
-import { PlayerInterface } from "../player/_types";
 import { PlayerDto } from "./_types";
 import { CONFIG } from "@/common/utils/config";
 import usePlayersStore from "@/common/store/playerStore";
 import { AvailabilityStatus } from "../player/_enums";
 import { CharacterCustomization } from "../character/_types";
 import useUserStore from "@/common/store/useStore";
+import { Player } from "../player/player";
 
 // Type definition for queued commands
 type QueuedMessage = {
@@ -104,6 +103,11 @@ export class Multiplayer {
         this.send("playerMovement", data);
     }
 
+    public emitCharacterUpdate(data: CharacterCustomization) {
+        console.log("Emitting character update to backend:", data);
+        this.send("updateCharacter", data);
+    }
+
     public watchNewPlayers(
         createPlayer: (
             id: string,
@@ -130,7 +134,6 @@ export class Multiplayer {
             },
         );
 
-        // Handle "newPlayer" (Single player joined)
         this.socket.on(
             "newPlayer",
             (
@@ -185,7 +188,7 @@ export class Multiplayer {
         }
     }
 
-    public watchPlayerMovement(players: Map<string, PlayerInterface>) {
+    public watchPlayerMovement(players: Map<string, Player>) {
         this.socket.on("playerMoved", (player: PlayerDto) => {
             const targetPlayer = players.get(player.id);
             if (targetPlayer) {
@@ -199,5 +202,61 @@ export class Multiplayer {
                 targetPlayer.isAttacking = player.isAttacking;
             }
         });
+    }
+
+    public watchCharacterUpdates(players: Map<string, Player>) {
+        this.socket.on(
+            "characterUpdated",
+            (data: { playerId: string; character: CharacterCustomization }) => {
+                console.log(
+                    "Character updated for player:",
+                    data.playerId,
+                    data.character,
+                );
+
+                const targetPlayer = players.get(data.playerId);
+                if (
+                    targetPlayer &&
+                    typeof targetPlayer.changeSprite === "function"
+                ) {
+                    targetPlayer.changeSprite(data.character);
+                } else {
+                    console.warn(
+                        `Player ${data.playerId} not found or cannot change sprite`,
+                    );
+                }
+            },
+        );
+    }
+
+    public emitNameUpdate(newName: string) {
+        console.log("Emitting name update to backend:", newName);
+        this.send("updateName", { name: newName });
+    }
+
+    public watchNameUpdates(players: Map<string, Player>) {
+        this.socket.on(
+            "nameUpdated",
+            (data: { playerId: string; name: string }) => {
+                console.log(
+                    "Name updated for player:",
+                    data.playerId,
+                    data.name,
+                );
+
+                const targetPlayer = players.get(data.playerId);
+                if (targetPlayer) {
+                    targetPlayer.name = data.name;
+                    // Reinitialize the name tag to display the new name
+                    if (typeof targetPlayer.initializeNameTag === "function") {
+                        targetPlayer.initializeNameTag();
+                    }
+                } else {
+                    console.warn(
+                        `Player ${data.playerId} not found for name update`,
+                    );
+                }
+            },
+        );
     }
 }

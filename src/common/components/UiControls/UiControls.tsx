@@ -112,7 +112,7 @@ function UiControls() {
                 <ReactionButton />
             </div>
 
-            <div className="chat-buttons-container flex gap-4">
+            <div className="chat-buttons-container items-center flex gap-4">
                 <UiControlsButton
                     onClick={toggleCalendarMenu}
                     icon={CalendarFold}
