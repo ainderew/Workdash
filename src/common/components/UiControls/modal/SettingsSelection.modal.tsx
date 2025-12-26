@@ -32,7 +32,7 @@ export function SettingsSelectionModal({
                 </div>
 
                 <p className="text-sm text-neutral-400 mb-6">
-                    Choose what you'd like to customize
+                    Choose what you&apos;d like to customize
                 </p>
 
                 <div className="space-y-3">

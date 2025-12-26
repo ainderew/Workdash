@@ -2,7 +2,7 @@ import { VideoChatViewer } from "@/communication/videoChat/videoChatViewer";
 import { useEffect, useState } from "react";
 import { VideoState } from "../_types";
 
-function useVideoChat() {
+function useVideoChat(isGameReady: boolean) {
     const [videosTracked, setVideosTracked] = useState<VideoState[]>([]);
 
     useEffect(() => {
@@ -26,12 +26,18 @@ function useVideoChat() {
 
         service.updateComponentStateCallback = updateScreenState;
         updateScreenState();
-        service.loadExistingProducers();
 
         return () => {
             service.updateComponentStateCallback = null;
         };
     }, []);
+
+    useEffect(() => {
+        if (isGameReady) {
+            const service = VideoChatViewer.getInstance();
+            service.loadExistingProducers();
+        }
+    }, [isGameReady]);
 
     useEffect(() => {
         if (!videosTracked.length) return;

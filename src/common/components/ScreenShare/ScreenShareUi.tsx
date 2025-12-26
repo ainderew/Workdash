@@ -7,7 +7,11 @@ type VideoState = {
     isExpanded: boolean;
 };
 
-function ScreenShareUi() {
+interface ScreenShareUiProps {
+    isGameReady: boolean;
+}
+
+function ScreenShareUi({ isGameReady }: ScreenShareUiProps) {
     const [videosTracked, setVideosTracked] = useState<VideoState[]>([]);
 
     useEffect(() => {
@@ -24,19 +28,24 @@ function ScreenShareUi() {
                         isExpanded: existing?.isExpanded ?? false,
                     };
                 });
-                console.log(newVideos);
                 return newVideos;
             });
         }
 
         service.updateComponentStateCallback = updateScreenState;
         updateScreenState();
-        service.loadExistingProducers();
 
         return () => {
             service.updateComponentStateCallback = null;
         };
     }, []);
+
+    useEffect(() => {
+        if (isGameReady) {
+            const service = ScreenShareViewer.getInstance();
+            service.loadExistingProducers();
+        }
+    }, [isGameReady]);
 
     useEffect(() => {
         if (!videosTracked.length) return;

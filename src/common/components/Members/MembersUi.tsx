@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { X, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import SidebarMenu from "../SidebarMenu/SidebarMenu";
-import SidebarHeader from "../SidebarMenu/SidebarHeader";
 
 interface MembersUiProps {
     isMembersUiOpen: boolean;

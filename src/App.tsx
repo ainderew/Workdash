@@ -9,9 +9,7 @@ import useUserStore from "./common/store/useStore";
 import { User, UserStore } from "./common/store/_types";
 import { MediaTransportService } from "./communication/mediaTransportService/mediaTransportServive";
 import ScreenShareUi from "./common/components/ScreenShare/ScreenShareUi";
-import { ScreenShareViewer } from "./communication/screenShare/screenShareViewer";
 import VideoChatUi from "./common/components/VideoChat/VideoChatUi";
-import { VideoChatViewer } from "./communication/videoChat/videoChatViewer";
 import { TextChatService } from "./communication/textChat/textChat";
 import { ReactionService } from "./communication/reaction/reaction";
 import ReactionToast from "./common/components/RaiseHandToast/RaiseHandToast";
@@ -19,29 +17,27 @@ import { CharacterCustomizationButton } from "./common/components/UiControls/Cha
 // import { VideoChatService } from "./communication/videoChat/videoChat";
 // import { ScreenShareService } from "./communication/screenShare/screenShare";
 // import SplashScreen from "./common/components/Splash/SplashScreen";
+// import { ScreenShareViewer } from "./communication/screenShare/screenShareViewer";
+// import { VideoChatViewer } from "./communication/videoChat/videoChatViewer";
 
 function App() {
     const [isInitialized, setIsInitialized] = useState(false);
+    const [isGameReady, setIsGameReady] = useState(false);
     const { data: session, status } = useSession();
 
     useEffect(() => {
         if (status !== "authenticated" || !session?.backendJwt) {
-            console.log(
-                "Waiting for authenticated session before initializing...",
-            );
             return;
         }
 
-        console.log("Session authenticated, initializing services...");
-
-        const jwtToken =
-            session.backendJwt || (window as any).__BACKEND_JWT__ || "";
+        const jwtToken = session.backendJwt || window.__BACKEND_JWT__ || "";
 
         const transport = MediaTransportService.getInstance(jwtToken);
-        const screenShareViewer = ScreenShareViewer.getInstance();
-        const videoChatViewer = VideoChatViewer.getInstance();
         const textChat = TextChatService.getInstance();
         const reactionService = ReactionService.getInstance();
+
+        // const screenShareViewer = ScreenShareViewer.getInstance();
+        // const videoChatViewer = VideoChatViewer.getInstance();
         // const screenShare = ScreenShareService.getInstance();
         // const videoChat = VideoChatService.getInstance();
 
@@ -50,15 +46,12 @@ function App() {
                 await transport.connect();
                 await transport.initializeSfu();
 
-                screenShareViewer.loadExistingProducers();
-                videoChatViewer.loadExistingProducers();
                 textChat.setupMessageListener();
                 reactionService.setupReactionListener();
                 reactionService.uiUpdater = (emojiData) => {
                     reactionService.routeReactionToPlayer(emojiData);
                 };
 
-                console.log("Services initialized successfully");
                 setIsInitialized(true);
             } catch (error) {
                 console.error("Failed to initialize services:", error);
@@ -74,6 +67,11 @@ function App() {
             return true;
         }
         return false;
+    };
+
+    // Callback when game finishes loading and is ready
+    const handleGameReady = () => {
+        setIsGameReady(true);
     };
 
     const setUser = useUserStore((state: UserStore) => state.setUser);
@@ -131,13 +129,16 @@ function App() {
                 ref={phaserRef}
                 currentActiveScene={currentScene}
                 user={user}
+                onGameReady={handleGameReady}
             />
             <AudioElement />
             <UiControls />
-            <ScreenShareUi />
-            <VideoChatUi />
-            <ReactionToast />
 
+            {/* Pass isGameReady to control when to load producers */}
+            <ScreenShareUi isGameReady={isGameReady} />
+            <VideoChatUi isGameReady={isGameReady} />
+
+            <ReactionToast />
             <CharacterCustomizationButton />
         </div>
     );

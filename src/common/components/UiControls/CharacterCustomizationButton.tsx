@@ -21,7 +21,6 @@ export function CharacterCustomizationButton() {
                 <Settings size={18} />
             </button>
 
-            {/* Selection Modal */}
             <SettingsSelectionModal
                 isOpen={activeModal === "selection"}
                 onClose={() => setActiveModal(null)}

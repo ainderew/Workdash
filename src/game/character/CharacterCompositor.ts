@@ -3,11 +3,9 @@ import { CharacterCustomization } from "@/game/character/_types";
 import {
     getCharacterLayerPathsArray,
     BASE_PATH,
-    FRAME_SIZE,
 } from "@/common/components/CharacterCreation/AssetConfig";
 import useUserStore from "@/common/store/useStore";
 
-// ADJUSTED: 64px tall to fit head, but 32px wide to match your specific sheet packing
 const OUTPUT_FRAME_WIDTH = 32;
 const OUTPUT_FRAME_HEIGHT = 64;
 
@@ -29,7 +27,7 @@ export class CharacterCompositor {
         );
         const loadedImages = await this.loadAllLayers(layerPaths);
 
-        // Keep your original canvas size
+        // Keep original canvas size
         const CANVAS_WIDTH = 1824;
         const CANVAS_HEIGHT = 1312;
 

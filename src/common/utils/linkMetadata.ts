@@ -1,7 +1,8 @@
 import type { LinkMetadata } from "@/communication/textChat/_types";
 
 // YouTube URL patterns
-const YOUTUBE_REGEX = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+const YOUTUBE_REGEX =
+    /(?:youtube\.com\/(?:[^/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?/\s]{11})/;
 
 /**
  * Extract YouTube video ID from URL
@@ -23,7 +24,6 @@ async function fetchYouTubeMetadata(url: string): Promise<LinkMetadata | null> {
         const response = await fetch(oembedUrl);
 
         if (!response.ok) {
-            console.error('Failed to fetch YouTube metadata:', response.statusText);
             return null;
         }
 
@@ -31,14 +31,13 @@ async function fetchYouTubeMetadata(url: string): Promise<LinkMetadata | null> {
 
         return {
             url,
-            type: 'youtube',
+            type: "youtube",
             title: data.title,
             description: data.author_name,
             image: data.thumbnail_url,
             youtubeId: videoId,
         };
-    } catch (error) {
-        console.error('Error fetching YouTube metadata:', error);
+    } catch {
         return null;
     }
 }
@@ -55,15 +54,15 @@ function extractUrls(message: string): string[] {
 /**
  * Fetch metadata for all links in a message
  */
-export async function fetchLinkMetadata(message: string): Promise<LinkMetadata[]> {
+export async function fetchLinkMetadata(
+    message: string,
+): Promise<LinkMetadata[]> {
     const urls = extractUrls(message);
-    console.log('📎 Fetching metadata for URLs:', urls);
 
     const metadataPromises = urls.map(async (url) => {
         // Check if it's a YouTube URL
-        if (url.includes('youtube.com') || url.includes('youtu.be')) {
+        if (url.includes("youtube.com") || url.includes("youtu.be")) {
             const metadata = await fetchYouTubeMetadata(url);
-            console.log('🎥 YouTube metadata fetched:', metadata);
             return metadata;
         }
 
@@ -73,7 +72,8 @@ export async function fetchLinkMetadata(message: string): Promise<LinkMetadata[]
     });
 
     const results = await Promise.all(metadataPromises);
-    const filtered = results.filter((metadata): metadata is LinkMetadata => metadata !== null);
-    console.log('✅ Final metadata array:', filtered);
+    const filtered = results.filter(
+        (metadata): metadata is LinkMetadata => metadata !== null,
+    );
     return filtered;
 }

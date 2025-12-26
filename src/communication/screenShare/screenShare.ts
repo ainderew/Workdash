@@ -50,7 +50,6 @@ export class ScreenShareService {
         });
 
         videoTrack.onended = () => {
-            console.log("Screen sharing has been stopped by the user.");
             this.stopScreenShare();
         };
 
@@ -58,23 +57,31 @@ export class ScreenShareService {
     }
 
     public stopScreenShare(): void {
+        if (!this.screenProducer) {
+            return;
+        }
+
+        const producerId = this.screenProducer.id;
+
         this.sfuService.socket.emit("producerClosed", {
-            producerId: this.screenProducer!.id,
-            kind: "video", // or "screen"
+            producerId: producerId,
+            kind: "video",
+        });
+
+        this.sfuService.socket.emit("endScreenShare", {
+            producerId: producerId,
         });
 
         if (this.currentStream) {
-            this.currentStream.getTracks().forEach((track) => track.stop());
+            this.currentStream.getTracks().forEach((track) => {
+                track.stop();
+            });
             this.currentStream = null;
         }
+
         if (this.screenProducer) {
             this.screenProducer.close();
             this.screenProducer = null;
         }
-
-        // if (this.systemAudioProducer) {
-        //     this.systemAudioProducer.close();
-        //     this.systemAudioProducer = null;
-        // }
     }
 }

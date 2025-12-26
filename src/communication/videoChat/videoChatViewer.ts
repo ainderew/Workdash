@@ -1,4 +1,5 @@
 import useUserStore from "@/common/store/useStore";
+import usePlayersStore from "@/common/store/playerStore";
 import { MediaTransportService } from "../mediaTransportService/mediaTransportServive";
 import { ConsumerData } from "../screenShare/_types";
 import { Consumer } from "mediasoup-client/types";
@@ -93,31 +94,77 @@ export class VideoChatViewer {
             if (consumerData.kind === "video") {
                 this.displayVideo(producerId, consumer);
             }
-        } catch (error) {
-            console.error("Error consuming producer:", error);
+        } catch {
+            alert("something went wrong");
         }
     }
 
     public async loadExistingProducers(): Promise<void> {
+        // Wait for playerMap to be populated (with timeout)
+        await this.waitForPlayers();
+
         const producers = await new Promise<
-            { producerId: string; socketId: string; source: string }[]
+            {
+                producerId: string;
+                socketId: string;
+                source: string;
+                userName?: string;
+            }[]
         >((resolve) => {
             this.sfuService.socket.emit("getProducers", {}, resolve);
         });
 
-        console.log(`Found ${producers.length} existing producers`);
-
         const relevantProducers = producers.filter(
-            (p) => p.source === "camera", // or 'camera' for VideoChatViewer
+            (p) => p.source === "camera",
         );
 
-        for (const { producerId } of relevantProducers) {
-            await this.consumeProducer(producerId);
+        for (const producer of relevantProducers) {
+            // Store userName if available
+            if (producer.userName) {
+                this.videoChatOwnerMap[producer.producerId] = producer.userName;
+            } else {
+                // Look up player name from playerStore using socketId
+                const playerMap = usePlayersStore.getState().playerMap;
+
+                const player = playerMap[producer.socketId];
+                if (player?.name) {
+                    this.videoChatOwnerMap[producer.producerId] = player.name;
+                } else {
+                    this.videoChatOwnerMap[producer.producerId] =
+                        "Unknown User";
+                }
+            }
+
+            // Consume producer immediately
+            await this.consumeProducer(producer.producerId);
+        }
+    }
+
+    private async waitForPlayers(maxWaitMs: number = 5000): Promise<void> {
+        const startTime = Date.now();
+
+        while (Date.now() - startTime < maxWaitMs) {
+            const playerMap = usePlayersStore.getState().playerMap;
+            const playerCount = Object.keys(playerMap).length;
+
+            if (playerCount > 0) {
+                return;
+            }
+
+            // Wait 100ms before checking again
+            await new Promise((resolve) => setTimeout(resolve, 100));
         }
     }
 
     private displayVideo(producerId: string, consumer: Consumer): void {
         if (!this.updateComponentStateCallback) return;
+
+        if (consumer.track.readyState !== "live") {
+            consumer.close();
+            this.consumers.delete(producerId);
+            return;
+        }
+
         const videoEl = document.createElement("video") as HTMLVideoElement;
         videoEl.srcObject = new MediaStream([consumer.track]);
         videoEl.autoplay = true;
@@ -131,13 +178,60 @@ export class VideoChatViewer {
         videoEl.style.backgroundColor = "#000";
         videoEl.style.display = "block";
 
+        // Monitor track state changes
+        consumer.track.onended = () => {
+            this.removeScreenShareVideo(producerId);
+        };
+
+        // Set up timeout to detect black screens (no data received)
+        let hasReceivedData = false;
+        const dataCheckTimeout = setTimeout(() => {
+            if (!hasReceivedData) {
+                this.removeScreenShareVideo(producerId);
+            }
+        }, 3000);
+
+        videoEl.onloadeddata = () => {
+            hasReceivedData = true;
+            clearTimeout(dataCheckTimeout);
+        };
+
         this.videoElements.set(producerId, videoEl);
         this.updateComponentStateCallback!();
     }
 
     public removeScreenShareVideo(producerId: string) {
-        if (!this.updateComponentStateCallback) return;
-        this.videoElements.delete(producerId);
-        this.updateComponentStateCallback!();
+        // Close and remove the consumer
+        const consumer = this.consumers.get(producerId);
+        if (consumer) {
+            consumer.close();
+            this.consumers.delete(producerId);
+        }
+
+        // Remove the video element
+        const videoEl = this.videoElements.get(producerId);
+        if (videoEl) {
+            videoEl.srcObject = null; // Clear the stream
+            videoEl.remove(); // Remove from DOM if attached
+            this.videoElements.delete(producerId);
+        }
+
+        // Remove from owner map
+        delete this.videoChatOwnerMap[producerId];
+
+        // Remove from user store
+        const currentProducerIds =
+            useUserStore.getState().user.producerIds ?? [];
+        const updatedProducerIds = currentProducerIds.filter(
+            (id) => id !== producerId,
+        );
+        useUserStore.getState().updateUser({
+            producerIds: updatedProducerIds,
+        });
+
+        // Update UI
+        if (this.updateComponentStateCallback) {
+            this.updateComponentStateCallback();
+        }
     }
 }

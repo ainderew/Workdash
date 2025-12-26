@@ -140,10 +140,6 @@ export class CharacterAnimationManager {
             const startFrame = rowStartIdx + config.startCol;
             const endFrame = rowStartIdx + config.endCol;
 
-            console.log(
-                `[Anim Debug] ${config.key}: Row ${lRow} (StartIdx ${rowStartIdx}) | Frames: ${startFrame} to ${endFrame}`,
-            );
-
             this.scene.anims.create({
                 key: config.key,
                 frames: this.scene.anims.generateFrameNumbers(spritesheetKey, {

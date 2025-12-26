@@ -26,6 +26,7 @@ interface CharacterCreationScreenProps {
     onComplete: (customization: CharacterCustomization) => void;
     onCancel?: () => void;
     mode: "create" | "edit";
+    isLoading?: boolean;
 }
 
 const CATEGORIES: CategoryTab[] = [
@@ -51,6 +52,7 @@ export function CharacterCreationScreen({
     onComplete,
     onCancel,
     mode,
+    isLoading = false,
 }: CharacterCreationScreenProps) {
     const [customization, setCustomization] = useState<CharacterCustomization>(
         initialCustomization || DEFAULT_CUSTOMIZATION,
@@ -187,11 +189,14 @@ export function CharacterCreationScreen({
                         )}
                         <button
                             onClick={handleComplete}
-                            className="px-6 py-2 rounded-lg bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-semibold hover:from-cyan-600 hover:to-purple-700 transition-all shadow-lg shadow-cyan-500/25"
+                            disabled={isLoading}
+                            className="px-6 py-2 rounded-lg bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-semibold hover:from-cyan-600 hover:to-purple-700 transition-all shadow-lg shadow-cyan-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            {mode === "create"
-                                ? "Create Character"
-                                : "Save Changes"}
+                            {isLoading
+                                ? "Saving..."
+                                : mode === "create"
+                                  ? "Create Character"
+                                  : "Save Changes"}
                         </button>
                     </div>
                 </div>

@@ -2,8 +2,12 @@ import React from "react";
 import VideoChatContainer from "./VideoChatContainer";
 import useVideoChat from "./hooks/useVideoChat";
 
-function VideoChatUi() {
-    const { videosTracked, handleExpand } = useVideoChat();
+interface VideoChatUiProps {
+    isGameReady: boolean;
+}
+
+function VideoChatUi({ isGameReady }: VideoChatUiProps) {
+    const { videosTracked, handleExpand } = useVideoChat(isGameReady);
 
     const expandedVideo = videosTracked.find((v) => v.isExpanded);
     const collapsedVideos = videosTracked.filter((v) => !v.isExpanded);

@@ -3,15 +3,16 @@ import { useSession } from "next-auth/react";
 import StartGame from "./game/main";
 import { EventBus } from "./game/EventBus";
 import { User } from "./common/store/_types";
+import { BackendUser, BackendCharacter } from "./types/auth";
+import { CharacterCustomization } from "./game/character/_types";
 
-// Extend Window interface for global Phaser/Backend references
 declare global {
     interface Window {
         __BACKEND_JWT__?: string;
-        __BACKEND_USER__?: any;
-        __BACKEND_CHARACTER__?: any;
+        __BACKEND_USER__?: BackendUser;
+        __BACKEND_CHARACTER__?: BackendCharacter;
         __MULTIPLAYER__?: {
-            emitCharacterUpdate: (data: any) => void;
+            emitCharacterUpdate: (data: CharacterCustomization) => void;
             emitNameUpdate: (name: string) => void;
         };
     }
@@ -25,18 +26,16 @@ export interface IRefPhaserGame {
 interface IProps {
     currentActiveScene?: (scene_instance: Phaser.Scene) => void;
     user: User;
+    onGameReady?: () => void;
 }
 
 export const PhaserGame = forwardRef<IRefPhaserGame, IProps>(
-    function PhaserGame({ currentActiveScene }, ref) {
+    function PhaserGame({ currentActiveScene, onGameReady }, ref) {
         const game = useRef<Phaser.Game | null>(null!);
         const { data: session } = useSession();
 
-        // Set JWT token globally BEFORE game initialization
         useLayoutEffect(() => {
-            // Set window globals first
             if (session?.backendJwt) {
-                console.log("PhaserGame: Setting JWT in window global");
                 window.__BACKEND_JWT__ = session.backendJwt;
                 window.__BACKEND_USER__ = session.backendUser;
                 window.__BACKEND_CHARACTER__ = session.backendCharacter;
@@ -45,7 +44,6 @@ export const PhaserGame = forwardRef<IRefPhaserGame, IProps>(
             }
 
             if (game.current === null) {
-                console.log("PhaserGame: Starting game...");
                 game.current = StartGame("game-container");
 
                 if (typeof ref === "function") {
@@ -84,12 +82,16 @@ export const PhaserGame = forwardRef<IRefPhaserGame, IProps>(
                             scene: scene_instance,
                         };
                     }
+
+                    if (scene_instance.scene.key === "Game" && onGameReady) {
+                        onGameReady();
+                    }
                 },
             );
             return () => {
                 EventBus.removeListener("current-scene-ready");
             };
-        }, [currentActiveScene, ref]);
+        }, [currentActiveScene, ref, onGameReady]);
 
         return (
             <div id="game-container" className="w-full h-full bg-black"></div>

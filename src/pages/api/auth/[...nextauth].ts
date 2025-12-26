@@ -1,8 +1,9 @@
-import NextAuth, { AuthOptions, Account } from "next-auth";
+import NextAuth, { AuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import { JWT } from "next-auth/jwt";
 import { Session } from "next-auth";
 import { CONFIG } from "@/common/utils/config";
+import { ExtendedAccount } from "@/types/auth";
 
 /**
  * Takes a token, and returns a new token with updated
@@ -96,9 +97,10 @@ export const authOptions: AuthOptions = {
 
                         // Store backend JWT token in the account object
                         // This will be accessible in the jwt callback
-                        (account as any).backendJwt = data.token;
-                        (account as any).backendUser = data.user;
-                        (account as any).backendCharacter = data.character;
+                        const extendedAccount = account as ExtendedAccount;
+                        extendedAccount.backendJwt = data.token;
+                        extendedAccount.backendUser = data.user;
+                        extendedAccount.backendCharacter = data.character;
 
                         return true; // Login successful
                     } else {
@@ -116,7 +118,7 @@ export const authOptions: AuthOptions = {
             }
             return true;
         },
-        async jwt({ token, account }: { token: JWT; account: Account | null }) {
+        async jwt({ token, account }: { token: JWT; account: ExtendedAccount | null }) {
             if (account) {
                 return {
                     accessToken: account.access_token,
@@ -124,9 +126,9 @@ export const authOptions: AuthOptions = {
                         ? account.expires_at * 1000
                         : Date.now() + 3600 * 1000,
                     refreshToken: account.refresh_token,
-                    backendJwt: (account as any).backendJwt,
-                    backendUser: (account as any).backendUser,
-                    backendCharacter: (account as any).backendCharacter,
+                    backendJwt: account.backendJwt,
+                    backendUser: account.backendUser,
+                    backendCharacter: account.backendCharacter,
                     user: token.user,
                     ...token,
                 };
@@ -150,11 +152,11 @@ export const authOptions: AuthOptions = {
             }
 
             if (token.backendUser) {
-                session.backendUser = token.backendUser as any;
+                session.backendUser = token.backendUser;
             }
 
             if (token.backendCharacter) {
-                session.backendCharacter = token.backendCharacter as any;
+                session.backendCharacter = token.backendCharacter;
             }
 
             if (token.error) {

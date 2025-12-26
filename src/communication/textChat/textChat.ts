@@ -23,7 +23,6 @@ export class TextChatService {
     }
 
     async sendMessage(message: string) {
-        // Fetch metadata for any links in the message
         const linkMetadata = await fetchLinkMetadata(message);
 
         const messageData = {
@@ -35,9 +34,6 @@ export class TextChatService {
             linkMetadata: linkMetadata.length > 0 ? linkMetadata : undefined,
         };
 
-        console.log('📤 Sending message with metadata:', messageData);
-
-        // Store metadata locally in a map for when message comes back from server
         this.pendingMetadata.set(message, linkMetadata);
 
         this.sfuService.socket.emit(TextEvents.SEND_MESSAGE, messageData);
@@ -47,15 +43,10 @@ export class TextChatService {
 
     setupMessageListener() {
         this.sfuService.socket.on(TextEvents.NEW_MESSAGE, (data: Message) => {
-            console.log('📥 Received message from server:', data);
-            console.log('📊 Has linkMetadata?', !!data.linkMetadata, data.linkMetadata);
-
-            // If metadata was stripped by backend, restore it from pending metadata
             if (!data.linkMetadata && this.pendingMetadata.has(data.content)) {
                 const metadata = this.pendingMetadata.get(data.content);
                 if (metadata && metadata.length > 0) {
                     data.linkMetadata = metadata;
-                    console.log('✨ Restored metadata from pending:', metadata);
                 }
                 this.pendingMetadata.delete(data.content);
             }

@@ -9,9 +9,7 @@ export class VideoChatService {
     private currentStream: MediaStream | null = null;
 
     constructor() {
-        console.log("Initializing Video Chat");
         this.sfuService = MediaTransportService.getInstance();
-        console.log("Video Chat Initialized");
     }
 
     public static getInstance() {

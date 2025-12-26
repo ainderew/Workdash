@@ -101,6 +101,7 @@ export function CharacterCustomizationMenu({
             onComplete={handleComplete}
             onCancel={onClose}
             mode="edit"
+            isLoading={isSaving}
         />
     );
 }

@@ -1,13 +1,14 @@
 import "next-auth";
 import "next-auth/jwt";
+import { BackendUser, BackendCharacter } from "./auth";
 
 declare module "next-auth" {
     interface Session {
         accessToken?: string;
         error?: string;
         backendJwt?: string;
-        backendUser?: any;
-        backendCharacter?: any;
+        backendUser?: BackendUser;
+        backendCharacter?: BackendCharacter;
     }
 }
 
@@ -18,7 +19,7 @@ declare module "next-auth/jwt" {
         refreshToken?: string;
         error?: string;
         backendJwt?: string;
-        backendUser?: any;
-        backendCharacter?: any;
+        backendUser?: BackendUser;
+        backendCharacter?: BackendCharacter;
     }
 }

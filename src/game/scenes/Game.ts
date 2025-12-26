@@ -13,6 +13,7 @@ import { CharacterCustomization } from "../character/_types";
 import { CharacterCompositor } from "../character/CharacterCompositor";
 import { CharacterAnimationManager } from "../character/CharacterAnimationManager";
 import useUserStore from "@/common/store/useStore";
+import { EventBus } from "../EventBus";
 
 export class Game extends Scene {
     //Game setup
@@ -288,17 +289,10 @@ export class Game extends Scene {
             frame: 0, // Start closed
             classType: Phaser.GameObjects.Sprite,
         });
-        console.log("Doors created:", this.doors.length);
-        console.log("Animation exists:", this.anims.exists("door_open"));
         // Add Physics to the door sprites
         this.physics.world.enable(this.doors);
         this.doors.forEach((object) => {
             const door = object as Phaser.GameObjects.Sprite;
-            console.log("Door body:", door.body);
-            // OR adjust position instead:
-            // door.setPosition(door.x + 16, door.y + 16);
-            console.log("Door texture key:", door.texture.key);
-            console.log("Door frame:", door.frame.name);
             door.setDepth(100);
             door.setData("isOpen", false);
 
@@ -335,6 +329,9 @@ export class Game extends Scene {
         );
 
         this.setupChatBlur();
+
+        // Emit event to notify React that the game scene is ready
+        EventBus.emit("current-scene-ready", this);
     }
 
     public async createPlayer(
@@ -355,7 +352,6 @@ export class Game extends Scene {
         if (existingPlayer) {
             existingPlayer.setTexture(SpriteKeys.ADAM);
         }
-        console.log("Creating player:", id, name);
 
         try {
             let spriteKey: string;
@@ -385,17 +381,10 @@ export class Game extends Scene {
                         animManager.updateAnimationKeys(characterKey);
                         spriteKey = characterKey;
                     } else {
-                        console.warn(
-                            `Texture ${spritesheetKey} missing after creation, using default`,
-                        );
                         spriteKey = SpriteKeys.ADAM;
                         customization = null;
                     }
-                } catch (error) {
-                    console.error(
-                        "Error creating custom character texture:",
-                        error,
-                    );
+                } catch {
                     spriteKey = SpriteKeys.ADAM;
                     customization = null;
                 }
@@ -634,7 +623,6 @@ export class Game extends Scene {
         this.physics.add.collider(this.playersLayer, trees2Layer);
 
         this.physics.add.overlap(this.playersLayer, this.doors, (door) => {
-            console.log("Door overlap triggered!");
             const doorSprite = door as Phaser.GameObjects.Sprite;
             if (!doorSprite.getData("isOpen")) {
                 doorSprite.setData("isOpen", true);
@@ -685,6 +673,6 @@ export class Game extends Scene {
     }
 
     private getJwtToken(): string {
-        return (window as any).__BACKEND_JWT__ || "";
+        return window.__BACKEND_JWT__ || "";
     }
 }

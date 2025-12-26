@@ -2,14 +2,14 @@
 const URL_REGEX = /(https?:\/\/[^\s]+)/g;
 
 // YouTube URL patterns
-const YOUTUBE_REGEX = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+const YOUTUBE_REGEX = /(?:youtube\.com\/(?:[^/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?/\s]{11})/;
 
 // Twitter URL patterns
-const TWITTER_REGEX = /(?:twitter\.com|x\.com)\/([^\/]+)\/status\/(\d+)/;
+const TWITTER_REGEX = /(?:twitter\.com|x\.com)\/([^/]+)\/status\/(\d+)/;
 
 // GitHub URL patterns
-const GITHUB_REPO_REGEX = /github\.com\/([^\/]+)\/([^\/\s]+)(?:\/)?$/;
-const GITHUB_ISSUE_REGEX = /github\.com\/([^\/]+)\/([^\/]+)\/(?:issues|pull)\/(\d+)/;
+const GITHUB_REPO_REGEX = /github\.com\/([^/]+)\/([^/\s]+)(?:\/)?$/;
+const GITHUB_ISSUE_REGEX = /github\.com\/([^/]+)\/([^/]+)\/(?:issues|pull)\/(\d+)/;
 
 export interface ParsedMessage {
     type: 'text' | 'link' | 'youtube' | 'twitter' | 'github';
