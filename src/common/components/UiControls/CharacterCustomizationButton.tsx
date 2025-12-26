@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { CharacterCustomizationMenu } from "../CharacterCustomization/CharacterCustomizationMenu";
+import { Settings } from "lucide-react";
 
 export function CharacterCustomizationButton() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -8,22 +9,10 @@ export function CharacterCustomizationButton() {
         <>
             <button
                 onClick={() => setIsMenuOpen(true)}
-                className="p-3 bg-slate-800 hover:bg-slate-700 rounded-lg border-2 border-slate-600 hover:border-slate-500 transition-all shadow-lg"
+                className="absolute top-10 right-10 cursor-pointer p-3 bg-neutral-700 hover:bg-slate-700 rounded-lg border-2 border-slate-600 hover:border-slate-500 transition-all shadow-lg"
                 title="Customize Character"
             >
-                <svg
-                    className="w-6 h-6 text-white"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                >
-                    <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                    />
-                </svg>
+                <Settings size={18} />
             </button>
 
             <CharacterCustomizationMenu

@@ -17,16 +17,14 @@ export class AudioChat {
     private sfuService: MediaTransportService;
     private audioProducer?: Producer;
     private audioElementsSetter: (audioElement: HTMLAudioElement) => void;
-    private audioContext: AudioContext;
+    private audioContext: AudioContext | null = null;
     private audioDestination?: MediaStreamAudioDestinationNode;
     private consumers: Map<string, Consumer> = new Map();
-    private isInFocusMode: boolean;
+    private isInFocusMode: boolean = false;
+    private currentStream: MediaStream | null = null;
+    private currentDeviceId: string | null = null;
 
     constructor() {
-        /**
-         * Doing singleton pattern
-         * So the sfu transport and connection does not get accidentally get created
-         **/
         console.log("initializeAudioChat");
         this.sfuService = MediaTransportService.getInstance();
         console.log("AudioChat initialized");
@@ -47,17 +45,106 @@ export class AudioChat {
         this.watchFocusModeChanges();
     }
 
-    public async joinVoiceChat() {
+    /**
+     * Get list of available microphones
+     */
+    public async getAvailableMicrophones(): Promise<MediaDeviceInfo[]> {
+        // Request permission first to get device labels
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                audio: true,
+            });
+            // Stop the stream immediately - we just needed permission
+            stream.getTracks().forEach((track) => track.stop());
+        } catch (error) {
+            console.error("Failed to get microphone permission:", error);
+            throw error;
+        }
+
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        return devices.filter((device) => device.kind === "audioinput");
+    }
+
+    /**
+     * Switch to a different microphone
+     */
+    public async switchMicrophone(deviceId: string): Promise<void> {
+        // Don't switch if it's the same device
+        if (deviceId === this.currentDeviceId) {
+            return;
+        }
+
+        const wasMuted = this.isMuted;
+
+        // Clean up old resources
+        if (this.currentStream) {
+            this.currentStream.getTracks().forEach((track) => track.stop());
+            this.currentStream = null;
+        }
+
+        if (this.audioContext) {
+            await this.audioContext.close();
+            this.audioContext = null;
+        }
+
+        // Close old producer
+        if (this.audioProducer && !this.audioProducer.closed) {
+            this.audioProducer.close();
+            this.audioProducer = undefined;
+        }
+
+        // Get new stream with selected device
         const stream = await navigator.mediaDevices.getUserMedia({
-            audio: {
-                channelCount: 1,
-                sampleRate: 48000,
-                sampleSize: 16,
-                echoCancellation: true,
-                noiseSuppression: true,
-                autoGainControl: true,
-            },
+            audio: this.getAudioConstraints(deviceId),
         });
+
+        this.currentStream = stream;
+        this.currentDeviceId = deviceId;
+
+        const processedStream = await this.processAudioStream(stream);
+        const [audioTrack] = processedStream.getAudioTracks();
+
+        // Create new producer
+        this.audioProducer = await this.sfuService.sendTransport!.produce({
+            track: audioTrack,
+        });
+
+        // Restore mute state
+        if (wasMuted) {
+            this.muteMic();
+        } else {
+            this.unMuteMic();
+        }
+
+        console.log(`Switched to microphone: ${deviceId}`);
+    }
+
+    private getAudioConstraints(deviceId?: string): MediaTrackConstraints {
+        const constraints: MediaTrackConstraints = {
+            channelCount: 1,
+            sampleRate: 48000,
+            sampleSize: 16,
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+        };
+
+        if (deviceId) {
+            constraints.deviceId = { exact: deviceId };
+        }
+
+        return constraints;
+    }
+
+    public async joinVoiceChat(deviceId?: string) {
+        const stream = await navigator.mediaDevices.getUserMedia({
+            audio: this.getAudioConstraints(deviceId),
+        });
+
+        this.currentStream = stream;
+        if (deviceId) {
+            this.currentDeviceId = deviceId;
+        }
 
         const processedStream = await this.processAudioStream(stream);
         const [audioTrack] = processedStream.getAudioTracks();
@@ -117,16 +204,6 @@ export class AudioChat {
             if (this.isInFocusMode) {
                 consumer.pause();
             }
-            // Wait for transport to be connected before resuming
-            // let attempts = 0;
-            // while (!this.recvTransportConnected && attempts < 50) {
-            //     await new Promise((resolve) => setTimeout(resolve, 100));
-            //     attempts++;
-            // }
-            //
-            // if (!this.recvTransportConnected) {
-            //     console.error("Transport failed to connect after 5 seconds");
-            // }
 
             await new Promise((resolve) => {
                 this.sfuService.socket.emit(
@@ -164,13 +241,10 @@ export class AudioChat {
     private async processAudioStream(
         stream: MediaStream,
     ): Promise<MediaStream> {
-        // Create audio context
         this.audioContext = new AudioContext({ sampleRate: 48000 });
 
-        // Create source from microphone
         const source = this.audioContext.createMediaStreamSource(stream);
 
-        // Create a compressor for better dynamic range
         const compressor = this.audioContext.createDynamicsCompressor();
         compressor.threshold.value = -50;
         compressor.knee.value = 40;
@@ -178,20 +252,16 @@ export class AudioChat {
         compressor.attack.value = 0.003;
         compressor.release.value = 0.25;
 
-        // Create a gain node for volume control
         const gainNode = this.audioContext.createGain();
-        gainNode.gain.value = 1.2; // Slight boost
+        gainNode.gain.value = 1.2;
 
-        // Optional: Add a basic high-pass filter to reduce low-frequency noise
         const highPassFilter = this.audioContext.createBiquadFilter();
         highPassFilter.type = "highpass";
-        highPassFilter.frequency.value = 80; // Remove rumble below 80Hz
+        highPassFilter.frequency.value = 80;
 
-        // Create destination
         this.audioDestination =
             this.audioContext.createMediaStreamDestination();
 
-        // Connect the audio pipeline
         source
             .connect(highPassFilter)
             .connect(compressor)
@@ -207,6 +277,7 @@ export class AudioChat {
             this.isMuted = true;
         }
     }
+
     public unMuteMic() {
         if (this.audioProducer) {
             this.audioProducer?.resume();
@@ -249,9 +320,41 @@ export class AudioChat {
                         ? AvailabilityStatus.FOCUS
                         : AvailabilityStatus.ONLINE,
                 );
-
-                // Update UI or player state accordingly
             },
         );
+    }
+
+    /**
+     * Get the currently selected microphone device ID
+     */
+    public getCurrentDeviceId(): string | null {
+        return this.currentDeviceId;
+    }
+
+    /**
+     * Cleanup resources
+     */
+    public async cleanup() {
+        if (this.currentStream) {
+            this.currentStream.getTracks().forEach((track) => track.stop());
+            this.currentStream = null;
+        }
+
+        if (this.audioContext) {
+            await this.audioContext.close();
+            this.audioContext = null;
+        }
+
+        if (this.audioProducer && !this.audioProducer.closed) {
+            this.audioProducer.close();
+            this.audioProducer = undefined;
+        }
+
+        this.consumers.forEach((consumer) => {
+            if (!consumer.closed) {
+                consumer.close();
+            }
+        });
+        this.consumers.clear();
     }
 }

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef, useEffect } from "react";
 import UiControlsButton from "./UiControlsButton";
 import {
     Mic,
@@ -9,7 +9,8 @@ import {
     VideoOff,
     ScreenShare as ScreenShareIcon,
     CalendarFold,
-    User,
+    ChevronUp,
+    Check,
 } from "lucide-react";
 import useUiControls from "./hooks/useUiControls";
 import ChatWindow from "../TextChat/ChatWindow";
@@ -26,6 +27,7 @@ import { CharacterCustomizationButton } from "./CharacterCustomizationButton";
 function UiControls() {
     const {
         micControls,
+        microphoneSelector,
         videoCamControls,
         toggleChatWindow,
         isChatWindowOpen,
@@ -37,6 +39,37 @@ function UiControls() {
 
     const { isMuted, toggleMic } = micControls();
     const { isVideoOff, toggleVideoCam } = videoCamControls();
+    const {
+        availableMicrophones,
+        selectedMicrophoneId,
+        selectMicrophone,
+        isMicSelectorOpen,
+        toggleMicSelector,
+        closeMicSelector,
+    } = microphoneSelector();
+
+    // Ref for click outside detection
+    const micSelectorRef = useRef<HTMLDivElement>(null);
+
+    // Close mic selector when clicking outside
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (
+                micSelectorRef.current &&
+                !micSelectorRef.current.contains(event.target as Node)
+            ) {
+                closeMicSelector();
+            }
+        }
+
+        if (isMicSelectorOpen) {
+            document.addEventListener("mousedown", handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [isMicSelectorOpen, closeMicSelector]);
 
     const handleScreenShare = async () => {
         try {
@@ -60,19 +93,19 @@ function UiControls() {
 
     const handleShareVideoCam = async () => {
         try {
-            const screenShare = VideoChatService.getInstance();
-            screenShare.startVideoChat();
+            const videoChat = VideoChatService.getInstance();
+            videoChat.startVideoChat();
             toggleVideoCam();
         } catch (error) {
-            console.error("Screen share error:", error);
+            console.error("Video chat error:", error);
 
             if (error instanceof Error) {
                 if (error.name === "NotAllowedError") {
-                    alert("Screen sharing permission denied");
+                    alert("Camera permission denied");
                 } else if (error.name === "NotFoundError") {
-                    alert("No screen available to share");
+                    alert("No camera available");
                 } else {
-                    alert("Failed to start screen sharing");
+                    alert("Failed to start video chat");
                 }
             }
         }
@@ -82,12 +115,14 @@ function UiControls() {
         <div className="h-[var(--ui-controls-height)] w-fit fixed rounded-xl bottom-4 flex gap-4 justify-between items-center bg-primary/80 px-5">
             <div className="controller-container flex gap-4 items-center pr-30">
                 <CharacterButton />
+
                 <UiControlsButton
                     icon={PhoneMissed}
                     label={"Leave Call"}
                     round={true}
                     size={ButtonSizeEnum.large}
                 />
+
                 <UiControlsButton
                     onClick={handleShareVideoCam}
                     icon={isVideoOff ? VideoOff : VideoIcon}
@@ -96,19 +131,101 @@ function UiControls() {
                     color={isVideoOff ? ColorEnum.darkRed : ColorEnum.darkGreen}
                     textColor={isVideoOff ? ColorEnum.red : ColorEnum.green}
                 />
-                <UiControlsButton
-                    onClick={toggleMic}
-                    icon={isMuted ? MicOff : Mic}
-                    label={"Mute Mic"}
-                    color={isMuted ? ColorEnum.darkRed : ColorEnum.darkGreen}
-                    textColor={isMuted ? ColorEnum.red : ColorEnum.green}
-                />
+
+                {/* Microphone button with selector */}
+                <div className="relative" ref={micSelectorRef}>
+                    <button
+                        className={`flex items-center gap-1 px-3 py-2 rounded-lg transition-colors ${
+                            isMuted ? "bg-red-950" : "bg-green-950"
+                        }`}
+                    >
+                        {/* Main mic toggle area */}
+                        <div
+                            onClick={toggleMic}
+                            className="flex items-center gap-2 cursor-pointer"
+                        >
+                            {isMuted ? (
+                                <MicOff size={20} className="text-red-600" />
+                            ) : (
+                                <Mic size={20} className="text-green-600" />
+                            )}
+                        </div>
+
+                        {/* Divider */}
+                        <div
+                            className={`w-px h-5 mx-1 ${isMuted ? "bg-red-400/30" : "bg-green-400/30"}`}
+                        />
+
+                        {/* Microphone selector toggle */}
+                        <div
+                            onClick={toggleMicSelector}
+                            className="cursor-pointer p-1 rounded hover:bg-white/10 transition-colors"
+                            aria-label="Select microphone"
+                        >
+                            <ChevronUp
+                                size={14}
+                                className={`transition-transform ${isMuted ? "text-red-400/70" : "text-green-400/70"} ${
+                                    isMicSelectorOpen ? "rotate-180" : ""
+                                }`}
+                            />
+                        </div>
+                    </button>
+
+                    {/* Microphone dropdown */}
+                    {isMicSelectorOpen && (
+                        <div className="absolute bottom-full left-0 mb-2 w-64 bg-gray-800 rounded-lg shadow-lg border border-gray-700 overflow-hidden z-50">
+                            <div className="px-3 py-2 border-b border-gray-700">
+                                <span className="text-xs text-gray-400 uppercase tracking-wide">
+                                    Select Microphone
+                                </span>
+                            </div>
+
+                            <div className="max-h-48 overflow-y-auto">
+                                {availableMicrophones.length === 0 ? (
+                                    <div className="px-3 py-2 text-sm text-gray-400">
+                                        No microphones found
+                                    </div>
+                                ) : (
+                                    availableMicrophones.map((mic) => (
+                                        <button
+                                            key={mic.deviceId}
+                                            onClick={() =>
+                                                selectMicrophone(mic.deviceId)
+                                            }
+                                            className={`w-full px-3 py-2 text-left text-sm flex items-center justify-between hover:bg-gray-700 transition-colors ${
+                                                selectedMicrophoneId ===
+                                                mic.deviceId
+                                                    ? "bg-gray-700/50"
+                                                    : ""
+                                            }`}
+                                        >
+                                            <span className="text-white truncate pr-2">
+                                                {mic.label ||
+                                                    `Microphone ${mic.deviceId.slice(0, 8)}`}
+                                            </span>
+
+                                            {selectedMicrophoneId ===
+                                                mic.deviceId && (
+                                                <Check
+                                                    size={16}
+                                                    className="text-green-400 flex-shrink-0"
+                                                />
+                                            )}
+                                        </button>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </div>
+
                 <UiControlsButton
                     onClick={handleScreenShare}
                     icon={ScreenShareIcon}
                     label={"Share Screen"}
                     size={ButtonSizeEnum.regular}
                 />
+
                 <ReactionButton />
             </div>
 
@@ -124,7 +241,7 @@ function UiControls() {
                     icon={MessageCircle}
                     label={"Chat"}
                 />
-                <CharacterCustomizationButton />
+
                 <UiOnlineButton onClick={toggleMembersUi} />
             </div>
 
@@ -132,7 +249,9 @@ function UiControls() {
                 isOpen={isCalendarUiOpen}
                 onClose={toggleCalendarMenu}
             />
+
             <ChatWindow isOpen={isChatWindowOpen} onClose={toggleChatWindow} />
+
             <MembersUi
                 isMembersUiOpen={isMembersUiOpen}
                 onClose={toggleMembersUi}

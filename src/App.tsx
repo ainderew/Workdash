@@ -3,9 +3,8 @@ import Phaser from "phaser";
 import React, { useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import { IRefPhaserGame, PhaserGame } from "./PhaserGame";
-import AudioButton from "./common/components/AudioButton";
+import AudioElement from "./common/components/AudioElement";
 import UiControls from "./common/components/UiControls/UiControls";
-import SplashScreen from "./common/components/Splash/SplashScreen";
 import useUserStore from "./common/store/useStore";
 import { User, UserStore } from "./common/store/_types";
 import { MediaTransportService } from "./communication/mediaTransportService/mediaTransportServive";
@@ -16,8 +15,10 @@ import { VideoChatViewer } from "./communication/videoChat/videoChatViewer";
 import { TextChatService } from "./communication/textChat/textChat";
 import { ReactionService } from "./communication/reaction/reaction";
 import ReactionToast from "./common/components/RaiseHandToast/RaiseHandToast";
+import { CharacterCustomizationButton } from "./common/components/UiControls/CharacterCustomizationButton";
 // import { VideoChatService } from "./communication/videoChat/videoChat";
 // import { ScreenShareService } from "./communication/screenShare/screenShare";
+// import SplashScreen from "./common/components/Splash/SplashScreen";
 
 function App() {
     const [isInitialized, setIsInitialized] = useState(false);
@@ -33,17 +34,16 @@ function App() {
 
         console.log("Session authenticated, initializing services...");
 
-        // Get JWT token from session or window global
         const jwtToken =
             session.backendJwt || (window as any).__BACKEND_JWT__ || "";
 
         const transport = MediaTransportService.getInstance(jwtToken);
-        // const screenShare = ScreenShareService.getInstance();
         const screenShareViewer = ScreenShareViewer.getInstance();
-        // const videoChat = VideoChatService.getInstance();
         const videoChatViewer = VideoChatViewer.getInstance();
         const textChat = TextChatService.getInstance();
         const reactionService = ReactionService.getInstance();
+        // const screenShare = ScreenShareService.getInstance();
+        // const videoChat = VideoChatService.getInstance();
 
         const init = async () => {
             try {
@@ -132,11 +132,13 @@ function App() {
                 currentActiveScene={currentScene}
                 user={user}
             />
-            <AudioButton />
+            <AudioElement />
             <UiControls />
             <ScreenShareUi />
             <VideoChatUi />
             <ReactionToast />
+
+            <CharacterCustomizationButton />
         </div>
     );
 }

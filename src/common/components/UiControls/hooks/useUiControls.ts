@@ -1,6 +1,6 @@
 import { AudioChat } from "@/communication/audioChat/audioChat";
 import { VideoChatService } from "@/communication/videoChat/videoChat";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 function useUiControls() {
     const audioService = AudioChat.getInstance();
@@ -12,10 +12,53 @@ function useUiControls() {
     const [isMuted, setIsMuted] = useState(audioService.isMuted);
     const [isVideoOff, setIsVideoOff] = useState(true);
 
+    // Microphone selection state
+    const [availableMicrophones, setAvailableMicrophones] = useState<
+        MediaDeviceInfo[]
+    >([]);
+    const [selectedMicrophoneId, setSelectedMicrophoneId] =
+        useState<string>("");
+    const [isMicSelectorOpen, setIsMicSelectorOpen] = useState(false);
+
+    // Load available microphones
+    const loadMicrophones = useCallback(async () => {
+        try {
+            const mics = await audioService.getAvailableMicrophones();
+            setAvailableMicrophones(mics);
+
+            // Set default microphone if none selected
+            if (mics.length > 0 && !selectedMicrophoneId) {
+                setSelectedMicrophoneId(mics[0].deviceId);
+            }
+        } catch (error) {
+            console.error("Failed to load microphones:", error);
+        }
+    }, [audioService, selectedMicrophoneId]);
+
+    // Listen for device changes
+    useEffect(() => {
+        loadMicrophones();
+
+        const handleDeviceChange = () => {
+            loadMicrophones();
+        };
+
+        navigator.mediaDevices.addEventListener(
+            "devicechange",
+            handleDeviceChange,
+        );
+
+        return () => {
+            navigator.mediaDevices.removeEventListener(
+                "devicechange",
+                handleDeviceChange,
+            );
+        };
+    }, [loadMicrophones]);
+
     function micControls() {
         function toggleMic() {
             setIsMuted((prev) => !prev);
-
             if (audioService.isMuted) {
                 audioService.unMuteMic();
             } else {
@@ -26,6 +69,35 @@ function useUiControls() {
         return {
             isMuted,
             toggleMic,
+        };
+    }
+
+    function microphoneSelector() {
+        async function selectMicrophone(deviceId: string) {
+            try {
+                setSelectedMicrophoneId(deviceId);
+                await audioService.switchMicrophone(deviceId);
+                setIsMicSelectorOpen(false);
+            } catch (error) {
+                console.error("Failed to switch microphone:", error);
+            }
+        }
+
+        function toggleMicSelector() {
+            setIsMicSelectorOpen((prev) => !prev);
+        }
+
+        function closeMicSelector() {
+            setIsMicSelectorOpen(false);
+        }
+
+        return {
+            availableMicrophones,
+            selectedMicrophoneId,
+            selectMicrophone,
+            isMicSelectorOpen,
+            toggleMicSelector,
+            closeMicSelector,
         };
     }
 
@@ -58,37 +130,33 @@ function useUiControls() {
         setIsCalendarUiOpen((prev) => !prev);
     }
 
-    //TODO: refactor to use a single state variable make more scalable
-    function closeAllExcluding(exlcuded: string) {
-        switch (exlcuded) {
-            case "chat":
-                setIsChatWindowOpen((prev) => prev);
+    function closeAllExcluding(excluded: string) {
+        const closeMap: Record<string, () => void> = {
+            chat: () => {
                 setIsMembersUiOpen(false);
                 setIsCalendarUiOpen(false);
-
-                break;
-            case "members":
-                setIsMembersUiOpen((prev) => prev);
+            },
+            members: () => {
                 setIsChatWindowOpen(false);
                 setIsCalendarUiOpen(false);
-                break;
-            case "calendar":
-                setIsCalendarUiOpen((prev) => prev);
+            },
+            calendar: () => {
                 setIsMembersUiOpen(false);
                 setIsChatWindowOpen(false);
+            },
+        };
 
-                break;
-        }
+        closeMap[excluded]?.();
     }
 
     return {
         micControls,
+        microphoneSelector,
         videoCamControls,
         toggleMembersUi,
         isMembersUiOpen,
         toggleChatWindow,
         isChatWindowOpen,
-
         toggleCalendarMenu,
         isCalendarUiOpen,
     };

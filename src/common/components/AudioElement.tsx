@@ -1,7 +1,7 @@
 import { AudioChat } from "@/communication/audioChat/audioChat";
 import { useEffect, useState } from "react";
 
-export default function AudioButton() {
+export default function AudioElement() {
     const [audioElements, setAudioElements] = useState<HTMLAudioElement[]>([]);
 
     useEffect(() => {
