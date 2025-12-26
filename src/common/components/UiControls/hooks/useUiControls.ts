@@ -1,24 +1,22 @@
 import { AudioChat } from "@/communication/audioChat/audioChat";
 import { VideoChatService } from "@/communication/videoChat/videoChat";
-import { useState, useEffect, useCallback } from "react";
+import { useEffect, useCallback } from "react";
+import useUiStore from "@/common/store/uiStore";
 
 function useUiControls() {
     const audioService = AudioChat.getInstance();
     const videoCamService = VideoChatService.getInstance();
 
-    const [isChatWindowOpen, setIsChatWindowOpen] = useState(false);
-    const [isMembersUiOpen, setIsMembersUiOpen] = useState(false);
-    const [isCalendarUiOpen, setIsCalendarUiOpen] = useState(false);
-    const [isMuted, setIsMuted] = useState(audioService.isMuted);
-    const [isVideoOff, setIsVideoOff] = useState(true);
-
-    // Microphone selection state
-    const [availableMicrophones, setAvailableMicrophones] = useState<
-        MediaDeviceInfo[]
-    >([]);
-    const [selectedMicrophoneId, setSelectedMicrophoneId] =
-        useState<string>("");
-    const [isMicSelectorOpen, setIsMicSelectorOpen] = useState(false);
+    // Get state and actions from Zustand store
+    const {
+        isMuted,
+        toggleMic: toggleMicState,
+        setIsMuted,
+        availableMicrophones,
+        selectedMicrophoneId,
+        setAvailableMicrophones,
+        setSelectedMicrophoneId,
+    } = useUiStore();
 
     // Load available microphones
     const loadMicrophones = useCallback(async () => {
@@ -33,7 +31,7 @@ function useUiControls() {
         } catch (error) {
             console.error("Failed to load microphones:", error);
         }
-    }, [audioService, selectedMicrophoneId]);
+    }, [audioService, selectedMicrophoneId, setAvailableMicrophones, setSelectedMicrophoneId]);
 
     // Listen for device changes
     useEffect(() => {
@@ -56,9 +54,14 @@ function useUiControls() {
         };
     }, [loadMicrophones]);
 
+    // Initialize muted state from audio service
+    useEffect(() => {
+        setIsMuted(audioService.isMuted);
+    }, [audioService.isMuted, setIsMuted]);
+
     function micControls() {
         function toggleMic() {
-            setIsMuted((prev) => !prev);
+            toggleMicState();
             if (audioService.isMuted) {
                 audioService.unMuteMic();
             } else {
@@ -73,22 +76,20 @@ function useUiControls() {
     }
 
     function microphoneSelector() {
+        const {
+            toggleMicSelector,
+            closeMicSelector,
+            isMicSelectorOpen,
+        } = useUiStore();
+
         async function selectMicrophone(deviceId: string) {
             try {
                 setSelectedMicrophoneId(deviceId);
                 await audioService.switchMicrophone(deviceId);
-                setIsMicSelectorOpen(false);
+                closeMicSelector();
             } catch (error) {
                 console.error("Failed to switch microphone:", error);
             }
-        }
-
-        function toggleMicSelector() {
-            setIsMicSelectorOpen((prev) => !prev);
-        }
-
-        function closeMicSelector() {
-            setIsMicSelectorOpen(false);
         }
 
         return {
@@ -102,8 +103,10 @@ function useUiControls() {
     }
 
     function videoCamControls() {
+        const { isVideoOff, toggleVideoCam: toggleVideoCamState } = useUiStore();
+
         function toggleVideoCam() {
-            setIsVideoOff((prev) => !prev);
+            toggleVideoCamState();
             if (!isVideoOff) {
                 videoCamService.stopVideoChat();
             }
@@ -115,39 +118,15 @@ function useUiControls() {
         };
     }
 
-    function toggleChatWindow() {
-        closeAllExcluding("chat");
-        setIsChatWindowOpen((prev) => !prev);
-    }
-
-    function toggleMembersUi() {
-        closeAllExcluding("members");
-        setIsMembersUiOpen((prev) => !prev);
-    }
-
-    function toggleCalendarMenu() {
-        closeAllExcluding("calendar");
-        setIsCalendarUiOpen((prev) => !prev);
-    }
-
-    function closeAllExcluding(excluded: string) {
-        const closeMap: Record<string, () => void> = {
-            chat: () => {
-                setIsMembersUiOpen(false);
-                setIsCalendarUiOpen(false);
-            },
-            members: () => {
-                setIsChatWindowOpen(false);
-                setIsCalendarUiOpen(false);
-            },
-            calendar: () => {
-                setIsMembersUiOpen(false);
-                setIsChatWindowOpen(false);
-            },
-        };
-
-        closeMap[excluded]?.();
-    }
+    // Get panel state and actions from store
+    const {
+        toggleChatWindow,
+        isChatWindowOpen,
+        toggleMembersUi,
+        isMembersUiOpen,
+        toggleCalendarMenu,
+        isCalendarUiOpen,
+    } = useUiStore();
 
     return {
         micControls,

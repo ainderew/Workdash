@@ -44,6 +44,8 @@ export class TextChatService {
             name: useUserStore.getState().user.name,
             content: "",
             type: "gif",
+            senderSocketId: this.sfuService.socket.id,
+            senderSpriteSheet: useUserStore.getState().user.spriteSheetDataUrl,
             gifUrl: gifUrl,
         });
     }
@@ -54,6 +56,8 @@ export class TextChatService {
             name: useUserStore.getState().user.name,
             content: "",
             type: "image",
+            senderSocketId: this.sfuService.socket.id,
+            senderSpriteSheet: useUserStore.getState().user.spriteSheetDataUrl,
             imageUrl: imageUrl,
         });
     }

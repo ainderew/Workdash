@@ -33,7 +33,7 @@ function GiphyPicker({ onSelectGif, onClose }: GiphyPickerProps) {
     };
 
     return (
-        <div className="absolute bottom-full left-0 right-0 mb-2 bg-neutral-900 border border-neutral-700 rounded-lg shadow-2xl">
+        <div className="absolute bottom-full left-0 right-0 mb-2 bg-neutral-900 border border-neutral-700 rounded-lg shadow-2xl z-100">
             <div className="flex items-center justify-between p-3 border-b border-neutral-700">
                 <span className="font-semibold text-white text-sm">
                     Choose a GIF

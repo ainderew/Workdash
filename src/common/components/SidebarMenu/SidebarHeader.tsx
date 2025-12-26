@@ -12,7 +12,7 @@ function SidebarHeader({
     onClose: () => void;
 }) {
     return (
-        <div className="flex items-center justify-between p-4 border-b border-neutral-700">
+        <div className="flex items-center justify-between p-4 border-b border-neutral-700 z-50">
             <div className="flex flex-col">
                 <span className="font-bold text-lg">{title}</span>
                 {subHeader}

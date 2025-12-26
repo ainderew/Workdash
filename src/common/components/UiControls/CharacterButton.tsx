@@ -9,8 +9,8 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { User, Pencil } from "lucide-react"; // Added Pencil icon
-import { EditNameModal } from "./modal/EditName.modal"; // Adjust path as needed
+import { User, Pencil } from "lucide-react";
+import { EditNameModal } from "./modal/EditName.modal";
 
 function CharacterButton() {
     const { data: session } = useSession();
@@ -110,9 +110,6 @@ function CharacterButton() {
                 </div>
 
                 <div className="flex flex-col overflow-hidden">
-                    {/* Make name interactive 
-             Added 'group' to container and hover effects on text 
-          */}
                     <button
                         onClick={() => setIsEditModalOpen(true)}
                         className="text-left group flex items-center gap-1.5 focus:outline-none"
@@ -138,7 +135,7 @@ function CharacterButton() {
                 </div>
             </div>
 
-            {/* Render the Modal */}
+            {/* Edit Name Modal */}
             <EditNameModal
                 isOpen={isEditModalOpen}
                 onClose={() => setIsEditModalOpen(false)}

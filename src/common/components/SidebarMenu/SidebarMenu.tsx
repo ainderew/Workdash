@@ -23,7 +23,7 @@ function SidebarMenu({
 
     return (
         <div
-            className={`overflow-hidden text-white h-full w-128 bg-primary backdrop-blur-sm fixed right-0 top-0 border-l border-neutral-700
+            className={`overflow-hidden text-white h-full w-128 bg-primary backdrop-blur-sm fixed right-0 top-0 border-l border-neutral-700 z-50 
               ${isOpen ? "translate-x-0" : "translate-x-full"} transition-all duration-150 ease-in-out flex flex-col shadow-2xl`}
         >
             {children}

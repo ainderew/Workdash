@@ -1,7 +1,5 @@
 import React, { useMemo } from "react";
 import type { Message } from "@/communication/textChat/_types";
-import useUserStore from "@/common/store/useStore";
-import { User as UserIcon } from "lucide-react";
 
 interface MessageItemProps {
     message: Message;
@@ -9,7 +7,6 @@ interface MessageItemProps {
 }
 
 function MessageItem({ message, showAvatar }: MessageItemProps) {
-    const localUser = useUserStore((state) => state.user);
     const formatTime = (date: Date | string) => {
         const d = typeof date === "string" ? new Date(date) : date;
         return d.toLocaleTimeString("en-US", {
@@ -66,7 +63,7 @@ function MessageItem({ message, showAvatar }: MessageItemProps) {
                 {showAvatar ? (
                     <div className="relative">
                         <div
-                            className={`w-10 h-10 rounded-md border-2 border-sky-600 shadow-[0_0_10px_rgba(34,197,94,0.5)] flex items-center justify-center text-white font-semibold text-sm bg-neutral-700 overflow-hidden ${!avatarBackgroundStyles.backgroundImage ? getAvatarColor(message.senderSocketId) : ""}`}
+                            className={`w-10 h-10 rounded-md border-2 border-sky-600 shadow-[0_0_10px_rgba(2,132,199,0.5)] flex items-center justify-center text-white font-semibold text-sm bg-neutral-700 overflow-hidden ${!avatarBackgroundStyles.backgroundImage ? getAvatarColor(message.senderSocketId) : ""}`}
                             style={avatarBackgroundStyles}
                         >
                             {!avatarBackgroundStyles.backgroundImage && (
@@ -75,11 +72,12 @@ function MessageItem({ message, showAvatar }: MessageItemProps) {
                                 </span>
                             )}
                         </div>
+                        {/* Status Indicator Dot */}
+                        <div className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border border-neutral-800 bg-sky-600 z-10" />
                     </div>
                 ) : null}
             </div>
 
-            {/* Content Column */}
             <div className="flex-1 min-w-0">
                 {showAvatar && (
                     <div className="flex items-baseline gap-2 mb-1">
