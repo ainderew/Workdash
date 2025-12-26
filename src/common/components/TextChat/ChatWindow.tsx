@@ -108,7 +108,7 @@ function ChatWindow({ isOpen, onClose }: ChatWindowProps) {
             </SidebarHeader>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto px-4 pb-4">
+            <div className="flex-1 overflow-y-auto px-4 pb-4 z-100">
                 <div className="flex flex-col">
                     {messages.length > 0 ? (
                         messages.map((msg, index) => (

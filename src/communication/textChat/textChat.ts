@@ -26,6 +26,7 @@ export class TextChatService {
             name: useUserStore.getState().user.name,
             content: message,
             senderSocketId: this.sfuService.socket.id,
+            senderSpriteSheet: useUserStore.getState().user.spriteSheetDataUrl,
             createdAt: new Date(),
         });
     }

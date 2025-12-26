@@ -156,6 +156,19 @@ export class Game extends Scene {
             repeat: -1,
         });
 
+        this.anims.create({
+            key: "christmas_lights",
+            frames: this.anims.generateFrameNumbers(
+                "Animated_Christmas_Lights",
+                {
+                    start: 0,
+                    end: 5,
+                },
+            ),
+            frameRate: 5,
+            repeat: -1,
+        });
+
         /**
          * Don't touch the order it will mess with rendering
          */
@@ -209,6 +222,13 @@ export class Game extends Scene {
             classType: Phaser.GameObjects.Sprite,
         });
 
+        const christmasLightsObjects = map.createFromObjects("Doors", {
+            name: "christmas_lights",
+            key: "Animated_Christmas_Lights",
+            frame: 0,
+            classType: Phaser.GameObjects.Sprite,
+        });
+
         fishTankObjects.forEach((obj) => {
             const sprite = obj as Phaser.GameObjects.Sprite;
             sprite.setDepth(100);
@@ -231,6 +251,12 @@ export class Game extends Scene {
             const sprite = obj as Phaser.GameObjects.Sprite;
             sprite.setDepth(100);
             sprite.play("server_anim");
+        });
+
+        christmasLightsObjects.forEach((obj) => {
+            const sprite = obj as Phaser.GameObjects.Sprite;
+            sprite.setDepth(100);
+            sprite.play("christmas_lights");
         });
 
         this.doors = map.createFromObjects("Doors", {

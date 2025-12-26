@@ -1,5 +1,7 @@
-import React from "react";
+import React, { useMemo } from "react";
 import type { Message } from "@/communication/textChat/_types";
+import useUserStore from "@/common/store/useStore";
+import { User as UserIcon } from "lucide-react";
 
 interface MessageItemProps {
     message: Message;
@@ -7,6 +9,7 @@ interface MessageItemProps {
 }
 
 function MessageItem({ message, showAvatar }: MessageItemProps) {
+    const localUser = useUserStore((state) => state.user);
     const formatTime = (date: Date | string) => {
         const d = typeof date === "string" ? new Date(date) : date;
         return d.toLocaleTimeString("en-US", {
@@ -40,16 +43,38 @@ function MessageItem({ message, showAvatar }: MessageItemProps) {
         return colors[index % colors.length];
     };
 
+    const avatarBackgroundStyles = useMemo((): React.CSSProperties => {
+        const avatarImg = message?.senderSpriteSheet;
+
+        if (avatarImg) {
+            return {
+                backgroundImage: `url('${avatarImg}')`,
+                backgroundRepeat: "no-repeat",
+                backgroundPosition: "-94px -20px",
+                imageRendering: "pixelated" as const,
+            };
+        }
+
+        return {};
+    }, [message?.senderSpriteSheet]);
+
     return (
         <div
             className={`flex gap-3 hover:bg-neutral-800/30 -mx-2 px-2 rounded ${showAvatar ? "py-3 mt-2" : "py-1"}`}
         >
-            <div className="flex-shrink-0 flex items-start pt-1 w-8">
+            <div className="flex-shrink-0 flex items-start pt-1 w-10">
                 {showAvatar ? (
-                    <div
-                        className={`w-8 h-8 outline-2 outline-neutral-300 rounded-full flex items-center justify-center text-white font-semibold text-sm ${getAvatarColor(message.senderSocketId)}`}
-                    >
-                        {getInitials(message.name)}
+                    <div className="relative">
+                        <div
+                            className={`w-10 h-10 rounded-md border-2 border-sky-600 shadow-[0_0_10px_rgba(34,197,94,0.5)] flex items-center justify-center text-white font-semibold text-sm bg-neutral-700 overflow-hidden ${!avatarBackgroundStyles.backgroundImage ? getAvatarColor(message.senderSocketId) : ""}`}
+                            style={avatarBackgroundStyles}
+                        >
+                            {!avatarBackgroundStyles.backgroundImage && (
+                                <span className="select-none">
+                                    {getInitials(message.name)}
+                                </span>
+                            )}
+                        </div>
                     </div>
                 ) : null}
             </div>
@@ -58,7 +83,7 @@ function MessageItem({ message, showAvatar }: MessageItemProps) {
             <div className="flex-1 min-w-0">
                 {showAvatar && (
                     <div className="flex items-baseline gap-2 mb-1">
-                        <span className="font-semibold text-white text-sm">
+                        <span className="font-semibold text-sky-600 text-sm">
                             {message.name}
                         </span>
                         <span className="text-xs text-neutral-400">

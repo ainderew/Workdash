@@ -40,6 +40,11 @@ export class MediaTransportService {
 
         this.socket.on("connect", () => {
             console.log("MediaTransport socket connected successfully");
+
+            // Update user store with socket ID
+            if (this.socket.id) {
+                useUserStore.getState().updateUser({ socketId: this.socket.id });
+            }
         });
 
         this.socket.on("connect_error", (error) => {
@@ -127,6 +132,12 @@ export class MediaTransportService {
 
     private setUserDataOnSfuServer() {
         const user = useUserStore.getState().user;
+
+        // Update user store with socket ID
+        if (this.socket.id) {
+            useUserStore.getState().updateUser({ socketId: this.socket.id });
+        }
+
         this.socket.emit("setUserInfo", user);
     }
 

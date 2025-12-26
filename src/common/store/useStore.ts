@@ -8,6 +8,7 @@ const useUserStore = create<UserStore>((set) => ({
         producerIds: [],
         image: undefined,
         spriteSheetDataUrl: undefined,
+        socketId: undefined,
     },
     setUser: (user: User) => set({ user }),
     updateUser: (updates: Partial<User>) =>

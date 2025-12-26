@@ -188,7 +188,10 @@ export class Multiplayer {
         );
 
         if (isLocal) {
-            useUserStore.getState().updateUser({ name: player.name });
+            useUserStore.getState().updateUser({
+                name: player.name,
+                socketId: this.socket.id,
+            });
         }
     }
 

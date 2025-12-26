@@ -8,6 +8,7 @@ export type User = {
     producerIds: string[];
     characterCustomization?: CharacterCustomization;
     spriteSheetDataUrl?: string;
+    socketId?: string;
 };
 
 export interface UserStore {
