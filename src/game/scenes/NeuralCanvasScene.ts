@@ -9,6 +9,8 @@ export class NeuralCanvasScene extends Scene {
         vy: number;
         color: string;
     }[] = [];
+    private width: number;
+    private height: number;
 
     private lastRender = 0;
     private renderInterval = 1000 / 60; // default 30 FPS
