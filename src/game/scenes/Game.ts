@@ -169,6 +169,16 @@ export class Game extends Scene {
             repeat: -1,
         });
 
+        this.anims.create({
+            key: "clock_anim",
+            frames: this.anims.generateFrameNumbers("Animated_Clock", {
+                start: 0,
+                end: 9,
+            }),
+            frameRate: 10,
+            repeat: -1,
+        });
+
         /**
          * Don't touch the order it will mess with rendering
          */
@@ -229,6 +239,13 @@ export class Game extends Scene {
             classType: Phaser.GameObjects.Sprite,
         });
 
+        const clockObjects = map.createFromObjects("Doors", {
+            name: "clock",
+            key: "Animated_Clock",
+            frame: 0,
+            classType: Phaser.GameObjects.Sprite,
+        });
+
         fishTankObjects.forEach((obj) => {
             const sprite = obj as Phaser.GameObjects.Sprite;
             sprite.setDepth(100);
@@ -257,6 +274,12 @@ export class Game extends Scene {
             const sprite = obj as Phaser.GameObjects.Sprite;
             sprite.setDepth(100);
             sprite.play("christmas_lights");
+        });
+
+        clockObjects.forEach((obj) => {
+            const sprite = obj as Phaser.GameObjects.Sprite;
+            sprite.setDepth(100);
+            sprite.play("clock_anim");
         });
 
         this.doors = map.createFromObjects("Doors", {

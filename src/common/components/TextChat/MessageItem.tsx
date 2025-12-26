@@ -1,5 +1,10 @@
 import React, { useMemo } from "react";
 import type { Message } from "@/communication/textChat/_types";
+import { parseMessageContent, extractDomain } from "@/common/utils/linkParser";
+import { YouTubePreview } from "./YouTubePreview";
+import { TwitterPreview } from "./TwitterPreview";
+import { GitHubPreview } from "./GitHubPreview";
+import { ExternalLink } from "lucide-react";
 
 interface MessageItemProps {
     message: Message;
@@ -72,8 +77,6 @@ function MessageItem({ message, showAvatar }: MessageItemProps) {
                                 </span>
                             )}
                         </div>
-                        {/* Status Indicator Dot */}
-                        <div className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border border-neutral-800 bg-sky-600 z-10" />
                     </div>
                 ) : null}
             </div>
@@ -90,11 +93,122 @@ function MessageItem({ message, showAvatar }: MessageItemProps) {
                     </div>
                 )}
 
-                {/* Text Message */}
+                {/* Text Message with Link Detection */}
                 {(!message.type || message.type === "text") && (
-                    <p className="text-neutral-200 text-sm break-words leading-relaxed">
-                        {message.content}
-                    </p>
+                    <div className="text-neutral-200 text-sm break-words leading-relaxed">
+                        {message.linkMetadata &&
+                        message.linkMetadata.length > 0 ? (
+                            // Use linkMetadata if available (new messages with fetched metadata)
+                            <>
+                                {/* Display text content without URLs */}
+                                <div className="mb-2">
+                                    {message.content
+                                        .split(/(https?:\/\/[^\s]+)/g)
+                                        .map((part, index) => {
+                                            if (part.match(/^https?:\/\//)) {
+                                                return null; // Skip URLs, they'll be shown in previews
+                                            }
+                                            return (
+                                                <span key={index}>{part}</span>
+                                            );
+                                        })
+                                        .filter(Boolean)}
+                                </div>
+
+                                {/* Display link previews */}
+                                {message.linkMetadata.map((metadata, index) => {
+                                    if (
+                                        metadata.type === "youtube" &&
+                                        metadata.youtubeId
+                                    ) {
+                                        return (
+                                            <YouTubePreview
+                                                key={index}
+                                                videoId={metadata.youtubeId}
+                                                url={metadata.url}
+                                                title={metadata.title}
+                                                description={
+                                                    metadata.description
+                                                }
+                                            />
+                                        );
+                                    }
+                                    return null;
+                                })}
+                            </>
+                        ) : (
+                            // Fallback to parseMessageContent for old messages
+                            parseMessageContent(message.content).map(
+                                (part, index) => {
+                                    if (
+                                        part.type === "youtube" &&
+                                        part.youtubeId
+                                    ) {
+                                        return (
+                                            <YouTubePreview
+                                                key={index}
+                                                videoId={part.youtubeId}
+                                                url={part.url!}
+                                            />
+                                        );
+                                    } else if (
+                                        part.type === "twitter" &&
+                                        part.twitterUsername &&
+                                        part.twitterId
+                                    ) {
+                                        return (
+                                            <TwitterPreview
+                                                key={index}
+                                                username={part.twitterUsername}
+                                                twitterId={part.twitterId}
+                                                url={part.url!}
+                                            />
+                                        );
+                                    } else if (
+                                        part.type === "github" &&
+                                        part.githubOwner &&
+                                        part.githubRepo &&
+                                        part.githubType
+                                    ) {
+                                        return (
+                                            <GitHubPreview
+                                                key={index}
+                                                owner={part.githubOwner}
+                                                repo={part.githubRepo}
+                                                url={part.url!}
+                                                type={part.githubType}
+                                                issueNumber={
+                                                    part.githubIssueNumber
+                                                }
+                                            />
+                                        );
+                                    } else if (
+                                        part.type === "link" &&
+                                        part.url
+                                    ) {
+                                        return (
+                                            <a
+                                                key={index}
+                                                href={part.url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-sky-500 hover:text-sky-400 underline inline-flex items-center gap-1 transition-colors"
+                                            >
+                                                {extractDomain(part.url)}
+                                                <ExternalLink className="w-3 h-3" />
+                                            </a>
+                                        );
+                                    } else {
+                                        return (
+                                            <span key={index}>
+                                                {part.content}
+                                            </span>
+                                        );
+                                    }
+                                },
+                            )
+                        )}
+                    </div>
                 )}
 
                 {/* GIF Message */}

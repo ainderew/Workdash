@@ -1113,6 +1113,28 @@
                  "width":64,
                  "x":1632.15021992305,
                  "y":831.982149757668
+                }, 
+                {
+                 "height":64,
+                 "id":51,
+                 "name":"clock",
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":32,
+                 "x":1439,
+                 "y":545.5
+                }, 
+                {
+                 "height":0.5,
+                 "id":52,
+                 "name":"",
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":0,
+                 "x":1506.5,
+                 "y":547.5
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -1121,7 +1143,7 @@
          "y":0
         }],
  "nextlayerid":30,
- "nextobjectid":51,
+ "nextobjectid":53,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.11.2",

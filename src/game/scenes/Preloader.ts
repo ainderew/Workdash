@@ -140,6 +140,11 @@ export class Preloader extends Scene {
             "tile-sets/animated_Christmas_tree_lights_32x32.png",
             { frameWidth: 64, frameHeight: 96 },
         );
+        this.load.spritesheet(
+            "Animated_Clock",
+            "tile-sets/animated_cuckoo_clock_32x32.png",
+            { frameWidth: 32, frameHeight: 64 },
+        );
 
         // Map & UI
         this.load.tilemapTiledJSON("map", "map1.json");

@@ -43,10 +43,10 @@ function ChatWindow({ isOpen, onClose }: ChatWindowProps) {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages]);
 
-    function sendMessage() {
+    async function sendMessage() {
         if (!message.trim()) return;
 
-        textChatService.sendMessage(message);
+        await textChatService.sendMessage(message);
         setMessage("");
     }
 
