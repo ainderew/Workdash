@@ -6,6 +6,10 @@ interface UiState {
     isMembersUiOpen: boolean;
     isCalendarUiOpen: boolean;
 
+    // Command palette
+    isCommandPaletteOpen: boolean;
+    currentCommandForm: string | null;
+
     // Audio controls
     isMuted: boolean;
     availableMicrophones: MediaDeviceInfo[];
@@ -20,6 +24,11 @@ interface UiState {
     toggleMembersUi: () => void;
     toggleCalendarMenu: () => void;
     closeAllPanels: () => void;
+
+    // Actions for command palette
+    openCommandPalette: () => void;
+    closeCommandPalette: () => void;
+    setCommandForm: (formType: string | null) => void;
 
     // Actions for audio
     toggleMic: () => void;
@@ -39,6 +48,8 @@ const useUiStore = create<UiState>((set) => ({
     isChatWindowOpen: false,
     isMembersUiOpen: false,
     isCalendarUiOpen: false,
+    isCommandPaletteOpen: false,
+    currentCommandForm: null,
     isMuted: false,
     availableMicrophones: [],
     selectedMicrophoneId: "",
@@ -73,6 +84,15 @@ const useUiStore = create<UiState>((set) => ({
             isMembersUiOpen: false,
             isCalendarUiOpen: false,
         }),
+
+    // Command palette actions
+    openCommandPalette: () => set({ isCommandPaletteOpen: true }),
+    closeCommandPalette: () =>
+        set({
+            isCommandPaletteOpen: false,
+            currentCommandForm: null,
+        }),
+    setCommandForm: (formType) => set({ currentCommandForm: formType }),
 
     // Audio actions
     toggleMic: () => set((state) => ({ isMuted: !state.isMuted })),

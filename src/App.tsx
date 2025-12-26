@@ -14,6 +14,11 @@ import { TextChatService } from "./communication/textChat/textChat";
 import { ReactionService } from "./communication/reaction/reaction";
 import ReactionToast from "./common/components/RaiseHandToast/RaiseHandToast";
 import { CharacterCustomizationButton } from "./common/components/UiControls/CharacterCustomizationButton";
+import CommandPalette from "./common/components/CommandPalette/CommandPalette";
+import { useCommandPaletteHotkey } from "./common/components/CommandPalette/useCommandPaletteHotkey";
+import { PollService } from "./communication/poll/poll";
+import PollDisplay from "./common/components/Poll/PollDisplay";
+import PollNotification from "./common/components/Poll/PollNotification";
 // import { VideoChatService } from "./communication/videoChat/videoChat";
 // import { ScreenShareService } from "./communication/screenShare/screenShare";
 // import SplashScreen from "./common/components/Splash/SplashScreen";
@@ -25,6 +30,9 @@ function App() {
     const [isGameReady, setIsGameReady] = useState(false);
     const { data: session, status } = useSession();
 
+    // Initialize command palette hotkey (Shift+Enter)
+    useCommandPaletteHotkey();
+
     useEffect(() => {
         if (status !== "authenticated" || !session?.backendJwt) {
             return;
@@ -35,6 +43,7 @@ function App() {
         const transport = MediaTransportService.getInstance(jwtToken);
         const textChat = TextChatService.getInstance();
         const reactionService = ReactionService.getInstance();
+        const pollService = PollService.getInstance();
 
         // const screenShareViewer = ScreenShareViewer.getInstance();
         // const videoChatViewer = VideoChatViewer.getInstance();
@@ -51,6 +60,8 @@ function App() {
                 reactionService.uiUpdater = (emojiData) => {
                     reactionService.routeReactionToPlayer(emojiData);
                 };
+
+                pollService.setupPollListeners();
 
                 setIsInitialized(true);
             } catch (error) {
@@ -140,6 +151,9 @@ function App() {
 
             <ReactionToast />
             <CharacterCustomizationButton />
+            <CommandPalette />
+            <PollDisplay />
+            <PollNotification />
         </div>
     );
 }

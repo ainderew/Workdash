@@ -18,6 +18,10 @@ export class CharacterAnimationManager {
     removeCharacterAnimations(characterKey: string): void {
         const animKeys = [
             `${characterKey}-idle`,
+            `${characterKey}-idle-right`,
+            `${characterKey}-idle-up`,
+            `${characterKey}-idle-left`,
+            `${characterKey}-idle-down`,
             `${characterKey}-walk-right`,
             `${characterKey}-walk-up`,
             `${characterKey}-walk-left`,
@@ -46,7 +50,6 @@ export class CharacterAnimationManager {
 
         /**
          * MAPPER: Maps Visual Row to Logical Sheet Row
-         * change this to attack name instead of old vRow implem
          */
         const getLogicalRow = (vRow: number): number => {
             switch (vRow) {
@@ -62,13 +65,46 @@ export class CharacterAnimationManager {
         };
 
         // Define animations with explicit start/end columns
-        // Based on the sheet: 6 frames per direction for walking
+        // Based on the sheet: 6 frames per direction for walking and idle
         const animConfigs = [
-            // --- IDLE ---
+            // --- IDLE (Row 1) - Directional ---
+            {
+                key: `${characterKey}-idle-right`,
+                vRow: 1,
+                startCol: 0,
+                endCol: 5,
+                rate: 5,
+                repeat: -1,
+            },
+            {
+                key: `${characterKey}-idle-up`,
+                vRow: 1,
+                startCol: 6,
+                endCol: 11,
+                rate: 5,
+                repeat: -1,
+            },
+            {
+                key: `${characterKey}-idle-left`,
+                vRow: 1,
+                startCol: 12,
+                endCol: 17,
+                rate: 5,
+                repeat: -1,
+            },
+            {
+                key: `${characterKey}-idle-down`,
+                vRow: 1,
+                startCol: 18,
+                endCol: 23,
+                rate: 5,
+                repeat: -1,
+            },
+            // Keep the default idle for backwards compatibility (faces down/front)
             {
                 key: `${characterKey}-idle`,
                 vRow: 1,
-                startCol: 18, // Front facing idle
+                startCol: 18,
                 endCol: 23,
                 rate: 5,
                 repeat: -1,
@@ -77,7 +113,7 @@ export class CharacterAnimationManager {
             {
                 key: `${characterKey}-walk-right`,
                 vRow: 2,
-                startCol: 0, // 1st group: Right
+                startCol: 0,
                 endCol: 5,
                 rate: 10,
                 repeat: -1,
@@ -85,7 +121,7 @@ export class CharacterAnimationManager {
             {
                 key: `${characterKey}-walk-up`,
                 vRow: 2,
-                startCol: 6, // 2nd group: Up
+                startCol: 6,
                 endCol: 11,
                 rate: 10,
                 repeat: -1,
@@ -93,7 +129,7 @@ export class CharacterAnimationManager {
             {
                 key: `${characterKey}-walk-left`,
                 vRow: 2,
-                startCol: 12, // 3rd group: Left
+                startCol: 12,
                 endCol: 17,
                 rate: 10,
                 repeat: -1,
@@ -101,7 +137,7 @@ export class CharacterAnimationManager {
             {
                 key: `${characterKey}-walk-down`,
                 vRow: 2,
-                startCol: 18, // 4th group: Down
+                startCol: 18,
                 endCol: 23,
                 rate: 10,
                 repeat: -1,
@@ -119,7 +155,6 @@ export class CharacterAnimationManager {
 
         for (const config of animConfigs) {
             // Remove existing if rebuilding
-            // FIX: Robust removal
             if (this.scene.anims.exists(config.key)) {
                 try {
                     this.scene.anims.remove(config.key);
@@ -128,8 +163,6 @@ export class CharacterAnimationManager {
                         `Force clearing animation ${config.key} failed gracefully`,
                         e,
                     );
-                    // If remove fails (due to texture missing), we can sometimes manually delete it from the cache
-                    // to prevent it blocking the new creation, but usually try-catch is enough.
                     this.scene.anims.remove(config.key);
                 }
             }
@@ -154,7 +187,18 @@ export class CharacterAnimationManager {
 
     updateAnimationKeys(characterKey: string): void {
         AttackAnimationKeys[characterKey] = `${characterKey}-attack`;
+
+        // Default idle (backwards compatibility)
         IdleAnimationKeys[characterKey] = `${characterKey}-idle`;
+
+        // Directional idle animations
+        IdleAnimationKeys[`${characterKey}_DOWN`] = `${characterKey}-idle-down`;
+        IdleAnimationKeys[`${characterKey}_UP`] = `${characterKey}-idle-up`;
+        IdleAnimationKeys[`${characterKey}_LEFT`] = `${characterKey}-idle-left`;
+        IdleAnimationKeys[`${characterKey}_RIGHT`] =
+            `${characterKey}-idle-right`;
+
+        // Walk animations
         WalkAnimationKeys[characterKey] = `${characterKey}-walk-down`;
         WalkAnimationKeys[`${characterKey}_DOWN`] = `${characterKey}-walk-down`;
         WalkAnimationKeys[`${characterKey}_UP`] = `${characterKey}-walk-up`;

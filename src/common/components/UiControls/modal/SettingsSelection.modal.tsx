@@ -54,7 +54,6 @@ export function SettingsSelectionModal({
                         </div>
                     </button>
 
-                    {/* Customize Character Option */}
                     <button
                         onClick={onSelectCharacter}
                         className="w-full p-4 bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 hover:border-blue-500/50 rounded-lg transition-all group flex items-center gap-4"
