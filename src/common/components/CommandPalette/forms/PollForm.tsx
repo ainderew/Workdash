@@ -3,9 +3,9 @@ import { useState } from "react";
 import { X, Plus, Trash2 } from "lucide-react";
 import { PollService } from "@/communication/poll/poll";
 import useUiStore from "@/common/store/uiStore";
-// import type { CommandFormProps } from "../types";
+import type { CommandFormProps } from "../types";
 
-export function PollForm() {
+export function PollForm({ onClose }: CommandFormProps) {
     const [question, setQuestion] = useState("");
     const [options, setOptions] = useState(["", ""]);
     const [allowMultiple, setAllowMultiple] = useState(false);

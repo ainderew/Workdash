@@ -51,9 +51,7 @@ export default function CommandPalette() {
         >
             <div className="w-full max-w-2xl mx-4">
                 {currentCommandForm === null && <CommandSearch />}
-                {currentCommandForm === "poll" && (
-                    <PollForm onClose={closeCommandPalette} />
-                )}
+                {currentCommandForm === "poll" && <PollForm />}
             </div>
         </div>
     );
