@@ -82,7 +82,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
         this.name = name as string;
         this.availabilityStatus = availabilityStatus;
-        this.characterCustomization = customization;
+        // this.characterCustomization = customization;
         scene.add.existing(this);
         scene.physics.add.existing(this);
 
@@ -443,7 +443,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             this.sprite = characterKey;
             this.setTexture(spritesheetKey);
             this.setFrame(0);
-            this.characterCustomization = newCustomization;
+            // this.characterCustomization = newCustomization;
 
             this.idleAnimation();
         } catch (error) {

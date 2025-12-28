@@ -18,6 +18,7 @@ import { EventBus } from "../EventBus";
 export class Game extends Scene {
     //Game setup
     camera: Phaser.Cameras.Scene2D.Camera;
+    currentZoom: number;
     background: Phaser.GameObjects.Image;
     gameText: Phaser.GameObjects.Text;
     inputElement: HTMLInputElement;
@@ -38,12 +39,23 @@ export class Game extends Scene {
     constructor() {
         super("Game");
         this.players = new Map();
+        this.currentZoom = 1;
     }
 
     create() {
-        // Get JWT from window global (set by React wrapper)
-        const jwtToken = this.getJwtToken();
+        this.cameras.main.setZoom(this.currentZoom);
+        this.input.on("wheel", (deltaY: number) => {
+            const delta = deltaY > 0 ? -1 : 1;
+            this.currentZoom = Phaser.Math.Clamp(
+                this.currentZoom + delta,
+                1,
+                4,
+            );
+            const snappedZoom = Math.round(this.currentZoom);
+            this.cameras.main.setZoom(snappedZoom);
+        });
 
+        const jwtToken = this.getJwtToken();
         if (!jwtToken) {
             console.error(
                 "JWT token is missing! Cannot connect to multiplayer server.",

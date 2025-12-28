@@ -1,8 +1,5 @@
 import React, { useState } from "react";
-import {
-    CharacterCustomization,
-    CharacterType,
-} from "@/game/character/_types";
+import { CharacterCustomization, CharacterType } from "@/game/character/_types";
 import { CharacterPreview } from "./CharacterPreview";
 import { CategorySelector } from "./CategorySelector";
 
