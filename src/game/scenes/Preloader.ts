@@ -148,7 +148,6 @@ export class Preloader extends Scene {
 
         // Map & UI
         this.load.tilemapTiledJSON("map", "map1.json");
-        this.load.image("star", "star.png");
         this.load.image("active-voice", "sound.png");
 
         // Spritesheets
@@ -166,42 +165,6 @@ export class Preloader extends Scene {
             "characters/Adam_walk_16x16.png",
             16,
             32,
-        );
-        loadChar(
-            SpriteKeys.ORC,
-            "characters/Characters/Orc/OrcWithShadow/Orc.png",
-            100,
-            100,
-        );
-        loadChar(
-            SpriteKeys.ORC_ATTACK,
-            "characters/Characters/Orc/OrcWithShadow/Orc-Attack01.png",
-            100,
-            100,
-        );
-        loadChar(
-            SpriteKeys.ORC_WALK,
-            "characters/Characters/Orc/OrcWithShadow/Orc-Walk.png",
-            100,
-            100,
-        );
-        loadChar(
-            SpriteKeys.SOLDIER,
-            "characters/Characters/Soldier/SoldierWithShadow/Soldier.png",
-            100,
-            100,
-        );
-        loadChar(
-            SpriteKeys.SOLDIER_ATTACK,
-            "characters/Characters/Soldier/SoldierWithShadow/Soldier-Attack01.png",
-            100,
-            100,
-        );
-        loadChar(
-            SpriteKeys.SOLDIER_WALK,
-            "characters/Characters/Soldier/Soldier/Soldier-Walk.png",
-            100,
-            100,
         );
     }
 }

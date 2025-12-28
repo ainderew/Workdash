@@ -33,7 +33,7 @@ export class Game extends Scene {
 
     multiplayer: Multiplayer;
     lastTick: number = 0;
-    Hz: number = 1000 / 30; // 20hz
+    Hz: number = 1000 / 50; // 20hz
     private wasAttacking: boolean = false;
 
     constructor() {

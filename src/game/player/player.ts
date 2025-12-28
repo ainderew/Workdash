@@ -12,7 +12,6 @@ import { CharacterAnimationManager } from "../character/CharacterAnimationManage
 import { EVENT_TYPES } from "../character/_enums";
 import useUiStore from "@/common/store/uiStore";
 
-// Direction enum for tracking facing direction
 export enum FacingDirection {
     UP = "UP",
     DOWN = "DOWN",
@@ -82,7 +81,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
         this.name = name as string;
         this.availabilityStatus = availabilityStatus;
-        // this.characterCustomization = customization;
         scene.add.existing(this);
         scene.physics.add.existing(this);
 
@@ -361,21 +359,15 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         this.voiceIndicator.setVisible(false);
     }
 
-    /**
-     * Play idle animation based on the last facing direction
-     */
     public idleAnimation(direction?: FacingDirection) {
-        // Use provided direction or fall back to last facing direction
         const dir = direction || this.lastFacingDirection;
         const directionKey = `${this.sprite}_${dir}`;
 
-        // Try to get directional idle animation
         const animKey = IdleAnimationKeys[directionKey];
 
         if (animKey && this.scene.anims.exists(animKey)) {
             this.anims.play(animKey, true);
         } else {
-            // Fallback to default idle if directional not available
             const fallbackKey = IdleAnimationKeys[this.sprite];
             if (fallbackKey && this.scene.anims.exists(fallbackKey)) {
                 this.anims.play(fallbackKey, true);
@@ -383,10 +375,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         }
     }
 
-    // Helper to play generic or specific walk animations
     private playWalkAnimation(directionKey?: string) {
         if (!directionKey) {
-            const animKey = WalkAnimationKeys[this.sprite]; // Default (usually down)
+            const animKey = WalkAnimationKeys[this.sprite];
             if (animKey && this.scene.anims.exists(animKey)) {
                 this.anims.play(animKey, true);
             }
@@ -397,7 +388,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         if (animKey && this.scene.anims.exists(animKey)) {
             this.anims.play(animKey, true);
         } else {
-            // Fallback to generic walk if specific direction missing
             const fallbackKey = WalkAnimationKeys[this.sprite];
             if (fallbackKey && this.scene.anims.exists(fallbackKey)) {
                 this.anims.play(fallbackKey, true);
@@ -443,8 +433,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             this.sprite = characterKey;
             this.setTexture(spritesheetKey);
             this.setFrame(0);
-            // this.characterCustomization = newCustomization;
-
             this.idleAnimation();
         } catch (error) {
             console.error("Error changing sprite:", error);
@@ -486,7 +474,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     }
 
     private updateInput() {
-        // Don't process input if command palette is open
         const isCommandPaletteOpen = useUiStore.getState().isCommandPaletteOpen;
         if (isCommandPaletteOpen) {
             this.setVelocity(0, 0);
@@ -518,8 +505,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             this.isAttacking = false;
         }
 
-        // Logic for Walking Directions
-        // Update lastFacingDirection when moving
         if (left || right || up || down) {
             if (up) {
                 this.setFlipX(false);
@@ -545,7 +530,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
                 this.attackAnimation();
             }
         } else {
-            // Play idle animation in the direction we were last facing
             const idleAnimKey =
                 IdleAnimationKeys[`${this.sprite}_${this.lastFacingDirection}`];
             const currentAnimKey = this.anims.currentAnim?.key;
@@ -554,7 +538,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             }
         }
 
-        // normalize diagonal movement
         if (vx !== 0 && vy !== 0) {
             vx *= Math.SQRT1_2;
             vy *= Math.SQRT1_2;
@@ -570,17 +553,14 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         const isAnimateAttacking =
             this.anims.currentAnim?.key === attackAnimKey;
 
-        // If attack animation is playing, let it finish
         if (isAnimateAttacking && this.anims.isPlaying) {
             return;
         }
 
-        // Reset attack state when animation completes
         if (this.isAttacking && !this.anims.isPlaying) {
             this.isAttacking = false;
         }
 
-        // Trigger attack animation if player is attacking
         if (this.isAttacking && !isAnimateAttacking) {
             this.attackAnimation();
             return;
@@ -600,20 +580,17 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         this.x += (predictedX - this.x) * lerpFactor;
         this.y += (predictedY - this.y) * lerpFactor;
 
-        // Remote Movement Logic
         const isMoving =
             Math.abs(this.targetPos.vx || 0) > 10 ||
             Math.abs(this.targetPos.vy || 0) > 10;
 
         const currentAnimKey = this.anims.currentAnim?.key;
 
-        // Use velocity to determine direction for remote players
         if (isMoving) {
             this.setFlipX(false);
             const vx = this.targetPos.vx || 0;
             const vy = this.targetPos.vy || 0;
 
-            // Prioritize the axis with larger movement and update lastFacingDirection
             if (Math.abs(vx) > Math.abs(vy)) {
                 if (vx > 0) {
                     this.lastFacingDirection = FacingDirection.RIGHT;
@@ -632,7 +609,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
                 }
             }
         } else {
-            // Play idle animation in the last facing direction for remote players too
             const idleAnimKey =
                 IdleAnimationKeys[`${this.sprite}_${this.lastFacingDirection}`];
             if (currentAnimKey !== idleAnimKey) {
