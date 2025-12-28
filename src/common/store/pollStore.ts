@@ -29,7 +29,7 @@ const usePollStore = create<PollState>((set, get) => ({
   addPoll: (poll) =>
     set((state) => ({
       polls: [...state.polls, poll],
-      activePollId: poll.id, // Automatically show new poll
+      // Don't auto-open - let users click notification to view
     })),
 
   updatePollResults: (results) =>

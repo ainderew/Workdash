@@ -30,7 +30,6 @@ function App() {
     const [isGameReady, setIsGameReady] = useState(false);
     const { data: session, status } = useSession();
 
-    // Initialize command palette hotkey (Shift+Enter)
     useCommandPaletteHotkey();
 
     useEffect(() => {

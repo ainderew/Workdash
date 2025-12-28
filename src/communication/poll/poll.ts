@@ -2,7 +2,7 @@ import useUserStore from '@/common/store/useStore';
 import usePollStore from '@/common/store/pollStore';
 import { MediaTransportService } from '../mediaTransportService/mediaTransportServive';
 import { PollEvents } from './_enums';
-import type { Poll, CreatePollData, PollVote, PollResults } from './_types';
+import type { Poll, BackendPollData, CreatePollData, PollVote, PollResults } from './_types';
 
 export class PollService {
   public static instance: PollService;
@@ -23,7 +23,9 @@ export class PollService {
    * Create a new poll and broadcast to all users
    */
   createPoll(data: CreatePollData): void {
-    const userId = this.sfuService.socket.id || '';
+    // Use backend user ID for reliable creator identification
+    const backendUserId = window.__BACKEND_USER__?.id;
+    const userId = backendUserId ? String(backendUserId) : this.sfuService.socket.id || '';
     const userName = useUserStore.getState().user.name;
 
     const pollData = {
@@ -32,6 +34,7 @@ export class PollService {
       creatorName: userName,
     };
 
+    console.log('Creating poll with creatorId:', userId);
     this.sfuService.socket.emit(PollEvents.CREATE_POLL, pollData);
   }
 
@@ -59,7 +62,26 @@ export class PollService {
    * Close a poll (creator only)
    */
   closePoll(pollId: string): void {
-    this.sfuService.socket.emit(PollEvents.CLOSE_POLL, { pollId });
+    const backendUserId = window.__BACKEND_USER__?.id;
+    const userId = backendUserId ? String(backendUserId) : this.sfuService.socket.id || '';
+
+    this.sfuService.socket.emit(PollEvents.CLOSE_POLL, {
+      pollId,
+      userId // Send userId so backend can verify creator
+    });
+  }
+
+  /**
+   * Transform backend poll data to match frontend Poll type
+   */
+  private transformPollData(pollData: BackendPollData): Poll {
+    return {
+      ...pollData,
+      createdAt: new Date(pollData.createdAt),
+      allowMultiple: pollData.allowMultiple ?? false,
+      totalVotes: pollData.totalVotes ?? pollData.voters?.length ?? 0,
+      expiresAt: pollData.expiresAt ? new Date(pollData.expiresAt) : undefined,
+    };
   }
 
   /**
@@ -67,8 +89,9 @@ export class PollService {
    */
   setupPollListeners(): void {
     // Listen for new polls
-    this.sfuService.socket.on(PollEvents.NEW_POLL, (poll: Poll) => {
-      console.log('📊 New poll received:', poll);
+    this.sfuService.socket.on(PollEvents.NEW_POLL, (pollData: BackendPollData) => {
+      console.log('📊 New poll received:', pollData);
+      const poll = this.transformPollData(pollData);
       usePollStore.getState().addPoll(poll);
     });
 
