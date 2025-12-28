@@ -44,17 +44,23 @@ export class Game extends Scene {
 
     create() {
         this.cameras.main.setZoom(this.currentZoom);
-        this.input.on("wheel", (deltaY: number) => {
-            const delta = deltaY > 0 ? -1 : 1;
-            this.currentZoom = Phaser.Math.Clamp(
-                this.currentZoom + delta,
-                1,
-                4,
-            );
-            const snappedZoom = Math.round(this.currentZoom);
-            this.cameras.main.setZoom(snappedZoom);
-        });
-
+        this.input.on(
+            "wheel",
+            (
+                _pointer: Phaser.Input.Pointer,
+                _gameObjects: Phaser.GameObjects.GameObject[],
+                _deltaX: number,
+                deltaY: number,
+            ) => {
+                const delta = deltaY > 0 ? -1 : 1;
+                this.currentZoom = Phaser.Math.Clamp(
+                    this.currentZoom + delta,
+                    1,
+                    4,
+                );
+                this.cameras.main.setZoom(this.currentZoom);
+            },
+        );
         const jwtToken = this.getJwtToken();
         if (!jwtToken) {
             console.error(
