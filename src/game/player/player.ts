@@ -467,6 +467,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     public update() {
         if (this.isLocal) {
             this.updateInput();
+            this.vx = this.body!.velocity.x;
+            this.vy = this.body!.velocity.y;
         } else {
             this.interpolateRemote();
         }
@@ -544,8 +546,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         }
 
         this.setVelocity(vx, vy);
-        this.vx = vx;
-        this.vy = vy;
     }
 
     private interpolateRemote() {
@@ -568,18 +568,23 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
         if (!this.targetPos) return;
 
-        const now = Date.now();
-        const elapsed = (now - this.targetPos.t) / 1000;
+        const predictedX = this.targetPos.x;
+        const predictedY = this.targetPos.y;
 
-        const predictedX =
-            this.targetPos.x + (this.targetPos.vx || 0) * elapsed;
-        const predictedY =
-            this.targetPos.y + (this.targetPos.vy || 0) * elapsed;
+        const distance = Math.sqrt(
+            Math.pow(predictedX - this.x, 2) + Math.pow(predictedY - this.y, 2),
+        );
 
-        const lerpFactor = 0.2;
-        this.x += (predictedX - this.x) * lerpFactor;
-        this.y += (predictedY - this.y) * lerpFactor;
+        if (distance > 200) {
+            this.x = predictedX;
+            this.y = predictedY;
+        } else {
+            const baseLerp = 0.2;
+            const lerpFactor = Math.min(baseLerp + distance / 500, 0.5);
 
+            this.x += (predictedX - this.x) * lerpFactor;
+            this.y += (predictedY - this.y) * lerpFactor;
+        }
         const isMoving =
             Math.abs(this.targetPos.vx || 0) > 10 ||
             Math.abs(this.targetPos.vy || 0) > 10;

@@ -91,11 +91,8 @@ export class Preloader extends Scene {
     private loadGameAssets() {
         this.load.setPath("/assets");
 
-        // Load Character_Generator assets for customization
-        const characterLoader = new CharacterAssetLoader(this);
-        characterLoader.loadAllCharacterAssets();
-
-        // Tilesets
+        // const characterLoader = new CharacterAssetLoader(this);
+        // characterLoader.loadAllCharacterAssets();
 
         this.load.image(
             "Exterior",
@@ -148,7 +145,6 @@ export class Preloader extends Scene {
 
         // Map & UI
         this.load.tilemapTiledJSON("map", "map1.json");
-        this.load.image("active-voice", "sound.png");
 
         // Spritesheets
         const loadChar = (k: string, p: string, w: number, h: number) =>

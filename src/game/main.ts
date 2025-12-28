@@ -29,6 +29,7 @@ const config: Phaser.Types.Core.GameConfig = {
             debug: false,
             debugShowBody: true,
             gravity: { x: 0, y: 0 },
+            tileBias: 48,
         },
     },
 };

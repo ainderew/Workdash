@@ -485,15 +485,14 @@ export class Game extends Scene {
 
             if (p.isLocal && tickRate) {
                 this.multiplayer.emitPlayerMovement({
-                    x: p.x,
-                    y: p.y,
+                    x: Math.round(p.x),
+                    y: Math.round(p.y),
                     isAttacking: p.isAttacking,
-                    vx: p.vx,
-                    vy: p.vy,
+                    vx: Math.round(p.vx),
+                    vy: Math.round(p.vy),
                     id: this.localPlayerId,
                     opts: { isLocal: true },
                 });
-
                 this.lastTick = time;
             }
         }
