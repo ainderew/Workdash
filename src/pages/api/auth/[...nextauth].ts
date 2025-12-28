@@ -95,14 +95,12 @@ export const authOptions: AuthOptions = {
                         const data = await response.json();
                         console.log("Backend sync successful, received token");
 
-                        // Store backend JWT token in the account object
-                        // This will be accessible in the jwt callback
                         const extendedAccount = account as ExtendedAccount;
                         extendedAccount.backendJwt = data.token;
                         extendedAccount.backendUser = data.user;
                         extendedAccount.backendCharacter = data.character;
 
-                        return true; // Login successful
+                        return true;
                     } else {
                         const errorText = await response.text();
                         console.error("Failed to sync user with backend");
@@ -118,7 +116,13 @@ export const authOptions: AuthOptions = {
             }
             return true;
         },
-        async jwt({ token, account }: { token: JWT; account: ExtendedAccount | null }) {
+        async jwt({
+            token,
+            account,
+        }: {
+            token: JWT;
+            account: ExtendedAccount | null;
+        }) {
             if (account) {
                 return {
                     accessToken: account.access_token,

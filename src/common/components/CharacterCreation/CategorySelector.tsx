@@ -6,13 +6,13 @@ import {
     BASE_PATH,
     BODY_COUNTS,
     EYES_COUNTS,
-    ITEM_COUNTS,
     // Accessory
     ACCESSORY_TYPES,
     encodeAccessoryId,
     getAccessoryPath,
     // Hairstyle
-    ADULT_HAIRSTYLE_CONFIG,
+    ADULT_HAIRSTYLE_TYPES,
+    getTotalAdultHairstyleCount,
     KID_HAIRSTYLE_CONFIG,
     encodeAdultHairstyleId,
     getAdultHairstylePath,
@@ -29,8 +29,9 @@ import {
     getAdultEyesPath,
     getKidEyesPath,
     // Items
-    getSmartphonePath,
-    getBookPath,
+    // ITEM_TYPES,
+    // encodeItemId,
+    // getItemPath,
 } from "./AssetConfig";
 
 type Category =
@@ -67,7 +68,7 @@ export function CategorySelector({
             >
                 <div className="text-xl font-bold">Adult</div>
                 <div className="text-sm text-slate-400 mt-2">
-                    {BODY_COUNTS.adult} bodies, {ADULT_HAIRSTYLE_CONFIG.total}{" "}
+                    {BODY_COUNTS.adult} bodies, {getTotalAdultHairstyleCount()}{" "}
                     hairstyles
                 </div>
             </button>
@@ -166,23 +167,21 @@ export function CategorySelector({
 
     const renderHairstyleSelector = () => {
         if (isAdult) {
-            const { styles, colors } = ADULT_HAIRSTYLE_CONFIG;
-
             return (
                 <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
-                    {Array.from({ length: styles }, (_, styleIdx) => (
-                        <div key={styleIdx} className="space-y-2">
+                    {ADULT_HAIRSTYLE_TYPES.map((hairstyle) => (
+                        <div key={hairstyle.id} className="space-y-2">
                             <div className="text-xs text-slate-400 font-medium">
-                                Style {styleIdx + 1}
+                                Style {hairstyle.id}
                             </div>
                             <div className="grid grid-cols-7 gap-2">
                                 {Array.from(
-                                    { length: colors },
-                                    (_, colorIdx) => {
+                                    { length: hairstyle.variants },
+                                    (_, variantIdx) => {
                                         const combinedId =
                                             encodeAdultHairstyleId(
-                                                styleIdx,
-                                                colorIdx,
+                                                hairstyle.id,
+                                                variantIdx + 1,
                                             );
                                         const isSelected =
                                             customization.hairstyleId ===
@@ -194,7 +193,7 @@ export function CategorySelector({
 
                                         return (
                                             <button
-                                                key={colorIdx}
+                                                key={variantIdx}
                                                 onClick={() =>
                                                     onSelect({
                                                         hairstyleId: combinedId,
@@ -210,7 +209,7 @@ export function CategorySelector({
                                                     src={imagePath}
                                                     row={1}
                                                     col={18}
-                                                    alt={`Hairstyle ${styleIdx + 1}-${colorIdx + 1}`}
+                                                    alt={`Hairstyle ${hairstyle.id}-${variantIdx + 1}`}
                                                     className="w-full h-auto mx-auto"
                                                 />
                                             </button>
@@ -436,115 +435,89 @@ export function CategorySelector({
         );
     };
 
-    const renderItemSelector = () => {
-        return (
-            <div className="space-y-6">
-                <div>
-                    <h3 className="text-sm font-semibold mb-3">Smartphones</h3>
-                    <div className="grid grid-cols-6 gap-3">
-                        <button
-                            onClick={() =>
-                                onSelect({
-                                    itemId: undefined,
-                                    itemType: undefined,
-                                })
-                            }
-                            className={`p-3 rounded-lg border-2 transition-all ${
-                                !customization.itemId
-                                    ? "border-cyan-500 bg-cyan-500/20"
-                                    : "border-slate-600 bg-slate-800 hover:border-slate-500"
-                            }`}
-                        >
-                            <div className="w-full aspect-square flex items-center justify-center text-4xl">
-                                ∅
-                            </div>
-                            <div className="text-xs text-center mt-1">None</div>
-                        </button>
-                        {Array.from(
-                            { length: ITEM_COUNTS.smartphones },
-                            (_, i) => i + 1,
-                        ).map((id) => {
-                            const isSelected =
-                                customization.itemId === id &&
-                                customization.itemType === "smartphone";
-                            const imagePath = getSmartphonePath(id, BASE_PATH);
-
-                            return (
-                                <button
-                                    key={id}
-                                    onClick={() =>
-                                        onSelect({
-                                            itemId: id,
-                                            itemType: "smartphone",
-                                        })
-                                    }
-                                    className={`p-3 rounded-lg border-2 transition-all ${
-                                        isSelected
-                                            ? "border-cyan-500 bg-cyan-500/20"
-                                            : "border-slate-600 bg-slate-800 hover:border-slate-500"
-                                    }`}
-                                >
-                                    <SpriteFramePreview
-                                        src={imagePath}
-                                        row={1}
-                                        col={0}
-                                        alt={`Smartphone ${id}`}
-                                        className="w-full h-auto mx-auto"
-                                    />
-                                    <div className="text-xs text-center mt-1">
-                                        {id}
-                                    </div>
-                                </button>
-                            );
-                        })}
-                    </div>
-                </div>
-                <div>
-                    <h3 className="text-sm font-semibold mb-3">Books</h3>
-                    <div className="grid grid-cols-6 gap-3">
-                        {Array.from(
-                            { length: ITEM_COUNTS.books },
-                            (_, i) => i + 1,
-                        ).map((id) => {
-                            const isSelected =
-                                customization.itemId === id &&
-                                customization.itemType === "book";
-                            const imagePath = getBookPath(id, BASE_PATH);
-
-                            return (
-                                <button
-                                    key={id}
-                                    onClick={() =>
-                                        onSelect({
-                                            itemId: id,
-                                            itemType: "book",
-                                        })
-                                    }
-                                    className={`p-3 rounded-lg border-2 transition-all ${
-                                        isSelected
-                                            ? "border-cyan-500 bg-cyan-500/20"
-                                            : "border-slate-600 bg-slate-800 hover:border-slate-500"
-                                    }`}
-                                >
-                                    <SpriteFramePreview
-                                        src={imagePath}
-                                        row={1}
-                                        col={0}
-                                        alt={`Book ${id}`}
-                                        className="w-full h-auto mx-auto"
-                                    />
-                                    <div className="text-xs text-center mt-1">
-                                        {id}
-                                    </div>
-                                </button>
-                            );
-                        })}
-                    </div>
-                </div>
-            </div>
-        );
-    };
-
+    // const renderItemSelector = () => {
+    //     return (
+    //         <div className="space-y-6">
+    //             {/* None option */}
+    //             <button
+    //                 onClick={() =>
+    //                     onSelect({
+    //                         itemId: undefined,
+    //                         itemType: undefined,
+    //                     })
+    //                 }
+    //                 className={`p-3 rounded-lg border-2 transition-all ${
+    //                     !customization.itemId
+    //                         ? "border-cyan-500 bg-cyan-500/20"
+    //                         : "border-slate-600 bg-slate-800 hover:border-slate-500"
+    //                 }`}
+    //             >
+    //                 <div className="w-full aspect-square flex items-center justify-center text-4xl">
+    //                     ∅
+    //                 </div>
+    //                 <div className="text-xs text-center mt-1">None</div>
+    //             </button>
+    //
+    //             {/* Item types with variants */}
+    //             {ITEM_TYPES.map((item) => (
+    //                 <div key={item.id}>
+    //                     <h3 className="text-sm font-semibold mb-3">
+    //                         {item.displayName}s
+    //                     </h3>
+    //                     <div className="grid grid-cols-6 gap-3">
+    //                         {Array.from(
+    //                             { length: item.variants },
+    //                             (_, variantIdx) => {
+    //                                 const combinedId = encodeItemId(
+    //                                     item.id,
+    //                                     variantIdx + 1,
+    //                                 );
+    //                                 const isSelected =
+    //                                     customization.itemId === combinedId;
+    //                                 const imagePath = getItemPath(
+    //                                     combinedId,
+    //                                     BASE_PATH,
+    //                                 );
+    //
+    //                                 if (!imagePath) return null;
+    //
+    //                                 return (
+    //                                     <button
+    //                                         key={variantIdx}
+    //                                         onClick={() =>
+    //                                             onSelect({
+    //                                                 itemId: combinedId,
+    //                                                 itemType:
+    //                                                     item.name.toLowerCase(),
+    //                                             })
+    //                                         }
+    //                                         className={`p-3 rounded-lg border-2 transition-all ${
+    //                                             isSelected
+    //                                                 ? "border-cyan-500 bg-cyan-500/20"
+    //                                                 : "border-slate-600 bg-slate-800 hover:border-slate-500"
+    //                                         }`}
+    //                                     >
+    //                                         <SpriteFramePreview
+    //                                             src={imagePath}
+    //                                             row={9}
+    //                                             col={0}
+    //                                             alt={`${item.displayName} ${variantIdx + 1}`}
+    //                                             className="w-full h-auto mx-auto"
+    //                                         />
+    //                                         <div className="text-xs text-center mt-1">
+    //                                             {variantIdx + 1}
+    //                                         </div>
+    //                                     </button>
+    //                                 );
+    //                             },
+    //                         )}
+    //                     </div>
+    //                 </div>
+    //             ))}
+    //         </div>
+    //     );
+    // };
+    //
     const renderContent = () => {
         switch (category) {
             case "type":
@@ -559,8 +532,8 @@ export function CategorySelector({
                 return renderOutfitSelector();
             case "accessory":
                 return renderAccessorySelector();
-            case "item":
-                return renderItemSelector();
+            // case "item":
+            //     return renderItemSelector();
             default:
                 return null;
         }

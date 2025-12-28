@@ -100,7 +100,6 @@ export class VideoChatViewer {
     }
 
     public async loadExistingProducers(): Promise<void> {
-        // Wait for playerMap to be populated (with timeout)
         await this.waitForPlayers();
 
         const producers = await new Promise<
@@ -119,13 +118,10 @@ export class VideoChatViewer {
         );
 
         for (const producer of relevantProducers) {
-            // Store userName if available
             if (producer.userName) {
                 this.videoChatOwnerMap[producer.producerId] = producer.userName;
             } else {
-                // Look up player name from playerStore using socketId
                 const playerMap = usePlayersStore.getState().playerMap;
-
                 const player = playerMap[producer.socketId];
                 if (player?.name) {
                     this.videoChatOwnerMap[producer.producerId] = player.name;
@@ -134,8 +130,6 @@ export class VideoChatViewer {
                         "Unknown User";
                 }
             }
-
-            // Consume producer immediately
             await this.consumeProducer(producer.producerId);
         }
     }
@@ -151,7 +145,6 @@ export class VideoChatViewer {
                 return;
             }
 
-            // Wait 100ms before checking again
             await new Promise((resolve) => setTimeout(resolve, 100));
         }
     }
@@ -178,12 +171,10 @@ export class VideoChatViewer {
         videoEl.style.backgroundColor = "#000";
         videoEl.style.display = "block";
 
-        // Monitor track state changes
         consumer.track.onended = () => {
             this.removeScreenShareVideo(producerId);
         };
 
-        // Set up timeout to detect black screens (no data received)
         let hasReceivedData = false;
         const dataCheckTimeout = setTimeout(() => {
             if (!hasReceivedData) {
@@ -201,25 +192,18 @@ export class VideoChatViewer {
     }
 
     public removeScreenShareVideo(producerId: string) {
-        // Close and remove the consumer
         const consumer = this.consumers.get(producerId);
         if (consumer) {
             consumer.close();
             this.consumers.delete(producerId);
         }
-
-        // Remove the video element
         const videoEl = this.videoElements.get(producerId);
         if (videoEl) {
-            videoEl.srcObject = null; // Clear the stream
-            videoEl.remove(); // Remove from DOM if attached
+            videoEl.srcObject = null;
+            videoEl.remove();
             this.videoElements.delete(producerId);
         }
-
-        // Remove from owner map
         delete this.videoChatOwnerMap[producerId];
-
-        // Remove from user store
         const currentProducerIds =
             useUserStore.getState().user.producerIds ?? [];
         const updatedProducerIds = currentProducerIds.filter(
@@ -228,8 +212,6 @@ export class VideoChatViewer {
         useUserStore.getState().updateUser({
             producerIds: updatedProducerIds,
         });
-
-        // Update UI
         if (this.updateComponentStateCallback) {
             this.updateComponentStateCallback();
         }

@@ -4,21 +4,11 @@
  * Single source of truth for all character asset paths and configurations.
  * Used by both React UI components and Phaser game engine.
  *
- * Location: src/common/components/CharacterCreation/AssetConfig.ts
  */
 
 import { CharacterCustomization, CharacterType } from "@/game/character/_types";
-
-// ============================================================================
-// CONSTANTS
-// ============================================================================
-
 export const BASE_PATH = "/assets/characters/Character_Generator";
 export const FRAME_SIZE = 32;
-
-// ============================================================================
-// ACCESSORY CONFIGURATION
-// ============================================================================
 
 export interface AccessoryType {
     id: number;
@@ -81,17 +71,47 @@ export function getTotalAccessoryCount(): number {
     return ACCESSORY_TYPES.reduce((sum, a) => sum + a.variants, 0);
 }
 
-// ============================================================================
-// HAIRSTYLE CONFIGURATION
-// ============================================================================
+export interface HairstyleType {
+    id: number;
+    variants: number;
+}
 
-export const ADULT_HAIRSTYLE_CONFIG = {
-    styles: 30,
-    colors: 7,
-    get total() {
-        return this.styles * this.colors;
-    },
-};
+export const ADULT_HAIRSTYLE_TYPES: HairstyleType[] = [
+    { id: 1, variants: 7 },
+    { id: 2, variants: 7 },
+    { id: 3, variants: 7 },
+    { id: 4, variants: 7 },
+    { id: 5, variants: 7 },
+    { id: 6, variants: 7 },
+    { id: 7, variants: 7 },
+    { id: 8, variants: 7 },
+    { id: 9, variants: 7 },
+    { id: 10, variants: 7 },
+    { id: 11, variants: 7 },
+    { id: 12, variants: 7 },
+    { id: 13, variants: 7 },
+    { id: 14, variants: 7 },
+    { id: 15, variants: 7 },
+    { id: 16, variants: 7 },
+    { id: 17, variants: 7 },
+    { id: 18, variants: 7 },
+    { id: 19, variants: 7 },
+    { id: 20, variants: 7 },
+    { id: 21, variants: 7 },
+    { id: 22, variants: 7 },
+    { id: 23, variants: 7 },
+    { id: 24, variants: 7 },
+    { id: 25, variants: 7 },
+    { id: 26, variants: 7 },
+    { id: 27, variants: 6 },
+    { id: 28, variants: 6 },
+    { id: 29, variants: 6 },
+    { id: 30, variants: 1 },
+];
+
+export function getTotalAdultHairstyleCount(): number {
+    return ADULT_HAIRSTYLE_TYPES.reduce((sum, h) => sum + h.variants, 0);
+}
 
 export const KID_HAIRSTYLE_CONFIG = {
     styles: 5,
@@ -102,26 +122,34 @@ export const KID_HAIRSTYLE_CONFIG = {
 };
 
 export function encodeAdultHairstyleId(
-    styleIndex: number,
-    colorIndex: number,
+    styleId: number,
+    variantId: number,
 ): number {
-    return styleIndex * ADULT_HAIRSTYLE_CONFIG.colors + colorIndex + 1;
+    let runningTotal = 0;
+    for (const hairstyle of ADULT_HAIRSTYLE_TYPES) {
+        if (hairstyle.id === styleId) {
+            return runningTotal + variantId;
+        }
+        runningTotal += hairstyle.variants;
+    }
+    return 0;
 }
 
-export function decodeAdultHairstyleId(combinedId: number): {
-    styleIdx: number;
-    colorIdx: number;
-} {
-    const styleIdx = Math.floor(
-        (combinedId - 1) / ADULT_HAIRSTYLE_CONFIG.colors,
-    );
-    const colorIdx = (combinedId - 1) % ADULT_HAIRSTYLE_CONFIG.colors;
-    return { styleIdx, colorIdx };
+export function decodeAdultHairstyleId(
+    combinedId: number,
+): { styleId: number; variantId: number } | null {
+    let runningTotal = 0;
+    for (const hairstyle of ADULT_HAIRSTYLE_TYPES) {
+        if (combinedId <= runningTotal + hairstyle.variants) {
+            return {
+                styleId: hairstyle.id,
+                variantId: combinedId - runningTotal,
+            };
+        }
+        runningTotal += hairstyle.variants;
+    }
+    return null;
 }
-
-// ============================================================================
-// OUTFIT CONFIGURATION
-// ============================================================================
 
 export interface OutfitType {
     id: number;
@@ -207,32 +235,81 @@ export function getTotalAdultOutfitCount(): number {
     return ADULT_OUTFIT_TYPES.reduce((sum, o) => sum + o.variants, 0);
 }
 
-// ============================================================================
-// ITEM CONFIGURATION
-// ============================================================================
+export interface ItemType {
+    id: number;
+    name: string;
+    displayName: string;
+    variants: number;
+    folder: string;
+    usePadding: boolean;
+}
 
-export const ITEM_COUNTS = {
-    books: 6,
-    smartphones: 5,
-};
+export const ITEM_TYPES: ItemType[] = [
+    {
+        id: 1,
+        name: "Book",
+        displayName: "Book",
+        variants: 6,
+        folder: "Books",
+        usePadding: true,
+    },
+    {
+        id: 2,
+        name: "Smartphone",
+        displayName: "Smartphone",
+        variants: 5,
+        folder: "Smartphones",
+        usePadding: false,
+    },
+];
 
-// ============================================================================
-// BODY & EYES CONFIGURATION
-// ============================================================================
+export function encodeItemId(typeId: number, variantId: number): number {
+    let runningTotal = 0;
+    for (const item of ITEM_TYPES) {
+        if (item.id === typeId) {
+            return runningTotal + variantId;
+        }
+        runningTotal += item.variants;
+    }
+    return 0;
+}
+
+export function decodeItemId(combinedId: number): {
+    typeId: number;
+    variantId: number;
+    name: string;
+    folder: string;
+    usePadding: boolean;
+} | null {
+    let runningTotal = 0;
+    for (const item of ITEM_TYPES) {
+        if (combinedId <= runningTotal + item.variants) {
+            return {
+                typeId: item.id,
+                variantId: combinedId - runningTotal,
+                name: item.name,
+                folder: item.folder,
+                usePadding: item.usePadding,
+            };
+        }
+        runningTotal += item.variants;
+    }
+    return null;
+}
+
+export function getTotalItemCount(): number {
+    return ITEM_TYPES.reduce((sum, i) => sum + i.variants, 0);
+}
 
 export const BODY_COUNTS = {
-    adult: 10, // Adjust based on actual count
-    kid: 5, // Adjust based on actual count
+    adult: 10,
+    kid: 5,
 };
 
 export const EYES_COUNTS = {
-    adult: 10, // Adjust based on actual count
-    kid: 5, // Adjust based on actual count
+    adult: 10,
+    kid: 5,
 };
-
-// ============================================================================
-// PATH GENERATORS
-// ============================================================================
 
 export function getAdultBodyPath(bodyId: number, basePath = BASE_PATH): string {
     const bodyNum = String(bodyId).padStart(2, "0");
@@ -256,10 +333,12 @@ export function getAdultHairstylePath(
     combinedId: number,
     basePath = BASE_PATH,
 ): string {
-    const { styleIdx, colorIdx } = decodeAdultHairstyleId(combinedId);
-    const styleNum = String(styleIdx + 1).padStart(2, "0");
-    const colorNum = String(colorIdx + 1).padStart(2, "0");
-    return `${basePath}/Hairstyles/32x32/Hairstyle_${styleNum}_32x32_${colorNum}.png`;
+    const decoded = decodeAdultHairstyleId(combinedId);
+    if (!decoded) return "";
+
+    const styleNum = String(decoded.styleId).padStart(2, "0");
+    const variantNum = String(decoded.variantId).padStart(2, "0");
+    return `${basePath}/Hairstyles/32x32/Hairstyle_${styleNum}_32x32_${variantNum}.png`;
 }
 
 export function getKidHairstylePath(
@@ -305,22 +384,19 @@ export function getAccessoryPath(
     return `${basePath}/Accessories/32x32/Accessory_${typeNum}_${decoded.name}_32x32_${variantNum}.png`;
 }
 
-export function getSmartphonePath(
-    itemId: number,
+export function getItemPath(
+    combinedId: number,
     basePath = BASE_PATH,
-): string {
-    // Smartphones don't use zero-padding
-    return `${basePath}/Smartphones/32x32/Smartphone_32x32_${itemId}.png`;
-}
+): string | null {
+    const decoded = decodeItemId(combinedId);
+    if (!decoded) return null;
 
-export function getBookPath(itemId: number, basePath = BASE_PATH): string {
-    const bookNum = String(itemId).padStart(2, "0");
-    return `${basePath}/Books/32x32/Book_32x32_${bookNum}.png`;
-}
+    const variantNum = decoded.usePadding
+        ? String(decoded.variantId).padStart(2, "0")
+        : String(decoded.variantId);
 
-// ============================================================================
-// HIGH-LEVEL API
-// ============================================================================
+    return `${basePath}/${decoded.folder}/32x32/${decoded.name}_32x32_${variantNum}.png`;
+}
 
 export interface CharacterLayerPaths {
     body: string;
@@ -361,17 +437,14 @@ export function getCharacterLayerPaths(
             ? getAccessoryPath(customization.accessoryId, basePath)
             : null,
 
-        item:
-            customization.itemId && customization.itemType
-                ? customization.itemType === "smartphone"
-                    ? getSmartphonePath(customization.itemId, basePath)
-                    : getBookPath(customization.itemId, basePath)
-                : null,
+        item: customization.itemId
+            ? getItemPath(customization.itemId, basePath)
+            : null,
     };
 }
 
 /**
- * Get all layer paths as an ordered array (for rendering)
+ * Get all layer paths as an ordered array for rendering
  * Filters out null/empty values
  */
 export function getCharacterLayerPathsArray(

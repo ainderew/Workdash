@@ -22,7 +22,6 @@ export default function PollDisplay() {
     const userHasVoted = activePoll ? hasUserVoted(activePoll.id) : false;
     const showResults = userHasVoted || !activePoll?.isActive;
 
-    // Debug logging
     useEffect(() => {
         if (activePoll) {
             console.log("Poll creator check:", {

@@ -91,67 +91,64 @@ export default function PollNotification() {
     const audioEnabledRef = useRef(false);
     const isInitialMountRef = useRef(true);
 
-    // Separate active polls into voted and unvoted
     const activePolls = polls.filter((poll) => poll.isActive);
     const unvotedPolls = activePolls.filter((poll) => !hasUserVoted(poll.id));
     const votedPolls = activePolls.filter((poll) => hasUserVoted(poll.id));
 
-    // Pre-load audio and enable it on first user interaction
     useEffect(() => {
-        // Create audio element
-        audioRef.current = new Audio('/assets/notification.mp3');
+        audioRef.current = new Audio("/assets/notification.mp3");
         audioRef.current.volume = 0.5;
-        audioRef.current.preload = 'auto';
+        audioRef.current.preload = "auto";
 
-        // Enable audio on first click anywhere
         const enableAudio = () => {
             if (!audioEnabledRef.current && audioRef.current) {
                 // Play and immediately pause to unlock audio
-                audioRef.current.play().then(() => {
-                    audioRef.current?.pause();
-                    audioRef.current!.currentTime = 0;
-                    audioEnabledRef.current = true;
-                    console.log('🔊 Audio enabled for notifications');
-                }).catch(() => {
-                    // Ignore errors on initial unlock
-                });
+                audioRef.current
+                    .play()
+                    .then(() => {
+                        audioRef.current?.pause();
+                        audioRef.current!.currentTime = 0;
+                        audioEnabledRef.current = true;
+                        console.log("🔊 Audio enabled for notifications");
+                    })
+                    .catch(() => {});
             }
         };
 
-        window.addEventListener('click', enableAudio, { once: true });
-        window.addEventListener('keydown', enableAudio, { once: true });
+        window.addEventListener("click", enableAudio, { once: true });
+        window.addEventListener("keydown", enableAudio, { once: true });
 
         return () => {
-            window.removeEventListener('click', enableAudio);
-            window.removeEventListener('keydown', enableAudio);
+            window.removeEventListener("click", enableAudio);
+            window.removeEventListener("keydown", enableAudio);
         };
     }, []);
 
-    // Play notification sound when new poll arrives
     useEffect(() => {
         const currentPollCount = polls.length;
 
-        // Skip on initial mount, but play for all new polls after that
         if (isInitialMountRef.current) {
             isInitialMountRef.current = false;
             previousPollCountRef.current = currentPollCount;
             return;
         }
 
-        // Play sound when poll count increases
         if (currentPollCount > previousPollCountRef.current) {
-            console.log('🔔 New poll detected! Playing notification sound...');
+            console.log("🔔 New poll detected! Playing notification sound...");
 
             if (audioRef.current) {
-                audioRef.current.currentTime = 0; // Reset to start
-                audioRef.current.play()
+                audioRef.current.currentTime = 0;
+                audioRef.current
+                    .play()
                     .then(() => {
-                        console.log('✅ Notification sound played');
+                        console.log("✅ Notification sound played");
                     })
                     .catch((error) => {
-                        console.warn('⚠️ Could not play sound:', error.message);
+                        console.warn("⚠️ Could not play sound:", error.message);
                         if (!audioEnabledRef.current) {
-                            console.log('💡 Click anywhere on the page to enable notification sounds');
+                            console.log(
+                                "💡 Click anywhere on the page to enable notification sounds",
+                            );
                         }
                     });
             }
@@ -168,7 +165,6 @@ export default function PollNotification() {
 
     return (
         <div className="fixed top-4 right-4 z-55 space-y-2 max-w-sm">
-            {/* Full-sized notifications for unvoted polls */}
             {unvotedPolls.map((poll) => (
                 <PollNotificationItem
                     key={poll.id}
@@ -178,7 +174,6 @@ export default function PollNotification() {
                 />
             ))}
 
-            {/* Mini notifications for voted polls */}
             {votedPolls.map((poll) => (
                 <PollNotificationItem
                     key={poll.id}

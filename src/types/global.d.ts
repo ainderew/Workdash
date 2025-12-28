@@ -5,7 +5,7 @@ declare global {
     interface Window {
         __BACKEND_JWT__?: string;
         __BACKEND_USER__?: BackendUser;
-        __BACKEND_CHARACTER__?: CharacterCustomization; // Replace 'any' with your Character type if available
+        __BACKEND_CHARACTER__?: CharacterCustomization;
     }
 }
 

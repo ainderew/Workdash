@@ -19,7 +19,6 @@ export default function CommandList({
     const listRef = useRef<HTMLDivElement>(null);
     const selectedRef = useRef<HTMLDivElement>(null);
 
-    // Scroll selected item into view
     useEffect(() => {
         if (selectedRef.current && listRef.current) {
             selectedRef.current.scrollIntoView({

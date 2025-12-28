@@ -34,14 +34,9 @@ export function CharacterCustomizationMenu({
     const handleComplete = async (customization: CharacterCustomization) => {
         setIsSaving(true);
         try {
-            // Save locally first
             setCharacterCustomization(customization);
             CharacterPersistence.save(customization);
-
-            // Emit to local game for immediate update
             CharacterEventBus.emitCharacterUpdate(customization);
-
-            // Emit socket event to backend for real-time broadcast to other players
             const multiplayer = window.__MULTIPLAYER__;
             if (
                 multiplayer &&

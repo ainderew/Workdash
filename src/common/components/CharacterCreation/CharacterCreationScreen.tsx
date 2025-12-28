@@ -33,7 +33,6 @@ const CATEGORIES: CategoryTab[] = [
     { id: "hairstyle", label: "Hair", icon: "💇" },
     { id: "outfit", label: "Outfit", icon: "👔" },
     { id: "accessory", label: "Accessory", icon: "👓" },
-    { id: "item", label: "Item", icon: "📱" },
 ];
 
 const DEFAULT_CUSTOMIZATION: CharacterCustomization = {
@@ -59,8 +58,6 @@ export function CharacterCreationScreen({
     const handleUpdate = (updates: Partial<CharacterCustomization>) => {
         setCustomization((prev) => {
             const updated = { ...prev, ...updates };
-
-            // Reset dependent fields when type changes
             if (updates.type !== undefined && updates.type !== prev.type) {
                 return {
                     type: updates.type,
@@ -161,8 +158,6 @@ export function CharacterCreationScreen({
                                 ))}
                             </div>
                         </div>
-
-                        {/* Category Content */}
                         <div className="flex-1 overflow-y-auto p-6">
                             <CategorySelector
                                 category={selectedCategory}
@@ -172,8 +167,6 @@ export function CharacterCreationScreen({
                         </div>
                     </div>
                 </div>
-
-                {/* Footer */}
                 <div className="p-6 border-t border-slate-700 bg-slate-800/30">
                     <div className="flex justify-end gap-3">
                         {onCancel && (
