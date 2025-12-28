@@ -23,7 +23,6 @@ function VideoChatContainer({
 
     return (
         <>
-            {/* Backdrop */}
             {isExpanded && (
                 <div
                     className="backdrop fixed inset-0 bg-black/85 z-40 backdrop-blur-sm"
@@ -45,7 +44,6 @@ function VideoChatContainer({
                     ${hasMoreThanOneSharing ? "right-20" : "left-1/2 -translate-x-1/2"}
                 `}
             >
-                {/*Attach Video*/}
                 <div
                     id={producerId}
                     className="w-full h-full relative flex items-center justify-center"

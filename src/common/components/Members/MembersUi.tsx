@@ -26,7 +26,7 @@ function MembersUi({ isMembersUiOpen, onClose }: MembersUiProps) {
     return (
         <SidebarMenu isOpen={isMembersUiOpen}>
             <div
-                className={`text-white h-[calc(100vh-var(--ui-controls-height)+5px)] w-100 bg-primary backdrop-blur-sm absolute right-0 top-0 border-l border-neutral-700 transition-transform duration-300 ease-in-out flex flex-col shadow-2xl`}
+                className={`text-white h-[calc(100vh-var(--ui-controls-height)+5px)] w-full bg-primary backdrop-blur-sm absolute right-0 top-0 border-l border-neutral-700 transition-transform duration-300 ease-in-out flex flex-col shadow-2xl`}
             >
                 <div className="flex items-center justify-between p-4 border-b border-neutral-700">
                     <div className="flex flex-col">

@@ -49,8 +49,6 @@ function UiControls() {
 
     // Ref for click outside detection
     const micSelectorRef = useRef<HTMLDivElement>(null);
-
-    // Close mic selector when clicking outside
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
             if (
@@ -131,14 +129,12 @@ function UiControls() {
                     textColor={isVideoOff ? ColorEnum.red : ColorEnum.green}
                 />
 
-                {/* Microphone button with selector */}
                 <div className="relative" ref={micSelectorRef}>
                     <button
                         className={`flex items-center gap-1 px-3 py-2 rounded-lg transition-colors ${
                             isMuted ? "bg-red-950" : "bg-green-950"
                         }`}
                     >
-                        {/* Main mic toggle area */}
                         <div
                             onClick={toggleMic}
                             className="flex items-center gap-2 cursor-pointer"
@@ -150,12 +146,10 @@ function UiControls() {
                             )}
                         </div>
 
-                        {/* Divider */}
                         <div
                             className={`w-px h-5 mx-1 ${isMuted ? "bg-red-400/30" : "bg-green-400/30"}`}
                         />
 
-                        {/* Microphone selector toggle */}
                         <div
                             onClick={toggleMicSelector}
                             className="cursor-pointer p-1 rounded hover:bg-white/10 transition-colors"
@@ -170,7 +164,6 @@ function UiControls() {
                         </div>
                     </button>
 
-                    {/* Microphone dropdown */}
                     {isMicSelectorOpen && (
                         <div className="absolute bottom-full left-0 mb-2 w-64 bg-gray-800 rounded-lg shadow-lg border border-gray-700 overflow-hidden z-50">
                             <div className="px-3 py-2 border-b border-gray-700">

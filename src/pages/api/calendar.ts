@@ -24,11 +24,8 @@ export default async function handler(
     const calendar = google.calendar({ version: "v3", auth: oauth2Client });
 
     try {
-        // Get date from query params, default to today
         const dateParam = req.query.date as string;
         const targetDate = dateParam ? parseISO(dateParam) : new Date();
-
-        // Get start and end of the selected day
         const timeMin = startOfDay(targetDate).toISOString();
         const timeMax = endOfDay(targetDate).toISOString();
 

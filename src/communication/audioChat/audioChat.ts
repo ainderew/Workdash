@@ -2,6 +2,7 @@ import { Consumer, Producer, RtpParameters } from "mediasoup-client/types";
 import { MediaTransportService } from "../mediaTransportService/mediaTransportServive";
 import usePlayersStore from "@/common/store/playerStore";
 import { AvailabilityStatus } from "@/game/player/_enums";
+import useAudioStore from "@/common/store/audioStore";
 
 interface ConsumerServerResponse {
     id: string;
@@ -23,6 +24,15 @@ export class AudioChat {
     private isInFocusMode: boolean = false;
     private currentStream: MediaStream | null = null;
     private currentDeviceId: string | null = null;
+    // Volume control properties
+    public audioElements: Map<string, HTMLAudioElement> = new Map();
+    public audioOwnerMap: Record<string, string> = {};
+    private audioElementUpdateCallback: (() => void) | null = null;
+    // Web Audio API for output gain control
+    private outputAudioContext: AudioContext | null = null;
+    private gainNodes: Map<string, GainNode> = new Map();
+    private mediaStreamSources: Map<string, MediaStreamAudioSourceNode> =
+        new Map();
 
     constructor() {
         console.log("initializeAudioChat");
@@ -40,16 +50,16 @@ export class AudioChat {
 
     public initializeAudioChat(
         setter: (audioElement: HTMLAudioElement) => void,
+        updateCallback?: () => void,
     ) {
         this.audioElementsSetter = setter;
+        if (updateCallback) {
+            this.audioElementUpdateCallback = updateCallback;
+        }
         this.watchFocusModeChanges();
     }
 
-    /**
-     * Get list of available microphones
-     */
     public async getAvailableMicrophones(): Promise<MediaDeviceInfo[]> {
-        // Request permission first to get device labels
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
                 audio: true,
@@ -65,18 +75,13 @@ export class AudioChat {
         return devices.filter((device) => device.kind === "audioinput");
     }
 
-    /**
-     * Switch to a different microphone
-     */
     public async switchMicrophone(deviceId: string): Promise<void> {
-        // Don't switch if it's the same device
         if (deviceId === this.currentDeviceId) {
             return;
         }
 
         const wasMuted = this.isMuted;
 
-        // Clean up old resources
         if (this.currentStream) {
             this.currentStream.getTracks().forEach((track) => track.stop());
             this.currentStream = null;
@@ -87,13 +92,11 @@ export class AudioChat {
             this.audioContext = null;
         }
 
-        // Close old producer
         if (this.audioProducer && !this.audioProducer.closed) {
             this.audioProducer.close();
             this.audioProducer = undefined;
         }
 
-        // Get new stream with selected device
         const stream = await navigator.mediaDevices.getUserMedia({
             audio: this.getAudioConstraints(deviceId),
         });
@@ -104,19 +107,15 @@ export class AudioChat {
         const processedStream = await this.processAudioStream(stream);
         const [audioTrack] = processedStream.getAudioTracks();
 
-        // Create new producer
         this.audioProducer = await this.sfuService.sendTransport!.produce({
             track: audioTrack,
         });
 
-        // Restore mute state
         if (wasMuted) {
             this.muteMic();
         } else {
             this.unMuteMic();
         }
-
-        console.log(`Switched to microphone: ${deviceId}`);
     }
 
     private getAudioConstraints(deviceId?: string): MediaTrackConstraints {
@@ -168,7 +167,16 @@ export class AudioChat {
     public async watchNewProducers() {
         this.sfuService.socket.on(
             "newProducer",
-            async (data: { producerId: string }) => {
+            async (data: {
+                producerId: string;
+                userName?: string;
+                source?: string;
+            }) => {
+                if (data.source && data.source !== "microphone") return;
+                if (data.userName) {
+                    this.audioOwnerMap[data.producerId] = data.userName;
+                }
+
                 await this.consumeProducer(data.producerId);
             },
         );
@@ -213,20 +221,51 @@ export class AudioChat {
                 );
             });
 
-            console.log("Consumer resumed, creating audio element...");
+            console.log("Consumer resumed, creating Web Audio pipeline...");
 
             const remoteStream = new MediaStream([consumer.track]);
+
+            if (!this.outputAudioContext) {
+                this.outputAudioContext = new AudioContext();
+            }
+            const source =
+                this.outputAudioContext.createMediaStreamSource(remoteStream);
+            const gainNode = this.outputAudioContext.createGain();
+            const ownerName = this.audioOwnerMap[consumerData.producerId];
+            if (ownerName) {
+                const volumeState = useAudioStore
+                    .getState()
+                    .getUserVolume(ownerName);
+                const isMuted = useAudioStore.getState().isUserMuted(ownerName);
+                gainNode.gain.value = isMuted ? 0 : volumeState;
+            } else {
+                gainNode.gain.value = 1.0;
+            }
+
+            source.connect(gainNode);
+            gainNode.connect(this.outputAudioContext.destination);
+
+            this.mediaStreamSources.set(consumer.id, source);
+            this.gainNodes.set(consumer.id, gainNode);
 
             const audioEl = document.createElement("audio");
             audioEl.srcObject = remoteStream;
             audioEl.autoplay = false;
-            audioEl.volume = 1.0;
-            audioEl.muted = false;
-
+            audioEl.muted = true;
+            this.audioElements.set(consumer.id, audioEl);
             this.audioElementsSetter(audioEl);
             document.body.appendChild(audioEl);
 
-            console.log("Audio element created and ready");
+            if (this.audioElementUpdateCallback) {
+                this.audioElementUpdateCallback();
+            }
+
+            console.log(
+                "Web Audio pipeline created for",
+                ownerName,
+                "with gain",
+                gainNode.gain.value,
+            );
             console.log(
                 "Track:",
                 consumer.track.readyState,
@@ -324,16 +363,10 @@ export class AudioChat {
         );
     }
 
-    /**
-     * Get the currently selected microphone device ID
-     */
     public getCurrentDeviceId(): string | null {
         return this.currentDeviceId;
     }
 
-    /**
-     * Cleanup resources
-     */
     public async cleanup() {
         if (this.currentStream) {
             this.currentStream.getTracks().forEach((track) => track.stop());
@@ -350,11 +383,97 @@ export class AudioChat {
             this.audioProducer = undefined;
         }
 
+        this.mediaStreamSources.forEach((source) => {
+            source.disconnect();
+        });
+        this.mediaStreamSources.clear();
+
+        this.gainNodes.forEach((gainNode) => {
+            gainNode.disconnect();
+        });
+        this.gainNodes.clear();
+
+        if (this.outputAudioContext) {
+            await this.outputAudioContext.close();
+            this.outputAudioContext = null;
+        }
+
+        this.audioElements.forEach((audioEl) => {
+            audioEl.srcObject = null;
+            audioEl.remove();
+        });
+        this.audioElements.clear();
+
         this.consumers.forEach((consumer) => {
             if (!consumer.closed) {
                 consumer.close();
             }
         });
         this.consumers.clear();
+    }
+
+    public getAudioElementByUserName(
+        userName: string,
+    ): HTMLAudioElement | null {
+        const producerId = Object.keys(this.audioOwnerMap).find(
+            (key) => this.audioOwnerMap[key] === userName,
+        );
+        if (!producerId) return null;
+
+        const consumer = Array.from(this.consumers.values()).find(
+            (c) => c.producerId === producerId,
+        );
+
+        return consumer ? this.audioElements.get(consumer.id) || null : null;
+    }
+
+    public getGainNodeByUserName(userName: string): GainNode | null {
+        const producerId = Object.keys(this.audioOwnerMap).find(
+            (key) => this.audioOwnerMap[key] === userName,
+        );
+        if (!producerId) return null;
+
+        const consumer = Array.from(this.consumers.values()).find(
+            (c) => c.producerId === producerId,
+        );
+
+        return consumer ? this.gainNodes.get(consumer.id) || null : null;
+    }
+
+    public setUserVolume(userName: string, volume: number): void {
+        const gainNode = this.getGainNodeByUserName(userName);
+        if (gainNode) {
+            gainNode.gain.value = Math.max(0, Math.min(2.0, volume));
+        }
+    }
+
+    public async loadExistingProducers(): Promise<void> {
+        const producers = await new Promise<
+            {
+                producerId: string;
+                socketId: string;
+                source?: string;
+                userName?: string;
+            }[]
+        >((resolve) => {
+            this.sfuService.socket.emit("getProducers", {}, resolve);
+        });
+
+        const audioProducers = producers.filter(
+            (p) => !p.source || p.source === "microphone",
+        );
+
+        for (const producer of audioProducers) {
+            if (producer.userName) {
+                this.audioOwnerMap[producer.producerId] = producer.userName;
+            } else {
+                const playerMap = usePlayersStore.getState().playerMap;
+                const player = playerMap[producer.socketId];
+                this.audioOwnerMap[producer.producerId] =
+                    player?.name || "Unknown User";
+            }
+
+            await this.consumeProducer(producer.producerId);
+        }
     }
 }

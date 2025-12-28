@@ -27,15 +27,11 @@ export function CharacterCustomizationButton() {
                 onSelectName={() => setActiveModal("name")}
                 onSelectCharacter={() => setActiveModal("character")}
             />
-
-            {/* Edit Name Modal */}
             <EditNameModal
                 isOpen={activeModal === "name"}
                 onClose={() => setActiveModal(null)}
                 currentName={userName}
             />
-
-            {/* Character Customization Modal */}
             <CharacterCustomizationMenu
                 isOpen={activeModal === "character"}
                 onClose={() => setActiveModal(null)}
