@@ -20,11 +20,6 @@ export class Multiplayer {
     private messageQueue: QueuedMessage[] = [];
 
     constructor(jwtToken?: string) {
-        console.log(
-            "Multiplayer constructor - JWT token:",
-            jwtToken ? "present (length: " + jwtToken.length + ")" : "MISSING",
-        );
-
         this.socket = io(CONFIG.SFU_SERVER_URL, {
             autoConnect: false,
             auth: {
@@ -40,9 +35,8 @@ export class Multiplayer {
             console.log("Socket Connected (Waiting for Logic Init...)");
         });
 
-        this.socket.on("disconnect", (reason: any) => {
-            console.warn(`Socket Disconnected: ${reason}`);
-            this.isBackendReady = false; // Reset readiness
+        this.socket.on("disconnect", () => {
+            this.isBackendReady = false;
         });
 
         this.socket.on("connect_error", (error: any) => {
@@ -50,7 +44,6 @@ export class Multiplayer {
         });
 
         this.socket.on("sfuInitialized", () => {
-            console.log("SFU Initialized - Backend Logic Ready");
             this.isBackendReady = true;
             this.flushMessageQueue();
         });
@@ -60,11 +53,6 @@ export class Multiplayer {
         if (this.socket.connected && this.isBackendReady) {
             this.socket.emit(event, payload);
         } else {
-            const status = !this.socket.connected
-                ? "Not Connected"
-                : "Backend Not Ready";
-            console.log(`Queueing event '${event}' (${status})`);
-
             this.messageQueue.push({ event, payload });
 
             if (!this.socket.connected) {
@@ -76,12 +64,9 @@ export class Multiplayer {
     private flushMessageQueue() {
         if (this.messageQueue.length === 0) return;
 
-        console.log(`Flushing ${this.messageQueue.length} queued messages...`);
-
         while (this.messageQueue.length > 0) {
             const msg = this.messageQueue.shift();
             if (msg) {
-                console.log(`Sending queued: ${msg.event}`);
                 this.socket.emit(msg.event, msg.payload);
             }
         }

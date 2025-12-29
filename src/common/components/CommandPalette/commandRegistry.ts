@@ -1,4 +1,4 @@
-import { MessageSquarePlus, ScreenShare, UserCog } from "lucide-react";
+import { MessageSquarePlus, ScreenShare, UserCog, Settings } from "lucide-react";
 import { Command } from "./types";
 import { PollForm } from "./forms/PollForm";
 import { ScreenShareService } from "@/communication/screenShare/screenShare";
@@ -55,6 +55,26 @@ export const commands: Command[] = [
         formComponent: undefined,
         handler: () => {
             useUiStore.getState().openCharacterCustomization("character");
+        },
+    },
+    {
+        id: "open-settings",
+        name: "Open Settings",
+        description: "Access game settings and preferences",
+        icon: Settings,
+        keywords: [
+            "settings",
+            "preferences",
+            "config",
+            "options",
+            "music",
+            "audio",
+        ],
+        category: "Settings",
+        requiresForm: false,
+        formComponent: undefined,
+        handler: () => {
+            useUiStore.getState().openCharacterCustomization("selection");
         },
     },
 ];

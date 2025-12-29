@@ -190,3 +190,42 @@ body {
         clip-path: polygon(90% 0, 100% 30%, 100% 100%, 10% 100%, 0% 70%, 0 0);
     }
 }
+
+/* Custom Range Slider Styles */
+input[type="range"].slider {
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+input[type="range"].slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: rgb(168 85 247);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 0 0 4px rgba(168, 85, 247, 0.2);
+}
+
+input[type="range"].slider::-webkit-slider-thumb:hover {
+    background: rgb(147 51 234);
+    box-shadow: 0 0 0 6px rgba(168, 85, 247, 0.3);
+}
+
+input[type="range"].slider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: rgb(168 85 247);
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s ease;
+    box-shadow: 0 0 0 4px rgba(168, 85, 247, 0.2);
+}
+
+input[type="range"].slider::-moz-range-thumb:hover {
+    background: rgb(147 51 234);
+    box-shadow: 0 0 0 6px rgba(168, 85, 247, 0.3);
+}

@@ -92,6 +92,10 @@ export class Preloader extends Scene {
         // characterLoader.loadAllCharacterAssets();
 
         this.load.image(
+            "Office",
+            "tile-sets/Modern_Office_Shadowless_32x32.png",
+        );
+        this.load.image(
             "Exterior",
             "tile-sets/Modern_Exteriors_Complete_Tileset_32x32.png",
         );
@@ -142,6 +146,7 @@ export class Preloader extends Scene {
 
         // Load sounds
         this.load.audio("door_open", "sounds/door_open.mp3");
+        this.load.audio("bg_music_1", "sounds/bg_music_1.mp3");
 
         this.load.tilemapTiledJSON("map", "map1.json");
 

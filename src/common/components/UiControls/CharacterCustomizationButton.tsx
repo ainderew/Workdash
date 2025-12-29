@@ -1,10 +1,12 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { CharacterCustomizationMenu } from "../CharacterCustomization/CharacterCustomizationMenu";
 import { SettingsSelectionModal } from "./modal/SettingsSelection.modal";
 import { EditNameModal } from "./modal/EditName.modal";
+import { BackgroundMusicOptInModal } from "./modal/BackgroundMusicOptIn.modal";
 import { Settings } from "lucide-react";
 import useUserStore from "@/common/store/useStore";
 import useUiStore from "@/common/store/uiStore";
+import { EventBus } from "@/game/EventBus";
 
 export function CharacterCustomizationButton() {
     const userName = useUserStore((state) => state.user.name);
@@ -15,6 +17,21 @@ export function CharacterCustomizationButton() {
         closeCharacterCustomization,
         setCharacterCustomizationMode,
     } = useUiStore();
+
+    const [showMusicOptIn, setShowMusicOptIn] = useState(false);
+
+    useEffect(() => {
+        // Listen for the prompt event from BackgroundMusicManager
+        const handlePrompt = () => {
+            setShowMusicOptIn(true);
+        };
+
+        EventBus.on("prompt-background-music-opt-in", handlePrompt);
+
+        return () => {
+            EventBus.off("prompt-background-music-opt-in", handlePrompt);
+        };
+    }, []);
 
     return (
         <>
@@ -51,6 +68,10 @@ export function CharacterCustomizationButton() {
                     characterCustomizationMode === "character"
                 }
                 onClose={closeCharacterCustomization}
+            />
+            <BackgroundMusicOptInModal
+                isOpen={showMusicOptIn}
+                onClose={() => setShowMusicOptIn(false)}
             />
         </>
     );

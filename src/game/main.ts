@@ -22,6 +22,12 @@ const config: Phaser.Types.Core.GameConfig = {
     antialias: false,
     roundPixels: true,
 
+    audio: {
+        disableWebAudio: false,
+        noAudio: false,
+        pauseOnBlur: false, // Keep audio playing when tab loses focus
+    },
+
     physics: {
         default: "arcade",
         arcade: {

@@ -15,6 +15,7 @@ import { CharacterAnimationManager } from "../character/CharacterAnimationManage
 import useUserStore from "@/common/store/useStore";
 import { EventBus } from "../EventBus";
 import { AudioZoneManager } from "../audioZoneManager/audioZoneManager";
+import { BackgroundMusicManager } from "../audio/BackgroundMusicManager";
 
 export class Game extends Scene {
     camera: Phaser.Cameras.Scene2D.Camera;
@@ -36,6 +37,7 @@ export class Game extends Scene {
     Hz: number = 1000 / 50; // 20hz
     private wasAttacking: boolean = false;
     private audioZoneManager: AudioZoneManager;
+    private backgroundMusicManager: BackgroundMusicManager;
 
     constructor() {
         super("Game");
@@ -67,8 +69,6 @@ export class Game extends Scene {
             console.error(
                 "JWT token is missing! Cannot connect to multiplayer server.",
             );
-        } else {
-            console.log("JWT token found, connecting to multiplayer...");
         }
 
         this.multiplayer = new Multiplayer(jwtToken);
@@ -93,6 +93,7 @@ export class Game extends Scene {
 
         const interiorTilesets = [];
         const exterior_tileset = map.addTilesetImage("Exterior", "Exterior")!;
+        const office_tileset = map.addTilesetImage("Office", "Office")!;
         const Interior_2 = map.addTilesetImage("Interior_2", "Interior_2")!;
         for (let i = 0; i < 9; i++) {
             interiorTilesets.push(
@@ -103,7 +104,12 @@ export class Game extends Scene {
             );
         }
 
-        const allTilesets = [exterior_tileset, Interior_2, ...interiorTilesets];
+        const allTilesets = [
+            exterior_tileset,
+            office_tileset,
+            Interior_2,
+            ...interiorTilesets,
+        ];
 
         if (!Interior_2) {
             alert("INTERIOR DOES NOT EXIST");
@@ -346,6 +352,17 @@ export class Game extends Scene {
         this.audioZoneManager.initializeZones(map, this.playersLayer);
 
         // this.audioZoneManager.enableDebugView(true);
+
+        // Configure sound manager to not pause on blur
+        if (this.sound && "pauseOnBlur" in this.sound) {
+            (this.sound as any).pauseOnBlur = false;
+            console.log("[Game] Set sound.pauseOnBlur = false");
+        }
+
+        // Initialize background music manager after scene is ready
+        this.backgroundMusicManager = new BackgroundMusicManager(this);
+        this.backgroundMusicManager.initialize();
+
         EventBus.emit("current-scene-ready", this);
     }
 
