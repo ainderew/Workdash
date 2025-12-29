@@ -12,7 +12,6 @@ export class Preloader extends Scene {
     }
 
     preload() {
-        this.scene.launch("NeuralCanvas");
         const { width, height } = this.cameras.main;
 
         this.barWidth = width * 0.4;
@@ -60,7 +59,6 @@ export class Preloader extends Scene {
         });
 
         this.load.on("complete", () => {
-            this.scene.stop("NeuralCanvas");
             this.scene.start("Game");
         });
 
@@ -142,7 +140,6 @@ export class Preloader extends Scene {
             { frameWidth: 32, frameHeight: 64 },
         );
 
-        // Map & UI
         this.load.tilemapTiledJSON("map", "map1.json");
 
         // Spritesheets
