@@ -2,7 +2,6 @@ import { Boot } from "./scenes/Boot";
 import { Preloader } from "./scenes/Preloader";
 import { Game as GameScene } from "./scenes/Game";
 import { AUTO, Game } from "phaser";
-import { NeuralCanvasScene } from "./scenes/NeuralCanvasScene";
 
 const config: Phaser.Types.Core.GameConfig = {
     type: AUTO,
@@ -18,7 +17,7 @@ const config: Phaser.Types.Core.GameConfig = {
         width: "100%",
         height: "100%",
     },
-    scene: [Boot, NeuralCanvasScene, Preloader, GameScene],
+    scene: [Boot, Preloader, GameScene],
     pixelArt: true,
     antialias: false,
     roundPixels: true,

@@ -13,9 +13,9 @@ export default function AudioElement() {
             () => setUpdateTrigger((prev) => prev + 1),
         );
         audioChatService.joinVoiceChat();
-        audioChatService.loadExistingProducers().then(() => {
-            audioChatService.watchNewProducers();
-        });
+        // audioChatService.loadExistingProducers().then(() => {
+        //     audioChatService.watchNewProducers();
+        // });
 
         return () => {
             audioChatService.cleanup();

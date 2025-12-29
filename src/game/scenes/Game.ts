@@ -14,9 +14,9 @@ import { CharacterCompositor } from "../character/CharacterCompositor";
 import { CharacterAnimationManager } from "../character/CharacterAnimationManager";
 import useUserStore from "@/common/store/useStore";
 import { EventBus } from "../EventBus";
+import { AudioZoneManager } from "../audioZoneManager/audioZoneManager";
 
 export class Game extends Scene {
-    //Game setup
     camera: Phaser.Cameras.Scene2D.Camera;
     currentZoom: number;
     background: Phaser.GameObjects.Image;
@@ -35,6 +35,7 @@ export class Game extends Scene {
     lastTick: number = 0;
     Hz: number = 1000 / 50; // 20hz
     private wasAttacking: boolean = false;
+    private audioZoneManager: AudioZoneManager;
 
     constructor() {
         super("Game");
@@ -88,12 +89,9 @@ export class Game extends Scene {
          */
         this.physics.world.fixedStep = false;
         this.physics.world.setBounds(0, 0, 4064, 3200);
-
-        // Camera setup
         this.cameras.main.setBounds(0, 0, 4064, 3200);
 
         const interiorTilesets = [];
-
         const exterior_tileset = map.addTilesetImage("Exterior", "Exterior")!;
         const Interior_2 = map.addTilesetImage("Interior_2", "Interior_2")!;
         for (let i = 0; i < 9; i++) {
@@ -105,7 +103,6 @@ export class Game extends Scene {
             );
         }
 
-        // Include all tilesets in your layers
         const allTilesets = [exterior_tileset, Interior_2, ...interiorTilesets];
 
         if (!Interior_2) {
@@ -123,7 +120,6 @@ export class Game extends Scene {
             repeat: 0,
         });
 
-        // Frames 7-13 look like "Closing" (optional, if you want it to close behind them)
         this.anims.create({
             key: "door_close",
             frames: this.anims.generateFrameNumbers("Sliding_Door", {
@@ -134,7 +130,6 @@ export class Game extends Scene {
             repeat: 0,
         });
 
-        // After your door animations, add these:
         this.anims.create({
             key: "coffee_anim",
             frames: this.anims.generateFrameNumbers("Animated_Coffee", {
@@ -150,7 +145,7 @@ export class Game extends Scene {
             frames: this.anims.generateFrameNumbers("Animated_Control_Panel", {
                 start: 0,
                 end: 9,
-            }), // adjust frame count
+            }),
             frameRate: 10,
             repeat: -1,
         });
@@ -160,7 +155,7 @@ export class Game extends Scene {
             frames: this.anims.generateFrameNumbers("Animated_Fish_Tank", {
                 start: 0,
                 end: 6,
-            }), // adjust frame count
+            }),
             frameRate: 7,
             repeat: -1,
         });
@@ -170,7 +165,7 @@ export class Game extends Scene {
             frames: this.anims.generateFrameNumbers("Animated_Server", {
                 start: 0,
                 end: 2,
-            }), // adjust frame count
+            }),
             frameRate: 3,
             repeat: -1,
         });
@@ -302,12 +297,12 @@ export class Game extends Scene {
         });
 
         this.doors = map.createFromObjects("Doors", {
-            name: "door1", // Must match the name you gave it in Tiled
-            key: "Sliding_Door", // The key we loaded in step 1
+            name: "door1", // Must match the name in Tiled
+            key: "Sliding_Door",
             frame: 0, // Start closed
             classType: Phaser.GameObjects.Sprite,
         });
-        // Add Physics to the door sprites
+
         this.physics.world.enable(this.doors);
         this.doors.forEach((object) => {
             const door = object as Phaser.GameObjects.Sprite;
@@ -347,8 +342,10 @@ export class Game extends Scene {
         );
 
         this.setupChatBlur();
+        this.audioZoneManager = new AudioZoneManager(this);
+        this.audioZoneManager.initializeZones(map, this.playersLayer);
 
-        // Emit event to notify React that the game scene is ready
+        // this.audioZoneManager.enableDebugView(true);
         EventBus.emit("current-scene-ready", this);
     }
 
@@ -462,11 +459,6 @@ export class Game extends Scene {
         this.loadingPlayers.delete(id);
     }
 
-    /**
-     * Update loop
-     * removed delta for not for unused variables
-     * public update(time: number, delta: number)
-     */
     public update(time: number) {
         const tickRate = time - this.lastTick > this.Hz;
 
@@ -474,7 +466,6 @@ export class Game extends Scene {
             p.update();
 
             if (p.isLocal) {
-                // Detect attack start and broadcast immediately
                 if (p.isAttacking && !this.wasAttacking) {
                     this.multiplayer.emitPlayerAction("attack");
                     this.wasAttacking = true;
@@ -497,6 +488,9 @@ export class Game extends Scene {
             }
         }
 
+        // Check for zone exits
+        this.audioZoneManager.checkZoneExits(this.players);
+
         for (const obj of this.doors) {
             const door = obj as Phaser.GameObjects.Sprite;
 
@@ -508,7 +502,6 @@ export class Game extends Scene {
             }
         }
     }
-
     private startAnimation() {
         this.anims.create({
             key: AttackAnimationKeys.ADAM,
@@ -644,6 +637,7 @@ export class Game extends Scene {
             if (!doorSprite.getData("isOpen")) {
                 doorSprite.setData("isOpen", true);
                 doorSprite.play("door_open");
+                this.sound.play("door_open");
             }
 
             doorSprite.setData("touchedThisFrame", true);

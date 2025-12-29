@@ -22,11 +22,8 @@ export interface MovementPacket {
     name?: string;
     x: number;
     y: number;
-    isInFocusMode: boolean;
     isAttacking: boolean;
     vx: number;
     vy: number;
-    t?: Date;
-
     opts: { isLocal: boolean };
 }

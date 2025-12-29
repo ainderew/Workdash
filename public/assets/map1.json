@@ -1152,9 +1152,53 @@
          "visible":true,
          "x":0,
          "y":0
+        }, 
+        {
+         "draworder":"topdown",
+         "id":30,
+         "name":"AudioZones",
+         "objects":[
+                {
+                 "height":249.470302781765,
+                 "id":57,
+                 "name":"private_office",
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":439.477821064862,
+                 "x":645.205385824619,
+                 "y":1252.13587587998
+                }, 
+                {
+                 "height":626.073678182859,
+                 "id":79,
+                 "name":"main_office",
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":1162.43557930903,
+                 "x":847.489979003627,
+                 "y":553.540752051918
+                }, 
+                {
+                 "height":682.744602125148,
+                 "id":82,
+                 "name":"main_office",
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":916.867390791027,
+                 "x":1118.89806375443,
+                 "y":1188.73395631641
+                }],
+         "opacity":1,
+         "type":"objectgroup",
+         "visible":true,
+         "x":0,
+         "y":0
         }],
- "nextlayerid":30,
- "nextobjectid":57,
+ "nextlayerid":31,
+ "nextobjectid":83,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.11.2",

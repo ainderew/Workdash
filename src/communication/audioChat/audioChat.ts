@@ -11,6 +11,21 @@ interface ConsumerServerResponse {
     rtpParameters: RtpParameters;
 }
 
+interface ZonePlayer {
+    socketId: string;
+    playerId: number;
+    name: string;
+    producerIds: string[];
+}
+
+interface PlayerJoinedZoneData {
+    socketId: string;
+    playerId: string;
+    zone: string;
+    producerIds: string[];
+    name: string;
+}
+
 export class AudioChat {
     public static instance: AudioChat | null = null;
     public isMuted: boolean = true;
@@ -24,15 +39,19 @@ export class AudioChat {
     private isInFocusMode: boolean = false;
     private currentStream: MediaStream | null = null;
     private currentDeviceId: string | null = null;
-    // Volume control properties
+    private currentZone: string | null = null;
+
     public audioElements: Map<string, HTMLAudioElement> = new Map();
     public audioOwnerMap: Record<string, string> = {};
     private audioElementUpdateCallback: (() => void) | null = null;
-    // Web Audio API for output gain control
+
     private outputAudioContext: AudioContext | null = null;
     private gainNodes: Map<string, GainNode> = new Map();
     private mediaStreamSources: Map<string, MediaStreamAudioSourceNode> =
         new Map();
+
+    private producerToConsumerMap: Map<string, string> = new Map();
+    private socketToProducersMap: Map<string, string[]> = new Map();
 
     constructor() {
         console.log("initializeAudioChat");
@@ -44,7 +63,6 @@ export class AudioChat {
         if (!this.instance) {
             this.instance = new AudioChat();
         }
-
         return this.instance;
     }
 
@@ -57,6 +75,119 @@ export class AudioChat {
             this.audioElementUpdateCallback = updateCallback;
         }
         this.watchFocusModeChanges();
+        this.watchZoneEvents();
+    }
+
+    private watchZoneEvents(): void {
+        this.sfuService.socket.on(
+            "zone-players",
+            async (data: { zone: string | null; players: ZonePlayer[] }) => {
+                console.log(
+                    `Entered zone ${data.zone} with ${data.players.length} players`,
+                );
+
+                if (data.zone === null) {
+                    this.closeAllAudioConsumers();
+                    this.currentZone = null;
+                    return;
+                }
+
+                this.currentZone = data.zone;
+
+                for (const player of data.players) {
+                    this.socketToProducersMap.set(
+                        player.socketId,
+                        player.producerIds,
+                    );
+                    for (const producerId of player.producerIds) {
+                        this.audioOwnerMap[producerId] = player.name;
+                        await this.consumeProducer(producerId);
+                    }
+                }
+            },
+        );
+
+        this.sfuService.socket.on(
+            "player-left-zone",
+            (data: { socketId: string; playerId: string; zone: string }) => {
+                console.log(`Player ${data.playerId} left zone ${data.zone}`);
+                this.closeConsumersForSocket(data.socketId);
+            },
+        );
+
+        this.sfuService.socket.on(
+            "player-joined-zone",
+            async (data: PlayerJoinedZoneData) => {
+                console.log(`Player ${data.playerId} joined zone ${data.zone}`);
+
+                if (data.producerIds && data.producerIds.length > 0) {
+                    this.socketToProducersMap.set(
+                        data.socketId,
+                        data.producerIds,
+                    );
+                    for (const producerId of data.producerIds) {
+                        this.audioOwnerMap[producerId] = data.name;
+                        await this.consumeProducer(producerId);
+                    }
+                }
+            },
+        );
+    }
+
+    private closeAllAudioConsumers(): void {
+        for (const [producerId] of this.producerToConsumerMap) {
+            this.closeConsumerByProducerId(producerId);
+        }
+        this.socketToProducersMap.clear();
+    }
+
+    private closeConsumersForSocket(socketId: string): void {
+        const producerIds = this.socketToProducersMap.get(socketId) || [];
+
+        for (const producerId of producerIds) {
+            this.closeConsumerByProducerId(producerId);
+        }
+
+        this.socketToProducersMap.delete(socketId);
+    }
+
+    private closeConsumerByProducerId(producerId: string): void {
+        const consumerId = this.producerToConsumerMap.get(producerId);
+        if (!consumerId) return;
+
+        const consumer = this.consumers.get(consumerId);
+        if (consumer && !consumer.closed) {
+            consumer.close();
+        }
+        this.consumers.delete(consumerId);
+
+        const source = this.mediaStreamSources.get(consumerId);
+        if (source) {
+            source.disconnect();
+            this.mediaStreamSources.delete(consumerId);
+        }
+
+        const gainNode = this.gainNodes.get(consumerId);
+        if (gainNode) {
+            gainNode.disconnect();
+            this.gainNodes.delete(consumerId);
+        }
+
+        const audioEl = this.audioElements.get(consumerId);
+        if (audioEl) {
+            audioEl.srcObject = null;
+            audioEl.remove();
+            this.audioElements.delete(consumerId);
+        }
+
+        delete this.audioOwnerMap[producerId];
+        this.producerToConsumerMap.delete(producerId);
+
+        if (this.audioElementUpdateCallback) {
+            this.audioElementUpdateCallback();
+        }
+
+        console.log(`Closed consumer for producer ${producerId}`);
     }
 
     public async getAvailableMicrophones(): Promise<MediaDeviceInfo[]> {
@@ -64,7 +195,6 @@ export class AudioChat {
             const stream = await navigator.mediaDevices.getUserMedia({
                 audio: true,
             });
-            // Stop the stream immediately - we just needed permission
             stream.getTracks().forEach((track) => track.stop());
         } catch (error) {
             console.error("Failed to get microphone permission:", error);
@@ -152,16 +282,6 @@ export class AudioChat {
             track: audioTrack,
         });
         this.muteMic();
-
-        const existingProducers = await new Promise<{ producerId: string }[]>(
-            (resolve) => {
-                this.sfuService.socket.emit("getProducers", {}, resolve);
-            },
-        );
-
-        for (const producer of existingProducers) {
-            await this.consumeProducer(producer.producerId);
-        }
     }
 
     public async watchNewProducers() {
@@ -169,12 +289,19 @@ export class AudioChat {
             "newProducer",
             async (data: {
                 producerId: string;
+                socketId?: string;
                 userName?: string;
                 source?: string;
             }) => {
                 if (data.source && data.source !== "microphone") return;
                 if (data.userName) {
                     this.audioOwnerMap[data.producerId] = data.userName;
+                }
+                if (data.socketId) {
+                    const existing =
+                        this.socketToProducersMap.get(data.socketId) || [];
+                    existing.push(data.producerId);
+                    this.socketToProducersMap.set(data.socketId, existing);
                 }
 
                 await this.consumeProducer(data.producerId);
@@ -183,6 +310,11 @@ export class AudioChat {
     }
 
     private async consumeProducer(producerId: string) {
+        if (this.producerToConsumerMap.has(producerId)) {
+            console.log(`Already consuming producer ${producerId}`);
+            return;
+        }
+
         try {
             const consumerData: ConsumerServerResponse = await new Promise(
                 (resolve) => {
@@ -199,6 +331,11 @@ export class AudioChat {
                 },
             );
 
+            if ((consumerData as unknown as { error: string }).error) {
+                console.error("Server rejected consume:", consumerData);
+                return;
+            }
+
             const consumer: Consumer =
                 await this.sfuService.recvTransport!.consume({
                     id: consumerData.id,
@@ -208,6 +345,7 @@ export class AudioChat {
                 });
 
             this.consumers.set(consumer.id, consumer);
+            this.producerToConsumerMap.set(producerId, consumer.id);
 
             if (this.isInFocusMode) {
                 consumer.pause();
@@ -367,6 +505,10 @@ export class AudioChat {
         return this.currentDeviceId;
     }
 
+    public getCurrentZone(): string | null {
+        return this.currentZone;
+    }
+
     public async cleanup() {
         if (this.currentStream) {
             this.currentStream.getTracks().forEach((track) => track.stop());
@@ -410,6 +552,9 @@ export class AudioChat {
             }
         });
         this.consumers.clear();
+
+        this.producerToConsumerMap.clear();
+        this.socketToProducersMap.clear();
     }
 
     public getAudioElementByUserName(
@@ -471,6 +616,13 @@ export class AudioChat {
                 const player = playerMap[producer.socketId];
                 this.audioOwnerMap[producer.producerId] =
                     player?.name || "Unknown User";
+            }
+
+            if (producer.socketId) {
+                const existing =
+                    this.socketToProducersMap.get(producer.socketId) || [];
+                existing.push(producer.producerId);
+                this.socketToProducersMap.set(producer.socketId, existing);
             }
 
             await this.consumeProducer(producer.producerId);

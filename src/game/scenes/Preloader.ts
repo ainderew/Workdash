@@ -140,6 +140,9 @@ export class Preloader extends Scene {
             { frameWidth: 32, frameHeight: 64 },
         );
 
+        // Load sounds
+        this.load.audio("door_open", "sounds/door_open.mp3");
+
         this.load.tilemapTiledJSON("map", "map1.json");
 
         // Spritesheets
