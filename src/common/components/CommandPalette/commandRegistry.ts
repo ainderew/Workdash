@@ -1,7 +1,8 @@
-import { MessageSquarePlus, ScreenShare } from "lucide-react";
+import { MessageSquarePlus, ScreenShare, UserCog } from "lucide-react";
 import { Command } from "./types";
 import { PollForm } from "./forms/PollForm";
 import { ScreenShareService } from "@/communication/screenShare/screenShare";
+import useUiStore from "@/common/store/uiStore";
 
 export const commands: Command[] = [
     {
@@ -22,12 +23,38 @@ export const commands: Command[] = [
         name: "Share Screen",
         description: "Start a screen share session in workdash",
         icon: ScreenShare,
-        keywords: ["screenshare", "sharescreen", "screen", "video"],
+        keywords: [
+            "communication",
+            "screenshare",
+            "sharescreen",
+            "screen",
+            "video",
+        ],
         category: "Communication",
         requiresForm: false,
         formComponent: undefined,
         handler: () => {
             ScreenShareService.getInstance().startScreenShare();
+        },
+    },
+    {
+        id: "edit-character",
+        name: "Edit Character",
+        description: "Modify the visual appearance of your sprite.",
+        icon: UserCog,
+        keywords: [
+            "settings",
+            "player",
+            "character",
+            "sprite",
+            "customize",
+            "appearance",
+        ],
+        category: "Settings",
+        requiresForm: false,
+        formComponent: undefined,
+        handler: () => {
+            useUiStore.getState().openCharacterCustomization("character");
         },
     },
 ];
@@ -51,23 +78,23 @@ function calculateScore(command: Command, query: string): number {
     const lowerQuery = query.toLowerCase().trim();
 
     if (!lowerQuery) {
-        return 0;
+        return 1;
     }
 
-    const lowerName = command.name.toLowerCase();
+    const name = command.name.toLowerCase();
     const lowerDescription = command.description.toLowerCase();
 
     let score = 0;
 
-    if (lowerName === lowerQuery) {
+    if (name === lowerQuery) {
         score += 100;
     }
 
-    if (lowerName.startsWith(lowerQuery)) {
+    if (name.startsWith(lowerQuery)) {
         score += 50;
     }
 
-    if (lowerName.includes(lowerQuery)) {
+    if (name.includes(lowerQuery)) {
         score += 30;
     }
 
@@ -90,7 +117,7 @@ function calculateScore(command: Command, query: string): number {
     }
 
     let queryIndex = 0;
-    for (const char of lowerName) {
+    for (const char of name) {
         if (char === lowerQuery[queryIndex]) {
             queryIndex++;
             if (queryIndex === lowerQuery.length) {
@@ -106,6 +133,7 @@ function calculateScore(command: Command, query: string): number {
 /**
  * Search and filter commands based on query
  * Returns commands sorted by relevance score
+ *  score rules up there quick read
  */
 export function searchCommands(query: string): Command[] {
     return commands

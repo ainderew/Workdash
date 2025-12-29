@@ -1,20 +1,25 @@
-import React, { useState } from "react";
+import React from "react";
 import { CharacterCustomizationMenu } from "../CharacterCustomization/CharacterCustomizationMenu";
 import { SettingsSelectionModal } from "./modal/SettingsSelection.modal";
 import { EditNameModal } from "./modal/EditName.modal";
 import { Settings } from "lucide-react";
 import useUserStore from "@/common/store/useStore";
+import useUiStore from "@/common/store/uiStore";
 
 export function CharacterCustomizationButton() {
-    const [activeModal, setActiveModal] = useState<
-        "selection" | "name" | "character" | null
-    >(null);
     const userName = useUserStore((state) => state.user.name);
+    const {
+        isCharacterCustomizationOpen,
+        characterCustomizationMode,
+        openCharacterCustomization,
+        closeCharacterCustomization,
+        setCharacterCustomizationMode,
+    } = useUiStore();
 
     return (
         <>
             <button
-                onClick={() => setActiveModal("selection")}
+                onClick={() => openCharacterCustomization("selection")}
                 className="fixed bottom-5 left-10 cursor-pointer p-3 bg-neutral-700 hover:bg-slate-700 rounded-lg border-2 border-slate-600 hover:border-slate-500 shadow-lg"
                 title="Settings"
             >
@@ -22,19 +27,30 @@ export function CharacterCustomizationButton() {
             </button>
 
             <SettingsSelectionModal
-                isOpen={activeModal === "selection"}
-                onClose={() => setActiveModal(null)}
-                onSelectName={() => setActiveModal("name")}
-                onSelectCharacter={() => setActiveModal("character")}
+                isOpen={
+                    isCharacterCustomizationOpen &&
+                    characterCustomizationMode === "selection"
+                }
+                onClose={closeCharacterCustomization}
+                onSelectName={() => setCharacterCustomizationMode("name")}
+                onSelectCharacter={() =>
+                    setCharacterCustomizationMode("character")
+                }
             />
             <EditNameModal
-                isOpen={activeModal === "name"}
-                onClose={() => setActiveModal(null)}
+                isOpen={
+                    isCharacterCustomizationOpen &&
+                    characterCustomizationMode === "name"
+                }
+                onClose={closeCharacterCustomization}
                 currentName={userName}
             />
             <CharacterCustomizationMenu
-                isOpen={activeModal === "character"}
-                onClose={() => setActiveModal(null)}
+                isOpen={
+                    isCharacterCustomizationOpen &&
+                    characterCustomizationMode === "character"
+                }
+                onClose={closeCharacterCustomization}
             />
         </>
     );

@@ -1,6 +1,5 @@
 import { Scene } from "phaser";
 import { SpriteKeys } from "../commmon/enums";
-import { CharacterAssetLoader } from "../character/CharacterAssetLoader";
 
 export class Preloader extends Scene {
     private readonly PROGRESS_KEY = "progress-fill";

@@ -16,3 +16,17 @@ export interface PlayerDto {
     };
     character?: CharacterCustomization;
 }
+
+export interface MovementPacket {
+    id: string;
+    name?: string;
+    x: number;
+    y: number;
+    isInFocusMode: boolean;
+    isAttacking: boolean;
+    vx: number;
+    vy: number;
+    t?: Date;
+
+    opts: { isLocal: boolean };
+}

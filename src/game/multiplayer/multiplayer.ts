@@ -1,6 +1,6 @@
 /*eslint-disable @typescript-eslint/no-explicit-any*/
 import io from "socket.io-client";
-import { PlayerDto } from "./_types";
+import { MovementPacket, PlayerDto } from "./_types";
 import { CONFIG } from "@/common/utils/config";
 import usePlayersStore from "@/common/store/playerStore";
 import { AvailabilityStatus } from "../player/_enums";
@@ -99,7 +99,7 @@ export class Multiplayer {
         this.send("playerJoin", { x, y });
     }
 
-    public emitPlayerMovement(data: Partial<PlayerDto>) {
+    public emitPlayerMovement(data: MovementPacket) {
         this.send("playerMovement", data);
     }
 

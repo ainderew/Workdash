@@ -10,6 +10,10 @@ interface UiState {
     isCommandPaletteOpen: boolean;
     currentCommandForm: string | null;
 
+    // Character customization
+    isCharacterCustomizationOpen: boolean;
+    characterCustomizationMode: "selection" | "name" | "character" | null;
+
     // Audio controls
     isMuted: boolean;
     availableMicrophones: MediaDeviceInfo[];
@@ -29,6 +33,11 @@ interface UiState {
     openCommandPalette: () => void;
     closeCommandPalette: () => void;
     setCommandForm: (formType: string | null) => void;
+
+    // Actions for character customization
+    openCharacterCustomization: (mode?: "selection" | "name" | "character") => void;
+    closeCharacterCustomization: () => void;
+    setCharacterCustomizationMode: (mode: "selection" | "name" | "character" | null) => void;
 
     // Actions for audio
     toggleMic: () => void;
@@ -50,6 +59,8 @@ const useUiStore = create<UiState>((set) => ({
     isCalendarUiOpen: false,
     isCommandPaletteOpen: false,
     currentCommandForm: null,
+    isCharacterCustomizationOpen: false,
+    characterCustomizationMode: null,
     isMuted: false,
     availableMicrophones: [],
     selectedMicrophoneId: "",
@@ -93,6 +104,20 @@ const useUiStore = create<UiState>((set) => ({
             currentCommandForm: null,
         }),
     setCommandForm: (formType) => set({ currentCommandForm: formType }),
+
+    // Character customization actions
+    openCharacterCustomization: (mode = "character") =>
+        set({
+            isCharacterCustomizationOpen: true,
+            characterCustomizationMode: mode,
+        }),
+    closeCharacterCustomization: () =>
+        set({
+            isCharacterCustomizationOpen: false,
+            characterCustomizationMode: null,
+        }),
+    setCharacterCustomizationMode: (mode) =>
+        set({ characterCustomizationMode: mode }),
 
     // Audio actions
     toggleMic: () => set((state) => ({ isMuted: !state.isMuted })),
