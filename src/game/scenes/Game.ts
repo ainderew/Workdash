@@ -353,13 +353,10 @@ export class Game extends Scene {
 
         // this.audioZoneManager.enableDebugView(true);
 
-        // Configure sound manager to not pause on blur
         if (this.sound && "pauseOnBlur" in this.sound) {
-            (this.sound as any).pauseOnBlur = false;
+            this.sound.pauseOnBlur = false;
             console.log("[Game] Set sound.pauseOnBlur = false");
         }
-
-        // Initialize background music manager after scene is ready
         this.backgroundMusicManager = new BackgroundMusicManager(this);
         this.backgroundMusicManager.initialize();
 
