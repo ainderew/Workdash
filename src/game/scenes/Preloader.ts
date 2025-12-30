@@ -144,6 +144,12 @@ export class Preloader extends Scene {
             { frameWidth: 32, frameHeight: 64 },
         );
 
+        this.load.spritesheet(
+            "Animated_Fountain",
+            "tile-sets/Garden_Fountain_3_32x32.png",
+            { frameWidth: 96, frameHeight: 192 },
+        );
+
         // Load sounds
         this.load.audio("door_open", "sounds/door_open.mp3");
         this.load.audio("bg_music_1", "sounds/bg_music_1.mp3");

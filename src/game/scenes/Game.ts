@@ -199,6 +199,16 @@ export class Game extends Scene {
             repeat: -1,
         });
 
+        this.anims.create({
+            key: "fountain_anim",
+            frames: this.anims.generateFrameNumbers("Animated_Fountain", {
+                start: 0,
+                end: 5,
+            }),
+            frameRate: 6,
+            repeat: -1,
+        });
+
         /**
          * Don't touch the order it will mess with rendering
          */
@@ -266,6 +276,28 @@ export class Game extends Scene {
             classType: Phaser.GameObjects.Sprite,
         });
 
+        const fountainObjects = map.createFromObjects("AnimatedTiles", {
+            name: "outside_fountain",
+            key: "Animated_Fountain",
+            frame: 0,
+            classType: Phaser.GameObjects.Sprite,
+        });
+
+        //FIX: idk collision not working here
+        this.physics.world.enable(fountainObjects);
+        fountainObjects.forEach((obj) => {
+            const sprite = obj as Phaser.GameObjects.Sprite;
+            sprite.setDepth(100);
+            sprite.play("fountain_anim");
+
+            const body = sprite.body as Phaser.Physics.Arcade.Body;
+            if (body) {
+                body.setImmovable(true);
+                body.setSize(96, 192);
+                body.setOffset(0, 0);
+            }
+        });
+
         fishTankObjects.forEach((obj) => {
             const sprite = obj as Phaser.GameObjects.Sprite;
             sprite.setDepth(100);
@@ -326,6 +358,7 @@ export class Game extends Scene {
         this.multiplayer.watchNewPlayers(
             this.createPlayer.bind(this),
             this.destroyPlayer.bind(this),
+            this.players,
         );
         this.multiplayer.watchPlayerMovement(this.players);
         this.multiplayer.watchCharacterUpdates(this.players);
@@ -493,6 +526,7 @@ export class Game extends Scene {
                     x: Math.round(p.x),
                     y: Math.round(p.y),
                     isAttacking: p.isAttacking,
+                    isKartMode: p.isKartMode,
                     vx: Math.round(p.vx),
                     vy: Math.round(p.vy),
                     id: this.localPlayerId,

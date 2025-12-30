@@ -5,9 +5,10 @@ import { TextChatService } from "@/communication/textChat/textChat";
 import type { Message } from "@/communication/textChat/_types";
 import MessageItem from "./MessageItem";
 import GiphyPicker from "./GiphyPicker";
-import { Send, Smile, Image as ImageIcon } from "lucide-react";
+import { Send, Smile, Image as ImageIcon, Bell, BellOff } from "lucide-react";
 import SidebarMenu from "../SidebarMenu/SidebarMenu";
 import SidebarHeader from "../SidebarMenu/SidebarHeader";
+import useMessagingStore from "@/common/store/messagingStore";
 
 interface ChatWindowProps {
     isOpen: boolean;
@@ -16,28 +17,41 @@ interface ChatWindowProps {
 
 function ChatWindow({ isOpen, onClose }: ChatWindowProps) {
     const [message, setMessage] = useState("");
-    const [messages, setMessages] = useState<Message[]>([]);
     const [showGiphyPicker, setShowGiphyPicker] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const messages = useMessagingStore((state) => state.messages);
+    const markAsRead = useMessagingStore((state) => state.markAsRead);
+    const addMessage = useMessagingStore((state) => state.addMessage);
+    const setCurrentUserSocketId = useMessagingStore((state) => state.setCurrentUserSocketId);
+    const notificationsMuted = useMessagingStore((state) => state.notificationsMuted);
+    const toggleNotifications = useMessagingStore((state) => state.toggleNotifications);
 
     const textChatService = useMemo(() => {
         return TextChatService.getInstance();
     }, []);
 
     useEffect(() => {
+        if (textChatService.sfuService?.socket?.id) {
+            setCurrentUserSocketId(textChatService.sfuService.socket.id);
+        }
+    }, [textChatService, setCurrentUserSocketId]);
+
+    useEffect(() => {
         textChatService.uiUpdater = (newMessage: Message) => {
-            setMessages((prev) => [...prev, newMessage]);
+            addMessage(newMessage);
         };
-    }, [textChatService]);
+    }, [textChatService, addMessage]);
 
     useEffect(() => {
         if (!isOpen) return;
+        markAsRead();
         const chatInput = document.getElementById("chat-input");
         if (chatInput) {
             chatInput.focus();
         }
-    }, [isOpen]);
+    }, [isOpen, markAsRead]);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -101,10 +115,25 @@ function ChatWindow({ isOpen, onClose }: ChatWindowProps) {
     return (
         <SidebarMenu isOpen={isOpen}>
             <SidebarHeader title="Team Chat" onClose={onClose}>
-                <span className="text-xs text-neutral-400">
-                    {messages.length} message
-                    {messages.length !== 1 ? "s" : ""}
-                </span>
+                <div className="flex items-center gap-3">
+                    <span className="text-xs text-neutral-400">
+                        {messages.length} message
+                        {messages.length !== 1 ? "s" : ""}
+                    </span>
+                    <Button
+                        onClick={toggleNotifications}
+                        variant="ghost"
+                        size="icon-sm"
+                        className="text-neutral-400 hover:text-white hover:bg-neutral-800"
+                        title={notificationsMuted ? "Unmute notifications" : "Mute notifications"}
+                    >
+                        {notificationsMuted ? (
+                            <BellOff className="h-4 w-4" />
+                        ) : (
+                            <Bell className="h-4 w-4" />
+                        )}
+                    </Button>
+                </div>
             </SidebarHeader>
 
             {/* Messages */}

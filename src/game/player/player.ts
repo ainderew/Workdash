@@ -69,7 +69,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     };
 
     kartKey?: Phaser.Input.Keyboard.Key;
-    private isKartMode: boolean = false;
+    public isKartMode: boolean = false;
 
     constructor(
         scene: Scene,
@@ -390,7 +390,10 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         }
     }
 
-    private playWalkAnimation(directionKey?: string, useKartMode: boolean = false) {
+    private playWalkAnimation(
+        directionKey?: string,
+        useKartMode: boolean = false,
+    ) {
         if (useKartMode) {
             let direction = "down";
             if (directionKey) {
@@ -637,18 +640,30 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             if (Math.abs(vx) > Math.abs(vy)) {
                 if (vx > 0) {
                     this.lastFacingDirection = FacingDirection.RIGHT;
-                    this.playWalkAnimation(`${this.sprite}_RIGHT`);
+                    this.playWalkAnimation(
+                        `${this.sprite}_RIGHT`,
+                        this.isKartMode,
+                    );
                 } else {
                     this.lastFacingDirection = FacingDirection.LEFT;
-                    this.playWalkAnimation(`${this.sprite}_LEFT`);
+                    this.playWalkAnimation(
+                        `${this.sprite}_LEFT`,
+                        this.isKartMode,
+                    );
                 }
             } else {
                 if (vy > 0) {
                     this.lastFacingDirection = FacingDirection.DOWN;
-                    this.playWalkAnimation(`${this.sprite}_DOWN`);
+                    this.playWalkAnimation(
+                        `${this.sprite}_DOWN`,
+                        this.isKartMode,
+                    );
                 } else {
                     this.lastFacingDirection = FacingDirection.UP;
-                    this.playWalkAnimation(`${this.sprite}_UP`);
+                    this.playWalkAnimation(
+                        `${this.sprite}_UP`,
+                        this.isKartMode,
+                    );
                 }
             }
         } else {

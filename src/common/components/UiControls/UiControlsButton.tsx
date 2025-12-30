@@ -18,6 +18,7 @@ interface UiControlsButtonProps {
     round?: boolean;
     size?: string;
     onClick?: () => void;
+    badgeCount?: number;
 }
 
 const sizeMap: Record<ButtonSizeEnum, string> = {
@@ -50,23 +51,29 @@ function UiControlsButton({
     round = false,
     size = ButtonSizeEnum.regular,
     onClick,
+    badgeCount,
 }: UiControlsButtonProps) {
     return (
         <Tooltip>
-            <TooltipTrigger className="cursor-pointer">
+            <TooltipTrigger className="cursor-pointer relative">
                 <Button
                     onClick={onClick}
                     variant="default"
                     size="icon"
-                    className={`cursor-pointer dark bg-neutral-700 hover:bg-neutral-100 hover:text-neutral-900 
-                        ${buttonColorMap[color as ColorEnum]} 
-                        ${sizeMap[size as ButtonSizeEnum]} 
+                    className={`cursor-pointer dark bg-neutral-700 hover:bg-neutral-100 hover:text-neutral-900
+                        ${buttonColorMap[color as ColorEnum]}
+                        ${sizeMap[size as ButtonSizeEnum]}
                         ${textColorMap[textColor as ColorEnum]}
-                        ${round ? "rounded-full" : null} 
+                        ${round ? "rounded-full" : null}
                         `}
                 >
                     {<Icon />}
                 </Button>
+                {badgeCount !== undefined && badgeCount > 0 && (
+                    <span className="absolute -top-1 -right-1 h-5 min-w-5 flex items-center justify-center bg-red-600 text-white text-xs font-bold rounded-full px-1">
+                        {badgeCount > 99 ? "99+" : badgeCount}
+                    </span>
+                )}
             </TooltipTrigger>
             <TooltipContent>
                 <span className="">{label}</span>

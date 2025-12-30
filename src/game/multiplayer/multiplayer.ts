@@ -108,17 +108,18 @@ export class Multiplayer {
             opts: { isLocal: boolean },
         ) => void,
         destroyPlayer: (id: string) => void,
+        players: Map<string, Player>,
     ) {
         this.socket.on(
             "currentPlayers",
-            (players: PlayerDto[] | Record<string, PlayerDto>) => {
-                console.log("Received currentPlayers:", players);
-                const playerList = Array.isArray(players)
-                    ? players
-                    : Object.values(players);
+            (playersData: PlayerDto[] | Record<string, PlayerDto>) => {
+                console.log("Received currentPlayers:", playersData);
+                const playerList = Array.isArray(playersData)
+                    ? playersData
+                    : Object.values(playersData);
 
                 playerList.forEach((player) => {
-                    this.handlePlayerSync(player, createPlayer);
+                    this.handlePlayerSync(player, createPlayer, players);
                 });
             },
         );
@@ -128,10 +129,13 @@ export class Multiplayer {
             (
                 data: { playerId: string; playerState: PlayerDto } | PlayerDto,
             ) => {
-                // Normalize data structure
                 const player = "playerState" in data ? data.playerState : data;
                 console.log("New player joined:", player);
-                this.handlePlayerSync(player as PlayerDto, createPlayer);
+                this.handlePlayerSync(
+                    player as PlayerDto,
+                    createPlayer,
+                    players,
+                );
             },
         );
 
@@ -153,6 +157,7 @@ export class Multiplayer {
             customization: CharacterCustomization | null,
             opts: { isLocal: boolean },
         ) => void,
+        players?: Map<string, Player>,
     ) {
         if (!player) return;
 
@@ -172,6 +177,13 @@ export class Multiplayer {
             { isLocal },
         );
 
+        if (players && player.isKartMode !== undefined) {
+            const syncedPlayer = players.get(player.id);
+            if (syncedPlayer) {
+                syncedPlayer.isKartMode = player.isKartMode;
+            }
+        }
+
         if (isLocal) {
             useUserStore.getState().updateUser({
                 name: player.name,
@@ -181,7 +193,7 @@ export class Multiplayer {
     }
 
     public watchPlayerMovement(players: Map<string, Player>) {
-        this.socket.on("playerMoved", (player: PlayerDto) => {
+        this.socket.on("playerMoved", (player: MovementPacket) => {
             const targetPlayer = players.get(player.id);
             if (targetPlayer) {
                 targetPlayer.targetPos = {
@@ -192,6 +204,10 @@ export class Multiplayer {
                     t: Date.now(),
                 };
                 targetPlayer.isAttacking = player.isAttacking;
+                if (player.isKartMode !== undefined) {
+                    targetPlayer.isKartMode = player.isKartMode;
+                    targetPlayer.idleAnimation();
+                }
             }
         });
     }

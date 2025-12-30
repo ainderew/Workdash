@@ -22,6 +22,7 @@ import MembersUi from "../Members/MembersUi";
 import { VideoChatService } from "@/communication/videoChat/videoChat";
 import CalendarMenu from "../Google/CalendarMenu";
 import ReactionButton from "./ReactionButton";
+import useMessagingStore from "@/common/store/messagingStore";
 
 function UiControls() {
     const {
@@ -46,6 +47,8 @@ function UiControls() {
         toggleMicSelector,
         closeMicSelector,
     } = microphoneSelector();
+
+    const unreadCount = useMessagingStore((state) => state.unreadCount);
 
     // Ref for click outside detection
     const micSelectorRef = useRef<HTMLDivElement>(null);
@@ -232,6 +235,7 @@ function UiControls() {
                     onClick={toggleChatWindow}
                     icon={MessageCircle}
                     label={"Chat"}
+                    badgeCount={unreadCount}
                 />
 
                 <UiOnlineButton onClick={toggleMembersUi} />

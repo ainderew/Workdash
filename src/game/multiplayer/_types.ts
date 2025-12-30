@@ -7,6 +7,7 @@ export interface PlayerDto {
     y: number;
     isInFocusMode: boolean;
     isAttacking: boolean;
+    isKartMode?: boolean;
     vx: number;
     vy: number;
     t?: Date;
@@ -23,7 +24,9 @@ export interface MovementPacket {
     x: number;
     y: number;
     isAttacking: boolean;
+    isKartMode?: boolean;
     vx: number;
     vy: number;
     opts: { isLocal: boolean };
+    isInFocusMode?: boolean;
 }

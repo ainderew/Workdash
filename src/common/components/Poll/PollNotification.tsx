@@ -96,8 +96,8 @@ export default function PollNotification() {
     const votedPolls = activePolls.filter((poll) => hasUserVoted(poll.id));
 
     useEffect(() => {
-        audioRef.current = new Audio("/assets/notification.mp3");
-        audioRef.current.volume = 0.5;
+        audioRef.current = new Audio("/assets/sounds/notification.mp3");
+        audioRef.current.volume = 0.3;
         audioRef.current.preload = "auto";
 
         const enableAudio = () => {
