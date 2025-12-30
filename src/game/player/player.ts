@@ -56,6 +56,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     uiContainer: Phaser.GameObjects.Container;
 
     moveSpeed: number;
+    private baseMoveSpeed: number = 600;
+    private kartSpeedMultiplier: number = 1.5;
     isLocal: boolean = true;
     cursors?: Phaser.Types.Input.Keyboard.CursorKeys;
 
@@ -65,6 +67,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         down: Phaser.Input.Keyboard.Key;
         right: Phaser.Input.Keyboard.Key;
     };
+
+    kartKey?: Phaser.Input.Keyboard.Key;
+    private isKartMode: boolean = false;
 
     constructor(
         scene: Scene,
@@ -100,7 +105,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         this.id = id;
         this.scene = scene;
 
-        this.moveSpeed = 600;
+        this.moveSpeed = this.baseMoveSpeed;
         this.isLocal = ops.isLocal;
 
         if (this.isLocal) {
@@ -111,6 +116,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
                 down: scene.input.keyboard!.addKey("S"),
                 right: scene.input.keyboard!.addKey("D"),
             };
+            this.kartKey = scene.input.keyboard!.addKey("K");
         }
 
         this.initializeNameTag();
@@ -361,8 +367,17 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     public idleAnimation(direction?: FacingDirection) {
         const dir = direction || this.lastFacingDirection;
-        const directionKey = `${this.sprite}_${dir}`;
 
+        if (this.isKartMode) {
+            const kartDirection = dir.toLowerCase();
+            const kartAnimKey = `${this.sprite}-kart-${kartDirection}`;
+            if (this.scene.anims.exists(kartAnimKey)) {
+                this.anims.play(kartAnimKey, true);
+                return;
+            }
+        }
+
+        const directionKey = `${this.sprite}_${dir}`;
         const animKey = IdleAnimationKeys[directionKey];
 
         if (animKey && this.scene.anims.exists(animKey)) {
@@ -375,7 +390,22 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         }
     }
 
-    private playWalkAnimation(directionKey?: string) {
+    private playWalkAnimation(directionKey?: string, useKartMode: boolean = false) {
+        if (useKartMode) {
+            let direction = "down";
+            if (directionKey) {
+                const parts = directionKey.split("_");
+                if (parts.length > 1) {
+                    direction = parts[parts.length - 1].toLowerCase();
+                }
+            }
+            const kartAnimKey = `${this.sprite}-kart-${direction}`;
+            if (this.scene.anims.exists(kartAnimKey)) {
+                this.anims.play(kartAnimKey, true);
+                return;
+            }
+        }
+
         if (!directionKey) {
             const animKey = WalkAnimationKeys[this.sprite];
             if (animKey && this.scene.anims.exists(animKey)) {
@@ -482,6 +512,14 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             return;
         }
 
+        if (this.kartKey && Phaser.Input.Keyboard.JustDown(this.kartKey)) {
+            this.isKartMode = !this.isKartMode;
+            this.moveSpeed = this.isKartMode
+                ? this.baseMoveSpeed * this.kartSpeedMultiplier
+                : this.baseMoveSpeed;
+            this.idleAnimation();
+        }
+
         const left = this.cursors!.left.isDown || this.wasd!.left.isDown;
         const right = this.cursors!.right.isDown || this.wasd!.right.isDown;
         const up = this.cursors!.up.isDown || this.wasd!.up.isDown;
@@ -511,19 +549,19 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             if (up) {
                 this.setFlipX(false);
                 this.lastFacingDirection = FacingDirection.UP;
-                this.playWalkAnimation(`${this.sprite}_UP`);
+                this.playWalkAnimation(`${this.sprite}_UP`, this.isKartMode);
             } else if (down) {
                 this.setFlipX(false);
                 this.lastFacingDirection = FacingDirection.DOWN;
-                this.playWalkAnimation(`${this.sprite}_DOWN`);
+                this.playWalkAnimation(`${this.sprite}_DOWN`, this.isKartMode);
             } else if (left) {
                 this.setFlipX(false);
                 this.lastFacingDirection = FacingDirection.LEFT;
-                this.playWalkAnimation(`${this.sprite}_LEFT`);
+                this.playWalkAnimation(`${this.sprite}_LEFT`, this.isKartMode);
             } else if (right) {
                 this.setFlipX(false);
                 this.lastFacingDirection = FacingDirection.RIGHT;
-                this.playWalkAnimation(`${this.sprite}_RIGHT`);
+                this.playWalkAnimation(`${this.sprite}_RIGHT`, this.isKartMode);
             }
         } else if (space) {
             const currentAnimKey = this.anims.currentAnim?.key;

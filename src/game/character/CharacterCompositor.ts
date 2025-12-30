@@ -51,6 +51,21 @@ export class CharacterCompositor {
             );
         }
 
+        const kartImage = await this.loadKartSprite();
+        if (kartImage) {
+            ctx.drawImage(
+                kartImage,
+                0,
+                0,
+                CANVAS_WIDTH,
+                CANVAS_HEIGHT,
+                0,
+                0,
+                CANVAS_WIDTH,
+                CANVAS_HEIGHT,
+            );
+        }
+
         const imageData = canvas.toDataURL("image/png");
 
         // Only update the global user store for the local player
@@ -73,26 +88,28 @@ export class CharacterCompositor {
                 resolve();
             };
             img.src = imageData;
+
+            // this.createDebugButton(imageData, outputKey);
         });
     }
 
     // sprite development debug download combined
-    // private createDebugButton(dataUrl: string, key: string) {
-    //     const existing = document.getElementById("debug-dl");
-    //     if (existing) existing.remove();
-    //     const btn = document.createElement("button");
-    //     btn.id = "debug-dl";
-    //     btn.innerText = `⬇️ DOWNLOAD ${key}`;
-    //     btn.style.cssText =
-    //         "position:fixed; top:10px; left:10px; z-index:9999; background:red; color:white; padding:10px;";
-    //     btn.onclick = () => {
-    //         const a = document.createElement("a");
-    //         a.href = dataUrl;
-    //         a.download = `${key}.png`;
-    //         a.click();
-    //     };
-    //     document.body.appendChild(btn);
-    // }
+    private createDebugButton(dataUrl: string, key: string) {
+        const existing = document.getElementById("debug-dl");
+        if (existing) existing.remove();
+        const btn = document.createElement("button");
+        btn.id = "debug-dl";
+        btn.innerText = `⬇️ DOWNLOAD ${key}`;
+        btn.style.cssText =
+            "position:fixed; top:10px; left:10px; z-index:9999; background:red; color:white; padding:10px;";
+        btn.onclick = () => {
+            const a = document.createElement("a");
+            a.href = dataUrl;
+            a.download = `${key}.png`;
+            a.click();
+        };
+        document.body.appendChild(btn);
+    }
 
     private async loadAllLayers(paths: string[]): Promise<HTMLImageElement[]> {
         const promises = paths.map(
@@ -112,5 +129,20 @@ export class CharacterCompositor {
                     r.status === "fulfilled",
             )
             .map((r) => r.value);
+    }
+
+    private async loadKartSprite(): Promise<HTMLImageElement | null> {
+        const kartPath = `${BASE_PATH}/Kart/Kart_32x32_01.png`;
+        try {
+            return await new Promise<HTMLImageElement>((res, rej) => {
+                const img = new Image();
+                img.crossOrigin = "anonymous";
+                img.onload = () => res(img);
+                img.onerror = rej;
+                img.src = kartPath;
+            });
+        } catch {
+            return null;
+        }
     }
 }

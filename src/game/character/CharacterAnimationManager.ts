@@ -7,6 +7,12 @@ import {
 
 export class CharacterAnimationManager {
     private scene: Scene;
+    private kartFrameConfig = {
+        left: { startX: 385, startY: 4 * 64, frames: 6 },
+        down: { startX: 576, startY: 5 * 64, frames: 3 },
+        right: { startX: 768, startY: 4 * 64, frames: 6 },
+        up: { startX: 385, startY: 5 * 64, frames: 3 },
+    };
 
     constructor(scene: Scene) {
         this.scene = scene;
@@ -27,11 +33,43 @@ export class CharacterAnimationManager {
             `${characterKey}-walk-left`,
             `${characterKey}-walk-down`,
             `${characterKey}-attack`,
+            `${characterKey}-kart-right`,
+            `${characterKey}-kart-up`,
+            `${characterKey}-kart-left`,
+            `${characterKey}-kart-down`,
         ];
 
         for (const key of animKeys) {
             if (this.scene.anims.exists(key)) {
                 this.scene.anims.remove(key);
+            }
+        }
+    }
+
+    private addCustomKartFrames(spritesheetKey: string): void {
+        const texture = this.scene.textures.get(spritesheetKey);
+        if (!texture || texture.key === "__MISSING") return;
+
+        const KART_FRAME_WIDTH = 64;
+        const KART_FRAME_HEIGHT = 64;
+        const KART_FRAME_SPACING = 64;
+
+        for (const [direction, config] of Object.entries(
+            this.kartFrameConfig,
+        )) {
+            for (let i = 0; i < config.frames; i++) {
+                const x = config.startX + i * KART_FRAME_SPACING;
+                const y = config.startY;
+                const frameName = `kart-${direction}-${i}`;
+
+                texture.add(
+                    frameName,
+                    0,
+                    x,
+                    y,
+                    KART_FRAME_WIDTH,
+                    KART_FRAME_HEIGHT,
+                );
             }
         }
     }
@@ -43,10 +81,11 @@ export class CharacterAnimationManager {
         const texture = this.scene.textures.get(spritesheetKey);
         if (!texture || texture.key === "__MISSING") return;
 
-        // CONFIG: 32px width, 64px height
+        this.addCustomKartFrames(spritesheetKey);
+
         const FRAME_WIDTH = 32;
         const SHEET_WIDTH = 1824;
-        const COLS = Math.floor(SHEET_WIDTH / FRAME_WIDTH); // 57 Columns
+        const COLS = Math.floor(SHEET_WIDTH / FRAME_WIDTH);
 
         /**
          * MAPPER: Maps Visual Row to Logical Sheet Row
@@ -54,11 +93,13 @@ export class CharacterAnimationManager {
         const getLogicalRow = (vRow: number): number => {
             switch (vRow) {
                 case 1:
-                    return 1; // Idle
+                    return 1;
                 case 2:
-                    return 2; // Walk (Contains all directions: Right, Up, Left, Down)
+                    return 2;
+                case 5:
+                    return 4;
                 case 6:
-                    return 9; // Attack
+                    return 9;
                 default:
                     return vRow;
             }
@@ -151,10 +192,29 @@ export class CharacterAnimationManager {
                 rate: 10,
                 repeat: 0,
             },
+            {
+                key: `${characterKey}-kart-left`,
+                rate: 6,
+                repeat: -1,
+            },
+            {
+                key: `${characterKey}-kart-down`,
+                rate: 6,
+                repeat: -1,
+            },
+            {
+                key: `${characterKey}-kart-right`,
+                rate: 6,
+                repeat: -1,
+            },
+            {
+                key: `${characterKey}-kart-up`,
+                rate: 6,
+                repeat: -1,
+            },
         ];
 
         for (const config of animConfigs) {
-            // Remove existing if rebuilding
             if (this.scene.anims.exists(config.key)) {
                 try {
                     this.scene.anims.remove(config.key);
@@ -166,22 +226,48 @@ export class CharacterAnimationManager {
                     this.scene.anims.remove(config.key);
                 }
             }
-            const lRow = getLogicalRow(config.vRow);
-            const rowStartIdx = lRow * COLS;
 
-            // Calculate absolute frame IDs
-            const startFrame = rowStartIdx + config.startCol;
-            const endFrame = rowStartIdx + config.endCol;
+            const isKartAnim = config.key.includes("-kart-");
 
-            this.scene.anims.create({
-                key: config.key,
-                frames: this.scene.anims.generateFrameNumbers(spritesheetKey, {
-                    start: startFrame,
-                    end: endFrame,
-                }),
-                frameRate: config.rate,
-                repeat: config.repeat,
-            });
+            if (isKartAnim) {
+                const direction = config.key.split(
+                    "-kart-",
+                )[1] as keyof typeof this.kartFrameConfig;
+                const frameCount = this.kartFrameConfig[direction]?.frames || 6;
+                const frameNames = [];
+                for (let i = 0; i < frameCount; i++) {
+                    frameNames.push({
+                        key: spritesheetKey,
+                        frame: `kart-${direction}-${i}`,
+                    });
+                }
+
+                this.scene.anims.create({
+                    key: config.key,
+                    frames: frameNames,
+                    frameRate: config.rate,
+                    repeat: config.repeat,
+                });
+            } else {
+                const lRow = getLogicalRow(config.vRow!);
+                const rowStartIdx = lRow * COLS;
+
+                const startFrame = rowStartIdx + config.startCol!;
+                const endFrame = rowStartIdx + config.endCol!;
+
+                this.scene.anims.create({
+                    key: config.key,
+                    frames: this.scene.anims.generateFrameNumbers(
+                        spritesheetKey,
+                        {
+                            start: startFrame,
+                            end: endFrame,
+                        },
+                    ),
+                    frameRate: config.rate,
+                    repeat: config.repeat,
+                });
+            }
         }
     }
 
@@ -205,5 +291,12 @@ export class CharacterAnimationManager {
         WalkAnimationKeys[`${characterKey}_LEFT`] = `${characterKey}-walk-left`;
         WalkAnimationKeys[`${characterKey}_RIGHT`] =
             `${characterKey}-walk-right`;
+    }
+
+    getKartAnimationKey(
+        characterKey: string,
+        direction: "UP" | "DOWN" | "LEFT" | "RIGHT",
+    ): string {
+        return `${characterKey}-kart-${direction.toLowerCase()}`;
     }
 }
