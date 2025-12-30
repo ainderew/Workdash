@@ -134,4 +134,8 @@ export class AudioZoneManager {
                 .setDepth(1001);
         }
     }
+
+    destroy() {
+        this.zones.forEach((zone) => zone.destroy());
+    }
 }

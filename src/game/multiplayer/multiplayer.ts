@@ -8,7 +8,6 @@ import { CharacterCustomization } from "../character/_types";
 import useUserStore from "@/common/store/useStore";
 import { Player } from "../player/player";
 
-// Type definition for queued commands
 type QueuedMessage = {
     event: string;
     payload: any;
@@ -80,6 +79,16 @@ export class Multiplayer {
         this.socket.disconnect();
     }
 
+    public removeAllGameListeners() {
+        this.socket.off("currentPlayers");
+        this.socket.off("newPlayer");
+        this.socket.off("deletePlayer");
+        this.socket.off("playerMoved");
+        this.socket.off("characterUpdated");
+        this.socket.off("nameUpdated");
+        this.socket.off("playerAction");
+    }
+
     public joinGame(x: number, y: number) {
         this.send("playerJoin", { x, y });
     }
@@ -110,6 +119,10 @@ export class Multiplayer {
         destroyPlayer: (id: string) => void,
         players: Map<string, Player>,
     ) {
+        this.socket.off("currentPlayers");
+        this.socket.off("newPlayer");
+        this.socket.off("deletePlayer");
+
         this.socket.on(
             "currentPlayers",
             (playersData: PlayerDto[] | Record<string, PlayerDto>) => {
@@ -139,7 +152,6 @@ export class Multiplayer {
             },
         );
 
-        // Handle Disconnects
         this.socket.on("deletePlayer", (data: { id: string }) => {
             usePlayersStore.getState().removePlayerFromMap(data.id);
             destroyPlayer(data.id);
@@ -193,6 +205,8 @@ export class Multiplayer {
     }
 
     public watchPlayerMovement(players: Map<string, Player>) {
+        this.socket.off("playerMoved");
+
         this.socket.on("playerMoved", (player: MovementPacket) => {
             const targetPlayer = players.get(player.id);
             if (targetPlayer) {
@@ -213,6 +227,8 @@ export class Multiplayer {
     }
 
     public watchCharacterUpdates(players: Map<string, Player>) {
+        this.socket.off("characterUpdated");
+
         this.socket.on(
             "characterUpdated",
             (data: { playerId: string; character: CharacterCustomization }) => {
@@ -243,6 +259,8 @@ export class Multiplayer {
     }
 
     public watchNameUpdates(players: Map<string, Player>) {
+        this.socket.off("nameUpdated");
+
         this.socket.on(
             "nameUpdated",
             (data: { playerId: string; name: string }) => {
@@ -255,7 +273,6 @@ export class Multiplayer {
                 const targetPlayer = players.get(data.playerId);
                 if (targetPlayer) {
                     targetPlayer.name = data.name;
-                    // Reinitialize the name tag to display the new name
                     if (typeof targetPlayer.initializeNameTag === "function") {
                         targetPlayer.initializeNameTag();
                     }
@@ -269,6 +286,8 @@ export class Multiplayer {
     }
 
     public watchPlayerActions(players: Map<string, Player>) {
+        this.socket.off("playerAction");
+
         this.socket.on(
             "playerAction",
             (data: { playerId: string; action: string }) => {

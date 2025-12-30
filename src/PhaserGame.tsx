@@ -4,17 +4,14 @@ import StartGame from "./game/main";
 import { EventBus } from "./game/EventBus";
 import { User } from "./common/store/_types";
 import { BackendUser, BackendCharacter } from "./types/auth";
-import { CharacterCustomization } from "./game/character/_types";
+import { Multiplayer } from "./game/multiplayer/multiplayer";
 
 declare global {
     interface Window {
         __BACKEND_JWT__?: string;
         __BACKEND_USER__?: BackendUser;
         __BACKEND_CHARACTER__?: BackendCharacter;
-        __MULTIPLAYER__?: {
-            emitCharacterUpdate: (data: CharacterCustomization) => void;
-            emitNameUpdate: (name: string) => void;
-        };
+        __MULTIPLAYER__?: Multiplayer;
     }
 }
 

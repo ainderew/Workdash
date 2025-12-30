@@ -1,12 +1,13 @@
 import { Boot } from "./scenes/Boot";
 import { Preloader } from "./scenes/Preloader";
-import { Game as GameScene } from "./scenes/Game";
 import { AUTO, Game } from "phaser";
+import { MainMap } from "./scenes/MainMap";
+import { SoccerMap } from "./scenes/SoccerMap";
 
 const config: Phaser.Types.Core.GameConfig = {
     type: AUTO,
     parent: "game-container",
-    backgroundColor: "#000",
+    backgroundColor: "#49A841",
     title: "WorkDash",
     disableContextMenu: true,
 
@@ -17,7 +18,7 @@ const config: Phaser.Types.Core.GameConfig = {
         width: "100%",
         height: "100%",
     },
-    scene: [Boot, Preloader, GameScene],
+    scene: [Boot, Preloader, MainMap, SoccerMap],
     pixelArt: true,
     antialias: false,
     roundPixels: true,

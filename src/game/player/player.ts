@@ -280,6 +280,10 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         );
     }
 
+    public destroyNameTag() {
+        this.uiContainer.destroy();
+    }
+
     public initializeNameTag() {
         let color = "#ffffff";
         if (this.uiContainer) {

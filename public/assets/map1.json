@@ -1238,7 +1238,23 @@
                 {
                  "height":369.422499165461,
                  "id":86,
-                 "name":"haxball",
+                 "name":"soccer_map",
+                 "properties":[
+                        {
+                         "name":"spawnX",
+                         "type":"string",
+                         "value":"1760"
+                        }, 
+                        {
+                         "name":"spawnY",
+                         "type":"string",
+                         "value":"800"
+                        }, 
+                        {
+                         "name":"targetScene",
+                         "type":"string",
+                         "value":"SoccerMap"
+                        }],
                  "rotation":0,
                  "type":"",
                  "visible":true,
@@ -1253,7 +1269,7 @@
          "y":0
         }],
  "nextlayerid":33,
- "nextobjectid":87,
+ "nextobjectid":89,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.11.2",

@@ -59,7 +59,7 @@ export class Preloader extends Scene {
         });
 
         this.load.on("complete", () => {
-            this.scene.start("Game");
+            this.scene.start("MainMap");
         });
 
         this.loadGameAssets();
@@ -90,6 +90,11 @@ export class Preloader extends Scene {
 
         // const characterLoader = new CharacterAssetLoader(this);
         // characterLoader.loadAllCharacterAssets();
+
+        this.load.image("goal", "tile-sets/goal.png");
+        this.load.image("goal_2", "tile-sets/goal_2.png");
+        this.load.image("circle", "tile-sets/circle.png");
+        this.load.image("soccer", "tile-sets/soccer.png");
 
         this.load.image(
             "Office",
@@ -156,6 +161,7 @@ export class Preloader extends Scene {
         this.load.audio("kart_start", "sounds/kart.mp3");
 
         this.load.tilemapTiledJSON("map", "map1.json");
+        this.load.tilemapTiledJSON("soccer_map", "soccer_map.json");
 
         // Spritesheets
         const loadChar = (k: string, p: string, w: number, h: number) =>
