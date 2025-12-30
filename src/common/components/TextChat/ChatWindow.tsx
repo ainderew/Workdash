@@ -2,13 +2,15 @@ import React, { useEffect, useMemo, useState, useRef } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { TextChatService } from "@/communication/textChat/textChat";
-import type { Message } from "@/communication/textChat/_types";
 import MessageItem from "./MessageItem";
 import GiphyPicker from "./GiphyPicker";
 import { Send, Smile, Image as ImageIcon, Bell, BellOff } from "lucide-react";
 import SidebarMenu from "../SidebarMenu/SidebarMenu";
 import SidebarHeader from "../SidebarMenu/SidebarHeader";
-import useMessagingStore from "@/common/store/messagingStore";
+import useMessagingStore, {
+    type MessagingState,
+} from "@/common/store/messagingStore";
+import { Message } from "@/communication/textChat/_types";
 
 interface ChatWindowProps {
     isOpen: boolean;
@@ -21,12 +23,21 @@ function ChatWindow({ isOpen, onClose }: ChatWindowProps) {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const messages = useMessagingStore((state) => state.messages);
-    const markAsRead = useMessagingStore((state) => state.markAsRead);
-    const addMessage = useMessagingStore((state) => state.addMessage);
-    const setCurrentUserSocketId = useMessagingStore((state) => state.setCurrentUserSocketId);
-    const notificationsMuted = useMessagingStore((state) => state.notificationsMuted);
-    const toggleNotifications = useMessagingStore((state) => state.toggleNotifications);
+    const messages = useMessagingStore(
+        (state: MessagingState) => state.messages,
+    );
+    const markAsRead = useMessagingStore(
+        (state: MessagingState) => state.markAsRead,
+    );
+    const setCurrentUserSocketId = useMessagingStore(
+        (state: MessagingState) => state.setCurrentUserSocketId,
+    );
+    const notificationsMuted = useMessagingStore(
+        (state: MessagingState) => state.notificationsMuted,
+    );
+    const toggleNotifications = useMessagingStore(
+        (state: MessagingState) => state.toggleNotifications,
+    );
 
     const textChatService = useMemo(() => {
         return TextChatService.getInstance();
@@ -37,12 +48,6 @@ function ChatWindow({ isOpen, onClose }: ChatWindowProps) {
             setCurrentUserSocketId(textChatService.sfuService.socket.id);
         }
     }, [textChatService, setCurrentUserSocketId]);
-
-    useEffect(() => {
-        textChatService.uiUpdater = (newMessage: Message) => {
-            addMessage(newMessage);
-        };
-    }, [textChatService, addMessage]);
 
     useEffect(() => {
         if (!isOpen) return;
@@ -125,7 +130,11 @@ function ChatWindow({ isOpen, onClose }: ChatWindowProps) {
                         variant="ghost"
                         size="icon-sm"
                         className="text-neutral-400 hover:text-white hover:bg-neutral-800"
-                        title={notificationsMuted ? "Unmute notifications" : "Mute notifications"}
+                        title={
+                            notificationsMuted
+                                ? "Unmute notifications"
+                                : "Mute notifications"
+                        }
                     >
                         {notificationsMuted ? (
                             <BellOff className="h-4 w-4" />
@@ -140,7 +149,7 @@ function ChatWindow({ isOpen, onClose }: ChatWindowProps) {
             <div className="flex-1 overflow-y-auto px-4 pb-4 z-100">
                 <div className="flex flex-col">
                     {messages.length > 0 ? (
-                        messages.map((msg, index) => (
+                        messages.map((msg: Message, index: number) => (
                             <MessageItem
                                 key={`${msg.senderSocketId}-${msg.createdAt}-${index}`}
                                 message={msg}

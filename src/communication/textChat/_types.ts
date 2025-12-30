@@ -16,6 +16,8 @@ export type LinkMetadata = {
     githubIssueNumber?: string;
 };
 
+export type MessageStatus = 'pending' | 'sent' | 'failed';
+
 export type Message = {
     content: string;
     senderSocketId: string;
@@ -26,4 +28,7 @@ export type Message = {
     gifUrl?: string;
     imageUrl?: string;
     linkMetadata?: LinkMetadata[];
+    clientId?: string;
+    status?: MessageStatus;
+    isOptimistic?: boolean;
 };

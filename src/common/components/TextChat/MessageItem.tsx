@@ -4,7 +4,9 @@ import { parseMessageContent, extractDomain } from "@/common/utils/linkParser";
 import { YouTubePreview } from "./YouTubePreview";
 import { TwitterPreview } from "./TwitterPreview";
 import { GitHubPreview } from "./GitHubPreview";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, Clock, AlertCircle, RotateCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { TextChatService } from "@/communication/textChat/textChat";
 
 interface MessageItemProps {
     message: Message;
@@ -12,6 +14,17 @@ interface MessageItemProps {
 }
 
 function MessageItem({ message, showAvatar }: MessageItemProps) {
+    const textChatService = useMemo(() => TextChatService.getInstance(), []);
+
+    const isPending = message.status === "pending";
+    const isFailed = message.status === "failed";
+
+    const handleRetry = () => {
+        if (message.clientId) {
+            textChatService.retryMessage(message.clientId);
+        }
+    };
+
     const formatTime = (date: Date | string) => {
         const d = typeof date === "string" ? new Date(date) : date;
         return d.toLocaleTimeString("en-US", {
@@ -62,7 +75,7 @@ function MessageItem({ message, showAvatar }: MessageItemProps) {
 
     return (
         <div
-            className={`flex gap-3 hover:bg-neutral-800/30 -mx-2 px-2 rounded ${showAvatar ? "py-3 mt-2" : "py-1"}`}
+            className={`flex gap-3 hover:bg-neutral-800/30 -mx-2 px-2 rounded ${showAvatar ? "py-3 mt-2" : "py-1"} ${isPending ? "opacity-60" : ""} ${isFailed ? "opacity-50 bg-red-900/10" : ""}`}
         >
             <div className="flex-shrink-0 flex items-start pt-1 w-10">
                 {showAvatar ? (
@@ -90,6 +103,17 @@ function MessageItem({ message, showAvatar }: MessageItemProps) {
                         <span className="text-xs text-neutral-400">
                             {formatTime(message.createdAt)}
                         </span>
+                        {isPending && (
+                            <Clock className="w-3 h-3 text-neutral-400 animate-spin" />
+                        )}
+                        {isFailed && (
+                            <div className="flex items-center gap-2">
+                                <AlertCircle className="w-3 h-3 text-red-400" />
+                                <span className="text-xs text-red-400">
+                                    Failed to send
+                                </span>
+                            </div>
+                        )}
                     </div>
                 )}
 
@@ -234,6 +258,19 @@ function MessageItem({ message, showAvatar }: MessageItemProps) {
                             }
                         />
                     </div>
+                )}
+
+                {/* Retry Button for Failed Messages */}
+                {isFailed && message.clientId && (
+                    <Button
+                        onClick={handleRetry}
+                        variant="ghost"
+                        size="sm"
+                        className="mt-2 text-xs text-red-400 hover:text-red-300 hover:bg-red-900/20"
+                    >
+                        <RotateCw className="w-3 h-3 mr-1" />
+                        Retry
+                    </Button>
                 )}
             </div>
         </div>

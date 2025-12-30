@@ -520,6 +520,10 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             this.moveSpeed = this.isKartMode
                 ? this.baseMoveSpeed * this.kartSpeedMultiplier
                 : this.baseMoveSpeed;
+
+            if (this.isKartMode) {
+                this.scene.sound.play("kart_start", { volume: 0.1 });
+            }
             this.idleAnimation();
         }
 

@@ -22,7 +22,9 @@ import MembersUi from "../Members/MembersUi";
 import { VideoChatService } from "@/communication/videoChat/videoChat";
 import CalendarMenu from "../Google/CalendarMenu";
 import ReactionButton from "./ReactionButton";
-import useMessagingStore from "@/common/store/messagingStore";
+import useMessagingStore, {
+    MessagingState,
+} from "@/common/store/messagingStore";
 
 function UiControls() {
     const {
@@ -48,7 +50,9 @@ function UiControls() {
         closeMicSelector,
     } = microphoneSelector();
 
-    const unreadCount = useMessagingStore((state) => state.unreadCount);
+    const unreadCount = useMessagingStore(
+        (state: MessagingState) => state.unreadCount,
+    );
 
     // Ref for click outside detection
     const micSelectorRef = useRef<HTMLDivElement>(null);

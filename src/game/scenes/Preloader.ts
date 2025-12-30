@@ -153,6 +153,7 @@ export class Preloader extends Scene {
         // Load sounds
         this.load.audio("door_open", "sounds/door_open.mp3");
         this.load.audio("bg_music_1", "sounds/bg_music_1.mp3");
+        this.load.audio("kart_start", "sounds/kart.mp3");
 
         this.load.tilemapTiledJSON("map", "map1.json");
 
