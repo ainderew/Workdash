@@ -79,6 +79,16 @@ export class TeleportManager {
         spawnY?: number,
     ) {
         this.scene.physics.pause();
+
+        // Emit scene change event to server before removing listeners
+        if (this.scene.multiplayer) {
+            this.scene.multiplayer.emitSceneChange(
+                sceneKey,
+                spawnX || 1000,
+                spawnY || 1000,
+            );
+        }
+
         this.scene.multiplayer?.removeAllGameListeners();
 
         this.scene.scene.start(sceneKey, {

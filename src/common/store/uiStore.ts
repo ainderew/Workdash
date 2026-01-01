@@ -6,6 +6,9 @@ interface UiState {
     isMembersUiOpen: boolean;
     isCalendarUiOpen: boolean;
 
+    // Current scene
+    currentScene: string | null;
+
     // Command palette
     isCommandPaletteOpen: boolean;
     currentCommandForm: string | null;
@@ -28,6 +31,9 @@ interface UiState {
     toggleMembersUi: () => void;
     toggleCalendarMenu: () => void;
     closeAllPanels: () => void;
+
+    // Actions for scene
+    setCurrentScene: (scene: string) => void;
 
     // Actions for command palette
     openCommandPalette: () => void;
@@ -57,6 +63,7 @@ const useUiStore = create<UiState>((set) => ({
     isChatWindowOpen: false,
     isMembersUiOpen: false,
     isCalendarUiOpen: false,
+    currentScene: null,
     isCommandPaletteOpen: false,
     currentCommandForm: null,
     isCharacterCustomizationOpen: false,
@@ -95,6 +102,9 @@ const useUiStore = create<UiState>((set) => ({
             isMembersUiOpen: false,
             isCalendarUiOpen: false,
         }),
+
+    // Scene actions
+    setCurrentScene: (scene) => set({ currentScene: scene }),
 
     // Command palette actions
     openCommandPalette: () => set({ isCommandPaletteOpen: true }),

@@ -45,6 +45,7 @@ export abstract class BaseGameScene extends Scene {
 
     protected spawnX: number = 1000;
     protected spawnY: number = 1000;
+    protected currentSceneName: string;
 
     abstract mapKey: string;
     abstract worldBounds: { width: number; height: number };
@@ -57,6 +58,9 @@ export abstract class BaseGameScene extends Scene {
     }
 
     create() {
+        // Set current scene name
+        this.currentSceneName = this.scene.key;
+
         this.setupCamera();
         this.setupMultiplayer();
         this.createAnimations();
@@ -76,7 +80,9 @@ export abstract class BaseGameScene extends Scene {
         this.setupMultiplayerWatchers();
         this.setupChatBlur();
 
-        this.multiplayer.joinGame(this.spawnX, this.spawnY);
+        // Join game with scene name
+        this.multiplayer.joinGame(this.spawnX, this.spawnY, this.currentSceneName);
+        this.multiplayer.setCurrentScene(this.currentSceneName);
 
         EventBus.emit("current-scene-ready", this);
         this.cameras.main.fadeIn(300); // Add this

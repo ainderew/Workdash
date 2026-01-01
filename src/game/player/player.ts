@@ -617,11 +617,13 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
         if (!this.targetPos) return;
 
+        // Position-based interpolation
         const predictedX = this.targetPos.x;
         const predictedY = this.targetPos.y;
 
         const distance = Math.sqrt(
-            Math.pow(predictedX - this.x, 2) + Math.pow(predictedY - this.y, 2),
+            Math.pow(predictedX - this.x, 2) +
+                Math.pow(predictedY - this.y, 2),
         );
 
         if (distance > 200) {
@@ -634,6 +636,13 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             this.x += (predictedX - this.x) * lerpFactor;
             this.y += (predictedY - this.y) * lerpFactor;
         }
+
+        // Sync physics body with sprite position
+        if (this.body) {
+            this.body.updateFromGameObject();
+        }
+
+        // Animation code
         const isMoving =
             Math.abs(this.targetPos.vx || 0) > 10 ||
             Math.abs(this.targetPos.vy || 0) > 10;

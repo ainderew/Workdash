@@ -33,6 +33,7 @@ export class CharacterAnimationManager {
             `${characterKey}-walk-left`,
             `${characterKey}-walk-down`,
             `${characterKey}-attack`,
+            `${characterKey}-soccer-kick`,
             `${characterKey}-kart-right`,
             `${characterKey}-kart-up`,
             `${characterKey}-kart-left`,
@@ -190,6 +191,15 @@ export class CharacterAnimationManager {
                 startCol: 13,
                 endCol: 24,
                 rate: 10,
+                repeat: 0,
+            },
+            // --- SOCCER KICK (Row 10, 3 frames starting at col 0) ---
+            {
+                key: `${characterKey}-soccer-kick`,
+                vRow: 10,
+                startCol: 0,
+                endCol: 2,
+                rate: 3,
                 repeat: 0,
             },
             {

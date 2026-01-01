@@ -159,6 +159,12 @@ export class Preloader extends Scene {
         this.load.audio("door_open", "sounds/door_open.mp3");
         this.load.audio("bg_music_1", "sounds/bg_music_1.mp3");
         this.load.audio("kart_start", "sounds/kart.mp3");
+        this.load.audio("soccer_kick", "sounds/soccer_kick.mp3");
+        this.load.audio("soccer_cheer", "sounds/soccer_cheer.mp3");
+        this.load.audio(
+            "soccer_skill_activation",
+            "sounds/soccer_skill_activation.mp3",
+        );
 
         this.load.tilemapTiledJSON("map", "map1.json");
         this.load.tilemapTiledJSON("soccer_map", "soccer_map.json");

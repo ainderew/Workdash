@@ -17,6 +17,7 @@ export class Multiplayer {
     public socket: SocketIOClient.Socket;
     private isBackendReady: boolean = false;
     private messageQueue: QueuedMessage[] = [];
+    private currentScene: string = "MainMap";
 
     constructor(jwtToken?: string) {
         this.socket = io(CONFIG.SFU_SERVER_URL, {
@@ -89,8 +90,9 @@ export class Multiplayer {
         this.socket.off("playerAction");
     }
 
-    public joinGame(x: number, y: number) {
-        this.send("playerJoin", { x, y });
+    public joinGame(x: number, y: number, sceneName: string) {
+        this.currentScene = sceneName;
+        this.send("playerJoin", { x, y, scene: sceneName });
     }
 
     public emitPlayerMovement(data: MovementPacket) {
@@ -104,6 +106,15 @@ export class Multiplayer {
 
     public emitPlayerAction(action: string) {
         this.send("playerAction", { action });
+    }
+
+    public setCurrentScene(sceneName: string) {
+        this.currentScene = sceneName;
+    }
+
+    public emitSceneChange(newScene: string, x: number, y: number) {
+        this.currentScene = newScene;
+        this.socket.emit("player:sceneChange", { newScene, x, y });
     }
 
     public watchNewPlayers(
@@ -172,6 +183,14 @@ export class Multiplayer {
         players?: Map<string, Player>,
     ) {
         if (!player) return;
+
+        // Only create players that are in the same scene
+        if (player.currentScene && player.currentScene !== this.currentScene) {
+            console.log(
+                `Ignoring player ${player.name} - they are in ${player.currentScene}, we are in ${this.currentScene}`,
+            );
+            return;
+        }
 
         const isLocal = player.id === this.socket.id;
 

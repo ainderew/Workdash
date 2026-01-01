@@ -19,6 +19,7 @@ import { useCommandPaletteHotkey } from "./common/components/CommandPalette/useC
 import { PollService } from "./communication/poll/poll";
 import PollDisplay from "./common/components/Poll/PollDisplay";
 import PollNotification from "./common/components/Poll/PollNotification";
+import SoccerScoreboard from "./common/components/Soccer/SoccerScoreboard";
 // import { VideoChatService } from "./communication/videoChat/videoChat";
 // import { ScreenShareService } from "./communication/screenShare/screenShare";
 // import SplashScreen from "./common/components/Splash/SplashScreen";
@@ -153,6 +154,7 @@ function App() {
             <CommandPalette />
             <PollDisplay />
             <PollNotification />
+            <SoccerScoreboard />
         </div>
     );
 }

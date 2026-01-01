@@ -16,6 +16,7 @@ export interface PlayerDto {
         isLocal: boolean;
     };
     character?: CharacterCustomization;
+    currentScene?: string;
 }
 
 export interface MovementPacket {
