@@ -25,6 +25,8 @@ import ReactionButton from "./ReactionButton";
 import useMessagingStore, {
     MessagingState,
 } from "@/common/store/messagingStore";
+import useUiStore from "@/common/store/uiStore";
+import { SoccerStatsModal } from "./modal/SoccerStatsModal";
 
 function UiControls() {
     const {
@@ -53,6 +55,9 @@ function UiControls() {
     const unreadCount = useMessagingStore(
         (state: MessagingState) => state.unreadCount,
     );
+
+    const isSoccerStatsModalOpen = useUiStore((state) => state.isSoccerStatsModalOpen);
+    const closeSoccerStatsModal = useUiStore((state) => state.closeSoccerStatsModal);
 
     // Ref for click outside detection
     const micSelectorRef = useRef<HTMLDivElement>(null);
@@ -255,6 +260,11 @@ function UiControls() {
             <MembersUi
                 isMembersUiOpen={isMembersUiOpen}
                 onClose={toggleMembersUi}
+            />
+
+            <SoccerStatsModal
+                isOpen={isSoccerStatsModalOpen}
+                onClose={closeSoccerStatsModal}
             />
         </div>
     );

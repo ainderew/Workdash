@@ -26,6 +26,9 @@ interface UiState {
     // Video controls
     isVideoOff: boolean;
 
+    // Soccer stats modal
+    isSoccerStatsModalOpen: boolean;
+
     // Actions for panels
     toggleChatWindow: () => void;
     toggleMembersUi: () => void;
@@ -56,6 +59,10 @@ interface UiState {
     // Actions for video
     toggleVideoCam: () => void;
     setIsVideoOff: (isOff: boolean) => void;
+
+    // Actions for soccer stats modal
+    openSoccerStatsModal: () => void;
+    closeSoccerStatsModal: () => void;
 }
 
 const useUiStore = create<UiState>((set) => ({
@@ -73,6 +80,7 @@ const useUiStore = create<UiState>((set) => ({
     selectedMicrophoneId: "",
     isMicSelectorOpen: false,
     isVideoOff: true,
+    isSoccerStatsModalOpen: false,
 
     // Panel actions
     toggleChatWindow: () =>
@@ -141,6 +149,10 @@ const useUiStore = create<UiState>((set) => ({
     // Video actions
     toggleVideoCam: () => set((state) => ({ isVideoOff: !state.isVideoOff })),
     setIsVideoOff: (isOff) => set({ isVideoOff: isOff }),
+
+    // Soccer stats modal actions
+    openSoccerStatsModal: () => set({ isSoccerStatsModalOpen: true }),
+    closeSoccerStatsModal: () => set({ isSoccerStatsModalOpen: false }),
 }));
 
 export default useUiStore;

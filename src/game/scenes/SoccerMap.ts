@@ -3,6 +3,7 @@ import useUiStore from "@/common/store/uiStore";
 import { BaseGameScene } from "./BaseGameScene";
 import { Player } from "../player/player";
 import { Ball } from "../soccer/Ball";
+import { getSoccerStats } from "@/lib/api/soccer-stats";
 
 export class SoccerMap extends BaseGameScene {
     public mapKey = "soccer_map";
@@ -25,6 +26,9 @@ export class SoccerMap extends BaseGameScene {
 
         // Set current scene in UI store for scoreboard visibility
         useUiStore.getState().setCurrentScene("SoccerMap");
+
+        // Check if player has soccer stats, open modal if not
+        this.checkSoccerStats();
 
         this.centerCamera();
         this.createBall();
@@ -288,6 +292,23 @@ export class SoccerMap extends BaseGameScene {
             onComplete: () => glowCircle.destroy(),
         });
         this.time.delayedCall(150, () => player.clearTint());
+    }
+
+    private async checkSoccerStats() {
+        try {
+            const stats = await getSoccerStats();
+
+            // If no stats exist, open the modal
+            if (!stats) {
+                console.log("No soccer stats found - opening modal");
+                useUiStore.getState().openSoccerStatsModal();
+            } else {
+                console.log("Soccer stats loaded:", stats);
+            }
+        } catch (error) {
+            console.error("Failed to check soccer stats:", error);
+            // Optionally open modal on error, or silently fail
+        }
     }
 
     destroy() {
