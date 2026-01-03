@@ -44,6 +44,7 @@ function SkillsHud() {
         }
 
         const socket = multiplayer.socket;
+        const localPlayerId = socket.id;
 
         console.log("Skills HUD: Requesting skill configs...");
 
@@ -53,7 +54,25 @@ function SkillsHud() {
             setSkills(configs);
         });
 
-        // Listen for skill activation to track cooldowns
+        // Helper to trigger cooldown update
+        const triggerCooldown = (targetSkillId: string) => {
+            setSkills((currentSkills) => {
+                const skill = currentSkills.find((s) => s.id === targetSkillId);
+                if (skill) {
+                    setCooldowns((prev) => {
+                        const newCooldowns = new Map(prev);
+                        newCooldowns.set(targetSkillId, {
+                            lastUsed: Date.now(),
+                            cooldownMs: skill.cooldownMs,
+                        });
+                        return newCooldowns;
+                    });
+                }
+                return currentSkills;
+            });
+        };
+
+        // Listen for standard skill activation
         const handleSkillActivated = (data: {
             activatorId: string;
             skillId: string;
@@ -61,32 +80,33 @@ function SkillsHud() {
             duration: number;
             visualConfig: any;
         }) => {
-            // Check if this is the local player
-            const localPlayerId = multiplayer.socket.id;
             if (data.activatorId === localPlayerId) {
-                setSkills((currentSkills) => {
-                    const skill = currentSkills.find(
-                        (s) => s.id === data.skillId,
-                    );
-                    if (skill) {
-                        setCooldowns((prev) => {
-                            const newCooldowns = new Map(prev);
-                            newCooldowns.set(data.skillId, {
-                                lastUsed: Date.now(),
-                                cooldownMs: skill.cooldownMs,
-                            });
-                            return newCooldowns;
-                        });
-                    }
-                    return currentSkills;
-                });
+                triggerCooldown(data.skillId);
+            }
+        };
+
+        // Listen for blink specific activation
+        // The blink event structure differs and doesn't always carry skillId
+        const handleBlinkActivated = (data: {
+            activatorId: string;
+            fromX: number;
+            fromY: number;
+            toX: number;
+            toY: number;
+            visualConfig: any;
+        }) => {
+            if (data.activatorId === localPlayerId) {
+                // We know this event corresponds to the "blink" skill ID
+                triggerCooldown("blink");
             }
         };
 
         socket.on("soccer:skillActivated", handleSkillActivated);
+        socket.on("soccer:blinkActivated", handleBlinkActivated);
 
         return () => {
             socket.off("soccer:skillActivated", handleSkillActivated);
+            socket.off("soccer:blinkActivated", handleBlinkActivated);
         };
     }, [currentScene]);
 
@@ -101,15 +121,11 @@ function SkillsHud() {
 
     // Only show when in SoccerMap scene
     if (currentScene !== "SoccerMap") {
-        console.log("Skills HUD: Not in SoccerMap scene:", currentScene);
         return null;
     }
     if (skills.length === 0) {
-        console.log("Skills HUD: No skills loaded yet");
         return null;
     }
-
-    console.log("Skills HUD: Rendering with", skills.length, "skills");
 
     return (
         <div className="absolute bottom-24 left-1/2 transform -translate-x-1/2 z-50 pointer-events-none">
@@ -185,6 +201,9 @@ function SkillIcon({
     const getSkillIconPath = () => {
         if (skill.id === "slowdown") {
             return "/assets/skills/time_dilation.jpg";
+        }
+        if (skill.id === "blink") {
+            return "/assets/skills/blink.jpg";
         }
         // Add more skill icons here as needed
         return "/assets/skills/time_dilation.jpg";

@@ -67,7 +67,11 @@ export function SoccerGameControlModal({
     const multiplayer = window.__MULTIPLAYER__;
     if (!multiplayer) return;
 
-    multiplayer.socket.emit("soccer:startGame");
+    // Reset game (score, ball, players) and start timer
+    multiplayer.socket.emit("soccer:resetGame");
+
+    // Close the modal
+    onClose();
   };
 
   const randomizeTeams = () => {

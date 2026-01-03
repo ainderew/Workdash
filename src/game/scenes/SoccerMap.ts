@@ -31,9 +31,11 @@ export class SoccerMap extends BaseGameScene {
     private circleLayer: Phaser.Tilemaps.TilemapLayer | null = null;
     private kickKey: Phaser.Input.Keyboard.Key | null = null;
     private skillKey: Phaser.Input.Keyboard.Key | null = null;
+    private blinkKey: Phaser.Input.Keyboard.Key | null = null;
     private isMultiplayerMode: boolean = false;
     private inputLoop: Phaser.Time.TimerEvent | null = null;
     private skillCooldown: number = 0;
+    private blinkCooldown: number = 0;
     private skillCooldownText: Phaser.GameObjects.Text | null = null;
     private activeSkillPlayerId: string | null = null;
     private activeSkillVisualConfig: any = null;
@@ -72,9 +74,9 @@ export class SoccerMap extends BaseGameScene {
         this.skillKey =
             this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.Q) ||
             null;
-
-        // Create skill cooldown UI
-        this.createSkillCooldownUI();
+        this.blinkKey =
+            this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.E) ||
+            null;
 
         if (this.isMultiplayerMode) {
             this.setupServerListeners();
@@ -102,6 +104,7 @@ export class SoccerMap extends BaseGameScene {
             this.ball.update();
             this.handleMultiplayerKickInput();
             this.handleSkillInput();
+            this.handleBlinkInput();
         } else {
             this.handleKick();
         }
@@ -273,6 +276,41 @@ export class SoccerMap extends BaseGameScene {
         socket.on("soccer:skillEnded", () => {
             this.removeSkillVisuals();
         });
+
+        // Listen for blink activation
+        socket.on(
+            "soccer:blinkActivated",
+            (data: {
+                activatorId: string;
+                fromX: number;
+                fromY: number;
+                toX: number;
+                toY: number;
+                visualConfig: any;
+            }) => {
+                const player = this.players.get(data.activatorId);
+                if (player) {
+                    // Instant teleport
+                    player.setPosition(data.toX, data.toY);
+                    if (player.body) {
+                        player.body.setVelocity(0, 0);
+                    }
+
+                    // Visual effects
+                    this.createBlinkEffect(
+                        data.activatorId,
+                        data.fromX,
+                        data.fromY,
+                        data.toX,
+                        data.toY,
+                        data.visualConfig,
+                    );
+
+                    // Sound effect
+                    this.sound.play("blink", { volume: 0.5 });
+                }
+            },
+        );
     }
 
     private startInputLoop() {
@@ -439,11 +477,16 @@ export class SoccerMap extends BaseGameScene {
             return;
         }
 
+        // Get player's facing direction
+        const localPlayer = this.players.get(this.localPlayerId);
+        const facingDirection = localPlayer?.lastFacingDirection || "DOWN";
+
         // Activate skill
         this.skillCooldown = now;
         this.multiplayer?.socket.emit("soccer:activateSkill", {
             playerId: this.localPlayerId,
             skillId: "slowdown",
+            facingDirection: facingDirection,
         });
 
         console.log(
@@ -451,22 +494,41 @@ export class SoccerMap extends BaseGameScene {
         );
     }
 
-    private createSkillCooldownUI() {
-        // Create text in bottom-left corner
-        this.skillCooldownText = this.add.text(
-            20,
-            this.scale.height - 60,
-            "Q: READY",
-            {
-                fontSize: "20px",
-                fontFamily: "Arial",
-                color: "#00ff00",
-                backgroundColor: "#000000",
-                padding: { x: 10, y: 5 },
-            },
+    private handleBlinkInput() {
+        if (!this.blinkKey || !Phaser.Input.Keyboard.JustDown(this.blinkKey))
+            return;
+
+        // Get blink skill config
+        const skillConfig = this.skillConfigs.get("blink");
+        if (!skillConfig) {
+            console.warn("Blink skill config not loaded yet");
+            return;
+        }
+
+        const now = Date.now();
+        if (now - this.blinkCooldown < skillConfig.cooldownMs) {
+            const remainingSeconds = Math.ceil(
+                (skillConfig.cooldownMs - (now - this.blinkCooldown)) / 1000,
+            );
+            console.log(`Blink on cooldown: ${remainingSeconds}s remaining`);
+            return;
+        }
+
+        // Get player's facing direction
+        const localPlayer = this.players.get(this.localPlayerId);
+        const facingDirection = localPlayer?.lastFacingDirection || "DOWN";
+
+        // Activate blink skill
+        this.blinkCooldown = now;
+        this.multiplayer?.socket.emit("soccer:activateSkill", {
+            playerId: this.localPlayerId,
+            skillId: "blink",
+            facingDirection: facingDirection,
+        });
+
+        console.log(
+            `${skillConfig.name} activated! Blinking ${facingDirection}`,
         );
-        this.skillCooldownText.setScrollFactor(0);
-        this.skillCooldownText.setDepth(1000);
     }
 
     private updateSkillCooldownUI() {
@@ -649,6 +711,94 @@ export class SoccerMap extends BaseGameScene {
         this.trailTimer = 0;
     }
 
+    private createBlinkEffect(
+        playerId: string,
+        fromX: number, // MUST pass where the player was BEFORE the blink
+        fromY: number,
+        toX: number,
+        toY: number,
+        visualConfig: any,
+    ) {
+        const player = this.players.get(playerId);
+        if (!player) return;
+
+        const tint = visualConfig.tint || 0x00ffff;
+        const fadeDuration = visualConfig.trailFadeDuration || 200;
+
+        // 1. Force High Density (Multiple Ghosts)
+        // We set this very low (e.g., 8 pixels). This ensures that even a
+        // short blink (e.g., 100px) generates ~12 ghosts.
+        const stepSize = 40;
+
+        const distance = Phaser.Math.Distance.Between(fromX, fromY, toX, toY);
+
+        // If distance is too small, just exit (avoids division by zero or stacking)
+        if (distance < stepSize) return;
+
+        const numGhosts = Math.floor(distance / stepSize);
+        const dx = (toX - fromX) / numGhosts;
+        const dy = (toY - fromY) / numGhosts;
+
+        // 2. Create the Dense Trail
+        for (let i = 0; i < numGhosts; i++) {
+            const ghostX = fromX + dx * i;
+            const ghostY = fromY + dy * i;
+
+            const ghost = this.add.sprite(
+                ghostX,
+                ghostY,
+                player.texture.key,
+                player.frame.name,
+            );
+
+            // Match Player Properties
+            ghost.setOrigin(player.originX, player.originY);
+            ghost.setScale(player.scaleX, player.scaleY);
+            ghost.setRotation(player.rotation);
+            ghost.setFlip(player.flipX, player.flipY);
+            ghost.setDepth(player.depth - 1);
+
+            // Visuals
+            ghost.setTint(tint);
+            ghost.setAlpha(0.4); // Lower alpha because there are many overlapping ghosts
+            ghost.setBlendMode(Phaser.BlendModes.ADD);
+
+            this.tweens.add({
+                targets: ghost,
+                alpha: 0,
+                // Shrink slightly to create a "cone" shape trail
+                scaleX: player.scaleX * 0.6,
+                scaleY: player.scaleY * 0.6,
+                duration: fadeDuration,
+                delay: i * 5, // Fast ripple
+                onComplete: () => ghost.destroy(),
+            });
+        }
+
+        // 3. Impact Ring (Destination)
+        const impactRing = this.add.circle(toX, toY, 10);
+        impactRing.setStrokeStyle(3, tint);
+        this.tweens.add({
+            targets: impactRing,
+            radius: 40,
+            alpha: 0,
+            duration: 300,
+            ease: "Quad.out",
+            onComplete: () => impactRing.destroy(),
+        });
+
+        // 4. Departure Ring (Optional: Leaves a ring where you came from)
+        // This helps visually confirm the start point even if standing still
+        const startRing = this.add.circle(fromX, fromY, 15);
+        startRing.setStrokeStyle(2, tint);
+        this.tweens.add({
+            targets: startRing,
+            scale: 0.1, // Implode effect
+            alpha: 0,
+            duration: 200,
+            onComplete: () => startRing.destroy(),
+        });
+    }
     private addKickGlow(player: Player) {
         player.setTint(0xffffff);
         const outline = this.add.sprite(player.x, player.y, player.texture.key);
