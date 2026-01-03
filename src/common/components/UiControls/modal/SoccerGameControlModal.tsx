@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { X, RefreshCw, Trophy } from "lucide-react";
+import { X, RefreshCw, Trophy, Play, Shuffle } from "lucide-react";
 
 interface SoccerGameControlModalProps {
   isOpen: boolean;
@@ -17,7 +17,6 @@ export function SoccerGameControlModal({
   onClose,
 }: SoccerGameControlModalProps) {
   const [players, setPlayers] = useState<Player[]>([]);
-  const [score, setScore] = useState({ red: 0, blue: 0 });
   const [draggedPlayer, setDraggedPlayer] = useState<Player | null>(null);
 
   useEffect(() => {
@@ -43,27 +42,10 @@ export function SoccerGameControlModal({
       );
     };
 
-    // Listen for game resets
-    const handleGameReset = (data: { score: { red: number; blue: number } }) => {
-      setScore(data.score);
-    };
-
-    // Listen for goals
-    const handleGoalScored = (data: {
-      scoringTeam: "red" | "blue";
-      score: { red: number; blue: number };
-    }) => {
-      setScore(data.score);
-    };
-
     multiplayer.socket.on("soccer:teamAssigned", handleTeamAssigned);
-    multiplayer.socket.on("soccer:gameReset", handleGameReset);
-    multiplayer.socket.on("goal:scored", handleGoalScored);
 
     return () => {
       multiplayer.socket.off("soccer:teamAssigned", handleTeamAssigned);
-      multiplayer.socket.off("soccer:gameReset", handleGameReset);
-      multiplayer.socket.off("goal:scored", handleGoalScored);
     };
   }, [isOpen]);
 
@@ -79,6 +61,20 @@ export function SoccerGameControlModal({
     if (!multiplayer) return;
 
     multiplayer.socket.emit("soccer:resetGame");
+  };
+
+  const startGame = () => {
+    const multiplayer = window.__MULTIPLAYER__;
+    if (!multiplayer) return;
+
+    multiplayer.socket.emit("soccer:startGame");
+  };
+
+  const randomizeTeams = () => {
+    const multiplayer = window.__MULTIPLAYER__;
+    if (!multiplayer) return;
+
+    multiplayer.socket.emit("soccer:randomizeTeams");
   };
 
   const handleDragStart = (player: Player) => {
@@ -118,25 +114,29 @@ export function SoccerGameControlModal({
           </button>
         </div>
 
-        {/* Score Display */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
-          <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 text-center">
-            <div className="text-xs text-neutral-400 mb-1">Red Team</div>
-            <div className="text-4xl font-bold text-red-400">{score.red}</div>
-          </div>
-          <div className="flex items-center justify-center">
-            <button
-              onClick={resetGame}
-              className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-white rounded-lg transition-colors flex items-center gap-2"
-            >
-              <RefreshCw size={16} />
-              Reset
-            </button>
-          </div>
-          <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 text-center">
-            <div className="text-xs text-neutral-400 mb-1">Blue Team</div>
-            <div className="text-4xl font-bold text-blue-400">{score.blue}</div>
-          </div>
+        {/* Game Controls */}
+        <div className="flex items-center justify-center gap-3 mb-6">
+          <button
+            onClick={startGame}
+            className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center gap-2"
+          >
+            <Play size={16} />
+            Start Game
+          </button>
+          <button
+            onClick={randomizeTeams}
+            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors flex items-center gap-2"
+          >
+            <Shuffle size={16} />
+            Random Teams
+          </button>
+          <button
+            onClick={resetGame}
+            className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-white rounded-lg transition-colors flex items-center gap-2"
+          >
+            <RefreshCw size={16} />
+            Reset
+          </button>
         </div>
 
         {/* Team Assignment */}
