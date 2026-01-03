@@ -43,7 +43,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     private statusCircle: Phaser.GameObjects.Graphics;
 
     // The Outline Sprite
-    private teamGlow: Phaser.GameObjects.Sprite | null = null;
+    public teamGlow: Phaser.GameObjects.Sprite | null = null;
     public team: "red" | "blue" | null = null;
 
     public isAttacking: boolean;

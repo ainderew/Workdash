@@ -5,14 +5,45 @@ import { Player } from "../player/player";
 import { Ball } from "../soccer/Ball";
 import { getSoccerStats } from "@/lib/api/soccer-stats";
 
+interface SkillConfig {
+    id: string;
+    name: string;
+    description: string;
+    keyBinding: string;
+    cooldownMs: number;
+    durationMs: number;
+    clientVisuals: {
+        enableGrayscale: boolean;
+        enableSpeedTrail: boolean;
+        trailColor?: number;
+        trailInterval?: number;
+        trailFadeDuration?: number;
+    };
+}
+
 export class SoccerMap extends BaseGameScene {
     public mapKey = "soccer_map";
     public worldBounds = { width: 3520, height: 1600 };
     private ball: Ball;
     private floorMarkingsLayer: Phaser.Tilemaps.TilemapLayer | null = null;
+    private floorLayer: Phaser.Tilemaps.TilemapLayer | null = null;
+    private goalsLayer: Phaser.Tilemaps.TilemapLayer | null = null;
+    private circleLayer: Phaser.Tilemaps.TilemapLayer | null = null;
     private kickKey: Phaser.Input.Keyboard.Key | null = null;
+    private skillKey: Phaser.Input.Keyboard.Key | null = null;
     private isMultiplayerMode: boolean = false;
     private inputLoop: Phaser.Time.TimerEvent | null = null;
+    private skillCooldown: number = 0;
+    private skillCooldownText: Phaser.GameObjects.Text | null = null;
+    private activeSkillPlayerId: string | null = null;
+    private activeSkillVisualConfig: any = null;
+    private trailSprites: Phaser.GameObjects.Sprite[] = [];
+    private trailTimer: number = 0;
+    private grayscaleEffects: Map<
+        Phaser.GameObjects.GameObject,
+        Phaser.FX.ColorMatrix
+    > = new Map();
+    private skillConfigs: Map<string, SkillConfig> = new Map();
 
     // FIX: Add a buffer to store teams for players that haven't loaded yet
     private pendingTeams: Map<string, "red" | "blue"> = new Map();
@@ -38,6 +69,12 @@ export class SoccerMap extends BaseGameScene {
         this.kickKey =
             this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.H) ||
             null;
+        this.skillKey =
+            this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.Q) ||
+            null;
+
+        // Create skill cooldown UI
+        this.createSkillCooldownUI();
 
         if (this.isMultiplayerMode) {
             this.setupServerListeners();
@@ -53,9 +90,18 @@ export class SoccerMap extends BaseGameScene {
         // FIX: Check for pending teams every frame until they are assigned
         this.processPendingTeams();
 
+        // Update skill cooldown UI
+        this.updateSkillCooldownUI();
+
+        // Create speed trail for activating player during skill
+        if (this.activeSkillPlayerId) {
+            this.createSpeedTrail(time);
+        }
+
         if (this.isMultiplayerMode) {
             this.ball.update();
             this.handleMultiplayerKickInput();
+            this.handleSkillInput();
         } else {
             this.handleKick();
         }
@@ -114,6 +160,17 @@ export class SoccerMap extends BaseGameScene {
                 });
             },
         );
+
+        // Request skill configs from server
+        socket.emit("soccer:requestSkillConfig", (configs: SkillConfig[]) => {
+            configs.forEach((config) =>
+                this.skillConfigs.set(config.id, config),
+            );
+            console.log(
+                `Loaded ${configs.length} skill configs:`,
+                Array.from(this.skillConfigs.keys()),
+            );
+        });
 
         socket.on("ball:state", (state: any) => {
             this.ball.updateFromServer(state);
@@ -196,6 +253,26 @@ export class SoccerMap extends BaseGameScene {
                 }
             },
         );
+
+        // Listen for skill activation
+        socket.on(
+            "soccer:skillActivated",
+            (data: {
+                activatorId: string;
+                skillId: string;
+                affectedPlayers: string[];
+                duration: number;
+                visualConfig: any;
+            }) => {
+                this.applySkillVisuals(data.activatorId, data.visualConfig);
+                this.sound.play("time_dilation", { volume: 0.5 });
+            },
+        );
+
+        // Listen for skill end
+        socket.on("soccer:skillEnded", () => {
+            this.removeSkillVisuals();
+        });
     }
 
     private startInputLoop() {
@@ -342,6 +419,236 @@ export class SoccerMap extends BaseGameScene {
         );
     }
 
+    private handleSkillInput() {
+        if (!this.skillKey || !Phaser.Input.Keyboard.JustDown(this.skillKey))
+            return;
+
+        // Get slowdown skill config
+        const skillConfig = this.skillConfigs.get("slowdown");
+        if (!skillConfig) {
+            console.warn("Slowdown skill config not loaded yet");
+            return;
+        }
+
+        const now = Date.now();
+        if (now - this.skillCooldown < skillConfig.cooldownMs) {
+            const remainingSeconds = Math.ceil(
+                (skillConfig.cooldownMs - (now - this.skillCooldown)) / 1000,
+            );
+            console.log(`Skill on cooldown: ${remainingSeconds}s remaining`);
+            return;
+        }
+
+        // Activate skill
+        this.skillCooldown = now;
+        this.multiplayer?.socket.emit("soccer:activateSkill", {
+            playerId: this.localPlayerId,
+            skillId: "slowdown",
+        });
+
+        console.log(
+            `${skillConfig.name} activated! All other players slowed for ${skillConfig.durationMs / 1000} seconds`,
+        );
+    }
+
+    private createSkillCooldownUI() {
+        // Create text in bottom-left corner
+        this.skillCooldownText = this.add.text(
+            20,
+            this.scale.height - 60,
+            "Q: READY",
+            {
+                fontSize: "20px",
+                fontFamily: "Arial",
+                color: "#00ff00",
+                backgroundColor: "#000000",
+                padding: { x: 10, y: 5 },
+            },
+        );
+        this.skillCooldownText.setScrollFactor(0);
+        this.skillCooldownText.setDepth(1000);
+    }
+
+    private updateSkillCooldownUI() {
+        if (!this.skillCooldownText) return;
+
+        const skillConfig = this.skillConfigs.get("slowdown");
+        if (!skillConfig) return;
+
+        const now = Date.now();
+        const timeSinceLastUse = now - this.skillCooldown;
+
+        if (timeSinceLastUse >= skillConfig.cooldownMs) {
+            // Skill is ready
+            this.skillCooldownText.setText("Q: READY");
+            this.skillCooldownText.setColor("#00ff00");
+        } else {
+            // Skill is on cooldown
+            const remainingSeconds = Math.ceil(
+                (skillConfig.cooldownMs - timeSinceLastUse) / 1000,
+            );
+            this.skillCooldownText.setText(`Q: ${remainingSeconds}s`);
+            this.skillCooldownText.setColor("#ff0000");
+        }
+    }
+
+    private applySkillVisuals(activatorId: string, visualConfig: any) {
+        // Store the activator ID and visual config for trail effect
+        this.activeSkillPlayerId = activatorId;
+        this.activeSkillVisualConfig = visualConfig;
+
+        // Apply grayscale if enabled in config
+        if (visualConfig.enableGrayscale) {
+            // Apply true grayscale (desaturation) to tilemap layers
+            if (this.floorLayer && this.floorLayer.postFX) {
+                const colorMatrix = this.floorLayer.postFX.addColorMatrix();
+                colorMatrix.desaturate();
+                this.grayscaleEffects.set(this.floorLayer, colorMatrix);
+            }
+            if (this.floorMarkingsLayer && this.floorMarkingsLayer.postFX) {
+                const colorMatrix =
+                    this.floorMarkingsLayer.postFX.addColorMatrix();
+                colorMatrix.desaturate();
+                this.grayscaleEffects.set(this.floorMarkingsLayer, colorMatrix);
+            }
+            if (this.goalsLayer && this.goalsLayer.postFX) {
+                const colorMatrix = this.goalsLayer.postFX.addColorMatrix();
+                colorMatrix.desaturate();
+                this.grayscaleEffects.set(this.goalsLayer, colorMatrix);
+            }
+            if (this.circleLayer && this.circleLayer.postFX) {
+                const colorMatrix = this.circleLayer.postFX.addColorMatrix();
+                colorMatrix.desaturate();
+                this.grayscaleEffects.set(this.circleLayer, colorMatrix);
+            }
+
+            // Apply grayscale to the ball
+            if (this.ball && this.ball.postFX) {
+                const colorMatrix = this.ball.postFX.addColorMatrix();
+                colorMatrix.desaturate();
+                this.grayscaleEffects.set(this.ball, colorMatrix);
+            }
+
+            // Apply grayscale to all players EXCEPT the activator
+            for (const [playerId, player] of this.players.entries()) {
+                if (playerId !== activatorId) {
+                    if (player.postFX) {
+                        const colorMatrix = player.postFX.addColorMatrix();
+                        colorMatrix.desaturate();
+                        this.grayscaleEffects.set(player, colorMatrix);
+                    }
+                    // Also apply to their team glow if it exists
+                    if (player.teamGlow && player.teamGlow.postFX) {
+                        const glowColorMatrix =
+                            player.teamGlow.postFX.addColorMatrix();
+                        glowColorMatrix.desaturate();
+                        this.grayscaleEffects.set(
+                            player.teamGlow,
+                            glowColorMatrix,
+                        );
+                    }
+                }
+                // Activating player remains fully colored (no effects)
+            }
+        }
+
+        console.log(
+            `Skill visuals applied - player ${activatorId} with config:`,
+            visualConfig,
+        );
+    }
+
+    private removeSkillVisuals() {
+        // Clear activator ID to stop trail creation
+        this.activeSkillPlayerId = null;
+
+        // Clean up all trail sprites
+        this.clearSpeedTrail();
+
+        // Remove all grayscale ColorMatrix effects
+        for (const [
+            gameObject,
+            colorMatrix,
+        ] of this.grayscaleEffects.entries()) {
+            if (gameObject && gameObject.postFX) {
+                // Remove the specific ColorMatrix effect
+                gameObject.postFX.remove(colorMatrix);
+            }
+        }
+
+        // Clear the effects map
+        this.grayscaleEffects.clear();
+
+        console.log("Skill visuals removed - all colors restored");
+    }
+
+    private createSpeedTrail(time: number) {
+        if (!this.activeSkillPlayerId || !this.activeSkillVisualConfig) return;
+
+        // Check if speed trail is enabled in config
+        if (!this.activeSkillVisualConfig.enableSpeedTrail) return;
+
+        const player = this.players.get(this.activeSkillPlayerId);
+        if (!player) return;
+
+        // Use configured trail interval (default 30ms)
+        const trailInterval = this.activeSkillVisualConfig.trailInterval || 30;
+        if (time - this.trailTimer < trailInterval) return;
+        this.trailTimer = time;
+
+        // Create a trail sprite at the player's current position
+        const trail = this.add.sprite(
+            player.x,
+            player.y,
+            player.texture.key,
+            player.frame.name,
+        );
+
+        // Match player properties
+        trail.setScale(player.scaleX, player.scaleY);
+        trail.setFlipX(player.flipX);
+        trail.setDepth(player.depth - 1);
+
+        // Use configured trail color (default cyan)
+        const trailColor = this.activeSkillVisualConfig.trailColor || 0x00ffff;
+        trail.setTintFill(trailColor);
+        trail.setAlpha(0.7);
+
+        // Store the trail sprite
+        this.trailSprites.push(trail);
+
+        // Use configured fade duration (default 300ms)
+        const fadeDuration =
+            this.activeSkillVisualConfig.trailFadeDuration || 300;
+
+        // Fade out and destroy the trail sprite
+        this.tweens.add({
+            targets: trail,
+            alpha: 0,
+            duration: fadeDuration,
+            ease: "Power2",
+            onComplete: () => {
+                trail.destroy();
+                // Remove from array
+                const index = this.trailSprites.indexOf(trail);
+                if (index > -1) {
+                    this.trailSprites.splice(index, 1);
+                }
+            },
+        });
+    }
+
+    private clearSpeedTrail() {
+        // Destroy all trail sprites
+        for (const trail of this.trailSprites) {
+            if (trail && trail.active) {
+                trail.destroy();
+            }
+        }
+        this.trailSprites = [];
+        this.trailTimer = 0;
+    }
+
     private addKickGlow(player: Player) {
         player.setTint(0xffffff);
         const outline = this.add.sprite(player.x, player.y, player.texture.key);
@@ -392,6 +699,7 @@ export class SoccerMap extends BaseGameScene {
 
     destroy() {
         if (this.inputLoop) this.inputLoop.destroy();
+        if (this.skillCooldownText) this.skillCooldownText.destroy();
         if (this.multiplayer) {
             this.multiplayer.socket.off("ball:state");
             this.multiplayer.socket.off("ball:kicked");
@@ -461,6 +769,12 @@ export class SoccerMap extends BaseGameScene {
         const goalsLayer = map.createLayer("Goals", allTilesets, 0, 0);
         const circleLayer = map.createLayer("Circle", allTilesets, 0, 0);
         goalsLayer?.setDepth(100);
+
+        // Store layer references for skill visuals
+        this.floorLayer = floorLayer;
+        this.goalsLayer = goalsLayer;
+        this.circleLayer = circleLayer;
+
         if (floorMarkingsLayer) {
             layers.set("Floor_Markings_Layer", floorMarkingsLayer);
             this.floorMarkingsLayer = floorMarkingsLayer;
