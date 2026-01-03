@@ -14,6 +14,9 @@ export class SoccerMap extends BaseGameScene {
     private isMultiplayerMode: boolean = false;
     private inputLoop: Phaser.Time.TimerEvent | null = null;
 
+    // FIX: Add a buffer to store teams for players that haven't loaded yet
+    private pendingTeams: Map<string, "red" | "blue"> = new Map();
+
     constructor() {
         super("SoccerMap");
     }
@@ -47,11 +50,33 @@ export class SoccerMap extends BaseGameScene {
     update(time: number): void {
         super.update(time);
 
+        // FIX: Check for pending teams every frame until they are assigned
+        this.processPendingTeams();
+
         if (this.isMultiplayerMode) {
             this.ball.update();
             this.handleMultiplayerKickInput();
         } else {
             this.handleKick();
+        }
+    }
+
+    // FIX: New method to apply teams once the sprite actually exists
+    private processPendingTeams() {
+        if (this.pendingTeams.size === 0) return;
+
+        // Iterate through pending assignments
+        for (const [playerId, team] of this.pendingTeams.entries()) {
+            const player = this.players.get(playerId);
+
+            // If the player sprite now exists, set the team and remove from pending
+            if (player) {
+                player.setTeam(team);
+                this.pendingTeams.delete(playerId);
+                console.log(
+                    `Applied pending team ${team} to player ${playerId}`,
+                );
+            }
         }
     }
 
@@ -67,6 +92,28 @@ export class SoccerMap extends BaseGameScene {
     private setupServerListeners() {
         if (!this.multiplayer) return;
         const socket = this.multiplayer.socket;
+
+        // Fetch initial team assignments for all players
+        socket.emit(
+            "soccer:getPlayers",
+            (
+                playerList: Array<{ id: string; team: "red" | "blue" | null }>,
+            ) => {
+                playerList.forEach((playerData) => {
+                    if (!playerData.team) return;
+
+                    const player = this.players.get(playerData.id);
+
+                    if (player) {
+                        // If player exists immediately, set it
+                        player.setTeam(playerData.team);
+                    } else {
+                        // FIX: If player doesn't exist yet (still loading), buffer it
+                        this.pendingTeams.set(playerData.id, playerData.team);
+                    }
+                });
+            },
+        );
 
         socket.on("ball:state", (state: any) => {
             this.ball.updateFromServer(state);
@@ -117,6 +164,38 @@ export class SoccerMap extends BaseGameScene {
                 }
             }
         });
+
+        socket.on(
+            "soccer:playerReset",
+            (data: { playerId: string; x: number; y: number }) => {
+                const player = this.players.get(data.playerId);
+                if (player) {
+                    player.setPosition(data.x, data.y);
+                    if (player.body) {
+                        player.body.setVelocity(0, 0);
+                    }
+                    console.log(
+                        `Player ${data.playerId} reset to position (${data.x}, ${data.y})`,
+                    );
+                }
+            },
+        );
+
+        socket.on(
+            "soccer:teamAssigned",
+            (data: { playerId: string; team: "red" | "blue" | null }) => {
+                // Update player sprite glow
+                const player = this.players.get(data.playerId);
+                if (player) {
+                    player.setTeam(data.team);
+                    // Also remove from pending if we happen to get a live update
+                    this.pendingTeams.delete(data.playerId);
+                } else if (data.team) {
+                    // If we get a live update for a player we haven't rendered yet
+                    this.pendingTeams.set(data.playerId, data.team);
+                }
+            },
+        );
     }
 
     private startInputLoop() {
@@ -318,7 +397,10 @@ export class SoccerMap extends BaseGameScene {
             this.multiplayer.socket.off("ball:kicked");
             this.multiplayer.socket.off("goal:scored");
             this.multiplayer.socket.off("players:physicsUpdate");
+            this.multiplayer.socket.off("soccer:playerReset");
+            this.multiplayer.socket.off("soccer:teamAssigned");
         }
+
         useUiStore.getState().setCurrentScene(null);
         super.destroy();
     }

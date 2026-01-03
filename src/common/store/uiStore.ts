@@ -29,6 +29,9 @@ interface UiState {
     // Soccer stats modal
     isSoccerStatsModalOpen: boolean;
 
+    // Soccer game control modal
+    isSoccerGameControlModalOpen: boolean;
+
     // Actions for panels
     toggleChatWindow: () => void;
     toggleMembersUi: () => void;
@@ -63,6 +66,10 @@ interface UiState {
     // Actions for soccer stats modal
     openSoccerStatsModal: () => void;
     closeSoccerStatsModal: () => void;
+
+    // Actions for soccer game control modal
+    openSoccerGameControlModal: () => void;
+    closeSoccerGameControlModal: () => void;
 }
 
 const useUiStore = create<UiState>((set) => ({
@@ -81,6 +88,7 @@ const useUiStore = create<UiState>((set) => ({
     isMicSelectorOpen: false,
     isVideoOff: true,
     isSoccerStatsModalOpen: false,
+    isSoccerGameControlModalOpen: false,
 
     // Panel actions
     toggleChatWindow: () =>
@@ -153,6 +161,10 @@ const useUiStore = create<UiState>((set) => ({
     // Soccer stats modal actions
     openSoccerStatsModal: () => set({ isSoccerStatsModalOpen: true }),
     closeSoccerStatsModal: () => set({ isSoccerStatsModalOpen: false }),
+
+    // Soccer game control modal actions
+    openSoccerGameControlModal: () => set({ isSoccerGameControlModalOpen: true }),
+    closeSoccerGameControlModal: () => set({ isSoccerGameControlModalOpen: false }),
 }));
 
 export default useUiStore;

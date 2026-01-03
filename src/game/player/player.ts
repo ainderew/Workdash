@@ -24,7 +24,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     public name: string;
     private sprite: string;
     public scene: Scene;
-    // private characterCustomization: CharacterCustomization | null = null;
     private isChangingSprite: boolean = false;
     private lastFacingDirection: FacingDirection = FacingDirection.DOWN;
 
@@ -42,6 +41,10 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     prevPos = { x: this.x, y: this.y, t: Date.now() };
     public availabilityStatus: AvailabilityStatus = AvailabilityStatus.ONLINE;
     private statusCircle: Phaser.GameObjects.Graphics;
+
+    // The Outline Sprite
+    private teamGlow: Phaser.GameObjects.Sprite | null = null;
+    public team: "red" | "blue" | null = null;
 
     public isAttacking: boolean;
     public isRaisingHand: boolean = false;
@@ -120,7 +123,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         }
 
         this.initializeNameTag();
-        this.depth = 0;
+
+        // FIX: Set explicit positive depth to ensure player is above background
+        this.setDepth(10);
 
         if (customization) {
             this.changeSprite(customization);
@@ -361,6 +366,38 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         this.statusCircle.setScale(displayRadius / drawRadius);
     }
 
+    public setTeam(team: "red" | "blue" | null) {
+        this.team = team;
+        this.updateTeamGlow();
+    }
+
+    private updateTeamGlow() {
+        if (this.teamGlow) {
+            this.teamGlow.destroy();
+            this.teamGlow = null;
+        }
+
+        if (this.team) {
+            this.teamGlow = this.scene.add.sprite(
+                this.x,
+                this.y,
+                this.texture.key,
+                this.frame.name,
+            );
+
+            const glowColor = this.team === "red" ? 0xff0000 : 0x0066ff;
+
+            // FIX: Use setTintFill for a SOLID color silhouette (better for outlines)
+            this.teamGlow.setTintFill(glowColor);
+
+            this.teamGlow.setAlpha(0.6);
+
+            // FIX: Set depth relative to the new Player depth (10 - 1 = 9)
+            // This ensures it is above the background (depth 0)
+            this.teamGlow.setDepth(this.depth - 1);
+        }
+    }
+
     public showVoiceIndicator() {
         this.voiceIndicator.setVisible(true);
     }
@@ -456,7 +493,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             await compositor.createAnimatedSpritesheet(
                 newCustomization,
                 spritesheetKey,
-                this.isLocal, // Only update global store for local player
+                this.isLocal,
             );
 
             if (!this.scene.textures.exists(spritesheetKey)) {
@@ -471,6 +508,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             this.setTexture(spritesheetKey);
             this.setFrame(0);
             this.idleAnimation();
+
+            // IMPORTANT: Update glow texture if the player sprite changes
+            if (this.teamGlow) {
+                this.teamGlow.setTexture(spritesheetKey);
+            }
         } catch (error) {
             console.error("Error changing sprite:", error);
         } finally {
@@ -492,8 +534,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
         window.addEventListener(EVENT_TYPES.UPDATE_NAME, (event: Event) => {
             const customEvent = event as CustomEvent<{ newName: string }>;
-            console.log(customEvent);
-
             if (this.isLocal && customEvent.detail) {
                 this.name = customEvent.detail.newName;
                 this.initializeNameTag();
@@ -510,6 +550,23 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             this.interpolateRemote();
         }
         this.uiContainer.setPosition(this.x, this.y - 40);
+
+        // --- GLOW UPDATE LOOP ---
+        if (this.teamGlow && this.team) {
+            // 1. Sync Position
+            this.teamGlow.setPosition(this.x, this.y);
+
+            // 2. Sync Frame (Copy exactly what the player is doing)
+            this.teamGlow.setFrame(this.frame.name);
+            this.teamGlow.setFlipX(this.flipX);
+
+            // 3. Sync Depth (ensure it stays just behind the player if depth changes)
+            this.teamGlow.setDepth(this.depth - 1);
+
+            // 4. Scale Effect
+            // Using 1.15 to ensure it sticks out visibly around the edges
+            this.teamGlow.setScale(this.scaleX * 1.15, this.scaleY * 1.15);
+        }
     }
 
     private updateInput() {
@@ -622,8 +679,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         const predictedY = this.targetPos.y;
 
         const distance = Math.sqrt(
-            Math.pow(predictedX - this.x, 2) +
-                Math.pow(predictedY - this.y, 2),
+            Math.pow(predictedX - this.x, 2) + Math.pow(predictedY - this.y, 2),
         );
 
         if (distance > 200) {
@@ -693,6 +749,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     }
 
     public destroy() {
+        if (this.teamGlow) {
+            this.teamGlow.destroy();
+        }
         this.uiContainer.destroy();
         super.destroy();
     }

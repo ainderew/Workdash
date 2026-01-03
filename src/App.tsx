@@ -20,6 +20,7 @@ import { PollService } from "./communication/poll/poll";
 import PollDisplay from "./common/components/Poll/PollDisplay";
 import PollNotification from "./common/components/Poll/PollNotification";
 import SoccerScoreboard from "./common/components/Soccer/SoccerScoreboard";
+import { SoccerGameControlButton } from "./common/components/SoccerGameControl/SoccerGameControlButton";
 // import { VideoChatService } from "./communication/videoChat/videoChat";
 // import { ScreenShareService } from "./communication/screenShare/screenShare";
 // import SplashScreen from "./common/components/Splash/SplashScreen";
@@ -155,6 +156,7 @@ function App() {
             <PollDisplay />
             <PollNotification />
             <SoccerScoreboard />
+            <SoccerGameControlButton />
         </div>
     );
 }

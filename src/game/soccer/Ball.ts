@@ -13,7 +13,12 @@ export class Ball extends Phaser.Physics.Arcade.Sprite {
         t: Date.now(),
     };
 
-    constructor(scene: Scene, x: number, y: number, isMultiplayer: boolean = false) {
+    constructor(
+        scene: Scene,
+        x: number,
+        y: number,
+        isMultiplayer: boolean = false,
+    ) {
         const graphics = scene.add.graphics();
         graphics.fillStyle(0xffffff, 1);
         graphics.fillCircle(30, 30, 27);
