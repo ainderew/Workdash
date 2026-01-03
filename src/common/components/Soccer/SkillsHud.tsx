@@ -14,6 +14,7 @@ interface SkillConfig {
         trailColor?: number;
         trailInterval?: number;
         trailFadeDuration?: number;
+        iconKey: string;
     };
 }
 
@@ -128,8 +129,8 @@ function SkillsHud() {
     }
 
     return (
-        <div className="absolute bottom-24 left-1/2 transform -translate-x-1/2 z-50 pointer-events-none">
-            <div className="flex gap-2">
+        <div className="absolute bottom-24 left-1/2 transform -translate-x-1/2 z-50">
+            <div className="flex gap-2 pointer-events-auto">
                 {skills.map((skill) => {
                     const cooldown = cooldowns.get(skill.id);
                     const isOnCooldown = cooldown
@@ -199,18 +200,10 @@ function SkillIcon({
 
     // Get skill icon path
     const getSkillIconPath = () => {
-        if (skill.id === "slowdown") {
-            return "/assets/skills/time_dilation.jpg";
-        }
-        if (skill.id === "blink") {
-            return "/assets/skills/blink.jpg";
-        }
-        // Add more skill icons here as needed
-        return "/assets/skills/time_dilation.jpg";
+        const iconKey = skill.clientVisuals.iconKey || "time_dilation";
+        return `/assets/skills/${iconKey}.jpg`;
     };
 
-    // Calculate rotation angle for clock animation (0 to 360 degrees)
-    const clockRotation = (cooldownPercent / 100) * 360;
 
     return (
         <div className="relative group">
@@ -279,22 +272,71 @@ function SkillIcon({
                 )}
             </div>
 
-            {/* Tooltip on hover */}
-            <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-                <div className="bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2 min-w-[200px] shadow-xl">
-                    <div className="text-white font-bold text-sm mb-1">
-                        {skill.name}
+            {/* Tooltip on hover - Dota 2 Style */}
+            <div className="absolute bottom-full mb-4 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none translate-y-2 group-hover:translate-y-0 z-[100]">
+                <div className="bg-[#1b1e21] border-2 border-[#3c3f42] rounded-md overflow-hidden min-w-[280px] shadow-[0_10px_30px_rgba(0,0,0,0.8)]">
+                    {/* Header */}
+                    <div className="bg-gradient-to-r from-[#2c3035] to-[#1b1e21] px-4 py-2 border-b border-[#3c3f42] flex justify-between items-center">
+                        <span className="text-[#e1d6b5] font-bold text-lg uppercase tracking-wider drop-shadow-md">
+                            {skill.name}
+                        </span>
+                        <div className="flex items-center gap-1">
+                            <div className="w-3 h-3 rounded-full bg-neutral-600 border border-neutral-400"></div>
+                            <span className="text-neutral-400 text-[10px] font-bold uppercase tracking-tight">Active</span>
+                        </div>
                     </div>
-                    <div className="text-neutral-400 text-xs mb-2">
-                        {skill.description}
-                    </div>
-                    <div className="text-neutral-500 text-xs border-t border-neutral-700 pt-1">
-                        Cooldown: {skill.cooldownMs / 1000}s
+
+                    {/* Content */}
+                    <div className="p-4 bg-gradient-to-b from-[#1b1e21] to-[#131517]">
+                        <div className="text-[#9da3a8] text-sm leading-relaxed mb-4 italic font-medium">
+                            {skill.description}
+                        </div>
+
+                        {/* Attributes */}
+                        <div className="space-y-3 border-t border-[#3c3f42] pt-4">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <svg className="w-4 h-4 text-[#7a7e81]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <span className="text-[#7a7e81] text-[11px] font-bold uppercase tracking-wider">Cooldown:</span>
+                                </div>
+                                <span className="text-white font-mono font-bold text-sm">
+                                    {skill.cooldownMs / 1000}s
+                                </span>
+                            </div>
+                            
+                            {skill.durationMs > 0 && (
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <svg className="w-4 h-4 text-[#7a7e81]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                        </svg>
+                                        <span className="text-[#7a7e81] text-[11px] font-bold uppercase tracking-wider">Duration:</span>
+                                    </div>
+                                    <span className="text-white font-mono font-bold text-sm">
+                                        {skill.durationMs / 1000}s
+                                    </span>
+                                </div>
+                            )}
+
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <svg className="w-4 h-4 text-[#7a7e81]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                                    </svg>
+                                    <span className="text-[#7a7e81] text-[11px] font-bold uppercase tracking-wider">Hotkey:</span>
+                                </div>
+                                <span className="text-[#e1d6b5] font-mono font-bold text-xs bg-[#2c3035] px-2 py-0.5 rounded border border-[#3c3f42] shadow-inner">
+                                    {skill.keyBinding}
+                                </span>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 {/* Tooltip arrow */}
-                <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-px">
-                    <div className="border-4 border-transparent border-t-neutral-700" />
+                <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-0.5">
+                    <div className="border-[10px] border-transparent border-t-[#3c3f42]" />
                 </div>
             </div>
         </div>

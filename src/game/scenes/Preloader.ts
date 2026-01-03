@@ -167,6 +167,8 @@ export class Preloader extends Scene {
         );
         this.load.audio("time_dilation", "sounds/skill_slow_down.mp3");
         this.load.audio("blink", "sounds/skill_blink.mp3");
+        this.load.audio("skill_metavision", "sounds/ninja-sound-effect.mp3");
+        this.load.audio("shadow", "sounds/skill_shadow.mp3");
 
         this.load.tilemapTiledJSON("map", "map1.json");
         this.load.tilemapTiledJSON("soccer_map", "soccer_map.json");

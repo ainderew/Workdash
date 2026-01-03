@@ -25,7 +25,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     private sprite: string;
     public scene: Scene;
     private isChangingSprite: boolean = false;
-    private lastFacingDirection: FacingDirection = FacingDirection.DOWN;
+    public lastFacingDirection: FacingDirection = FacingDirection.DOWN;
 
     x: number;
     y: number;
@@ -73,6 +73,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     kartKey?: Phaser.Input.Keyboard.Key;
     public isKartMode: boolean = false;
+    public isGhosted: boolean = false;
 
     constructor(
         scene: Scene,
@@ -550,6 +551,15 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             this.interpolateRemote();
         }
         this.uiContainer.setPosition(this.x, this.y - 40);
+
+        // --- GHOST EFFECT ---
+        if (this.isGhosted) {
+            this.setAlpha(0.4);
+            this.setTint(0x000000); // Black tint for shadow look
+        } else {
+            this.setAlpha(1.0);
+            this.clearTint();
+        }
 
         // --- GLOW UPDATE LOOP ---
         if (this.teamGlow && this.team) {

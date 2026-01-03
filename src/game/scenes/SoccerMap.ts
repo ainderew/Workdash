@@ -18,6 +18,7 @@ interface SkillConfig {
         trailColor?: number;
         trailInterval?: number;
         trailFadeDuration?: number;
+        iconKey: string;
     };
 }
 
@@ -32,11 +33,19 @@ export class SoccerMap extends BaseGameScene {
     private kickKey: Phaser.Input.Keyboard.Key | null = null;
     private skillKey: Phaser.Input.Keyboard.Key | null = null;
     private blinkKey: Phaser.Input.Keyboard.Key | null = null;
+    private metavisionKey: Phaser.Input.Keyboard.Key | null = null;
+    private ninjaStepKey: Phaser.Input.Keyboard.Key | null = null;
     private isMultiplayerMode: boolean = false;
     private inputLoop: Phaser.Time.TimerEvent | null = null;
     private skillCooldown: number = 0;
     private blinkCooldown: number = 0;
+    private metavisionCooldown: number = 0;
+    private isMetaVisionActive: boolean = false;
+    private metaVisionEndTime: number = 0;
+    private metaVisionGraphics: Phaser.GameObjects.Graphics | null = null;
+    private kickRangeGraphics: Phaser.GameObjects.Graphics | null = null;
     private skillCooldownText: Phaser.GameObjects.Text | null = null;
+
     private activeSkillPlayerId: string | null = null;
     private activeSkillVisualConfig: any = null;
     private trailSprites: Phaser.GameObjects.Sprite[] = [];
@@ -46,6 +55,11 @@ export class SoccerMap extends BaseGameScene {
         Phaser.FX.ColorMatrix
     > = new Map();
     private skillConfigs: Map<string, SkillConfig> = new Map();
+    private soccerStats: {
+        speed: number;
+        kickPower: number;
+        dribbling: number;
+    } | null = null;
 
     // FIX: Add a buffer to store teams for players that haven't loaded yet
     private pendingTeams: Map<string, "red" | "blue"> = new Map();
@@ -77,6 +91,19 @@ export class SoccerMap extends BaseGameScene {
         this.blinkKey =
             this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.E) ||
             null;
+        this.metavisionKey =
+            this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.R) ||
+            null;
+        this.ninjaStepKey =
+            this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.T) ||
+            null;
+
+        this.metaVisionGraphics = this.add.graphics();
+        this.metaVisionGraphics.setDepth(1000);
+
+        this.kickRangeGraphics = this.add.graphics();
+        this.kickRangeGraphics.setDepth(2);
+        this.kickRangeGraphics.setBlendMode(Phaser.BlendModes.ADD);
 
         if (this.isMultiplayerMode) {
             this.setupServerListeners();
@@ -102,15 +129,22 @@ export class SoccerMap extends BaseGameScene {
 
         if (this.isMultiplayerMode) {
             this.ball.update();
+            this.drawKickRange();
             this.handleMultiplayerKickInput();
             this.handleSkillInput();
             this.handleBlinkInput();
+            this.handleMetaVisionInput();
+            this.handleNinjaStepInput();
+
+            if (this.isMetaVisionActive) {
+                this.drawTrajectory();
+            }
         } else {
             this.handleKick();
         }
     }
 
-    // FIX: New method to apply teams once the sprite actually exists
+    // Process pending teams once player sprites exist
     private processPendingTeams() {
         if (this.pendingTeams.size === 0) return;
 
@@ -200,6 +234,9 @@ export class SoccerMap extends BaseGameScene {
                 const player = this.players.get(update.id);
                 if (!player) continue;
 
+                // Sync ghosted state
+                player.isGhosted = !!update.isGhosted;
+
                 if (player.isLocal) {
                     const dist = Phaser.Math.Distance.Between(
                         player.x,
@@ -211,7 +248,10 @@ export class SoccerMap extends BaseGameScene {
                         player.setPosition(update.x, update.y);
                     }
                     if (player.body) {
-                        player.body.setVelocity(update.vx, update.vy);
+                        (player.body as Phaser.Physics.Arcade.Body).setVelocity(
+                            update.vx,
+                            update.vy,
+                        );
                     }
                 } else {
                     player.targetPos = {
@@ -232,7 +272,10 @@ export class SoccerMap extends BaseGameScene {
                 if (player) {
                     player.setPosition(data.x, data.y);
                     if (player.body) {
-                        player.body.setVelocity(0, 0);
+                        (player.body as Phaser.Physics.Arcade.Body).setVelocity(
+                            0,
+                            0,
+                        );
                     }
                     console.log(
                         `Player ${data.playerId} reset to position (${data.x}, ${data.y})`,
@@ -267,14 +310,30 @@ export class SoccerMap extends BaseGameScene {
                 duration: number;
                 visualConfig: any;
             }) => {
-                this.applySkillVisuals(data.activatorId, data.visualConfig);
-                this.sound.play("time_dilation", { volume: 0.5 });
+                if (data.skillId === "metavision") {
+                    if (data.activatorId === this.localPlayerId) {
+                        this.isMetaVisionActive = true;
+                        this.metaVisionEndTime = this.time.now + data.duration;
+                    }
+                    // Show a glow on the activator for everyone
+                    const activator = this.players.get(data.activatorId);
+                    if (activator) this.addKickGlow(activator);
+                } else {
+                    this.applySkillVisuals(data.activatorId, data.visualConfig);
+                }
+
+                // Play skill specific sound if provided, otherwise fallback to generic
+                const sfxKey =
+                    data.visualConfig?.sfxKey || "soccer_skill_activation";
+                this.sound.play(sfxKey, { volume: 0.3 });
             },
         );
 
         // Listen for skill end
         socket.on("soccer:skillEnded", () => {
             this.removeSkillVisuals();
+            this.isMetaVisionActive = false;
+            this.metaVisionGraphics?.clear();
         });
 
         // Listen for blink activation
@@ -293,7 +352,10 @@ export class SoccerMap extends BaseGameScene {
                     // Instant teleport
                     player.setPosition(data.toX, data.toY);
                     if (player.body) {
-                        player.body.setVelocity(0, 0);
+                        (player.body as Phaser.Physics.Arcade.Body).setVelocity(
+                            0,
+                            0,
+                        );
                     }
 
                     // Visual effects
@@ -307,7 +369,8 @@ export class SoccerMap extends BaseGameScene {
                     );
 
                     // Sound effect
-                    this.sound.play("blink", { volume: 0.5 });
+                    const sfxKey = data.visualConfig?.sfxKey || "blink";
+                    this.sound.play(sfxKey, { volume: 0.5 });
                 }
             },
         );
@@ -372,8 +435,9 @@ export class SoccerMap extends BaseGameScene {
             this.ball.y,
         );
 
-        // If too far, do nothing (140 matches server threshold)
-        if (distance > 140) return;
+        // If too far, do nothing (140 matches server threshold, but 200 if metavision is active)
+        const kickThreshold = this.isMetaVisionActive ? 200 : 140;
+        if (distance > kickThreshold) return;
 
         this.addKickGlow(localPlayer);
 
@@ -397,7 +461,7 @@ export class SoccerMap extends BaseGameScene {
         this.physics.add.collider(
             this.playersLayer,
             this.ball,
-            (ball, _player) => {
+            (ball) => {
                 const ballSprite = ball as Ball;
                 const maxSpeed = 150;
                 const velocity = ballSprite.body!.velocity;
@@ -405,7 +469,7 @@ export class SoccerMap extends BaseGameScene {
                     velocity.normalize().scale(maxSpeed);
                 }
             },
-            (ball, _player) => {
+            (ball) => {
                 (ball as Ball).setBounce(0.4);
                 return true;
             },
@@ -531,6 +595,272 @@ export class SoccerMap extends BaseGameScene {
         );
     }
 
+    private handleMetaVisionInput() {
+        if (
+            !this.metavisionKey ||
+            !Phaser.Input.Keyboard.JustDown(this.metavisionKey)
+        )
+            return;
+
+        const skillConfig = this.skillConfigs.get("metavision");
+        if (!skillConfig) return;
+
+        const now = Date.now();
+        if (now - this.metavisionCooldown < skillConfig.cooldownMs) return;
+
+        this.metavisionCooldown = now;
+        this.multiplayer?.socket.emit("soccer:activateSkill", {
+            playerId: this.localPlayerId,
+            skillId: "metavision",
+        });
+    }
+
+    private handleNinjaStepInput() {
+        if (
+            !this.ninjaStepKey ||
+            !Phaser.Input.Keyboard.JustDown(this.ninjaStepKey)
+        )
+            return;
+
+        this.multiplayer?.socket.emit("soccer:activateSkill", {
+            playerId: this.localPlayerId,
+            skillId: "ninja_step",
+        });
+    }
+
+    private drawTrajectory() {
+        if (!this.metaVisionGraphics) return;
+
+        this.metaVisionGraphics.clear();
+
+        const localPlayer = this.players.get(this.localPlayerId);
+        if (!localPlayer) return;
+
+        const distance = Phaser.Math.Distance.Between(
+            localPlayer.x,
+            localPlayer.y,
+            this.ball.x,
+            this.ball.y,
+        );
+
+        const ballVx = this.ball.targetPos.vx;
+        const ballVy = this.ball.targetPos.vy;
+        const ballSpeed = Math.sqrt(ballVx * ballVx + ballVy * ballVy);
+        const isBallMoving = ballSpeed > 10;
+
+        // Dynamic thresholds:
+        // - Aiming (stationary ball): 300px
+        // - Observation (moving ball): 2000px
+        const threshold = isBallMoving ? 2000 : 300;
+
+        if (distance > threshold) {
+            return;
+        }
+
+        // Only draw the dash "aim line" if we are in aiming range (stationary ball)
+        if (!isBallMoving) {
+            // 2. Draw the dashed aim line from player to ball
+            const isInKickRange =
+                distance <= (this.isMetaVisionActive ? 200 : 140);
+            const lineColor = isInKickRange ? 0x00ff00 : 0x00ffff; // Green if in range, Cyan if not
+            const lineAlpha = isInKickRange ? 0.6 : 0.3;
+            this.metaVisionGraphics.lineStyle(2, lineColor, lineAlpha);
+
+            const dashLength = 10;
+            const gapLength = 5;
+            const angleToBall = Phaser.Math.Angle.Between(
+                localPlayer.x,
+                localPlayer.y,
+                this.ball.x,
+                this.ball.y,
+            );
+            let currentX = localPlayer.x;
+            let currentY = localPlayer.y;
+            const totalSteps = distance / (dashLength + gapLength);
+
+            for (let i = 0; i < totalSteps; i++) {
+                this.metaVisionGraphics.beginPath();
+                this.metaVisionGraphics.moveTo(currentX, currentY);
+                currentX += Math.cos(angleToBall) * dashLength;
+                currentY += Math.sin(angleToBall) * dashLength;
+                this.metaVisionGraphics.lineTo(currentX, currentY);
+                this.metaVisionGraphics.strokePath();
+                currentX += Math.cos(angleToBall) * gapLength;
+                currentY += Math.sin(angleToBall) * gapLength;
+            }
+        }
+
+        // Improve the trajectory simulation:
+        // Use current ball velocity if moving, otherwise simulate a kick based on player-to-ball angle.
+        let simX = this.ball.x;
+        let simY = this.ball.y;
+        let simVx = 0;
+        let simVy = 0;
+
+        if (isBallMoving) {
+            simVx = ballVx;
+            simVy = ballVy;
+        } else {
+            const angle = Phaser.Math.Angle.Between(
+                localPlayer.x,
+                localPlayer.y,
+                this.ball.x,
+                this.ball.y,
+            );
+            const baseKickPower = 1000;
+            const kickPowerStat = this.soccerStats?.kickPower ?? 0;
+            // Server applies 1.2x boost for Metavision
+            const kickPowerMultiplier = (1.0 + kickPowerStat * 0.1) * 1.2;
+            simVx = Math.cos(angle) * baseKickPower * kickPowerMultiplier;
+            simVy = Math.sin(angle) * baseKickPower * kickPowerMultiplier;
+        }
+
+        const DRAG = 1; // matching server SoccerService
+        const BOUNCE = 0.7; // matching server SoccerService
+        const BALL_RADIUS = 30; // matching server SoccerService
+        const WORLD_WIDTH = this.worldBounds.width;
+        const WORLD_HEIGHT = this.worldBounds.height;
+        const dt = 0.0166; // ~60fps simulation step (16.6ms matching server)
+        const duration = 2; // Simulate 2 seconds
+
+        this.metaVisionGraphics.lineStyle(2, 0x00ffff, 1.0);
+        this.metaVisionGraphics.beginPath();
+        this.metaVisionGraphics.moveTo(simX, simY);
+
+        for (let t = 0; t < duration; t += dt) {
+            // 1. Apply exponential drag (matching server)
+            const dragFactor = Math.exp(-DRAG * dt);
+            simVx *= dragFactor;
+            simVy *= dragFactor;
+
+            // 2. Update position
+            simX += simVx * dt;
+            simY += simVy * dt;
+
+            // 3. Robust bounce logic against world bounds (matching server exactly)
+            if (simX - BALL_RADIUS < 0) {
+                simX = BALL_RADIUS;
+                simVx = -simVx * BOUNCE;
+            } else if (simX + BALL_RADIUS > WORLD_WIDTH) {
+                simX = WORLD_WIDTH - BALL_RADIUS;
+                simVx = -simVx * BOUNCE;
+            }
+
+            if (simY - BALL_RADIUS < 0) {
+                simY = BALL_RADIUS;
+                simVy = -simVy * BOUNCE;
+            } else if (simY + BALL_RADIUS > WORLD_HEIGHT) {
+                simY = WORLD_HEIGHT - BALL_RADIUS;
+                simVy = -simVy * BOUNCE;
+            }
+
+            // 4. Tile-based collision (FloorMarkingsLayer)
+            if (this.floorMarkingsLayer) {
+                const tile = this.floorMarkingsLayer.getTileAtWorldXY(
+                    simX,
+                    simY,
+                );
+                if (tile && tile.index !== -1) {
+                    // Simple reflection for tile collisions in simulation
+                    // We check which component of velocity brought us here
+                    const prevX = simX - simVx * dt;
+                    const prevY = simY - simVy * dt;
+
+                    const tileX = this.floorMarkingsLayer.getTileAtWorldXY(
+                        prevX,
+                        simY,
+                    );
+                    const tileY = this.floorMarkingsLayer.getTileAtWorldXY(
+                        simX,
+                        prevY,
+                    );
+
+                    if (tileX && tileX.index !== -1) {
+                        simVy = -simVy * BOUNCE;
+                        simY = prevY; // snap back
+                    }
+                    if (tileY && tileY.index !== -1) {
+                        simVx = -simVx * BOUNCE;
+                        simX = prevX; // snap back
+                    }
+                    if (!tileX && !tileY) {
+                        simVx = -simVx * BOUNCE;
+                        simVy = -simVy * BOUNCE;
+                        simX = prevX;
+                        simY = prevY;
+                    }
+                }
+            }
+
+            this.metaVisionGraphics.lineTo(simX, simY);
+
+            // Stop simulation if ball slows down below threshold (matching server)
+            if (Math.sqrt(simVx * simVx + simVy * simVy) < 10) break;
+        }
+
+        this.metaVisionGraphics.strokePath();
+
+        // Draw a small cyan circle at the final predicted position.
+        this.metaVisionGraphics.fillStyle(0x00ffff, 0.8);
+        this.metaVisionGraphics.fillCircle(simX, simY, 6);
+    }
+
+    private drawKickRange() {
+        if (!this.kickRangeGraphics) return;
+
+        this.kickRangeGraphics.clear();
+
+        // Only visible when Metavision is active
+        if (!this.isMetaVisionActive) return;
+
+        // Use game time for animations
+        const time = this.time.now;
+
+        // 1. Standard range (140px)
+        const stdRange = 140;
+        // Subtle fill for standard range
+        this.kickRangeGraphics.fillStyle(0xffffff, 0.08);
+        this.kickRangeGraphics.fillCircle(this.ball.x, this.ball.y, stdRange);
+
+        // Standard range outline
+        this.kickRangeGraphics.lineStyle(2, 0xffffff, 0.4);
+        this.kickRangeGraphics.strokeCircle(this.ball.x, this.ball.y, stdRange);
+
+        // 2. Highlight active Metavision range
+        const mvRange = 200;
+        const pulse = (Math.sin(time / 150) + 1) / 2; // Faster pulse
+
+        // Glowing fill for Metavision range
+        this.kickRangeGraphics.fillStyle(0x00ffff, 0.1 + pulse * 0.05);
+        this.kickRangeGraphics.fillCircle(this.ball.x, this.ball.y, mvRange);
+
+        // Strong outer border
+        this.kickRangeGraphics.lineStyle(3, 0x00ffff, 0.6);
+        this.kickRangeGraphics.strokeCircle(this.ball.x, this.ball.y, mvRange);
+
+        // Pulsing "sonar" rings
+        for (let i = 0; i < 2; i++) {
+            const ringPulse = ((time + i * 500) % 1000) / 1000;
+            const ringAlpha = 0.4 * (1 - ringPulse);
+            const ringRadius = stdRange + (mvRange - stdRange) * ringPulse;
+
+            this.kickRangeGraphics.lineStyle(2, 0x00ffff, ringAlpha);
+            this.kickRangeGraphics.strokeCircle(
+                this.ball.x,
+                this.ball.y,
+                ringRadius,
+            );
+        }
+
+        // Extra outer glow pulse
+        this.kickRangeGraphics.lineStyle(1, 0x00ffff, 0.2 + pulse * 0.3);
+        this.kickRangeGraphics.strokeCircle(
+            this.ball.x,
+            this.ball.y,
+            mvRange + 5 + pulse * 10,
+        );
+    }
+
     private updateSkillCooldownUI() {
         if (!this.skillCooldownText) return;
 
@@ -564,30 +894,30 @@ export class SoccerMap extends BaseGameScene {
             // Apply true grayscale (desaturation) to tilemap layers
             if (this.floorLayer && this.floorLayer.postFX) {
                 const colorMatrix = this.floorLayer.postFX.addColorMatrix();
-                colorMatrix.desaturate();
+                colorMatrix.grayscale();
                 this.grayscaleEffects.set(this.floorLayer, colorMatrix);
             }
             if (this.floorMarkingsLayer && this.floorMarkingsLayer.postFX) {
                 const colorMatrix =
                     this.floorMarkingsLayer.postFX.addColorMatrix();
-                colorMatrix.desaturate();
+                colorMatrix.grayscale();
                 this.grayscaleEffects.set(this.floorMarkingsLayer, colorMatrix);
             }
             if (this.goalsLayer && this.goalsLayer.postFX) {
                 const colorMatrix = this.goalsLayer.postFX.addColorMatrix();
-                colorMatrix.desaturate();
+                colorMatrix.grayscale();
                 this.grayscaleEffects.set(this.goalsLayer, colorMatrix);
             }
             if (this.circleLayer && this.circleLayer.postFX) {
                 const colorMatrix = this.circleLayer.postFX.addColorMatrix();
-                colorMatrix.desaturate();
+                colorMatrix.grayscale();
                 this.grayscaleEffects.set(this.circleLayer, colorMatrix);
             }
 
             // Apply grayscale to the ball
             if (this.ball && this.ball.postFX) {
                 const colorMatrix = this.ball.postFX.addColorMatrix();
-                colorMatrix.desaturate();
+                colorMatrix.grayscale();
                 this.grayscaleEffects.set(this.ball, colorMatrix);
             }
 
@@ -596,14 +926,14 @@ export class SoccerMap extends BaseGameScene {
                 if (playerId !== activatorId) {
                     if (player.postFX) {
                         const colorMatrix = player.postFX.addColorMatrix();
-                        colorMatrix.desaturate();
+                        colorMatrix.grayscale();
                         this.grayscaleEffects.set(player, colorMatrix);
                     }
                     // Also apply to their team glow if it exists
                     if (player.teamGlow && player.teamGlow.postFX) {
                         const glowColorMatrix =
                             player.teamGlow.postFX.addColorMatrix();
-                        glowColorMatrix.desaturate();
+                        glowColorMatrix.grayscale();
                         this.grayscaleEffects.set(
                             player.teamGlow,
                             glowColorMatrix,
@@ -632,9 +962,10 @@ export class SoccerMap extends BaseGameScene {
             gameObject,
             colorMatrix,
         ] of this.grayscaleEffects.entries()) {
-            if (gameObject && gameObject.postFX) {
+            const go = gameObject as any;
+            if (go && go.postFX) {
                 // Remove the specific ColorMatrix effect
-                gameObject.postFX.remove(colorMatrix);
+                go.postFX.remove(colorMatrix);
             }
         }
 
@@ -840,6 +1171,7 @@ export class SoccerMap extends BaseGameScene {
                 useUiStore.getState().openSoccerStatsModal();
             } else {
                 console.log("Soccer stats loaded:", stats);
+                this.soccerStats = stats;
             }
         } catch (error) {
             console.error("Failed to check soccer stats:", error);
@@ -850,6 +1182,8 @@ export class SoccerMap extends BaseGameScene {
     destroy() {
         if (this.inputLoop) this.inputLoop.destroy();
         if (this.skillCooldownText) this.skillCooldownText.destroy();
+        this.metaVisionGraphics?.destroy();
+        this.kickRangeGraphics?.destroy();
         if (this.multiplayer) {
             this.multiplayer.socket.off("ball:state");
             this.multiplayer.socket.off("ball:kicked");
@@ -859,8 +1193,7 @@ export class SoccerMap extends BaseGameScene {
             this.multiplayer.socket.off("soccer:teamAssigned");
         }
 
-        useUiStore.getState().setCurrentScene(null);
-        super.destroy();
+        useUiStore.getState().setCurrentScene("");
     }
 
     protected setupLocalPlayer(localPlayer: Player): void {
