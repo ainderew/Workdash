@@ -12,6 +12,7 @@ export class Preloader extends Scene {
     }
 
     preload() {
+        this.setupLoadingBg();
         const { width, height } = this.cameras.main;
 
         this.barWidth = width * 0.4;
@@ -63,6 +64,18 @@ export class Preloader extends Scene {
         });
 
         this.loadGameAssets();
+    }
+
+    private setupLoadingBg() {
+        const bg = this.add.image(
+            this.cameras.main.width / 2,
+            this.cameras.main.height / 2,
+            "loadingBackground",
+        );
+        const scaleX = this.cameras.main.width / bg.width;
+        const scaleY = this.cameras.main.height / bg.height;
+        const scale = Math.max(scaleX, scaleY);
+        bg.setScale(scale).setScrollFactor(0);
     }
 
     private createProgressTexture(width: number, height: number) {
@@ -169,6 +182,8 @@ export class Preloader extends Scene {
         this.load.audio("blink", "sounds/skill_blink.mp3");
         this.load.audio("skill_metavision", "sounds/ninja-sound-effect.mp3");
         this.load.audio("shadow", "sounds/skill_shadow.mp3");
+        this.load.audio("lurking", "sounds/skill_lurking.mp3");
+        this.load.audio("power_shot", "sounds/skill_power_shot.mp3");
 
         this.load.tilemapTiledJSON("map", "map1.json");
         this.load.tilemapTiledJSON("soccer_map", "soccer_map.json");

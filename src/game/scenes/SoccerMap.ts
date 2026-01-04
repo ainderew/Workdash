@@ -32,24 +32,37 @@ export class SoccerMap extends BaseGameScene {
     private floorLayer: Phaser.Tilemaps.TilemapLayer | null = null;
     private goalsLayer: Phaser.Tilemaps.TilemapLayer | null = null;
     private circleLayer: Phaser.Tilemaps.TilemapLayer | null = null;
+    private floorMarkings2Layer: Phaser.Tilemaps.TilemapLayer | null = null;
     private kickKey: Phaser.Input.Keyboard.Key | null = null;
     private skillKey: Phaser.Input.Keyboard.Key | null = null;
     private blinkKey: Phaser.Input.Keyboard.Key | null = null;
     private metavisionKey: Phaser.Input.Keyboard.Key | null = null;
     private ninjaStepKey: Phaser.Input.Keyboard.Key | null = null;
+    private lurkingKey: Phaser.Input.Keyboard.Key | null = null;
+    private powerShotKey: Phaser.Input.Keyboard.Key | null = null;
     private isMultiplayerMode: boolean = false;
     private inputLoop: Phaser.Time.TimerEvent | null = null;
     private skillCooldown: number = 0;
     private blinkCooldown: number = 0;
     private metavisionCooldown: number = 0;
+    private powerShotCooldown: number = 0;
+    private ballFlameGraphics: Phaser.GameObjects.Graphics | null = null;
+    private ballFlameActive: boolean = false;
+    private ballFlameStartTime: number = 0;
+    private powerShotBuffEndTime: number = 0;
+    private ballTrailActive: boolean = false;
+    private ballTrailTimer: number = 0;
+    private ballTrailSprites: Phaser.GameObjects.Sprite[] = [];
     private isMetaVisionActive: boolean = false;
-    private metaVisionEndTime: number = 0;
     private metaVisionGraphics: Phaser.GameObjects.Graphics | null = null;
     private kickRangeGraphics: Phaser.GameObjects.Graphics | null = null;
+    private lurkingGraphics: Phaser.GameObjects.Graphics | null = null;
     private skillCooldownText: Phaser.GameObjects.Text | null = null;
-    private collisionObjects: Phaser.Types.Tilemaps.TiledObject[] = [];
 
     private activeSkillPlayerId: string | null = null;
+    private activeSkillId: string | null = null;
+    private lurkingPlayerId: string | null = null;
+    private lurkingEndTime: number = 0;
     private activeSkillVisualConfig: SkillConfig["clientVisuals"] | null = null;
     private trailSprites: Phaser.GameObjects.Sprite[] = [];
     private trailTimer: number = 0;
@@ -100,6 +113,12 @@ export class SoccerMap extends BaseGameScene {
         this.ninjaStepKey =
             this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.T) ||
             null;
+        this.lurkingKey =
+            this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.F) ||
+            null;
+        this.powerShotKey =
+            this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.G) ||
+            null;
 
         this.metaVisionGraphics = this.add.graphics();
         this.metaVisionGraphics.setDepth(1000);
@@ -107,6 +126,10 @@ export class SoccerMap extends BaseGameScene {
         this.kickRangeGraphics = this.add.graphics();
         this.kickRangeGraphics.setDepth(2);
         this.kickRangeGraphics.setBlendMode(Phaser.BlendModes.ADD);
+
+        this.lurkingGraphics = this.add.graphics();
+        this.lurkingGraphics.setDepth(3);
+        this.lurkingGraphics.setBlendMode(Phaser.BlendModes.ADD);
 
         if (this.isMultiplayerMode) {
             this.setupServerListeners();
@@ -119,7 +142,8 @@ export class SoccerMap extends BaseGameScene {
     update(time: number): void {
         super.update(time);
 
-        const isSelectionPhaseActive = useSoccerStore.getState().isSelectionPhaseActive;
+        const isSelectionPhaseActive =
+            useSoccerStore.getState().isSelectionPhaseActive;
 
         // FIX: Check for pending teams every frame until they are assigned
         this.processPendingTeams();
@@ -132,13 +156,22 @@ export class SoccerMap extends BaseGameScene {
             this.createSpeedTrail(time);
         }
 
+        // Create ball trail during power shot
+        if (this.ballTrailActive) {
+            this.createBallTrail(time);
+        }
+
         if (this.isMultiplayerMode) {
             this.ball.update();
+
+            // Force update team glow positions to sync with players
+            this.updateTeamGlows();
 
             // Skip inputs during selection phase
             if (!isSelectionPhaseActive) {
                 const isGameActive = useSoccerStore.getState().isGameActive;
                 this.drawKickRange();
+                this.drawLurkingRadius();
                 this.handleMultiplayerKickInput();
 
                 if (isGameActive) {
@@ -150,14 +183,45 @@ export class SoccerMap extends BaseGameScene {
                     this.handleBlinkInput();
                     this.handleMetaVisionInput();
                     this.handleNinjaStepInput();
+                    this.handleLurkingInput();
+                    this.handlePowerShotInput();
                 }
             }
 
             if (this.isMetaVisionActive) {
                 this.drawTrajectory();
             }
+
+            // Render ball flames if active
+            this.renderBallFlames();
+
+            // Check if power shot buff expired (remove trail) - only for power shot
+            if (
+                this.activeSkillId === "power_shot" &&
+                this.powerShotBuffEndTime > 0 &&
+                this.time.now >= this.powerShotBuffEndTime &&
+                this.activeSkillPlayerId
+            ) {
+                this.removeSkillVisuals();
+            }
         } else {
             this.handleKick();
+        }
+    }
+
+    // Force update all team glow positions to stay in perfect sync with players
+    private updateTeamGlows() {
+        for (const player of this.players.values()) {
+            if (player.teamGlow && player.team) {
+                player.teamGlow.setPosition(player.x, player.y);
+                player.teamGlow.setFrame(player.frame.name);
+                player.teamGlow.setFlipX(player.flipX);
+                player.teamGlow.setDepth(player.depth - 1);
+                player.teamGlow.setScale(
+                    player.scaleX * 1.15,
+                    player.scaleY * 1.15,
+                );
+            }
         }
     }
 
@@ -238,7 +302,7 @@ export class SoccerMap extends BaseGameScene {
 
         socket.on("goal:scored", (data: any) => {
             console.log(`GOAL! ${data.scoringTeam} scored!`);
-            this.sound.play("soccer_cheer", { volume: 0.3 });
+            this.sound.play("soccer_cheer", { volume: 0.2 });
             this.ball.setPosition(
                 this.worldBounds.width / 2,
                 this.worldBounds.height / 2,
@@ -311,52 +375,94 @@ export class SoccerMap extends BaseGameScene {
             },
         );
 
-        socket.on("soccer:teamAssigned", (data: { playerId: string; team: "red" | "blue" | "spectator" | null }) => {
-            // Update player sprite glow
-            const player = this.players.get(data.playerId);
-            if (player) {
-                player.setTeam(data.team as any);
-                // Also remove from pending if we happen to get a live update
-                this.pendingTeams.delete(data.playerId);
-            } else if (data.team) {
-                // If we get a live update for a player we haven't rendered yet
-                this.pendingTeams.set(data.playerId, data.team as any);
-            }
-        });
+        socket.on(
+            "soccer:teamAssigned",
+            (data: {
+                playerId: string;
+                team: "red" | "blue" | "spectator" | null;
+            }) => {
+                // Update player sprite glow
+                const player = this.players.get(data.playerId);
+                if (player) {
+                    player.setTeam(data.team as any);
+                    // Also remove from pending if we happen to get a live update
+                    this.pendingTeams.delete(data.playerId);
+                } else if (data.team) {
+                    // If we get a live update for a player we haven't rendered yet
+                    this.pendingTeams.set(data.playerId, data.team as any);
+                }
+            },
+        );
 
-        socket.on("soccer:startMidGamePick", (data: { availableSkills: string[] }) => {
-            console.log("Mid-game Skill Pick Started", data);
-            useSoccerStore.getState().setAvailableSkillIds(data.availableSkills);
-            useSoccerStore.getState().setSelectionPhaseActive(true);
-            useSoccerStore.getState().setCurrentPickerId(this.localPlayerId);
-            useSoccerStore.getState().setSelectionTurnEndTime(Date.now() + 30000);
-        });
+        socket.on(
+            "soccer:startMidGamePick",
+            (data: { availableSkills: string[] }) => {
+                console.log("Mid-game Skill Pick Started", data);
+                useSoccerStore
+                    .getState()
+                    .setAvailableSkillIds(data.availableSkills);
+                useSoccerStore.getState().setSelectionPhaseActive(true);
+                useSoccerStore
+                    .getState()
+                    .setCurrentPickerId(this.localPlayerId);
+                useSoccerStore
+                    .getState()
+                    .setSelectionTurnEndTime(Date.now() + 30000);
+            },
+        );
 
         // Skill Selection Events
-        socket.on("soccer:selectionPhaseStarted", (data: { order: string[]; availableSkills: string[] }) => {
-            console.log("Skill Selection Started", data);
-            useSoccerStore.getState().resetSelection();
-            useSoccerStore.getState().setSelectionOrder(data.order);
-            useSoccerStore.getState().setAvailableSkillIds(data.availableSkills);
-            useSoccerStore.getState().setSelectionPhaseActive(true);
-        });
+        socket.on(
+            "soccer:selectionPhaseStarted",
+            (data: { order: string[]; availableSkills: string[] }) => {
+                console.log("Skill Selection Started", data);
+                useSoccerStore.getState().resetSelection();
+                useSoccerStore.getState().setSelectionOrder(data.order);
+                useSoccerStore
+                    .getState()
+                    .setAvailableSkillIds(data.availableSkills);
+                useSoccerStore.getState().setSelectionPhaseActive(true);
+            },
+        );
 
-        socket.on("soccer:selectionUpdate", (data: { currentPickerId: string; endTime: number; availableSkills: string[] }) => {
-            console.log("Selection Update", data);
-            useSoccerStore.getState().setCurrentPickerId(data.currentPickerId);
-            useSoccerStore.getState().setSelectionTurnEndTime(data.endTime);
-            useSoccerStore.getState().setAvailableSkillIds(data.availableSkills);
-        });
+        socket.on(
+            "soccer:selectionUpdate",
+            (data: {
+                currentPickerId: string;
+                endTime: number;
+                availableSkills: string[];
+            }) => {
+                console.log("Selection Update", data);
+                useSoccerStore
+                    .getState()
+                    .setCurrentPickerId(data.currentPickerId);
+                useSoccerStore.getState().setSelectionTurnEndTime(data.endTime);
+                useSoccerStore
+                    .getState()
+                    .setAvailableSkillIds(data.availableSkills);
+            },
+        );
 
-        socket.on("soccer:skillPicked", (data: { playerId: string; skillId: string; availableSkills: string[] }) => {
-            console.log("Skill Picked", data);
-            useSoccerStore.getState().setPlayerPick(data.playerId, data.skillId);
-            useSoccerStore.getState().setAvailableSkillIds(data.availableSkills);
+        socket.on(
+            "soccer:skillPicked",
+            (data: {
+                playerId: string;
+                skillId: string;
+                availableSkills: string[];
+            }) => {
+                console.log("Skill Picked", data);
+                useSoccerStore
+                    .getState()
+                    .setPlayerPick(data.playerId, data.skillId);
+                useSoccerStore
+                    .getState()
+                    .setAvailableSkillIds(data.availableSkills);
 
-            if (data.playerId === this.localPlayerId) {
-                useSoccerStore.getState().setSelectionPhaseActive(false);
-            }
-        });
+                if (data.playerId === this.localPlayerId) {
+                    useSoccerStore.getState().setSelectionPhaseActive(false);
+                }
+            },
+        );
 
         socket.on("soccer:gameStarted", (data: { duration: number }) => {
             console.log("Game Started", data);
@@ -403,13 +509,71 @@ export class SoccerMap extends BaseGameScene {
                 if (data.skillId === "metavision") {
                     if (data.activatorId === this.localPlayerId) {
                         this.isMetaVisionActive = true;
-                        this.metaVisionEndTime = this.time.now + data.duration;
                     }
-                    // Show a glow on the activator for everyone
                     const activator = this.players.get(data.activatorId);
                     if (activator) this.addKickGlow(activator);
+                } else if (data.skillId === "lurking_radius") {
+                    this.lurkingPlayerId = data.activatorId;
+                    this.lurkingEndTime = this.time.now + data.duration;
+                } else if (data.skillId === "power_shot") {
+                    const activator = this.players.get(data.activatorId);
+                    if (activator) {
+                        const chargeRing = this.add.circle(
+                            activator.x,
+                            activator.y,
+                            10,
+                        );
+                        chargeRing.setStrokeStyle(4, 0xff6600);
+                        chargeRing.setDepth(activator.depth + 1);
+
+                        this.tweens.add({
+                            targets: chargeRing,
+                            radius: 80,
+                            alpha: 0,
+                            duration: 400,
+                            ease: "Quad.out",
+                            onComplete: () => chargeRing.destroy(),
+                        });
+
+                        // Screen shake
+                        this.cameras.main.shake(200, 0.01);
+
+                        // Activate ball flames for 3 seconds
+                        this.ballFlameActive = true;
+                        this.ballFlameStartTime = this.time.now;
+                        if (!this.ballFlameGraphics) {
+                            this.ballFlameGraphics = this.add.graphics();
+                            this.ballFlameGraphics.setDepth(
+                                this.ball.depth + 1,
+                            ); // Above ball
+                        }
+
+                        // Activate ball trail for 3 seconds
+                        this.ballTrailActive = true;
+
+                        console.log("Ball flames and trail activated!", {
+                            active: this.ballFlameActive,
+                            startTime: this.ballFlameStartTime,
+                            graphics: !!this.ballFlameGraphics,
+                            trailActive: this.ballTrailActive,
+                        });
+
+                        // Store buff end time for trail duration
+                        this.powerShotBuffEndTime =
+                            this.time.now + (data.duration || 3000);
+
+                        // Add visual trail to player (tied to buff)
+                        this.applySkillVisuals(
+                            data.activatorId,
+                            data.visualConfig,
+                        );
+
+                        // Track that power_shot is the active skill
+                        this.activeSkillId = "power_shot";
+                    }
                 } else {
                     this.applySkillVisuals(data.activatorId, data.visualConfig);
+                    this.activeSkillId = data.skillId;
                 }
 
                 // Play skill specific sound if provided, otherwise fallback to generic
@@ -420,10 +584,47 @@ export class SoccerMap extends BaseGameScene {
         );
 
         // Listen for skill end
-        socket.on("soccer:skillEnded", () => {
-            this.removeSkillVisuals();
-            this.isMetaVisionActive = false;
-            this.metaVisionGraphics?.clear();
+        socket.on(
+            "soccer:skillEnded",
+            (data: { activatorId: string; skillId: string }) => {
+                if (
+                    data.skillId === "lurking_radius" &&
+                    this.lurkingPlayerId === data.activatorId
+                ) {
+                    this.lurkingPlayerId = null;
+                    this.lurkingGraphics?.clear();
+                }
+                this.removeSkillVisuals();
+                this.isMetaVisionActive = false;
+                this.metaVisionGraphics?.clear();
+            },
+        );
+
+        // Listen for skill trigger (e.g. Lurking Intercept)
+        socket.on("soccer:skillTriggered", (data: any) => {
+            if (data.type === "intercept") {
+                const player = this.players.get(data.activatorId);
+                if (player) {
+                    // Teleport visual (Blink-like)
+                    this.createBlinkEffect(
+                        data.activatorId,
+                        player.x,
+                        player.y,
+                        data.targetX,
+                        data.targetY,
+                        { trailColor: 0x800080 }, // Purple trail
+                    );
+
+                    // Snap position immediately
+                    player.setPosition(data.targetX, data.targetY);
+
+                    // End lurking
+                    this.lurkingPlayerId = null;
+                    this.lurkingGraphics?.clear();
+
+                    this.sound.play("blink", { volume: 0.3 });
+                }
+            }
         });
 
         // Listen for blink activation
@@ -460,7 +661,7 @@ export class SoccerMap extends BaseGameScene {
 
                     // Sound effect
                     const sfxKey = data.visualConfig?.sfxKey || "blink";
-                    this.sound.play(sfxKey, { volume: 0.5 });
+                    this.sound.play(sfxKey, { volume: 0.3 });
                 }
             },
         );
@@ -491,58 +692,16 @@ export class SoccerMap extends BaseGameScene {
             return;
         }
 
-        const localPlayer = this.players.get(this.localPlayerId);
-
         const cursors = this.input.keyboard?.createCursorKeys();
         const wasd = this.input.keyboard?.addKeys("W,A,S,D") as any;
-        
-        let up = cursors?.up.isDown || wasd?.W?.isDown;
-        let down = cursors?.down.isDown || wasd?.S?.isDown;
-        let left = cursors?.left.isDown || wasd?.A?.isDown;
-        let right = cursors?.right.isDown || wasd?.D?.isDown;
 
-        // Local collision clamping
-        if (localPlayer) {
-            const nextX = localPlayer.x + (right ? 10 : 0) - (left ? 10 : 0);
-            const nextY = localPlayer.y + (down ? 10 : 0) - (up ? 10 : 0);
-            const radius = 30;
+        const up = cursors?.up.isDown || wasd?.W?.isDown;
+        const down = cursors?.down.isDown || wasd?.S?.isDown;
+        const left = cursors?.left.isDown || wasd?.A?.isDown;
+        const right = cursors?.right.isDown || wasd?.D?.isDown;
 
-            for (const obj of this.collisionObjects) {
-                const ox = obj.x! as number;
-                const oy = obj.y! as number;
-                const ow = obj.width! as number;
-                const oh = obj.height! as number;
-
-                // Check collision with next position
-                const cX = Math.max(ox, Math.min(nextX, ox + ow));
-                const cY = Math.max(oy, Math.min(nextY, oy + oh));
-                const dist = Phaser.Math.Distance.Between(nextX, nextY, cX, cY);
-
-                if (dist < radius) {
-                    // Block specific directions
-                    if (right) {
-                        const tCX = Math.max(ox, Math.min(localPlayer.x + 10, ox + ow));
-                        const tDist = Phaser.Math.Distance.Between(localPlayer.x + 10, localPlayer.y, tCX, localPlayer.y);
-                        if (tDist < radius) right = false;
-                    }
-                    if (left) {
-                        const tCX = Math.max(ox, Math.min(localPlayer.x - 10, ox + ow));
-                        const tDist = Phaser.Math.Distance.Between(localPlayer.x - 10, localPlayer.y, tCX, localPlayer.y);
-                        if (tDist < radius) left = false;
-                    }
-                    if (down) {
-                        const tCY = Math.max(oy, Math.min(localPlayer.y + 10, oy + oh));
-                        const tDist = Phaser.Math.Distance.Between(localPlayer.x, localPlayer.y + 10, localPlayer.x, tCY);
-                        if (tDist < radius) down = false;
-                    }
-                    if (up) {
-                        const tCY = Math.max(oy, Math.min(localPlayer.y - 10, oy + oh));
-                        const tDist = Phaser.Math.Distance.Between(localPlayer.x, localPlayer.y - 10, localPlayer.x, tCY);
-                        if (tDist < radius) up = false;
-                    }
-                }
-            }
-        }
+        // Collision detection removed - players can now pass through CollisionLayer
+        // Ball collision is handled server-side
 
         const input = {
             up,
@@ -610,15 +769,22 @@ export class SoccerMap extends BaseGameScene {
 
     // ... (Remaining Local/Offline Methods kept same as provided) ...
     private setupLocalPhysics() {
-        this.physics.add.collider(this.playersLayer, this.playersLayer, (p1, p2) => {
-            const player1 = p1 as Player;
-            const player2 = p2 as Player;
-            // Skip collision if either is spectator
-            if (player1.team === "spectator" || player2.team === "spectator") {
-                return false;
-            }
-            return true;
-        });
+        this.physics.add.collider(
+            this.playersLayer,
+            this.playersLayer,
+            (p1, p2) => {
+                const player1 = p1 as Player;
+                const player2 = p2 as Player;
+                // Skip collision if either is spectator
+                if (
+                    player1.team === "spectator" ||
+                    player2.team === "spectator"
+                ) {
+                    return false;
+                }
+                return true;
+            },
+        );
         this.physics.add.collider(
             this.playersLayer,
             this.ball,
@@ -807,6 +973,83 @@ export class SoccerMap extends BaseGameScene {
         });
     }
 
+    private handleLurkingInput() {
+        if (
+            !this.lurkingKey ||
+            !Phaser.Input.Keyboard.JustDown(this.lurkingKey)
+        )
+            return;
+        this.triggerLurkingRadius();
+    }
+
+    private handlePowerShotInput() {
+        if (
+            !this.powerShotKey ||
+            !Phaser.Input.Keyboard.JustDown(this.powerShotKey)
+        )
+            return;
+
+        this.triggerPowerShot();
+    }
+
+    private triggerLurkingRadius() {
+        // Cooldown check is handled by server mostly, but we can do a local check if we want
+        // For simplicity and consistency with server 2-stage logic, just emit
+        this.multiplayer?.socket.emit("soccer:activateSkill", {
+            playerId: this.localPlayerId,
+            skillId: "lurking_radius",
+        });
+    }
+
+    private triggerPowerShot() {
+        const skillConfig = this.skillConfigs.get("power_shot");
+        if (!skillConfig) {
+            console.warn("Power shot config not loaded");
+            return;
+        }
+
+        const now = Date.now();
+        if (now - this.powerShotCooldown < skillConfig.cooldownMs) {
+            const remainingSeconds = Math.ceil(
+                (skillConfig.cooldownMs - (now - this.powerShotCooldown)) /
+                    1000,
+            );
+            console.log(
+                `Power Shot on cooldown: ${remainingSeconds}s remaining`,
+            );
+            return;
+        }
+
+        const localPlayer = this.players.get(this.localPlayerId);
+        if (!localPlayer) return;
+
+        // Check distance to ball
+        const distance = Phaser.Math.Distance.Between(
+            localPlayer.x,
+            localPlayer.y,
+            this.ball.x,
+            this.ball.y,
+        );
+
+        if (distance > 200) {
+            console.log(
+                `Power Shot failed: Too far from ball (${distance.toFixed(0)} > 200)`,
+            );
+            return;
+        }
+
+        // Update cooldown
+        this.powerShotCooldown = now;
+
+        // Activate skill
+        this.multiplayer?.socket.emit("soccer:activateSkill", {
+            playerId: this.localPlayerId,
+            skillId: "power_shot",
+        });
+
+        console.log("Power Shot activated!");
+    }
+
     private handleUnifiedSkillInput() {
         if (!this.skillKey || !Phaser.Input.Keyboard.JustDown(this.skillKey))
             return;
@@ -823,6 +1066,10 @@ export class SoccerMap extends BaseGameScene {
             this.triggerMetaVision();
         } else if (assignedSkillId === "ninja_step") {
             this.triggerNinjaStep();
+        } else if (assignedSkillId === "lurking_radius") {
+            this.triggerLurkingRadius();
+        } else if (assignedSkillId === "power_shot") {
+            this.triggerPowerShot();
         }
     }
 
@@ -1062,6 +1309,187 @@ export class SoccerMap extends BaseGameScene {
         );
     }
 
+    private drawLurkingRadius() {
+        if (!this.lurkingGraphics || !this.lurkingPlayerId) return;
+
+        this.lurkingGraphics.clear();
+
+        const player = this.players.get(this.lurkingPlayerId);
+        if (!player) return;
+
+        // Check expiration
+        if (this.time.now > this.lurkingEndTime) {
+            this.lurkingPlayerId = null;
+            this.lurkingGraphics.clear();
+            return;
+        }
+
+        const radius = 300;
+        const distToBall = Phaser.Math.Distance.Between(
+            player.x,
+            player.y,
+            this.ball.x,
+            this.ball.y,
+        );
+        const isBallInside = distToBall <= radius;
+        const time = this.time.now;
+
+        // Animation variables
+        const pulse = (Math.sin(time / 100) + 1) / 2;
+        const fastPulse = (Math.sin(time / 50) + 1) / 2;
+        const rotationAngle = (time / 1000) % (Math.PI * 2); // Full rotation every ~6 seconds
+
+        if (isBallInside) {
+            // ===== INTERCEPT READY STATE: Aggressive Green Energy =====
+
+            // 1. Pulsing inner glow
+            this.lurkingGraphics.fillStyle(0x00ff00, 0.15 + pulse * 0.1);
+            this.lurkingGraphics.fillCircle(player.x, player.y, radius);
+
+            // 2. Multiple concentric rings (expanding)
+            for (let i = 0; i < 3; i++) {
+                const offset = (time / 80 + i * 60) % 180;
+                const ringRadius = radius - offset;
+                if (ringRadius > 20) {
+                    const alpha = 1 - offset / 180;
+                    this.lurkingGraphics.lineStyle(3, 0x00ff00, alpha * 0.6);
+                    this.lurkingGraphics.strokeCircle(
+                        player.x,
+                        player.y,
+                        ringRadius,
+                    );
+                }
+            }
+
+            // 3. Main outer ring (bright)
+            this.lurkingGraphics.lineStyle(5, 0x00ff00, 0.9 + fastPulse * 0.1);
+            this.lurkingGraphics.strokeCircle(player.x, player.y, radius);
+
+            // 4. Energy sparks around perimeter
+            const sparkCount = 8;
+            for (let i = 0; i < sparkCount; i++) {
+                const angle = (i / sparkCount) * Math.PI * 2 + rotationAngle;
+                const sparkX = player.x + Math.cos(angle) * radius;
+                const sparkY = player.y + Math.sin(angle) * radius;
+                const sparkSize = 3 + pulse * 2;
+
+                this.lurkingGraphics.fillStyle(0xffffff, 0.8 + fastPulse * 0.2);
+                this.lurkingGraphics.fillCircle(sparkX, sparkY, sparkSize);
+
+                // Inner glow
+                this.lurkingGraphics.fillStyle(0x00ff00, 0.4);
+                this.lurkingGraphics.fillCircle(
+                    sparkX,
+                    sparkY,
+                    sparkSize * 1.5,
+                );
+            }
+
+            // 5. Rotating energy arcs
+            const arcCount = 4;
+            for (let i = 0; i < arcCount; i++) {
+                const arcAngle =
+                    (i / arcCount) * Math.PI * 2 + rotationAngle * 2;
+                const startAngle = arcAngle;
+                const endAngle = arcAngle + Math.PI / 4;
+
+                this.lurkingGraphics.lineStyle(2, 0x00ff00, 0.6);
+                this.lurkingGraphics.beginPath();
+                this.lurkingGraphics.arc(
+                    player.x,
+                    player.y,
+                    radius * 0.7,
+                    startAngle,
+                    endAngle,
+                );
+                this.lurkingGraphics.strokePath();
+            }
+        } else {
+            // ===== SEARCHING STATE: Ominous Purple/Red Energy =====
+
+            // 1. Dark pulsing background
+            this.lurkingGraphics.fillStyle(0x800080, 0.08 + pulse * 0.04);
+            this.lurkingGraphics.fillCircle(player.x, player.y, radius);
+
+            // 2. Radar sweep effect
+            const sweepAngle = rotationAngle;
+            const sweepWidth = Math.PI / 3;
+
+            this.lurkingGraphics.fillStyle(0x800080, 0.2);
+            this.lurkingGraphics.slice(
+                player.x,
+                player.y,
+                radius,
+                sweepAngle - sweepWidth / 2,
+                sweepAngle + sweepWidth / 2,
+                false,
+            );
+            this.lurkingGraphics.fillPath();
+
+            // 3. Dotted circle perimeter (scanning effect)
+            const dotCount = 24;
+            for (let i = 0; i < dotCount; i++) {
+                const angle = (i / dotCount) * Math.PI * 2;
+                const dotX = player.x + Math.cos(angle) * radius;
+                const dotY = player.y + Math.sin(angle) * radius;
+
+                // Fade dots based on sweep position
+                const angleDiff =
+                    Math.abs(
+                        Phaser.Math.Angle.ShortestBetween(
+                            angle * Phaser.Math.RAD_TO_DEG,
+                            sweepAngle * Phaser.Math.RAD_TO_DEG,
+                        ),
+                    ) / 180;
+                const dotAlpha = Math.max(0.2, 1 - angleDiff);
+
+                this.lurkingGraphics.fillStyle(0x800080, dotAlpha * 0.8);
+                this.lurkingGraphics.fillCircle(dotX, dotY, 2);
+            }
+
+            // 4. Main outer ring (purple)
+            this.lurkingGraphics.lineStyle(2, 0x800080, 0.6);
+            this.lurkingGraphics.strokeCircle(player.x, player.y, radius);
+
+            // 5. Expanding danger pulse (red)
+            const expandPulse = (time / 200) % 1;
+            const expandRadius = radius + expandPulse * 20;
+            const expandAlpha = (1 - expandPulse) * 0.5;
+
+            this.lurkingGraphics.lineStyle(2, 0xff0000, expandAlpha);
+            this.lurkingGraphics.strokeCircle(player.x, player.y, expandRadius);
+
+            // 6. Inner concentric rings (slow pulse)
+            for (let i = 1; i <= 2; i++) {
+                const innerRadius = radius * (i / 3);
+                this.lurkingGraphics.lineStyle(1, 0x800080, 0.3 + pulse * 0.2);
+                this.lurkingGraphics.strokeCircle(
+                    player.x,
+                    player.y,
+                    innerRadius,
+                );
+            }
+        }
+
+        // ===== ALWAYS DRAW: Heterochromia Eyes (Glowing) =====
+        const eyeY = player.y - 15;
+        const leftEyeX = player.x - 4;
+        const rightEyeX = player.x + 4;
+        const eyeGlow = 2 + fastPulse * 1;
+
+        // Left eye (Green) with glow
+        this.lurkingGraphics.fillStyle(0x00ff00, 0.3);
+        this.lurkingGraphics.fillCircle(leftEyeX, eyeY, eyeGlow);
+        this.lurkingGraphics.fillStyle(0x00ff00, 1);
+        this.lurkingGraphics.fillCircle(leftEyeX, eyeY, 3);
+
+        // Right eye (Purple) with glow
+        this.lurkingGraphics.fillStyle(0x800080, 0.3);
+        this.lurkingGraphics.fillCircle(rightEyeX, eyeY, eyeGlow);
+        this.lurkingGraphics.fillStyle(0x800080, 1);
+        this.lurkingGraphics.fillCircle(rightEyeX, eyeY, 3);
+    }
+
     private updateSkillCooldownUI() {
         if (!this.skillCooldownText) return;
 
@@ -1089,6 +1517,14 @@ export class SoccerMap extends BaseGameScene {
         // Store the activator ID and visual config for trail effect
         this.activeSkillPlayerId = activatorId;
         this.activeSkillVisualConfig = visualConfig;
+
+        // Hide team glow during speed trail to prevent trailing outline effect
+        if (visualConfig.enableSpeedTrail) {
+            const activator = this.players.get(activatorId);
+            if (activator && activator.teamGlow) {
+                activator.teamGlow.setVisible(false);
+            }
+        }
 
         // Apply grayscale if enabled in config
         if (visualConfig.enableGrayscale) {
@@ -1152,8 +1588,22 @@ export class SoccerMap extends BaseGameScene {
     }
 
     private removeSkillVisuals() {
+        // Don't remove if power shot buff is still active (only for power shot skill)
+        if (
+            this.activeSkillId === "power_shot" &&
+            this.time.now < this.powerShotBuffEndTime
+        ) {
+            return;
+        }
+
+        for (const player of this.players.values()) {
+            if (player.teamGlow) {
+                player.teamGlow.setVisible(true);
+            }
+        }
         // Clear activator ID to stop trail creation
         this.activeSkillPlayerId = null;
+        this.activeSkillId = null;
 
         // Clean up all trail sprites
         this.clearSpeedTrail();
@@ -1362,6 +1812,121 @@ export class SoccerMap extends BaseGameScene {
         this.time.delayedCall(150, () => player.clearTint());
     }
 
+    private renderBallFlames() {
+        if (!this.ballFlameActive || !this.ballFlameGraphics) return;
+
+        const elapsed = this.time.now - this.ballFlameStartTime;
+        const duration = 3000; // 3 seconds
+
+        // Deactivate after duration
+        if (elapsed > duration) {
+            this.ballFlameActive = false;
+            this.ballFlameGraphics.clear();
+            this.clearBallTrail(); // Also clear ball trail
+            console.log("Ball flames and trail deactivated after 3 seconds");
+            return;
+        }
+
+        this.ballFlameGraphics.clear();
+
+        // Create multiple flame layers
+        const baseRadius = 30;
+        const time = this.time.now / 100; // Animation speed
+
+        for (let i = 0; i < 3; i++) {
+            const offset = i * 0.5;
+            const radius = baseRadius + Math.sin(time + offset) * 5;
+            const alpha = 0.6 - i * 0.15;
+
+            // Outer orange glow
+            this.ballFlameGraphics.fillStyle(0xff6600, alpha);
+            this.ballFlameGraphics.fillCircle(
+                this.ball.x,
+                this.ball.y,
+                radius + 10 - i * 3,
+            );
+
+            // Inner red/yellow core
+            this.ballFlameGraphics.fillStyle(0xffaa00, alpha + 0.2);
+            this.ballFlameGraphics.fillCircle(
+                this.ball.x,
+                this.ball.y,
+                radius - i * 5,
+            );
+        }
+
+        // Add flame "sparks" trailing behind ball
+        const body = this.ball.body as Phaser.Physics.Arcade.Body;
+        if (body && body.velocity) {
+            const velocityAngle = Math.atan2(body.velocity.y, body.velocity.x);
+            for (let i = 0; i < 5; i++) {
+                const trailDist = 20 + i * 8;
+                const sparkX =
+                    this.ball.x - Math.cos(velocityAngle) * trailDist;
+                const sparkY =
+                    this.ball.y - Math.sin(velocityAngle) * trailDist;
+                const sparkSize = 4 - i * 0.6;
+                const sparkAlpha = 0.8 - i * 0.15;
+
+                this.ballFlameGraphics.fillStyle(0xff3300, sparkAlpha);
+                this.ballFlameGraphics.fillCircle(sparkX, sparkY, sparkSize);
+            }
+        }
+    }
+
+    private createBallTrail(time: number) {
+        if (!this.ballTrailActive) return;
+
+        const trailInterval = 1; // ms between trail sprites
+        const trailFadeDuration = 300; // ms for fade animation
+
+        // Create trail sprite at intervals
+        if (time - this.ballTrailTimer > trailInterval) {
+            this.ballTrailTimer = time;
+
+            // Create a trail sprite at ball's current position
+            const trailSprite = this.add.sprite(
+                this.ball.x,
+                this.ball.y,
+                "ball", // Use "ball" texture directly
+            );
+            trailSprite.setScale(this.ball.scaleX, this.ball.scaleY);
+            trailSprite.setDepth(99); // High depth to be visible above floor layers
+            trailSprite.setAlpha(0.3);
+            trailSprite.setTintFill(0xff6600); // Orange/red tint
+
+            this.ballTrailSprites.push(trailSprite);
+
+            console.log("Ball trail sprite created:", {
+                count: this.ballTrailSprites.length,
+                position: { x: this.ball.x, y: this.ball.y },
+                depth: trailSprite.depth,
+            });
+
+            // Fade out and destroy
+            this.tweens.add({
+                targets: trailSprite,
+                alpha: 0,
+                duration: trailFadeDuration,
+                ease: "Power2",
+                onComplete: () => {
+                    trailSprite.destroy();
+                    const index = this.ballTrailSprites.indexOf(trailSprite);
+                    if (index > -1) {
+                        this.ballTrailSprites.splice(index, 1);
+                    }
+                },
+            });
+        }
+    }
+
+    private clearBallTrail() {
+        // Destroy all existing trail sprites
+        this.ballTrailSprites.forEach((sprite) => sprite.destroy());
+        this.ballTrailSprites = [];
+        this.ballTrailActive = false;
+    }
+
     private async checkSoccerStats() {
         try {
             const stats = await getSoccerStats();
@@ -1450,6 +2015,13 @@ export class SoccerMap extends BaseGameScene {
             0,
             0,
         );
+        const floorMarkings2Layer = map.createLayer(
+            "FloorMarkings2",
+            allTilesets,
+            0,
+            0,
+        );
+
         const goalsLayer = map.createLayer("Goals", allTilesets, 0, 0);
         const circleLayer = map.createLayer("Circle", allTilesets, 0, 0);
         goalsLayer?.setDepth(100);
@@ -1458,19 +2030,14 @@ export class SoccerMap extends BaseGameScene {
         this.floorLayer = floorLayer;
         this.goalsLayer = goalsLayer;
         this.circleLayer = circleLayer;
+        this.floorMarkings2Layer = floorMarkings2Layer;
 
         if (floorMarkingsLayer) {
             layers.set("Floor_Markings_Layer", floorMarkingsLayer);
             this.floorMarkingsLayer = floorMarkingsLayer;
         }
 
-        const collisionLayer = map.getObjectLayer("CollisionLayer");
-        if (collisionLayer) {
-            this.collisionObjects = collisionLayer.objects.filter(
-                (obj) => obj.name === "collision",
-            );
-        }
-
+        void this.floorMarkings2Layer;
         return layers;
     }
 
