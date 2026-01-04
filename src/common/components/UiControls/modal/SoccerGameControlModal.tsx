@@ -9,7 +9,7 @@ interface SoccerGameControlModalProps {
 interface Player {
   id: string;
   name: string;
-  team: "red" | "blue" | null;
+  team: "red" | "blue" | "spectator" | null;
 }
 
 export function SoccerGameControlModal({
@@ -33,7 +33,7 @@ export function SoccerGameControlModal({
     // Listen for team assignments
     const handleTeamAssigned = (data: {
       playerId: string;
-      team: "red" | "blue" | null;
+      team: "red" | "blue" | "spectator" | null;
     }) => {
       setPlayers((prev) =>
         prev.map((p) =>
@@ -49,7 +49,7 @@ export function SoccerGameControlModal({
     };
   }, [isOpen]);
 
-  const assignTeam = (playerId: string, team: "red" | "blue" | null) => {
+  const assignTeam = (playerId: string, team: "red" | "blue" | "spectator" | null) => {
     const multiplayer = window.__MULTIPLAYER__;
     if (!multiplayer) return;
 
@@ -67,8 +67,8 @@ export function SoccerGameControlModal({
     const multiplayer = window.__MULTIPLAYER__;
     if (!multiplayer) return;
 
-    // Reset game (score, ball, players) and start timer
-    multiplayer.socket.emit("soccer:resetGame");
+    // Trigger selection phase and subsequent game start
+    multiplayer.socket.emit("soccer:startGame");
 
     // Close the modal
     onClose();
@@ -89,7 +89,7 @@ export function SoccerGameControlModal({
     e.preventDefault(); // Required to allow drop
   };
 
-  const handleDrop = (team: "red" | "blue" | null) => {
+  const handleDrop = (team: "red" | "blue" | "spectator" | null) => {
     if (draggedPlayer) {
       assignTeam(draggedPlayer.id, team);
       setDraggedPlayer(null);
@@ -100,11 +100,12 @@ export function SoccerGameControlModal({
 
   const redTeam = players.filter((p) => p.team === "red");
   const blueTeam = players.filter((p) => p.team === "blue");
-  const unassigned = players.filter((p) => !p.team);
+  // Merge null and spectator into one group
+  const spectators = players.filter((p) => !p.team || p.team === "spectator");
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div className="w-full max-w-2xl bg-neutral-900 border border-neutral-700 rounded-xl shadow-2xl p-6 animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+      <div className="w-full max-w-4xl bg-neutral-900 border border-neutral-700 rounded-xl shadow-2xl p-6 animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-bold text-white flex items-center gap-2">
             <Trophy className="w-5 h-5 text-amber-500" />
@@ -144,10 +145,10 @@ export function SoccerGameControlModal({
         </div>
 
         {/* Team Assignment */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-3 gap-6">
           {/* Red Team */}
           <div
-            className="bg-neutral-800/50 border border-neutral-700 rounded-lg p-4"
+            className="bg-neutral-800/50 border border-neutral-700 rounded-lg p-4 flex flex-col"
             onDragOver={handleDragOver}
             onDrop={() => handleDrop("red")}
           >
@@ -155,7 +156,7 @@ export function SoccerGameControlModal({
               <div className="w-3 h-3 bg-red-500 rounded-full" />
               Red Team ({redTeam.length})
             </h3>
-            <div className="space-y-2 min-h-[100px]">
+            <div className="space-y-2 flex-1 min-h-[200px]">
               {redTeam.length === 0 ? (
                 <p className="text-xs text-neutral-500 italic">No players</p>
               ) : (
@@ -168,9 +169,9 @@ export function SoccerGameControlModal({
                   >
                     <span className="truncate">{player.name}</span>
                     <button
-                      onClick={() => assignTeam(player.id, null)}
+                      onClick={() => assignTeam(player.id, "spectator")}
                       className="text-xs text-neutral-400 hover:text-white transition-colors"
-                      title="Remove from team"
+                      title="Move to spectators"
                     >
                       <X size={14} />
                     </button>
@@ -180,50 +181,9 @@ export function SoccerGameControlModal({
             </div>
           </div>
 
-          {/* Unassigned */}
-          <div
-            className="bg-neutral-800/50 border border-neutral-700 rounded-lg p-4"
-            onDragOver={handleDragOver}
-            onDrop={() => handleDrop(null)}
-          >
-            <h3 className="text-sm font-semibold text-neutral-400 mb-3">
-              Unassigned ({unassigned.length})
-            </h3>
-            <div className="space-y-2 min-h-[100px]">
-              {unassigned.length === 0 ? (
-                <p className="text-xs text-neutral-500 italic">All assigned</p>
-              ) : (
-                unassigned.map((player) => (
-                  <div
-                    key={player.id}
-                    draggable
-                    onDragStart={() => handleDragStart(player)}
-                    className="bg-neutral-700/50 rounded p-2 text-sm cursor-move hover:bg-neutral-700 transition-colors"
-                  >
-                    <div className="text-white mb-2 truncate">{player.name}</div>
-                    <div className="flex gap-1">
-                      <button
-                        onClick={() => assignTeam(player.id, "red")}
-                        className="flex-1 px-2 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-400 text-xs rounded transition-colors"
-                      >
-                        Red
-                      </button>
-                      <button
-                        onClick={() => assignTeam(player.id, "blue")}
-                        className="flex-1 px-2 py-1 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 text-xs rounded transition-colors"
-                      >
-                        Blue
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-
           {/* Blue Team */}
           <div
-            className="bg-neutral-800/50 border border-neutral-700 rounded-lg p-4"
+            className="bg-neutral-800/50 border border-neutral-700 rounded-lg p-4 flex flex-col"
             onDragOver={handleDragOver}
             onDrop={() => handleDrop("blue")}
           >
@@ -231,7 +191,7 @@ export function SoccerGameControlModal({
               <div className="w-3 h-3 bg-blue-500 rounded-full" />
               Blue Team ({blueTeam.length})
             </h3>
-            <div className="space-y-2 min-h-[100px]">
+            <div className="space-y-2 flex-1 min-h-[200px]">
               {blueTeam.length === 0 ? (
                 <p className="text-xs text-neutral-500 italic">No players</p>
               ) : (
@@ -244,12 +204,54 @@ export function SoccerGameControlModal({
                   >
                     <span className="truncate">{player.name}</span>
                     <button
-                      onClick={() => assignTeam(player.id, null)}
+                      onClick={() => assignTeam(player.id, "spectator")}
                       className="text-xs text-neutral-400 hover:text-white transition-colors"
-                      title="Remove from team"
+                      title="Move to spectators"
                     >
                       <X size={14} />
                     </button>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* Spectators (Unified) */}
+          <div
+            className="bg-neutral-800/50 border border-neutral-700 rounded-lg p-4 flex flex-col"
+            onDragOver={handleDragOver}
+            onDrop={() => handleDrop("spectator")}
+          >
+            <h3 className="text-sm font-semibold text-neutral-500 mb-3 flex items-center gap-2 uppercase tracking-widest">
+              <div className="w-3 h-3 bg-neutral-600 rounded-full" />
+              Spectators ({spectators.length})
+            </h3>
+            <div className="space-y-2 flex-1 min-h-[200px]">
+              {spectators.length === 0 ? (
+                <p className="text-xs text-neutral-500 italic">No spectators</p>
+              ) : (
+                spectators.map((player) => (
+                  <div
+                    key={player.id}
+                    draggable
+                    onDragStart={() => handleDragStart(player)}
+                    className="bg-neutral-700/50 rounded p-2 text-sm text-white flex items-center justify-between cursor-move hover:bg-neutral-700 transition-colors"
+                  >
+                    <span className="truncate">{player.name}</span>
+                    <div className="flex gap-1">
+                        <button
+                        onClick={() => assignTeam(player.id, "red")}
+                        className="text-[10px] bg-red-500/20 px-2 py-0.5 rounded text-red-400 hover:bg-red-500/40 font-bold"
+                        >
+                        RED
+                        </button>
+                        <button
+                        onClick={() => assignTeam(player.id, "blue")}
+                        className="text-[10px] bg-blue-500/20 px-2 py-0.5 rounded text-blue-400 hover:bg-blue-500/40 font-bold"
+                        >
+                        BLUE
+                        </button>
+                    </div>
                   </div>
                 ))
               )}

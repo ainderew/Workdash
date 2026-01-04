@@ -44,7 +44,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     // The Outline Sprite
     public teamGlow: Phaser.GameObjects.Sprite | null = null;
-    public team: "red" | "blue" | null = null;
+    public team: "red" | "blue" | "spectator" | null = null;
 
     public isAttacking: boolean;
     public isRaisingHand: boolean = false;
@@ -74,6 +74,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     kartKey?: Phaser.Input.Keyboard.Key;
     public isKartMode: boolean = false;
     public isGhosted: boolean = false;
+    public isSpectator: boolean = false;
 
     constructor(
         scene: Scene,
@@ -367,8 +368,15 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         this.statusCircle.setScale(displayRadius / drawRadius);
     }
 
-    public setTeam(team: "red" | "blue" | null) {
+    public setTeam(team: "red" | "blue" | "spectator" | null) {
         this.team = team;
+
+        if (team === "spectator") {
+            this.setAlpha(0.5);
+        } else {
+            this.setAlpha(1.0);
+        }
+
         this.updateTeamGlow();
     }
 
@@ -378,7 +386,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             this.teamGlow = null;
         }
 
-        if (this.team) {
+        if (this.team === "red" || this.team === "blue") {
             this.teamGlow = this.scene.add.sprite(
                 this.x,
                 this.y,
@@ -553,9 +561,14 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         this.uiContainer.setPosition(this.x, this.y - 40);
 
         // --- GHOST EFFECT ---
-        if (this.isGhosted) {
-            this.setAlpha(0.4);
-            this.setTint(0x000000); // Black tint for shadow look
+        // Treat unassigned (null) same as spectator
+        if (this.isGhosted || this.isSpectator) {
+            this.setAlpha(this.isGhosted ? 0.4 : 0.5);
+            if (this.isGhosted) {
+                this.setTint(0x000000); // Black tint for shadow look
+            } else {
+                this.clearTint();
+            }
         } else {
             this.setAlpha(1.0);
             this.clearTint();

@@ -1,11 +1,13 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import usePlayersStore from "@/common/store/playerStore";
 import useUiStore from "@/common/store/uiStore";
 import { BaseGameScene } from "./BaseGameScene";
 import { Player } from "../player/player";
 import { Ball } from "../soccer/Ball";
 import { getSoccerStats } from "@/lib/api/soccer-stats";
+import useSoccerStore from "@/common/store/soccerStore";
 
-interface SkillConfig {
+export interface SkillConfig {
     id: string;
     name: string;
     description: string;
@@ -45,9 +47,10 @@ export class SoccerMap extends BaseGameScene {
     private metaVisionGraphics: Phaser.GameObjects.Graphics | null = null;
     private kickRangeGraphics: Phaser.GameObjects.Graphics | null = null;
     private skillCooldownText: Phaser.GameObjects.Text | null = null;
+    private collisionObjects: Phaser.Types.Tilemaps.TiledObject[] = [];
 
     private activeSkillPlayerId: string | null = null;
-    private activeSkillVisualConfig: any = null;
+    private activeSkillVisualConfig: SkillConfig["clientVisuals"] | null = null;
     private trailSprites: Phaser.GameObjects.Sprite[] = [];
     private trailTimer: number = 0;
     private grayscaleEffects: Map<
@@ -116,6 +119,8 @@ export class SoccerMap extends BaseGameScene {
     update(time: number): void {
         super.update(time);
 
+        const isSelectionPhaseActive = useSoccerStore.getState().isSelectionPhaseActive;
+
         // FIX: Check for pending teams every frame until they are assigned
         this.processPendingTeams();
 
@@ -129,12 +134,24 @@ export class SoccerMap extends BaseGameScene {
 
         if (this.isMultiplayerMode) {
             this.ball.update();
-            this.drawKickRange();
-            this.handleMultiplayerKickInput();
-            this.handleSkillInput();
-            this.handleBlinkInput();
-            this.handleMetaVisionInput();
-            this.handleNinjaStepInput();
+
+            // Skip inputs during selection phase
+            if (!isSelectionPhaseActive) {
+                const isGameActive = useSoccerStore.getState().isGameActive;
+                this.drawKickRange();
+                this.handleMultiplayerKickInput();
+
+                if (isGameActive) {
+                    // During active game, all skills are on Q
+                    this.handleUnifiedSkillInput();
+                } else {
+                    // Lobby mode: original hotkeys
+                    this.handleSkillInput();
+                    this.handleBlinkInput();
+                    this.handleMetaVisionInput();
+                    this.handleNinjaStepInput();
+                }
+            }
 
             if (this.isMetaVisionActive) {
                 this.drawTrajectory();
@@ -236,6 +253,16 @@ export class SoccerMap extends BaseGameScene {
 
                 // Sync ghosted state
                 player.isGhosted = !!update.isGhosted;
+                player.isSpectator = !!update.isSpectator;
+
+                // Update collision state based on team
+                if (player.isSpectator) {
+                    if (player.body) {
+                        player.body.enable = true;
+                        // For spectators, we might want them to still move but not collide
+                        // Actually, easiest is to let them move but disable their interaction in physics groups
+                    }
+                }
 
                 if (player.isLocal) {
                     const dist = Phaser.Math.Distance.Between(
@@ -284,21 +311,84 @@ export class SoccerMap extends BaseGameScene {
             },
         );
 
-        socket.on(
-            "soccer:teamAssigned",
-            (data: { playerId: string; team: "red" | "blue" | null }) => {
-                // Update player sprite glow
-                const player = this.players.get(data.playerId);
-                if (player) {
-                    player.setTeam(data.team);
-                    // Also remove from pending if we happen to get a live update
-                    this.pendingTeams.delete(data.playerId);
-                } else if (data.team) {
-                    // If we get a live update for a player we haven't rendered yet
-                    this.pendingTeams.set(data.playerId, data.team);
-                }
-            },
-        );
+        socket.on("soccer:teamAssigned", (data: { playerId: string; team: "red" | "blue" | "spectator" | null }) => {
+            // Update player sprite glow
+            const player = this.players.get(data.playerId);
+            if (player) {
+                player.setTeam(data.team as any);
+                // Also remove from pending if we happen to get a live update
+                this.pendingTeams.delete(data.playerId);
+            } else if (data.team) {
+                // If we get a live update for a player we haven't rendered yet
+                this.pendingTeams.set(data.playerId, data.team as any);
+            }
+        });
+
+        socket.on("soccer:startMidGamePick", (data: { availableSkills: string[] }) => {
+            console.log("Mid-game Skill Pick Started", data);
+            useSoccerStore.getState().setAvailableSkillIds(data.availableSkills);
+            useSoccerStore.getState().setSelectionPhaseActive(true);
+            useSoccerStore.getState().setCurrentPickerId(this.localPlayerId);
+            useSoccerStore.getState().setSelectionTurnEndTime(Date.now() + 30000);
+        });
+
+        // Skill Selection Events
+        socket.on("soccer:selectionPhaseStarted", (data: { order: string[]; availableSkills: string[] }) => {
+            console.log("Skill Selection Started", data);
+            useSoccerStore.getState().resetSelection();
+            useSoccerStore.getState().setSelectionOrder(data.order);
+            useSoccerStore.getState().setAvailableSkillIds(data.availableSkills);
+            useSoccerStore.getState().setSelectionPhaseActive(true);
+        });
+
+        socket.on("soccer:selectionUpdate", (data: { currentPickerId: string; endTime: number; availableSkills: string[] }) => {
+            console.log("Selection Update", data);
+            useSoccerStore.getState().setCurrentPickerId(data.currentPickerId);
+            useSoccerStore.getState().setSelectionTurnEndTime(data.endTime);
+            useSoccerStore.getState().setAvailableSkillIds(data.availableSkills);
+        });
+
+        socket.on("soccer:skillPicked", (data: { playerId: string; skillId: string; availableSkills: string[] }) => {
+            console.log("Skill Picked", data);
+            useSoccerStore.getState().setPlayerPick(data.playerId, data.skillId);
+            useSoccerStore.getState().setAvailableSkillIds(data.availableSkills);
+
+            if (data.playerId === this.localPlayerId) {
+                useSoccerStore.getState().setSelectionPhaseActive(false);
+            }
+        });
+
+        socket.on("soccer:gameStarted", (data: { duration: number }) => {
+            console.log("Game Started", data);
+            useSoccerStore.getState().setSelectionPhaseActive(false);
+            useSoccerStore.getState().setGameActive(true);
+        });
+
+        socket.on("soccer:gameEnd", (data: any) => {
+            console.log("Game Ended", data);
+            useSoccerStore.getState().setGameActive(false);
+            useSoccerStore.getState().resetSelection();
+        });
+
+        socket.on("soccer:gameReset", () => {
+            useSoccerStore.getState().setGameActive(false);
+            useSoccerStore.getState().resetSelection();
+        });
+
+        // Request initial game state
+        socket.emit("soccer:requestGameState", (state: any) => {
+            console.log("Initial game state received:", state);
+            useSoccerStore.getState().setGameActive(!!state.isGameActive);
+            if (state.gameStatus === "SKILL_SELECTION") {
+                useSoccerStore.getState().setSelectionPhaseActive(true);
+            }
+            // Sync any existing picks
+            if (state.playerPicks) {
+                Object.entries(state.playerPicks).forEach(([pid, sid]) => {
+                    useSoccerStore.getState().setPlayerPick(pid, sid as string);
+                });
+            }
+        });
 
         // Listen for skill activation
         socket.on(
@@ -389,13 +479,76 @@ export class SoccerMap extends BaseGameScene {
 
     private sendPlayerInputs() {
         if (!this.multiplayer) return;
+
+        // Block movement during skill selection
+        if (useSoccerStore.getState().isSelectionPhaseActive) {
+            this.multiplayer.socket.emit("playerInput", {
+                up: false,
+                down: false,
+                left: false,
+                right: false,
+            });
+            return;
+        }
+
+        const localPlayer = this.players.get(this.localPlayerId);
+
         const cursors = this.input.keyboard?.createCursorKeys();
         const wasd = this.input.keyboard?.addKeys("W,A,S,D") as any;
+        
+        let up = cursors?.up.isDown || wasd?.W?.isDown;
+        let down = cursors?.down.isDown || wasd?.S?.isDown;
+        let left = cursors?.left.isDown || wasd?.A?.isDown;
+        let right = cursors?.right.isDown || wasd?.D?.isDown;
+
+        // Local collision clamping
+        if (localPlayer) {
+            const nextX = localPlayer.x + (right ? 10 : 0) - (left ? 10 : 0);
+            const nextY = localPlayer.y + (down ? 10 : 0) - (up ? 10 : 0);
+            const radius = 30;
+
+            for (const obj of this.collisionObjects) {
+                const ox = obj.x! as number;
+                const oy = obj.y! as number;
+                const ow = obj.width! as number;
+                const oh = obj.height! as number;
+
+                // Check collision with next position
+                const cX = Math.max(ox, Math.min(nextX, ox + ow));
+                const cY = Math.max(oy, Math.min(nextY, oy + oh));
+                const dist = Phaser.Math.Distance.Between(nextX, nextY, cX, cY);
+
+                if (dist < radius) {
+                    // Block specific directions
+                    if (right) {
+                        const tCX = Math.max(ox, Math.min(localPlayer.x + 10, ox + ow));
+                        const tDist = Phaser.Math.Distance.Between(localPlayer.x + 10, localPlayer.y, tCX, localPlayer.y);
+                        if (tDist < radius) right = false;
+                    }
+                    if (left) {
+                        const tCX = Math.max(ox, Math.min(localPlayer.x - 10, ox + ow));
+                        const tDist = Phaser.Math.Distance.Between(localPlayer.x - 10, localPlayer.y, tCX, localPlayer.y);
+                        if (tDist < radius) left = false;
+                    }
+                    if (down) {
+                        const tCY = Math.max(oy, Math.min(localPlayer.y + 10, oy + oh));
+                        const tDist = Phaser.Math.Distance.Between(localPlayer.x, localPlayer.y + 10, localPlayer.x, tCY);
+                        if (tDist < radius) down = false;
+                    }
+                    if (up) {
+                        const tCY = Math.max(oy, Math.min(localPlayer.y - 10, oy + oh));
+                        const tDist = Phaser.Math.Distance.Between(localPlayer.x, localPlayer.y - 10, localPlayer.x, tCY);
+                        if (tDist < radius) up = false;
+                    }
+                }
+            }
+        }
+
         const input = {
-            up: cursors?.up.isDown || wasd?.W?.isDown,
-            down: cursors?.down.isDown || wasd?.S?.isDown,
-            left: cursors?.left.isDown || wasd?.A?.isDown,
-            right: cursors?.right.isDown || wasd?.D?.isDown,
+            up,
+            down,
+            left,
+            right,
         };
         this.multiplayer.socket.emit("playerInput", input);
     }
@@ -457,11 +610,22 @@ export class SoccerMap extends BaseGameScene {
 
     // ... (Remaining Local/Offline Methods kept same as provided) ...
     private setupLocalPhysics() {
-        this.physics.add.collider(this.playersLayer, this.playersLayer);
+        this.physics.add.collider(this.playersLayer, this.playersLayer, (p1, p2) => {
+            const player1 = p1 as Player;
+            const player2 = p2 as Player;
+            // Skip collision if either is spectator
+            if (player1.team === "spectator" || player2.team === "spectator") {
+                return false;
+            }
+            return true;
+        });
         this.physics.add.collider(
             this.playersLayer,
             this.ball,
-            (ball) => {
+            (ball, player) => {
+                const playerSprite = player as Player;
+                if (playerSprite.team === "spectator") return;
+
                 const ballSprite = ball as Ball;
                 const maxSpeed = 150;
                 const velocity = ballSprite.body!.velocity;
@@ -469,7 +633,10 @@ export class SoccerMap extends BaseGameScene {
                     velocity.normalize().scale(maxSpeed);
                 }
             },
-            (ball) => {
+            (ball, player) => {
+                const playerSprite = player as Player;
+                if (playerSprite.team === "spectator") return false;
+
                 (ball as Ball).setBounce(0.4);
                 return true;
             },
@@ -524,7 +691,10 @@ export class SoccerMap extends BaseGameScene {
     private handleSkillInput() {
         if (!this.skillKey || !Phaser.Input.Keyboard.JustDown(this.skillKey))
             return;
+        this.triggerSlowdown();
+    }
 
+    private triggerSlowdown() {
         // Get slowdown skill config
         const skillConfig = this.skillConfigs.get("slowdown");
         if (!skillConfig) {
@@ -561,7 +731,10 @@ export class SoccerMap extends BaseGameScene {
     private handleBlinkInput() {
         if (!this.blinkKey || !Phaser.Input.Keyboard.JustDown(this.blinkKey))
             return;
+        this.triggerBlink();
+    }
 
+    private triggerBlink() {
         // Get blink skill config
         const skillConfig = this.skillConfigs.get("blink");
         if (!skillConfig) {
@@ -601,7 +774,10 @@ export class SoccerMap extends BaseGameScene {
             !Phaser.Input.Keyboard.JustDown(this.metavisionKey)
         )
             return;
+        this.triggerMetaVision();
+    }
 
+    private triggerMetaVision() {
         const skillConfig = this.skillConfigs.get("metavision");
         if (!skillConfig) return;
 
@@ -621,11 +797,33 @@ export class SoccerMap extends BaseGameScene {
             !Phaser.Input.Keyboard.JustDown(this.ninjaStepKey)
         )
             return;
+        this.triggerNinjaStep();
+    }
 
+    private triggerNinjaStep() {
         this.multiplayer?.socket.emit("soccer:activateSkill", {
             playerId: this.localPlayerId,
             skillId: "ninja_step",
         });
+    }
+
+    private handleUnifiedSkillInput() {
+        if (!this.skillKey || !Phaser.Input.Keyboard.JustDown(this.skillKey))
+            return;
+
+        const { playerPicks } = useSoccerStore.getState();
+        const assignedSkillId = playerPicks[this.localPlayerId];
+        if (!assignedSkillId) return;
+
+        if (assignedSkillId === "slowdown") {
+            this.triggerSlowdown();
+        } else if (assignedSkillId === "blink") {
+            this.triggerBlink();
+        } else if (assignedSkillId === "metavision") {
+            this.triggerMetaVision();
+        } else if (assignedSkillId === "ninja_step") {
+            this.triggerNinjaStep();
+        }
     }
 
     private drawTrajectory() {
@@ -634,7 +832,7 @@ export class SoccerMap extends BaseGameScene {
         this.metaVisionGraphics.clear();
 
         const localPlayer = this.players.get(this.localPlayerId);
-        if (!localPlayer) return;
+        if (!localPlayer || localPlayer.team === "spectator") return;
 
         const distance = Phaser.Math.Distance.Between(
             localPlayer.x,
@@ -809,6 +1007,9 @@ export class SoccerMap extends BaseGameScene {
         if (!this.kickRangeGraphics) return;
 
         this.kickRangeGraphics.clear();
+
+        const localPlayer = this.players.get(this.localPlayerId);
+        if (localPlayer?.team === "spectator") return;
 
         // Only visible when Metavision is active
         if (!this.isMetaVisionActive) return;
@@ -1262,6 +1463,14 @@ export class SoccerMap extends BaseGameScene {
             layers.set("Floor_Markings_Layer", floorMarkingsLayer);
             this.floorMarkingsLayer = floorMarkingsLayer;
         }
+
+        const collisionLayer = map.getObjectLayer("CollisionLayer");
+        if (collisionLayer) {
+            this.collisionObjects = collisionLayer.objects.filter(
+                (obj) => obj.name === "collision",
+            );
+        }
+
         return layers;
     }
 

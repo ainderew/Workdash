@@ -1,5 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useState } from "react";
 import useUiStore from "@/common/store/uiStore";
+import useSoccerStore from "@/common/store/soccerStore";
+import usePlayersStore from "@/common/store/playerStore";
 
 interface SkillConfig {
     id: string;
@@ -30,6 +33,13 @@ function SkillsHud() {
     );
     const [currentTime, setCurrentTime] = useState(Date.now());
     const currentScene = useUiStore((state) => state.currentScene);
+    const { isGameActive, playerPicks } = useSoccerStore();
+    const localPlayerId = window.__MULTIPLAYER__?.socket?.id;
+    const playerMap = usePlayersStore.getState().playerMap;
+    const localPlayer = localPlayerId ? playerMap[localPlayerId] : null;
+    const isSpectator = localPlayer?.team === "spectator";
+
+    const assignedSkillId = localPlayerId ? playerPicks[localPlayerId] : null;
 
     useEffect(() => {
         // Only request skills when in SoccerMap scene
@@ -45,7 +55,6 @@ function SkillsHud() {
         }
 
         const socket = multiplayer.socket;
-        const localPlayerId = socket.id;
 
         console.log("Skills HUD: Requesting skill configs...");
 
@@ -57,19 +66,15 @@ function SkillsHud() {
 
         // Helper to trigger cooldown update
         const triggerCooldown = (targetSkillId: string) => {
-            setSkills((currentSkills) => {
-                const skill = currentSkills.find((s) => s.id === targetSkillId);
-                if (skill) {
-                    setCooldowns((prev) => {
-                        const newCooldowns = new Map(prev);
-                        newCooldowns.set(targetSkillId, {
-                            lastUsed: Date.now(),
-                            cooldownMs: skill.cooldownMs,
-                        });
-                        return newCooldowns;
-                    });
-                }
-                return currentSkills;
+            setCooldowns((prev) => {
+                const skill = skills.find(s => s.id === targetSkillId);
+                if (!skill) return prev;
+                const newCooldowns = new Map(prev);
+                newCooldowns.set(targetSkillId, {
+                    lastUsed: Date.now(),
+                    cooldownMs: skill.cooldownMs,
+                });
+                return newCooldowns;
             });
         };
 
@@ -87,7 +92,6 @@ function SkillsHud() {
         };
 
         // Listen for blink specific activation
-        // The blink event structure differs and doesn't always carry skillId
         const handleBlinkActivated = (data: {
             activatorId: string;
             fromX: number;
@@ -97,7 +101,6 @@ function SkillsHud() {
             visualConfig: any;
         }) => {
             if (data.activatorId === localPlayerId) {
-                // We know this event corresponds to the "blink" skill ID
                 triggerCooldown("blink");
             }
         };
@@ -109,7 +112,7 @@ function SkillsHud() {
             socket.off("soccer:skillActivated", handleSkillActivated);
             socket.off("soccer:blinkActivated", handleBlinkActivated);
         };
-    }, [currentScene]);
+    }, [currentScene, localPlayerId, skills]);
 
     // Update current time for cooldown display
     useEffect(() => {
@@ -121,17 +124,25 @@ function SkillsHud() {
     }, []);
 
     // Only show when in SoccerMap scene
-    if (currentScene !== "SoccerMap") {
+    if (currentScene !== "SoccerMap" || isSpectator) {
         return null;
     }
-    if (skills.length === 0) {
+
+    // Filter skills: 
+    // - If no game is active, show all available skills.
+    // - If game is active, show only the assigned skill.
+    const visibleSkills = isGameActive
+        ? (assignedSkillId ? skills.filter((s) => s.id === assignedSkillId) : [])
+        : skills;
+
+    if (visibleSkills.length === 0) {
         return null;
     }
 
     return (
         <div className="absolute bottom-24 left-1/2 transform -translate-x-1/2 z-50">
             <div className="flex gap-2 pointer-events-auto">
-                {skills.map((skill) => {
+                {visibleSkills.map((skill) => {
                     const cooldown = cooldowns.get(skill.id);
                     const isOnCooldown = cooldown
                         ? currentTime - cooldown.lastUsed < cooldown.cooldownMs
@@ -162,6 +173,7 @@ function SkillsHud() {
                             isOnCooldown={isOnCooldown}
                             remainingTime={remainingTime}
                             cooldownPercent={cooldownPercent}
+                            isGameActive={isGameActive}
                         />
                     );
                 })}
@@ -175,6 +187,7 @@ interface SkillIconProps {
     isOnCooldown: boolean;
     remainingTime: number;
     cooldownPercent: number;
+    isGameActive: boolean;
 }
 
 function SkillIcon({
@@ -182,6 +195,7 @@ function SkillIcon({
     isOnCooldown,
     remainingTime,
     cooldownPercent,
+    isGameActive,
 }: SkillIconProps) {
     // Get skill color based on type (from visual config)
     const getSkillColor = () => {
@@ -197,13 +211,13 @@ function SkillIcon({
     };
 
     const skillColor = getSkillColor();
+    const displayHotkey = isGameActive ? "Q" : skill.keyBinding;
 
     // Get skill icon path
     const getSkillIconPath = () => {
         const iconKey = skill.clientVisuals.iconKey || "time_dilation";
         return `/assets/skills/${iconKey}.jpg`;
     };
-
 
     return (
         <div className="relative group">
@@ -257,7 +271,7 @@ function SkillIcon({
                 {/* Key binding indicator */}
                 <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-neutral-900 border-2 border-neutral-600 rounded flex items-center justify-center">
                     <span className="text-xs font-bold text-neutral-300">
-                        {skill.keyBinding}
+                        {displayHotkey}
                     </span>
                 </div>
 
@@ -328,7 +342,7 @@ function SkillIcon({
                                     <span className="text-[#7a7e81] text-[11px] font-bold uppercase tracking-wider">Hotkey:</span>
                                 </div>
                                 <span className="text-[#e1d6b5] font-mono font-bold text-xs bg-[#2c3035] px-2 py-0.5 rounded border border-[#3c3f42] shadow-inner">
-                                    {skill.keyBinding}
+                                    {displayHotkey}
                                 </span>
                             </div>
                         </div>

@@ -21,6 +21,7 @@ import PollDisplay from "./common/components/Poll/PollDisplay";
 import PollNotification from "./common/components/Poll/PollNotification";
 import SoccerScoreboard from "./common/components/Soccer/SoccerScoreboard";
 import SkillsHud from "./common/components/Soccer/SkillsHud";
+import SkillSelectionOverlay from "./common/components/Soccer/SkillSelectionOverlay";
 import { SoccerGameControlButton } from "./common/components/SoccerGameControl/SoccerGameControlButton";
 // import { VideoChatService } from "./communication/videoChat/videoChat";
 // import { ScreenShareService } from "./communication/screenShare/screenShare";
@@ -158,6 +159,7 @@ function App() {
             <PollNotification />
             <SoccerScoreboard />
             <SkillsHud />
+            <SkillSelectionOverlay />
             <SoccerGameControlButton />
         </div>
     );
