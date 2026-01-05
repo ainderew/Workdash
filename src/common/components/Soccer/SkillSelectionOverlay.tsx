@@ -40,12 +40,13 @@ function SkillSelectionOverlay() {
     if (!isSelectionPhaseActive) return null;
 
     const isLocalTurn = currentPickerId === localPlayerId;
+    const hasLocalPicked = localPlayerId ? !!playerPicks[localPlayerId] : false;
     const currentPickerName = playerMap[currentPickerId!]?.name || "Unknown Player";
     const localPlayer = localPlayerId ? playerMap[localPlayerId] : null;
     const isSpectator = !localPlayer?.team || localPlayer?.team === "spectator";
 
     const handlePick = (skillId: string) => {
-        if (!isLocalTurn) return;
+        if (!isLocalTurn || hasLocalPicked) return;
         const multiplayer = window.__MULTIPLAYER__;
         if (multiplayer?.socket) {
             multiplayer.socket.emit("soccer:pickSkill", { skillId });
@@ -172,14 +173,22 @@ function SkillSelectionOverlay() {
                     <span>First Come, First Served</span>
                 </div>
                 {isLocalTurn ? (
-                    <div className="text-[#00ffcc] animate-pulse font-black uppercase tracking-tighter">
+                    <div className="text-[#00ffcc] animate-pulse font-black uppercase tracking-tighter text-xl">
                         It&apos;s your turn to pick!
+                    </div>
+                ) : hasLocalPicked ? (
+                    <div className="text-amber-500 font-black uppercase tracking-tighter animate-pulse">
+                        Waiting for other players to finish...
                     </div>
                 ) : isSpectator ? (
                     <div className="text-neutral-500 font-black uppercase tracking-tighter">
                         Spectating Draft
                     </div>
-                ) : null}
+                ) : (
+                    <div className="text-neutral-400 font-black uppercase tracking-tighter">
+                        {currentPickerName} is picking...
+                    </div>
+                )}
             </div>
         </div>
     );

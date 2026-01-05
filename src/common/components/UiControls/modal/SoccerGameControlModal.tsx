@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { X, RefreshCw, Trophy, Play, Shuffle } from "lucide-react";
+import { X, RefreshCw, Trophy, Play, Shuffle, History } from "lucide-react";
+import useUiStore from "@/common/store/uiStore";
 
 interface SoccerGameControlModalProps {
   isOpen: boolean;
@@ -18,6 +19,7 @@ export function SoccerGameControlModal({
 }: SoccerGameControlModalProps) {
   const [players, setPlayers] = useState<Player[]>([]);
   const [draggedPlayer, setDraggedPlayer] = useState<Player | null>(null);
+  const openMatchHistory = useUiStore((state) => state.openMatchHistoryModal);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -111,12 +113,22 @@ export function SoccerGameControlModal({
             <Trophy className="w-5 h-5 text-amber-500" />
             Soccer Game Control
           </h2>
-          <button
-            onClick={onClose}
-            className="text-neutral-400 hover:text-white transition-colors"
-          >
-            <X size={20} />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+                onClick={openMatchHistory}
+                className="flex items-center gap-2 px-3 py-1.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 hover:text-white rounded-lg transition-colors text-sm border border-neutral-700"
+                title="View Match History"
+            >
+                <History size={16} className="text-amber-500" />
+                Match History
+            </button>
+            <button
+                onClick={onClose}
+                className="text-neutral-400 hover:text-white transition-colors"
+            >
+                <X size={20} />
+            </button>
+          </div>
         </div>
 
         {/* Game Controls */}

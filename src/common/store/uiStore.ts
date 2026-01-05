@@ -31,6 +31,9 @@ interface UiState {
 
     // Soccer game control modal
     isSoccerGameControlModalOpen: boolean;
+    
+    // Match history modal
+    isMatchHistoryModalOpen: boolean;
 
     // Soccer endgame screen
     isSoccerEndgameVisible: boolean;
@@ -74,6 +77,10 @@ interface UiState {
     openSoccerGameControlModal: () => void;
     closeSoccerGameControlModal: () => void;
 
+    // Match history modal actions
+    openMatchHistoryModal: () => void;
+    closeMatchHistoryModal: () => void;
+
     // Soccer endgame screen actions
     setIsSoccerEndgameVisible: (visible: boolean) => void;
 }
@@ -95,6 +102,7 @@ const useUiStore = create<UiState>((set) => ({
     isVideoOff: true,
     isSoccerStatsModalOpen: false,
     isSoccerGameControlModalOpen: false,
+    isMatchHistoryModalOpen: false,
     isSoccerEndgameVisible: false,
 
     // Panel actions
@@ -172,6 +180,10 @@ const useUiStore = create<UiState>((set) => ({
     // Soccer game control modal actions
     openSoccerGameControlModal: () => set({ isSoccerGameControlModalOpen: true }),
     closeSoccerGameControlModal: () => set({ isSoccerGameControlModalOpen: false }),
+
+    // Match history modal actions
+    openMatchHistoryModal: () => set({ isMatchHistoryModalOpen: true }),
+    closeMatchHistoryModal: () => set({ isMatchHistoryModalOpen: false }),
 
     // Soccer endgame screen actions
     setIsSoccerEndgameVisible: (visible: boolean) => set({ isSoccerEndgameVisible: visible }),

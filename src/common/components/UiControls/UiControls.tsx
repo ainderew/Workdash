@@ -28,6 +28,7 @@ import useMessagingStore, {
 import useUiStore from "@/common/store/uiStore";
 import { SoccerStatsModal } from "./modal/SoccerStatsModal";
 import { SoccerGameControlModal } from "./modal/SoccerGameControlModal";
+import { MatchHistoryModal } from "./modal/MatchHistoryModal";
 
 function UiControls() {
     const {
@@ -62,6 +63,9 @@ function UiControls() {
 
     const isSoccerGameControlModalOpen = useUiStore((state) => state.isSoccerGameControlModalOpen);
     const closeSoccerGameControlModal = useUiStore((state) => state.closeSoccerGameControlModal);
+
+    const isMatchHistoryModalOpen = useUiStore((state) => state.isMatchHistoryModalOpen);
+    const closeMatchHistoryModal = useUiStore((state) => state.closeMatchHistoryModal);
 
     // Ref for click outside detection
     const micSelectorRef = useRef<HTMLDivElement>(null);
@@ -274,6 +278,11 @@ function UiControls() {
             <SoccerGameControlModal
                 isOpen={isSoccerGameControlModalOpen}
                 onClose={closeSoccerGameControlModal}
+            />
+
+            <MatchHistoryModal
+                isOpen={isMatchHistoryModalOpen}
+                onClose={closeMatchHistoryModal}
             />
         </div>
     );

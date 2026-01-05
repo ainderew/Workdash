@@ -458,7 +458,12 @@ export class SoccerMap extends BaseGameScene {
                     .getState()
                     .setAvailableSkillIds(data.availableSkills);
 
-                if (data.playerId === this.localPlayerId) {
+                const { selectionOrder } = useSoccerStore.getState();
+                const isInitialDraft = selectionOrder.length > 0;
+
+                // Only close overlay immediately if it's a mid-game joiner (no selection order)
+                // For initial draft, wait for soccer:gameStarted
+                if (data.playerId === this.localPlayerId && !isInitialDraft) {
                     useSoccerStore.getState().setSelectionPhaseActive(false);
                 }
             },
