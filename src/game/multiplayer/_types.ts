@@ -17,6 +17,10 @@ export interface PlayerDto {
     };
     character?: CharacterCustomization;
     currentScene?: string;
+    soccerStats?: {
+        mmr: number;
+        winStreak: number;
+    } | null;
 }
 
 export interface MovementPacket {

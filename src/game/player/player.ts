@@ -771,6 +771,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         }
     }
 
+    public setSoccerStats(stats: { mmr: number; winStreak: number } | null) {
+        this.soccerStats = stats;
+        this.initializeNameTag();
+    }
+
     public destroy() {
         if (this.teamGlow) {
             this.teamGlow.destroy();
