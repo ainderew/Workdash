@@ -32,6 +32,9 @@ interface UiState {
     // Soccer game control modal
     isSoccerGameControlModalOpen: boolean;
 
+    // Soccer endgame screen
+    isSoccerEndgameVisible: boolean;
+
     // Actions for panels
     toggleChatWindow: () => void;
     toggleMembersUi: () => void;
@@ -59,17 +62,20 @@ interface UiState {
     toggleMicSelector: () => void;
     closeMicSelector: () => void;
 
-    // Actions for video
+    // Video actions
     toggleVideoCam: () => void;
     setIsVideoOff: (isOff: boolean) => void;
 
-    // Actions for soccer stats modal
+    // Soccer stats modal actions
     openSoccerStatsModal: () => void;
     closeSoccerStatsModal: () => void;
 
-    // Actions for soccer game control modal
+    // Soccer game control modal actions
     openSoccerGameControlModal: () => void;
     closeSoccerGameControlModal: () => void;
+
+    // Soccer endgame screen actions
+    setIsSoccerEndgameVisible: (visible: boolean) => void;
 }
 
 const useUiStore = create<UiState>((set) => ({
@@ -89,6 +95,7 @@ const useUiStore = create<UiState>((set) => ({
     isVideoOff: true,
     isSoccerStatsModalOpen: false,
     isSoccerGameControlModalOpen: false,
+    isSoccerEndgameVisible: false,
 
     // Panel actions
     toggleChatWindow: () =>
@@ -165,6 +172,9 @@ const useUiStore = create<UiState>((set) => ({
     // Soccer game control modal actions
     openSoccerGameControlModal: () => set({ isSoccerGameControlModalOpen: true }),
     closeSoccerGameControlModal: () => set({ isSoccerGameControlModalOpen: false }),
+
+    // Soccer endgame screen actions
+    setIsSoccerEndgameVisible: (visible: boolean) => set({ isSoccerEndgameVisible: visible }),
 }));
 
 export default useUiStore;

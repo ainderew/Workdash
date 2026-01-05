@@ -33,7 +33,9 @@ function SkillsHud() {
     );
     const [currentTime, setCurrentTime] = useState(Date.now());
     const currentScene = useUiStore((state) => state.currentScene);
-    const { isGameActive, playerPicks } = useSoccerStore();
+    const isSoccerEndgameVisible = useUiStore((state) => state.isSoccerEndgameVisible);
+    const isGameActive = useSoccerStore((state) => state.isGameActive);
+    const playerPicks = useSoccerStore((state) => state.playerPicks);
     const localPlayerId = window.__MULTIPLAYER__?.socket?.id;
     const playerMap = usePlayersStore.getState().playerMap;
     const localPlayer = localPlayerId ? playerMap[localPlayerId] : null;
@@ -121,7 +123,7 @@ function SkillsHud() {
     }, []);
 
     // Only show when in SoccerMap scene
-    if (currentScene !== "SoccerMap" || isSpectator) {
+    if (currentScene !== "SoccerMap" || isSpectator || isSoccerEndgameVisible) {
         return null;
     }
 

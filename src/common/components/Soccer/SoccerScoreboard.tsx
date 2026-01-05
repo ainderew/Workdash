@@ -49,6 +49,7 @@ interface RankUpData {
     oldRank: string;
     newRank: string;
     badgePath: string;
+    oldBadgePath: string;
 }
 
 function getRankBadgePath(mmr: number) {
@@ -109,6 +110,15 @@ export default function SoccerScoreboard() {
     const [rankUpData, setRankUpData] = useState<RankUpData | null>(null);
     const [overtimeMessage, setOvertimeMessage] = useState<string | null>(null);
     const currentScene = useUiStore((state) => state.currentScene);
+    const isSoccerEndgameVisibleInStore = useUiStore((state) => state.isSoccerEndgameVisible);
+    const setIsSoccerEndgameVisible = useUiStore((state) => state.setIsSoccerEndgameVisible);
+
+    useEffect(() => {
+        const isVisible = !!mvp || !!rankUpData || showMmrScreen || !!gameEndMessage;
+        if (isVisible !== isSoccerEndgameVisibleInStore) {
+            setIsSoccerEndgameVisible(isVisible);
+        }
+    }, [mvp, rankUpData, showMmrScreen, gameEndMessage, isSoccerEndgameVisibleInStore, setIsSoccerEndgameVisible]);
 
     useEffect(() => {
         const multiplayer = window.__MULTIPLAYER__;
@@ -162,9 +172,8 @@ export default function SoccerScoreboard() {
                     (u) => u.playerId === socket.id,
                 );
                 if (localPlayerUpdate) {
-                    const oldRank = getRankName(
-                        localPlayerUpdate.newMmr - localPlayerUpdate.delta,
-                    );
+                    const oldMmrValue = localPlayerUpdate.newMmr - localPlayerUpdate.delta;
+                    const oldRank = getRankName(oldMmrValue);
                     const newRank = getRankName(localPlayerUpdate.newMmr);
                     if (oldRank !== newRank && localPlayerUpdate.delta > 0) {
                         localRankedUp = true;
@@ -175,6 +184,7 @@ export default function SoccerScoreboard() {
                             badgePath: getRankBadgePath(
                                 localPlayerUpdate.newMmr,
                             ),
+                            oldBadgePath: getRankBadgePath(oldMmrValue),
                         });
                     }
                 }
@@ -346,66 +356,105 @@ export default function SoccerScoreboard() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-md"
+                        className="absolute inset-0 flex items-center justify-center bg-[#0a0a0c]/95 backdrop-blur-xl"
                     >
-                        <div className="absolute inset-0 overflow-hidden">
-                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(circle_at_center,rgba(245,158,11,0.15)_0%,transparent_70%)]" />
+                        {/* Dramatic Background Elements */}
+                        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(180,40,40,0.15)_0%,transparent_70%)]" />
+                            <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')] opacity-20" />
+                            
+                            {/* Animated Particles/Embers */}
+                            {[...Array(30)].map((_, i) => (
+                                <motion.div
+                                    key={i}
+                                    initial={{ 
+                                        x: Math.random() * 100 + "%", 
+                                        y: "110%",
+                                        opacity: Math.random() * 0.5 + 0.2,
+                                        scale: Math.random() * 0.5 + 0.5
+                                    }}
+                                    animate={{ 
+                                        y: "-10%",
+                                        x: (Math.random() * 100 - 10) + "%",
+                                        opacity: 0,
+                                        rotate: 360
+                                    }}
+                                    transition={{ 
+                                        duration: Math.random() * 5 + 5, 
+                                        repeat: Infinity,
+                                        ease: "linear",
+                                        delay: Math.random() * 5
+                                    }}
+                                    className="absolute w-1 h-1 bg-amber-500/40 rounded-full blur-[1px]"
+                                />
+                            ))}
+
                             <motion.div
-                                initial={{ opacity: 0, scale: 0.5 }}
-                                animate={{ opacity: 0.05, scale: 1.2 }}
+                                initial={{ opacity: 0, scale: 0.8 }}
+                                animate={{ opacity: 0.03, scale: 1.1 }}
                                 transition={{
-                                    duration: 2,
+                                    duration: 3,
                                     repeat: Infinity,
                                     repeatType: "reverse",
                                 }}
-                                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[40rem] font-black text-amber-500 select-none"
+                                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[45rem] font-black text-white select-none pointer-events-none tracking-tighter italic"
                             >
                                 MVP
                             </motion.div>
                         </div>
 
                         <motion.div
-                            initial={{ scale: 0.9, y: 50, opacity: 0 }}
-                            animate={{ scale: 1, y: 0, opacity: 1 }}
-                            transition={{
-                                type: "spring",
-                                damping: 15,
-                                stiffness: 100,
-                            }}
-                            className="relative z-10 flex flex-col items-center max-w-5xl w-full px-4"
+                            initial={{ scale: 0.95, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            className="relative z-10 flex flex-col items-center max-w-6xl w-full px-8"
                         >
                             <motion.div
-                                initial={{ y: -20, opacity: 0 }}
+                                initial={{ y: -30, opacity: 0 }}
                                 animate={{ y: 0, opacity: 1 }}
-                                transition={{ delay: 0.3 }}
-                                className="flex flex-col items-center mb-12"
+                                transition={{ delay: 0.2 }}
+                                className="flex flex-col items-center mb-16"
                             >
-                                <div className="flex items-center gap-4 mb-2">
-                                    <div className="h-[2px] w-24 bg-gradient-to-l from-amber-500 to-transparent" />
-                                    <Crown className="text-amber-500 w-10 h-10 drop-shadow-[0_0_10px_rgba(245,158,11,0.8)]" />
-                                    <div className="h-[2px] w-24 bg-gradient-to-r from-amber-500 to-transparent" />
+                                <div className="flex items-center gap-6 mb-4">
+                                    <div className="h-[1px] w-32 bg-gradient-to-l from-amber-600 to-transparent" />
+                                    <motion.div
+                                        animate={{ 
+                                            rotateY: [0, 360],
+                                            filter: ["drop-shadow(0 0 10px rgba(217,119,6,0.5))", "drop-shadow(0 0 20px rgba(217,119,6,0.8))", "drop-shadow(0 0 10px rgba(217,119,6,0.5))"]
+                                        }}
+                                        transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+                                    >
+                                        <Crown className="text-amber-500 w-12 h-12" />
+                                    </motion.div>
+                                    <div className="h-[1px] w-32 bg-gradient-to-r from-amber-600 to-transparent" />
                                 </div>
-                                <h1 className="text-amber-500 font-black text-6xl tracking-[0.2em] uppercase italic drop-shadow-2xl">
+                                <h1 className="text-transparent bg-clip-text bg-gradient-to-b from-amber-200 via-amber-500 to-amber-800 font-black text-7xl tracking-[0.15em] uppercase italic drop-shadow-[0_5px_15px_rgba(0,0,0,0.5)]">
                                     Hero of the Match
                                 </h1>
+                                <div className="mt-2 text-amber-500/50 font-bold uppercase tracking-[0.5em] text-sm">
+                                    Outstanding Performance
+                                </div>
                             </motion.div>
 
-                            <div className="flex flex-col md:flex-row gap-16 items-center w-full justify-center">
+                            <div className="flex flex-col md:flex-row gap-20 items-center w-full justify-center">
+                                {/* Character Showcase */}
                                 <motion.div
-                                    initial={{ x: -100, opacity: 0 }}
+                                    initial={{ x: -50, opacity: 0 }}
                                     animate={{ x: 0, opacity: 1 }}
-                                    transition={{ delay: 0.5, type: "spring" }}
-                                    className="relative group"
+                                    transition={{ delay: 0.4, type: "spring", damping: 20 }}
+                                    className="relative"
                                 >
-                                    <div className="absolute inset-0 bg-amber-500/30 blur-[80px] rounded-full animate-pulse" />
+                                    {/* Epic Character Pedestal/Glow */}
+                                    <div className="absolute bottom-10 left-1/2 -translate-x-1/2 w-[300px] h-[40px] bg-amber-500/20 blur-[40px] rounded-full" />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent rounded-full blur-2xl -z-10" />
+                                    
                                     <motion.div
-                                        animate={{ y: [0, -10, 0] }}
+                                        animate={{ y: [0, -15, 0] }}
                                         transition={{
-                                            duration: 4,
+                                            duration: 5,
                                             repeat: Infinity,
                                             ease: "easeInOut",
                                         }}
-                                        className="relative w-64 h-64 md:w-80 md:h-80 scale-150 drop-shadow-[0_20px_40px_rgba(0,0,0,0.8)]"
+                                        className="relative w-72 h-72 md:w-96 md:h-96 scale-[1.7] drop-shadow-[0_30px_50px_rgba(0,0,0,0.9)]"
                                     >
                                         <CharacterPreview
                                             customization={mvp.character}
@@ -414,87 +463,97 @@ export default function SoccerScoreboard() {
                                         />
                                     </motion.div>
 
-                                    <div className="absolute -bottom-16 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 w-full">
-                                        <motion.img
-                                            initial={{ scale: 0, rotate: -20 }}
-                                            animate={{ scale: 1.2, rotate: 0 }}
-                                            transition={{
-                                                delay: 1,
-                                                type: "spring",
-                                            }}
-                                            src={getRankBadgePath(
-                                                mmrUpdates.find(
-                                                    (u) =>
-                                                        u.playerId === mvp.id,
-                                                )?.newMmr || 500,
-                                            )}
-                                            className="w-48 h-auto drop-shadow-[0_0_15px_rgba(245,158,11,0.5)] object-contain"
-                                            alt="Rank Badge"
-                                        />
-                                        <div className="text-white font-black text-5xl tracking-tighter uppercase drop-shadow-lg">
-                                            {mvp.name}
+                                    <div className="absolute -bottom-24 left-1/2 -translate-x-1/2 flex flex-col items-center gap-4 w-full">
+                                        <motion.div
+                                            initial={{ scale: 0, rotate: -30 }}
+                                            animate={{ scale: 1, rotate: 0 }}
+                                            transition={{ delay: 0.8, type: "spring" }}
+                                            className="relative"
+                                        >
+                                            <div className="absolute inset-0 bg-amber-500/40 blur-2xl rounded-full" />
+                                            <img
+                                                src={getRankBadgePath(
+                                                    mmrUpdates.find(
+                                                        (u) => u.playerId === mvp.id,
+                                                    )?.newMmr || 500,
+                                                )}
+                                                className="w-40 h-40 object-contain relative z-10"
+                                                alt="Rank Badge"
+                                            />
+                                        </motion.div>
+                                        <div className="text-center">
+                                            <div className="text-amber-500 text-xs font-bold uppercase tracking-[0.3em] mb-1 opacity-70">
+                                                The Victor
+                                            </div>
+                                            <div className="text-white font-black text-6xl tracking-tighter uppercase drop-shadow-[0_5px_10px_rgba(0,0,0,0.8)]">
+                                                {mvp.name}
+                                            </div>
                                         </div>
                                     </div>
                                 </motion.div>
 
+                                {/* Stats Column */}
                                 <motion.div
-                                    initial={{ x: 100, opacity: 0 }}
+                                    initial={{ x: 50, opacity: 0 }}
                                     animate={{ x: 0, opacity: 1 }}
-                                    transition={{ delay: 0.7, type: "spring" }}
-                                    className="flex flex-col gap-4 w-full md:w-96"
+                                    transition={{ delay: 0.6, type: "spring" }}
+                                    className="flex flex-col gap-5 w-full md:w-[400px]"
                                 >
                                     <StatRow
-                                        icon={
-                                            <Goal className="w-8 h-8 text-green-400" />
-                                        }
+                                        icon={<Goal className="w-8 h-8 text-red-500" />}
                                         label="Goals Scored"
                                         value={mvp.stats.goals}
-                                        color="text-green-400"
-                                        delay={0.9}
+                                        color="text-red-500"
+                                        delay={0.8}
+                                        description="Direct contributions to victory"
                                     />
                                     <StatRow
-                                        icon={
-                                            <Handshake className="w-8 h-8 text-blue-400" />
-                                        }
+                                        icon={<Handshake className="w-8 h-8 text-amber-500" />}
                                         label="Assists Provided"
                                         value={mvp.stats.assists}
-                                        color="text-blue-400"
-                                        delay={1.1}
+                                        color="text-amber-500"
+                                        delay={1.0}
+                                        description="Masterful team coordination"
                                     />
                                     <StatRow
-                                        icon={
-                                            <Shield className="w-8 h-8 text-purple-400" />
-                                        }
+                                        icon={<Shield className="w-8 h-8 text-blue-500" />}
                                         label="Key Interceptions"
                                         value={mvp.stats.interceptions}
-                                        color="text-purple-400"
-                                        delay={1.3}
+                                        color="text-blue-500"
+                                        delay={1.2}
+                                        description="Defensive excellence"
                                     />
 
                                     <motion.div
-                                        initial={{ scale: 0, opacity: 0 }}
+                                        initial={{ scale: 0.9, opacity: 0 }}
                                         animate={{ scale: 1, opacity: 1 }}
-                                        transition={{
-                                            delay: 1.5,
-                                            type: "spring",
-                                        }}
-                                        className="mt-4 p-4 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-between"
+                                        transition={{ delay: 1.4 }}
+                                        className="mt-6 p-6 rounded-xl bg-gradient-to-br from-amber-900/40 to-transparent border border-amber-500/30 flex items-center justify-between shadow-2xl relative overflow-hidden group"
                                     >
-                                        <div className="flex items-center gap-2">
-                                            <Star className="text-amber-500 fill-amber-500 w-5 h-5" />
-                                            <span className="text-amber-500/80 font-bold uppercase tracking-wider text-xs">
-                                                Performance Rating
+                                        <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity">
+                                            <Star className="w-20 h-20 text-amber-500 rotate-12" />
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <Star className="text-amber-500 fill-amber-500 w-4 h-4" />
+                                                <span className="text-amber-200 font-bold uppercase tracking-[0.2em] text-[10px]">
+                                                    Match Performance Rating
+                                                </span>
+                                            </div>
+                                            <div className="text-neutral-400 text-[10px] uppercase font-medium">
+                                                Overall impact assessment
+                                            </div>
+                                        </div>
+                                        <div className="relative">
+                                            <div className="absolute inset-0 bg-amber-500 blur-xl opacity-20 animate-pulse" />
+                                            <span className="text-amber-500 font-black text-5xl tracking-tighter relative z-10 italic">
+                                                {Math.round(
+                                                    (mvp.stats.goals * 10 +
+                                                        mvp.stats.assists * 5 +
+                                                        mvp.stats.interceptions * 2) / 2,
+                                                )}
                                             </span>
                                         </div>
-                                        <span className="text-amber-500 font-black text-2xl">
-                                            {Math.round(
-                                                (mvp.stats.goals * 10 +
-                                                    mvp.stats.assists * 5 +
-                                                    mvp.stats.interceptions *
-                                                        2) /
-                                                    2,
-                                            )}
-                                        </span>
                                     </motion.div>
                                 </motion.div>
                             </div>
@@ -580,21 +639,28 @@ export default function SoccerScoreboard() {
                             </motion.p>
 
                             <div className="flex items-center gap-12 mb-12">
-                                <motion.div
-                                    initial={{ x: -50, opacity: 0 }}
-                                    animate={{ x: 0, opacity: 1 }}
-                                    transition={{ delay: 0.8 }}
-                                    className="flex flex-col items-center gap-4"
-                                >
-                                    <div className="text-neutral-500 font-black text-xl uppercase italic">
-                                        Previous
-                                    </div>
-                                    <div className="bg-white/5 p-4 rounded-2xl border border-white/10 grayscale opacity-50">
-                                        <div className="text-white font-black text-2xl">
-                                            {rankUpData.oldRank}
+                                    <motion.div
+                                        initial={{ x: -50, opacity: 0 }}
+                                        animate={{ x: 0, opacity: 1 }}
+                                        transition={{ delay: 0.8 }}
+                                        className="flex flex-col items-center gap-4"
+                                    >
+                                        <div className="text-neutral-500 font-black text-xl uppercase italic">
+                                            Previous
                                         </div>
-                                    </div>
-                                </motion.div>
+                                        <div className="relative">
+                                            <div className="bg-white/5 p-4 rounded-2xl border border-white/10 grayscale opacity-30 blur-[2px]">
+                                                <img 
+                                                    src={rankUpData.oldBadgePath} 
+                                                    className="w-40 h-auto object-contain"
+                                                    alt="Old Rank Badge"
+                                                />
+                                            </div>
+                                            <div className="mt-2 text-neutral-600 font-black text-2xl uppercase tracking-tighter italic">
+                                                {rankUpData.oldRank}
+                                            </div>
+                                        </div>
+                                    </motion.div>
 
                                 <motion.div
                                     initial={{ scale: 0 }}
@@ -913,32 +979,53 @@ function StatRow({
     value,
     color,
     delay,
+    description,
 }: {
     icon: React.ReactNode;
     label: string;
     value: number;
     color: string;
     delay: number;
+    description?: string;
 }) {
     return (
         <motion.div
-            initial={{ opacity: 0, x: 20 }}
+            initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ delay }}
-            className="group flex items-center gap-6 p-5 bg-white/5 backdrop-blur-md rounded-xl border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all duration-300 shadow-xl"
+            transition={{ delay, type: "spring", damping: 20 }}
+            className={`group flex items-center gap-6 p-4 bg-[#1a1a1e]/80 backdrop-blur-md rounded-xl border-l-4 border border-white/5 hover:bg-[#25252b]/90 hover:border-white/10 transition-all duration-300 shadow-[0_10px_30px_rgba(0,0,0,0.5)] relative overflow-hidden ${color.replace("text-", "border-")}`}
         >
-            <div className="bg-black/40 p-3 rounded-lg border border-white/5 group-hover:scale-110 transition-transform duration-300">
+            {/* Animated Background Highlight */}
+            <motion.div
+                initial={{ x: "-100%" }}
+                whileHover={{ x: "100%" }}
+                transition={{ duration: 0.8, ease: "easeInOut" }}
+                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent pointer-events-none"
+            />
+
+            <div className="bg-black/60 p-4 rounded-lg border border-white/5 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 shadow-inner">
                 {icon}
             </div>
-            <div className="flex flex-col flex-1">
-                <span className="text-neutral-400 text-xs font-black uppercase tracking-widest">
+            
+            <div className="flex flex-col flex-1 relative z-10">
+                <span className="text-neutral-500 text-[10px] font-black uppercase tracking-[0.2em] mb-0.5">
                     {label}
                 </span>
                 <span
-                    className={`text-3xl font-black ${color} tracking-tighter`}
+                    className={`text-4xl font-black ${color} tracking-tighter italic drop-shadow-sm`}
                 >
                     {value}
                 </span>
+                {description && (
+                    <span className="text-[9px] text-neutral-600 font-bold uppercase tracking-wider mt-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                        {description}
+                    </span>
+                )}
+            </div>
+
+            {/* Decorative Corner */}
+            <div className="absolute top-0 right-0 w-8 h-8 opacity-10">
+                <div className="absolute top-0 right-0 border-t-2 border-r-2 border-white w-2 h-2" />
             </div>
         </motion.div>
     );
