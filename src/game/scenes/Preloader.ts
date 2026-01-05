@@ -12,7 +12,7 @@ export class Preloader extends Scene {
     }
 
     preload() {
-        this.setupLoadingBg();
+        // this.setupLoadingBg();
         const { width, height } = this.cameras.main;
 
         this.barWidth = width * 0.4;
@@ -66,17 +66,17 @@ export class Preloader extends Scene {
         this.loadGameAssets();
     }
 
-    private setupLoadingBg() {
-        const bg = this.add.image(
-            this.cameras.main.width / 2,
-            this.cameras.main.height / 2,
-            "loadingBackground",
-        );
-        const scaleX = this.cameras.main.width / bg.width;
-        const scaleY = this.cameras.main.height / bg.height;
-        const scale = Math.max(scaleX, scaleY);
-        bg.setScale(scale).setScrollFactor(0);
-    }
+    // private setupLoadingBg() {
+    //     const bg = this.add.image(
+    //         this.cameras.main.width / 2,
+    //         this.cameras.main.height / 2,
+    //         "loadingBackground",
+    //     );
+    //     const scaleX = this.cameras.main.width / bg.width;
+    //     const scaleY = this.cameras.main.height / bg.height;
+    //     const scale = Math.max(scaleX, scaleY);
+    //     bg.setScale(scale).setScrollFactor(0);
+    // }
 
     private createProgressTexture(width: number, height: number) {
         const canvas = document.createElement("canvas");
