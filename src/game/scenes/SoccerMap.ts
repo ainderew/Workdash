@@ -392,9 +392,27 @@ export class SoccerMap extends BaseGameScene {
                         update.x,
                         update.y,
                     );
-                    if (dist > 5) {
+
+                    // Increase threshold from 5px to 100px to prevent constant snapping
+                    // With latency, client is naturally ahead of server position
+                    if (dist > 100) {
+                        // Hard snap only for major desyncs (skills, collisions)
                         player.setPosition(update.x, update.y);
+                    } else if (dist > 10) {
+                        // Gentle correction for minor desyncs
+                        const newX = Phaser.Math.Interpolation.Linear(
+                            [player.x, update.x],
+                            0.1,
+                        );
+                        const newY = Phaser.Math.Interpolation.Linear(
+                            [player.y, update.y],
+                            0.1,
+                        );
+                        player.setPosition(newX, newY);
                     }
+                    // else: ignore tiny desyncs < 10px
+
+                    // Trust server velocity for physics reconciliation
                     if (player.body) {
                         (player.body as Phaser.Physics.Arcade.Body).setVelocity(
                             update.vx,
