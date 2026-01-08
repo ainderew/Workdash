@@ -3,7 +3,8 @@ import type { BallStateUpdate } from "./_types";
 
 export class Ball extends Phaser.Physics.Arcade.Sprite {
     private isMultiplayer: boolean = false;
-    private ignoreServerUpdatesUntil: number = 0;
+    private lastLocalKickSequence: number = 0;
+    private currentSequence: number = 0;
 
     public targetPos = {
         x: 0,
@@ -62,24 +63,30 @@ export class Ball extends Phaser.Physics.Arcade.Sprite {
         this.targetPos.vx = vx;
         this.targetPos.vy = vy;
 
-        // 3. Dynamic authority window: RTT * 2 (minimum 150ms, max 400ms)
-        // Extended to give more time for physics reconciliation
-        const authorityWindow = Math.min(400, Math.max(150, rtt * 2));
-        this.ignoreServerUpdatesUntil = Date.now() + authorityWindow;
+        // 3. Sequence-based authority: ignore server until it acknowledges this kick
+        this.currentSequence++;
+        this.lastLocalKickSequence = this.currentSequence;
 
         console.log(
-            `[Ball] Kick predicted, authority window: ${authorityWindow}ms (RTT: ${rtt}ms)`,
+            `[Ball] Kick predicted, sequence: ${this.lastLocalKickSequence} (RTT: ${rtt}ms)`,
         );
     }
 
     public updateFromServer(state: BallStateUpdate) {
         if (!this.isMultiplayer) return;
 
+        // Authority Check: If server hasn't seen our latest kick yet, ignore its old position
+        if (state.sequence && state.sequence < this.lastLocalKickSequence) {
+            console.log(
+                `[Ball] Ignoring server update (server seq ${state.sequence} < local seq ${this.lastLocalKickSequence})`,
+            );
+            return;
+        }
+
         // Calculate update age (how old is this data?)
         const updateAge = Date.now() - state.timestamp;
 
         // Extrapolate position based on velocity and age
-        // This compensates for network latency by predicting where the ball is NOW
         const extrapolatedX = state.x + state.vx * (updateAge / 1000);
         const extrapolatedY = state.y + state.vy * (updateAge / 1000);
 
@@ -91,14 +98,6 @@ export class Ball extends Phaser.Physics.Arcade.Sprite {
             vy: state.vy,
             t: state.timestamp,
         };
-
-        // Authority Window: Don't snap back if we just kicked locally
-        if (Date.now() < this.ignoreServerUpdatesUntil) {
-            console.log(
-                `[Ball] Ignoring server update (authority window active)`,
-            );
-            return;
-        }
 
         if (this.body) {
             const dist = Phaser.Math.Distance.Between(

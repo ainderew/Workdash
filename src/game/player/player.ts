@@ -70,6 +70,21 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     private readonly PLAYER_DRAG: number = 4;
     private kartSpeedMultiplier: number = 1.5;
     isLocal: boolean = true;
+
+    // Sequence tracking for reconciliation
+    private inputHistory: Array<{
+        sequence: number;
+        up: boolean;
+        down: boolean;
+        left: boolean;
+        right: boolean;
+    }> = [];
+    public currentSequence: number = 0;
+
+    // Visual smoothing for reconciliation snaps
+    private visualOffsetX: number = 0;
+    private visualOffsetY: number = 0;
+
     cursors?: Phaser.Types.Input.Keyboard.CursorKeys;
 
     wasd?: {
@@ -713,6 +728,20 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             }
             this.setAcceleration(ax, ay);
             this.setMaxVelocity(maxSpeed, maxSpeed);
+
+            // Record for reconciliation
+            this.inputHistory.push({
+                sequence: this.currentSequence,
+                up,
+                down,
+                left,
+                right,
+            });
+
+            // Cap history at 1 second
+            if (this.inputHistory.length > 60) {
+                this.inputHistory.shift();
+            }
         } else {
             if (vx !== 0 && vy !== 0) {
                 vx *= Math.SQRT1_2;
@@ -720,6 +749,79 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             }
             this.setVelocity(vx, vy);
         }
+    }
+
+    public reconcile(
+        serverX: number,
+        serverY: number,
+        serverVX: number,
+        serverVY: number,
+        lastSequence: number,
+    ) {
+        if (!this.isLocal || !this.body) return;
+
+        // 1. Remove history acknowledged by server
+        this.inputHistory = this.inputHistory.filter(
+            (input) => input.sequence > lastSequence,
+        );
+
+        // 2. Snap physics state to server truth
+        this.setPosition(serverX, serverY);
+        this.setVelocity(serverVX, serverVY);
+
+        // 3. Re-run all pending inputs (Fast-Forward)
+        // Since we are in the update loop, we simulate the effect of these inputs
+        // This is a simplified version; in a perfect world, we'd run a separate physics step
+        const dt = 1 / 60;
+        const speedStat = this.soccerStats?.speed ?? 0;
+        const speedMultiplier = 1.0 + speedStat * 0.1;
+        const accel = this.BASE_ACCEL * speedMultiplier;
+
+        for (const input of this.inputHistory) {
+            let ax = 0;
+            let ay = 0;
+            if (input.left) ax -= accel;
+            if (input.right) ax += accel;
+            if (input.up) ay -= accel;
+            if (input.down) ay += accel;
+
+            if (ax !== 0 && ay !== 0) {
+                ax *= Math.SQRT1_2;
+                ay *= Math.SQRT1_2;
+            }
+
+            // Apply acceleration to velocity
+            const newVX = this.body.velocity.x + ax * dt;
+            const newVY = this.body.velocity.y + ay * dt;
+
+            // Apply drag (same as server)
+            const dribblingStat = this.soccerStats?.dribbling ?? 0;
+            const dragMultiplier = Math.max(0.5, 1.0 - dribblingStat * 0.05);
+            const dragFactor = Math.exp(
+                -this.PLAYER_DRAG * dragMultiplier * dt,
+            );
+
+            this.body.velocity.x = newVX * dragFactor;
+            this.body.velocity.y = newVY * dragFactor;
+
+            // Clamp speed
+            const currentSpeed = Math.sqrt(
+                this.body.velocity.x ** 2 + this.body.velocity.y ** 2,
+            );
+            const maxSpeed = this.BASE_MAX_SPEED * speedMultiplier;
+            if (currentSpeed > maxSpeed) {
+                const scale = maxSpeed / currentSpeed;
+                this.body.velocity.x *= scale;
+                this.body.velocity.y *= scale;
+            }
+
+            // Move position
+            this.x += this.body.velocity.x * dt;
+            this.y += this.body.velocity.y * dt;
+        }
+
+        // 4. Update the physics body to match the new gameObject position
+        this.body.updateFromGameObject();
     }
 
     private applyExponentialDrag(dt: number) {

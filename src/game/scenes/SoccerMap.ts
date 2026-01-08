@@ -334,44 +334,16 @@ export class SoccerMap extends BaseGameScene {
                         }
                     }
 
-                if (player.isLocal) {
-                    // Latency-aware reconciliation for local player
-                    // 1. Calculate how "old" this server update is
-                    const ping = useUiStore.getState().ping || 0;
-                    const rttSeconds = ping / 1000;
-                    const latencyCompensation = rttSeconds / 2; // RTT to 1-way delay
-
-                    // 2. Extrapolate where the server thinks we should be NOW
-                    const extrapolatedServerX = update.x + update.vx * latencyCompensation;
-                    const extrapolatedServerY = update.y + update.vy * latencyCompensation;
-
-                    const dist = Phaser.Math.Distance.Between(
-                        player.x,
-                        player.y,
-                        extrapolatedServerX,
-                        extrapolatedServerY,
-                    );
-
-                    if (dist > 150) {
-                        // Hard snap for major desyncs
-                        player.setPosition(extrapolatedServerX, extrapolatedServerY);
-                    } else if (dist > 20) {
-                        // Gentle correction for minor desyncs
-                        const newX = Phaser.Math.Interpolation.Linear(
-                            [player.x, extrapolatedServerX],
-                            0.1,
+                    if (player.isLocal) {
+                        // Professional Sequence-Based Reconciliation
+                        player.reconcile(
+                            update.x,
+                            update.y,
+                            update.vx,
+                            update.vy,
+                            update.lastSequence || 0,
                         );
-                        const newY = Phaser.Math.Interpolation.Linear(
-                            [player.y, extrapolatedServerY],
-                            0.1,
-                        );
-                        player.setPosition(newX, newY);
-                    }
-                    // else: ignore desyncs < 20px - trust local prediction
-
-                    // Trust server velocity for internal physics body only if it's a huge difference
-                    // (prevents jitter from overwriting our active acceleration)
-                } else {
+                    } else {
                         player.targetPos = {
                             x: update.x,
                             y: update.y,
@@ -711,9 +683,17 @@ export class SoccerMap extends BaseGameScene {
         });
     }
 
-    private lastInput: { up: boolean; down: boolean; left: boolean; right: boolean } | null = null;
+    private lastInput: {
+        up: boolean;
+        down: boolean;
+        left: boolean;
+        right: boolean;
+    } | null = null;
     private sendPlayerInputs() {
         if (!this.multiplayer) return;
+
+        const player = this.players.get(this.localPlayerId);
+        if (!player) return;
 
         // Block movement during skill selection
         if (useSoccerStore.getState().isSelectionPhaseActive) {
@@ -724,7 +704,11 @@ export class SoccerMap extends BaseGameScene {
                 right: false,
             };
             if (JSON.stringify(this.lastInput) !== JSON.stringify(emptyInput)) {
-                this.multiplayer.socket.emit("playerInput", emptyInput);
+                player.currentSequence++;
+                this.multiplayer.socket.emit("playerInput", {
+                    ...emptyInput,
+                    sequence: player.currentSequence,
+                });
                 this.lastInput = emptyInput;
             }
             return;
@@ -752,7 +736,11 @@ export class SoccerMap extends BaseGameScene {
             this.lastInput.left !== input.left ||
             this.lastInput.right !== input.right
         ) {
-            this.multiplayer.socket.emit("playerInput", input);
+            player.currentSequence++;
+            this.multiplayer.socket.emit("playerInput", {
+                ...input,
+                sequence: player.currentSequence,
+            });
             this.lastInput = input;
         }
     }

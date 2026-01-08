@@ -5,6 +5,7 @@ export type BallStateUpdate = {
     vy: number;
     lastTouchId: string | null;
     timestamp: number;
+    sequence?: number;
 };
 
 export type BallKickedEvent = {
