@@ -344,13 +344,13 @@ export class SoccerMap extends BaseGameScene {
                             update.lastSequence || 0,
                         );
                     } else {
-                        player.targetPos = {
+                        player.pushSnapshot({
                             x: update.x,
                             y: update.y,
                             vx: update.vx,
                             vy: update.vy,
-                            t: timestamp,
-                        };
+                            timestamp,
+                        });
                     }
                 }
             },

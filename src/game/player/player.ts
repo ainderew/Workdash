@@ -27,6 +27,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     private isChangingSprite: boolean = false;
     public lastFacingDirection: FacingDirection = FacingDirection.DOWN;
 
+    // Visual Smoothing
+    public visualSprite: Phaser.GameObjects.Sprite;
+
     x: number;
     y: number;
     vx: number;
@@ -81,6 +84,16 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     }> = [];
     public currentSequence: number = 0;
 
+    // Snapshot Interpolation for remote players
+    private snapshotBuffer: Array<{
+        x: number;
+        y: number;
+        vx: number;
+        vy: number;
+        timestamp: number;
+    }> = [];
+    private readonly INTERPOLATION_OFFSET = 100; // 100ms render delay for smoothness
+
     // Visual smoothing for reconciliation snaps
     private visualOffsetX: number = 0;
     private visualOffsetY: number = 0;
@@ -111,6 +124,14 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         ops: { isLocal: boolean },
     ) {
         super(scene, x, y, sprite);
+
+        // --- Visual/Physics Separation ---
+        // 'this' is the physics body. We make it invisible.
+        this.setAlpha(0);
+
+        // Create the actual visible sprite
+        this.visualSprite = scene.add.sprite(x, y, sprite);
+        this.visualSprite.setDepth(10); // Match player depth
 
         this.name = name as string;
         this.availabilityStatus = availabilityStatus;
@@ -159,6 +180,52 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         }
 
         this.setupUiEventListener();
+    }
+
+    public setScale(x: number, y?: number): this {
+        super.setScale(x, y);
+        if (this.visualSprite) {
+            this.visualSprite.setScale(x, y);
+        }
+        return this;
+    }
+
+    public setFlipX(value: boolean): this {
+        if (this.visualSprite) {
+            this.visualSprite.setFlipX(value);
+        }
+        return this;
+    }
+
+    public setAlpha(value?: number): this {
+        // Keep the physics body alpha 0
+        super.setAlpha(0);
+        if (this.visualSprite && value !== undefined) {
+            this.visualSprite.setAlpha(value);
+        }
+        return this;
+    }
+
+    public setTint(color: number): this {
+        if (this.visualSprite) {
+            this.visualSprite.setTint(color);
+        }
+        return this;
+    }
+
+    public clearTint(): this {
+        if (this.visualSprite) {
+            this.visualSprite.clearTint();
+        }
+        return this;
+    }
+
+    public setDepth(value: number): this {
+        super.setDepth(value);
+        if (this.visualSprite) {
+            this.visualSprite.setDepth(value);
+        }
+        return this;
     }
 
     public changePlayerAvailabilityStatus(status: AvailabilityStatus) {
@@ -445,7 +512,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             const kartDirection = dir.toLowerCase();
             const kartAnimKey = `${this.sprite}-kart-${kartDirection}`;
             if (this.scene.anims.exists(kartAnimKey)) {
-                this.anims.play(kartAnimKey, true);
+                this.visualSprite.anims.play(kartAnimKey, true);
                 return;
             }
         }
@@ -454,11 +521,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         const animKey = IdleAnimationKeys[directionKey];
 
         if (animKey && this.scene.anims.exists(animKey)) {
-            this.anims.play(animKey, true);
+            this.visualSprite.anims.play(animKey, true);
         } else {
             const fallbackKey = IdleAnimationKeys[this.sprite];
             if (fallbackKey && this.scene.anims.exists(fallbackKey)) {
-                this.anims.play(fallbackKey, true);
+                this.visualSprite.anims.play(fallbackKey, true);
             }
         }
     }
@@ -477,7 +544,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             }
             const kartAnimKey = `${this.sprite}-kart-${direction}`;
             if (this.scene.anims.exists(kartAnimKey)) {
-                this.anims.play(kartAnimKey, true);
+                this.visualSprite.anims.play(kartAnimKey, true);
                 return;
             }
         }
@@ -485,18 +552,18 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         if (!directionKey) {
             const animKey = WalkAnimationKeys[this.sprite];
             if (animKey && this.scene.anims.exists(animKey)) {
-                this.anims.play(animKey, true);
+                this.visualSprite.anims.play(animKey, true);
             }
             return;
         }
 
         const animKey = WalkAnimationKeys[directionKey];
         if (animKey && this.scene.anims.exists(animKey)) {
-            this.anims.play(animKey, true);
+            this.visualSprite.anims.play(animKey, true);
         } else {
             const fallbackKey = WalkAnimationKeys[this.sprite];
             if (fallbackKey && this.scene.anims.exists(fallbackKey)) {
-                this.anims.play(fallbackKey, true);
+                this.visualSprite.anims.play(fallbackKey, true);
             }
         }
     }
@@ -504,7 +571,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     private attackAnimation() {
         const animKey = AttackAnimationKeys[this.sprite];
         if (animKey && this.scene.anims.exists(animKey)) {
-            this.anims.play(animKey, true);
+            this.visualSprite.anims.play(animKey, true);
         }
     }
 
@@ -538,7 +605,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
             this.sprite = characterKey;
             this.setTexture(spritesheetKey);
-            this.setFrame(0);
+            this.visualSprite.setTexture(spritesheetKey);
+            this.visualSprite.setFrame(0);
             this.idleAnimation();
 
             // IMPORTANT: Update glow texture if the player sprite changes
@@ -582,42 +650,46 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             this.interpolateRemote();
         }
 
+        // --- Visual Error Decay ---
+        // The visual sprite follows the physics body but with an offset that decays
+        this.visualSprite.x = this.x + this.visualOffsetX;
+        this.visualSprite.y = this.y + this.visualOffsetY;
+
+        // Smoothly decay the visual offset
+        // This is what makes snaps invisible
+        this.visualOffsetX *= 0.85;
+        this.visualOffsetY *= 0.85;
+
         // Apply drag matching server in multiplayer scenes (like SoccerMap)
         if (this.scene.scene.key === "SoccerMap" && this.body) {
             this.applyExponentialDrag(1 / 60);
         }
 
-        this.uiContainer.setPosition(this.x, this.y - 40);
+        this.uiContainer.setPosition(this.visualSprite.x, this.visualSprite.y - 40);
 
         // --- GHOST EFFECT ---
-        // Treat unassigned (null) same as spectator
         if (this.isGhosted || this.isSpectator) {
-            this.setAlpha(this.isGhosted ? 0.4 : 0.5);
+            this.visualSprite.setAlpha(this.isGhosted ? 0.4 : 0.5);
             if (this.isGhosted) {
-                this.setTint(0x000000); // Black tint for shadow look
+                this.visualSprite.setTint(0x000000);
             } else {
-                this.clearTint();
+                this.visualSprite.clearTint();
             }
         } else {
-            this.setAlpha(1.0);
-            this.clearTint();
+            this.visualSprite.setAlpha(1.0);
+            this.visualSprite.clearTint();
         }
 
         // --- GLOW UPDATE LOOP ---
         if (this.teamGlow && this.team) {
-            // 1. Sync Position
-            this.teamGlow.setPosition(this.x, this.y);
-
-            // 2. Sync Frame (Copy exactly what the player is doing)
-            this.teamGlow.setFrame(this.frame.name);
-            this.teamGlow.setFlipX(this.flipX);
-
-            // 3. Sync Depth (ensure it stays just behind the player if depth changes)
-            this.teamGlow.setDepth(this.depth - 1);
-
-            // 4. Scale Effect
-            // Using 1.15 to ensure it sticks out visibly around the edges
-            this.teamGlow.setScale(this.scaleX * 1.15, this.scaleY * 1.15);
+            this.teamGlow.setPosition(this.visualSprite.x, this.visualSprite.y);
+            this.teamGlow.setFrame(this.visualSprite.frame.name);
+            this.teamGlow.setFlipX(this.visualSprite.flipX);
+            this.teamGlow.setDepth(this.visualSprite.depth - 1);
+            this.teamGlow.setScale(
+                this.visualSprite.scaleX * 1.15,
+                this.visualSprite.scaleY * 1.15,
+            );
         }
     }
 
@@ -678,9 +750,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
         const attackAnimKey = AttackAnimationKeys[this.sprite];
         const isAnimateAttacking =
-            this.anims.currentAnim?.key === attackAnimKey;
+            this.visualSprite.anims.currentAnim?.key === attackAnimKey;
 
-        if (isAnimateAttacking && this.anims.isPlaying) {
+        if (isAnimateAttacking && this.visualSprite.anims.isPlaying) {
             return;
         }
 
@@ -690,24 +762,24 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
         if (left || right || up || down) {
             if (up) {
-                this.setFlipX(false);
+                this.visualSprite.setFlipX(false);
                 this.lastFacingDirection = FacingDirection.UP;
                 this.playWalkAnimation(`${this.sprite}_UP`, this.isKartMode);
             } else if (down) {
-                this.setFlipX(false);
+                this.visualSprite.setFlipX(false);
                 this.lastFacingDirection = FacingDirection.DOWN;
                 this.playWalkAnimation(`${this.sprite}_DOWN`, this.isKartMode);
             } else if (left) {
-                this.setFlipX(false);
+                this.visualSprite.setFlipX(false);
                 this.lastFacingDirection = FacingDirection.LEFT;
                 this.playWalkAnimation(`${this.sprite}_LEFT`, this.isKartMode);
             } else if (right) {
-                this.setFlipX(false);
+                this.visualSprite.setFlipX(false);
                 this.lastFacingDirection = FacingDirection.RIGHT;
                 this.playWalkAnimation(`${this.sprite}_RIGHT`, this.isKartMode);
             }
         } else if (space) {
-            const currentAnimKey = this.anims.currentAnim?.key;
+            const currentAnimKey = this.visualSprite.anims.currentAnim?.key;
             if (currentAnimKey !== attackAnimKey) {
                 this.isAttacking = true;
                 this.attackAnimation();
@@ -715,7 +787,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         } else {
             const idleAnimKey =
                 IdleAnimationKeys[`${this.sprite}_${this.lastFacingDirection}`];
-            const currentAnimKey = this.anims.currentAnim?.key;
+            const currentAnimKey = this.visualSprite.anims.currentAnim?.key;
             if (currentAnimKey !== idleAnimKey) {
                 this.idleAnimation();
             }
@@ -760,6 +832,10 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     ) {
         if (!this.isLocal || !this.body) return;
 
+        // Record visual position before snap
+        const oldVisualX = this.x + this.visualOffsetX;
+        const oldVisualY = this.y + this.visualOffsetY;
+
         // 1. Remove history acknowledged by server
         this.inputHistory = this.inputHistory.filter(
             (input) => input.sequence > lastSequence,
@@ -770,8 +846,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         this.setVelocity(serverVX, serverVY);
 
         // 3. Re-run all pending inputs (Fast-Forward)
-        // Since we are in the update loop, we simulate the effect of these inputs
-        // This is a simplified version; in a perfect world, we'd run a separate physics step
         const dt = 1 / 60;
         const speedStat = this.soccerStats?.speed ?? 0;
         const speedMultiplier = 1.0 + speedStat * 0.1;
@@ -790,11 +864,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
                 ay *= Math.SQRT1_2;
             }
 
-            // Apply acceleration to velocity
             const newVX = this.body.velocity.x + ax * dt;
             const newVY = this.body.velocity.y + ay * dt;
 
-            // Apply drag (same as server)
             const dribblingStat = this.soccerStats?.dribbling ?? 0;
             const dragMultiplier = Math.max(0.5, 1.0 - dribblingStat * 0.05);
             const dragFactor = Math.exp(
@@ -804,7 +876,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             this.body.velocity.x = newVX * dragFactor;
             this.body.velocity.y = newVY * dragFactor;
 
-            // Clamp speed
             const currentSpeed = Math.sqrt(
                 this.body.velocity.x ** 2 + this.body.velocity.y ** 2,
             );
@@ -815,13 +886,17 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
                 this.body.velocity.y *= scale;
             }
 
-            // Move position
             this.x += this.body.velocity.x * dt;
             this.y += this.body.velocity.y * dt;
         }
 
         // 4. Update the physics body to match the new gameObject position
         this.body.updateFromGameObject();
+
+        // 5. Visual Error Compensation
+        // We want the visual sprite to NOT move at all from its old screen position
+        this.visualOffsetX = oldVisualX - this.x;
+        this.visualOffsetY = oldVisualY - this.y;
     }
 
     private applyExponentialDrag(dt: number) {
@@ -843,13 +918,13 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     private interpolateRemote() {
         const attackAnimKey = AttackAnimationKeys[this.sprite];
         const isAnimateAttacking =
-            this.anims.currentAnim?.key === attackAnimKey;
+            this.visualSprite.anims.currentAnim?.key === attackAnimKey;
 
-        if (isAnimateAttacking && this.anims.isPlaying) {
+        if (isAnimateAttacking && this.visualSprite.anims.isPlaying) {
             return;
         }
 
-        if (this.isAttacking && !this.anims.isPlaying) {
+        if (this.isAttacking && !this.visualSprite.anims.isPlaying) {
             this.isAttacking = false;
         }
 
@@ -858,97 +933,104 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             return;
         }
 
-        if (!this.targetPos) return;
+        if (this.snapshotBuffer.length < 2) return;
 
-        // Calculate how old this target position is
-        const updateAge = Date.now() - this.targetPos.t;
+        const renderTime = Date.now() - this.INTERPOLATION_OFFSET;
 
-        // Extrapolate position based on velocity and update age
-        const extrapolatedX =
-            this.targetPos.x + this.targetPos.vx * (updateAge / 1000);
-        const extrapolatedY =
-            this.targetPos.y + this.targetPos.vy * (updateAge / 1000);
-
-        const distance = Phaser.Math.Distance.Between(
-            this.x,
-            this.y,
-            extrapolatedX,
-            extrapolatedY,
-        );
-
-        if (distance > 250) {
-            this.x = extrapolatedX;
-            this.y = extrapolatedY;
-        } else {
-            const baseLerp = 0.25;
-            this.x = Phaser.Math.Interpolation.Linear(
-                [this.x, extrapolatedX],
-                baseLerp,
-            );
-            this.y = Phaser.Math.Interpolation.Linear(
-                [this.y, extrapolatedY],
-                baseLerp,
-            );
+        // Drop old snapshots
+        while (
+            this.snapshotBuffer.length > 2 &&
+            this.snapshotBuffer[1].timestamp < renderTime
+        ) {
+            this.snapshotBuffer.shift();
         }
 
-        // Sync physics body with sprite position
+        const s0 = this.snapshotBuffer[0];
+        const s1 = this.snapshotBuffer[1];
+
+        if (renderTime < s0.timestamp) {
+            // We are behind the oldest snapshot, just stay at s0
+            this.setPosition(s0.x, s0.y);
+        } else if (renderTime > s1.timestamp) {
+            // We are ahead of the latest snapshot (lagging), extrapolate or stay at s1
+            const dt = (renderTime - s1.timestamp) / 1000;
+            this.setPosition(s1.x + s1.vx * dt, s1.y + s1.vy * dt);
+        } else {
+            // Interpolate
+            const total = s1.timestamp - s0.timestamp;
+            const fraction = (renderTime - s0.timestamp) / total;
+
+            const x = Phaser.Math.Linear(s0.x, s1.x, fraction);
+            const y = Phaser.Math.Linear(s0.y, s1.y, fraction);
+
+            this.setPosition(x, y);
+
+            // Animation logic based on velocity
+            const vx = s1.vx;
+            const vy = s1.vy;
+            const isMoving = Math.abs(vx) > 10 || Math.abs(vy) > 10;
+
+            if (isMoving) {
+                this.visualSprite.setFlipX(false);
+                if (Math.abs(vx) > Math.abs(vy)) {
+                    if (vx > 0) {
+                        this.lastFacingDirection = FacingDirection.RIGHT;
+                        this.playWalkAnimation(
+                            `${this.sprite}_RIGHT`,
+                            this.isKartMode,
+                        );
+                    } else {
+                        this.lastFacingDirection = FacingDirection.LEFT;
+                        this.playWalkAnimation(
+                            `${this.sprite}_LEFT`,
+                            this.isKartMode,
+                        );
+                    }
+                } else {
+                    if (vy > 0) {
+                        this.lastFacingDirection = FacingDirection.DOWN;
+                        this.playWalkAnimation(
+                            `${this.sprite}_DOWN`,
+                            this.isKartMode,
+                        );
+                    } else {
+                        this.lastFacingDirection = FacingDirection.UP;
+                        this.playWalkAnimation(
+                            `${this.sprite}_UP`,
+                            this.isKartMode,
+                        );
+                    }
+                }
+            } else {
+                this.idleAnimation();
+            }
+        }
+
+        // Sync physics body
         if (this.body) {
             this.body.updateFromGameObject();
         }
+    }
 
-        // Animation code
-        const isMoving =
-            Math.abs(this.targetPos.vx || 0) > 10 ||
-            Math.abs(this.targetPos.vy || 0) > 10;
-
-        const currentAnimKey = this.anims.currentAnim?.key;
-
-        if (isMoving) {
-            this.setFlipX(false);
-            const vx = this.targetPos.vx || 0;
-            const vy = this.targetPos.vy || 0;
-
-            if (Math.abs(vx) > Math.abs(vy)) {
-                if (vx > 0) {
-                    this.lastFacingDirection = FacingDirection.RIGHT;
-                    this.playWalkAnimation(
-                        `${this.sprite}_RIGHT`,
-                        this.isKartMode,
-                    );
-                } else {
-                    this.lastFacingDirection = FacingDirection.LEFT;
-                    this.playWalkAnimation(
-                        `${this.sprite}_LEFT`,
-                        this.isKartMode,
-                    );
-                }
-            } else {
-                if (vy > 0) {
-                    this.lastFacingDirection = FacingDirection.DOWN;
-                    this.playWalkAnimation(
-                        `${this.sprite}_DOWN`,
-                        this.isKartMode,
-                    );
-                } else {
-                    this.lastFacingDirection = FacingDirection.UP;
-                    this.playWalkAnimation(
-                        `${this.sprite}_UP`,
-                        this.isKartMode,
-                    );
-                }
-            }
-        } else {
-            const idleAnimKey =
-                IdleAnimationKeys[`${this.sprite}_${this.lastFacingDirection}`];
-            if (currentAnimKey !== idleAnimKey) {
-                this.idleAnimation();
-            }
+    public pushSnapshot(snapshot: {
+        x: number;
+        y: number;
+        vx: number;
+        vy: number;
+        timestamp: number;
+    }) {
+        this.snapshotBuffer.push(snapshot);
+        if (this.snapshotBuffer.length > 20) {
+            this.snapshotBuffer.shift();
         }
     }
 
     public destroy() {
         if (this.teamGlow) {
             this.teamGlow.destroy();
+        }
+        if (this.visualSprite) {
+            this.visualSprite.destroy();
         }
         this.uiContainer.destroy();
         super.destroy();

@@ -6,6 +6,10 @@ export class Ball extends Phaser.Physics.Arcade.Sprite {
     private lastLocalKickSequence: number = 0;
     private currentSequence: number = 0;
 
+    // Snapshot buffer for smooth remote movement
+    private snapshotBuffer: BallStateUpdate[] = [];
+    private readonly INTERPOLATION_OFFSET = 100; // 100ms render delay
+
     public targetPos = {
         x: 0,
         y: 0,
@@ -77,20 +81,20 @@ export class Ball extends Phaser.Physics.Arcade.Sprite {
 
         // Authority Check: If server hasn't seen our latest kick yet, ignore its old position
         if (state.sequence && state.sequence < this.lastLocalKickSequence) {
-            console.log(
-                `[Ball] Ignoring server update (server seq ${state.sequence} < local seq ${this.lastLocalKickSequence})`,
-            );
             return;
         }
 
-        // Calculate update age (how old is this data?)
-        const updateAge = Date.now() - state.timestamp;
+        // Push to snapshot buffer
+        this.snapshotBuffer.push(state);
+        if (this.snapshotBuffer.length > 20) {
+            this.snapshotBuffer.shift();
+        }
 
-        // Extrapolate position based on velocity and age
+        // Update targetPos for legacy/diagnostic reasons
+        const updateAge = Date.now() - state.timestamp;
         const extrapolatedX = state.x + state.vx * (updateAge / 1000);
         const extrapolatedY = state.y + state.vy * (updateAge / 1000);
 
-        // Store extrapolated state
         this.targetPos = {
             x: extrapolatedX,
             y: extrapolatedY,
@@ -98,70 +102,72 @@ export class Ball extends Phaser.Physics.Arcade.Sprite {
             vy: state.vy,
             t: state.timestamp,
         };
+    }
 
-        if (this.body) {
-            const dist = Phaser.Math.Distance.Between(
-                this.x,
-                this.y,
-                extrapolatedX,
-                extrapolatedY,
+    private interpolate() {
+        if (this.snapshotBuffer.length < 2) return;
+
+        const renderTime = Date.now() - this.INTERPOLATION_OFFSET;
+
+        // Drop old snapshots
+        while (
+            this.snapshotBuffer.length > 2 &&
+            this.snapshotBuffer[1].timestamp < renderTime
+        ) {
+            this.snapshotBuffer.shift();
+        }
+
+        const s0 = this.snapshotBuffer[0];
+        const s1 = this.snapshotBuffer[1];
+
+        if (renderTime < s0.timestamp) {
+            this.setPosition(s0.x, s0.y);
+            this.setVelocity(s0.vx, s0.vy);
+        } else if (renderTime > s1.timestamp) {
+            // Ahead of latest - stay at s1 or extrapolate
+            this.setPosition(s1.x, s1.y);
+            this.setVelocity(s1.vx, s1.vy);
+        } else {
+            const total = s1.timestamp - s0.timestamp;
+            const fraction = (renderTime - s0.timestamp) / total;
+
+            const x = Phaser.Math.Linear(s0.x, s1.x, fraction);
+            const y = Phaser.Math.Linear(s0.y, s1.y, fraction);
+
+            this.setPosition(x, y);
+            this.setVelocity(
+                Phaser.Math.Linear(s0.vx, s1.vx, fraction),
+                Phaser.Math.Linear(s0.vy, s1.vy, fraction),
             );
-
-            // Log diagnostics for stale updates
-            if (updateAge > 150) {
-                console.warn(
-                    `[Ball] Stale update: ${updateAge}ms old, dist: ${dist.toFixed(1)}px`,
-                );
-            }
-
-            // Hard snap threshold (increased to tolerate prediction error)
-            const snapThreshold = 250; // Increased from 150px to handle physics mismatch
-            if (dist > snapThreshold) {
-                console.log(
-                    `[Ball] Hard snap (${dist.toFixed(1)}px > ${snapThreshold}px)`,
-                );
-                this.setPosition(extrapolatedX, extrapolatedY);
-                this.setVelocity(state.vx, state.vy);
-            }
-            // Smooth correction
-            else {
-                // Blend positions to close the gap without snapping
-                const newX = Phaser.Math.Interpolation.Linear(
-                    [this.x, extrapolatedX],
-                    0.25,
-                );
-                const newY = Phaser.Math.Interpolation.Linear(
-                    [this.y, extrapolatedY],
-                    0.25,
-                );
-
-                this.setPosition(newX, newY);
-
-                // Trust server velocity for the physics engine trajectory
-                this.setVelocity(state.vx, state.vy);
-            }
         }
     }
 
     private applyExponentialDrag(dt: number) {
         if (!this.body) return;
-
-        // Match server's exponential drag: DRAG = 1 (from soccer.service.ts:95)
         const DRAG = 1;
         const dragFactor = Math.exp(-DRAG * dt);
-
         const vx = this.body.velocity.x * dragFactor;
         const vy = this.body.velocity.y * dragFactor;
-
         this.setVelocity(vx, vy);
     }
 
     public update() {
-        // Apply server-matching exponential drag every frame in multiplayer
-        // This matches server physics (DRAG=1) and prevents prediction overshoot
-        if (this.isMultiplayer && this.body) {
-            const dt = 1 / 60; // Assume 60fps (16.6ms per frame)
+        if (!this.isMultiplayer) return;
+
+        // If we are currently ignoring server updates because of a local kick
+        // we use physics to simulate. Once the server catches up, we switch back to interpolation.
+        const isLocalPredicting =
+            this.snapshotBuffer.length > 0 &&
+            (this.snapshotBuffer[this.snapshotBuffer.length - 1].sequence || 0) <
+                this.lastLocalKickSequence;
+
+        if (isLocalPredicting) {
+            // Use physics body + drag for local prediction
+            const dt = 1 / 60;
             this.applyExponentialDrag(dt);
+        } else {
+            // Use snapshot interpolation for remote ground truth
+            this.interpolate();
         }
     }
 }
