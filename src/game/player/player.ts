@@ -558,6 +558,12 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         } else {
             this.interpolateRemote();
         }
+
+        // Apply drag matching server in multiplayer scenes (like SoccerMap)
+        if (this.scene.scene.key === "SoccerMap" && this.body) {
+            this.applyExponentialDrag(1 / 60);
+        }
+
         this.uiContainer.setPosition(this.x, this.y - 40);
 
         // --- GHOST EFFECT ---
@@ -677,6 +683,19 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         this.setVelocity(vx, vy);
     }
 
+    private applyExponentialDrag(dt: number) {
+        if (!this.body || this.isSpectator) return;
+
+        // Match server's exponential drag: PLAYER_DRAG = 4
+        const DRAG = 4;
+        const dragFactor = Math.exp(-DRAG * dt);
+
+        const vx = this.body.velocity.x * dragFactor;
+        const vy = this.body.velocity.y * dragFactor;
+
+        this.setVelocity(vx, vy);
+    }
+
     private interpolateRemote() {
         const attackAnimKey = AttackAnimationKeys[this.sprite];
         const isAnimateAttacking =
@@ -697,23 +716,35 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
         if (!this.targetPos) return;
 
-        // Position-based interpolation
-        const predictedX = this.targetPos.x;
-        const predictedY = this.targetPos.y;
+        // Calculate how old this target position is
+        const updateAge = Date.now() - this.targetPos.t;
 
-        const distance = Math.sqrt(
-            Math.pow(predictedX - this.x, 2) + Math.pow(predictedY - this.y, 2),
+        // Extrapolate position based on velocity and update age
+        const extrapolatedX =
+            this.targetPos.x + this.targetPos.vx * (updateAge / 1000);
+        const extrapolatedY =
+            this.targetPos.y + this.targetPos.vy * (updateAge / 1000);
+
+        const distance = Phaser.Math.Distance.Between(
+            this.x,
+            this.y,
+            extrapolatedX,
+            extrapolatedY,
         );
 
-        if (distance > 200) {
-            this.x = predictedX;
-            this.y = predictedY;
+        if (distance > 250) {
+            this.x = extrapolatedX;
+            this.y = extrapolatedY;
         } else {
-            const baseLerp = 0.2;
-            const lerpFactor = Math.min(baseLerp + distance / 500, 0.5);
-
-            this.x += (predictedX - this.x) * lerpFactor;
-            this.y += (predictedY - this.y) * lerpFactor;
+            const baseLerp = 0.25;
+            this.x = Phaser.Math.Interpolation.Linear(
+                [this.x, extrapolatedX],
+                baseLerp,
+            );
+            this.y = Phaser.Math.Interpolation.Linear(
+                [this.y, extrapolatedY],
+                baseLerp,
+            );
         }
 
         // Sync physics body with sprite position

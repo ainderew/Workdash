@@ -156,58 +156,6 @@ export class SoccerMap extends BaseGameScene {
 
         this.updateSkillCooldownUI();
 
-        // 1. UPDATE REMOTE PLAYERS INTERPOLATION WITH EXTRAPOLATION
-        // This ensures remote players move smoothly instead of teleporting
-        this.players.forEach((player: any) => {
-            // Skip the local player (handled by client input + server reconciliation)
-            // Skip if no target position exists yet
-            if (player.id === this.localPlayerId || !player.targetPos) return;
-
-            // Calculate how old this target position is
-            const updateAge = Date.now() - player.targetPos.t;
-
-            // Extrapolate position based on velocity and update age
-            // This compensates for network latency by predicting where the player is NOW
-            const extrapolatedX =
-                player.targetPos.x + player.targetPos.vx * (updateAge / 1000);
-            const extrapolatedY =
-                player.targetPos.y + player.targetPos.vy * (updateAge / 1000);
-
-            // Calculate distance to extrapolated target
-            const dist = Phaser.Math.Distance.Between(
-                player.x,
-                player.y,
-                extrapolatedX,
-                extrapolatedY,
-            );
-
-            // TELEPORT: If desync is huge (e.g. just spawned or teleport skill), snap immediately
-            // Increased to 250px to handle fast movement skills like Blink in high-latency scenarios
-            const snapThreshold = 250; // Was 200px
-            if (dist > snapThreshold) {
-                player.x = extrapolatedX;
-                player.y = extrapolatedY;
-            }
-            // INTERPOLATE: Smoothly move toward extrapolated target
-            else {
-                // 0.25 is the lerp factor (25% per frame).
-                // Higher = snappier/responsive, Lower = smoother/laggy
-                player.x = Phaser.Math.Interpolation.Linear(
-                    [player.x, extrapolatedX],
-                    0.25,
-                );
-                player.y = Phaser.Math.Interpolation.Linear(
-                    [player.y, extrapolatedY],
-                    0.25,
-                );
-            }
-
-            // Also update the team glow position immediately so it doesn't lag behind
-            if (player.teamGlow) {
-                player.teamGlow.setPosition(player.x, player.y);
-            }
-        });
-
         if (this.activeSkillPlayerId) {
             this.createSpeedTrail(time);
         }
@@ -367,69 +315,64 @@ export class SoccerMap extends BaseGameScene {
             this.ball.setVelocity(0, 0);
         });
 
-        socket.on("players:physicsUpdate", (updates: any[]) => {
-            for (const update of updates) {
-                const player = this.players.get(update.id);
-                if (!player) continue;
+        socket.on(
+            "players:physicsUpdate",
+            (data: { players: any[]; timestamp: number }) => {
+                const { players, timestamp } = data;
+                for (const update of players) {
+                    const player = this.players.get(update.id);
+                    if (!player) continue;
 
-                // Sync ghosted state
-                player.isGhosted = !!update.isGhosted;
-                player.isSpectator = !!update.isSpectator;
+                    // Sync ghosted state
+                    player.isGhosted = !!update.isGhosted;
+                    player.isSpectator = !!update.isSpectator;
 
-                // Update collision state based on team
-                if (player.isSpectator) {
-                    if (player.body) {
-                        player.body.enable = true;
-                        // For spectators, we might want them to still move but not collide
-                        // Actually, easiest is to let them move but disable their interaction in physics groups
+                    // Update collision state based on team
+                    if (player.isSpectator) {
+                        if (player.body) {
+                            player.body.enable = true;
+                        }
+                    }
+
+                    if (player.isLocal) {
+                        const dist = Phaser.Math.Distance.Between(
+                            player.x,
+                            player.y,
+                            update.x,
+                            update.y,
+                        );
+
+                        if (dist > 100) {
+                            player.setPosition(update.x, update.y);
+                        } else if (dist > 10) {
+                            const newX = Phaser.Math.Interpolation.Linear(
+                                [player.x, update.x],
+                                0.1,
+                            );
+                            const newY = Phaser.Math.Interpolation.Linear(
+                                [player.y, update.y],
+                                0.1,
+                            );
+                            player.setPosition(newX, newY);
+                        }
+
+                        if (player.body) {
+                            (
+                                player.body as Phaser.Physics.Arcade.Body
+                            ).setVelocity(update.vx, update.vy);
+                        }
+                    } else {
+                        player.targetPos = {
+                            x: update.x,
+                            y: update.y,
+                            vx: update.vx,
+                            vy: update.vy,
+                            t: timestamp,
+                        };
                     }
                 }
-
-                if (player.isLocal) {
-                    const dist = Phaser.Math.Distance.Between(
-                        player.x,
-                        player.y,
-                        update.x,
-                        update.y,
-                    );
-
-                    // Increase threshold from 5px to 100px to prevent constant snapping
-                    // With latency, client is naturally ahead of server position
-                    if (dist > 100) {
-                        // Hard snap only for major desyncs (skills, collisions)
-                        player.setPosition(update.x, update.y);
-                    } else if (dist > 10) {
-                        // Gentle correction for minor desyncs
-                        const newX = Phaser.Math.Interpolation.Linear(
-                            [player.x, update.x],
-                            0.1,
-                        );
-                        const newY = Phaser.Math.Interpolation.Linear(
-                            [player.y, update.y],
-                            0.1,
-                        );
-                        player.setPosition(newX, newY);
-                    }
-                    // else: ignore tiny desyncs < 10px
-
-                    // Trust server velocity for physics reconciliation
-                    if (player.body) {
-                        (player.body as Phaser.Physics.Arcade.Body).setVelocity(
-                            update.vx,
-                            update.vy,
-                        );
-                    }
-                } else {
-                    player.targetPos = {
-                        x: update.x,
-                        y: update.y,
-                        vx: update.vx,
-                        vy: update.vy,
-                        t: Date.now(),
-                    };
-                }
-            }
-        });
+            },
+        );
 
         socket.on(
             "soccer:playerReset",
@@ -859,7 +802,7 @@ export class SoccerMap extends BaseGameScene {
         // --- APPLY PREDICTION ---
         // This moves the ball instantly on client, bypassing network lag
         // Get current RTT for dynamic authority window
-        const rtt = this.multiplayer?.ping || 100;
+        const rtt = useUiStore.getState().ping || 100;
         this.ball.predictKick(kickVx, kickVy, rtt);
 
         // Play sound immediately for responsiveness
@@ -1636,7 +1579,7 @@ export class SoccerMap extends BaseGameScene {
             delay: 500,
             loop: true,
             callback: () => {
-                const ping = this.multiplayer?.ping || 0;
+                const ping = useUiStore.getState().ping || 0;
                 const ballUpdateAge = this.ball.targetPos.t
                     ? Date.now() - this.ball.targetPos.t
                     : 0;

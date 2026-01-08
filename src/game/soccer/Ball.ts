@@ -94,7 +94,9 @@ export class Ball extends Phaser.Physics.Arcade.Sprite {
 
         // Authority Window: Don't snap back if we just kicked locally
         if (Date.now() < this.ignoreServerUpdatesUntil) {
-            console.log(`[Ball] Ignoring server update (authority window active)`);
+            console.log(
+                `[Ball] Ignoring server update (authority window active)`,
+            );
             return;
         }
 
