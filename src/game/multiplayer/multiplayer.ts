@@ -7,6 +7,7 @@ import { AvailabilityStatus } from "../player/_enums";
 import { CharacterCustomization } from "../character/_types";
 import useUserStore from "@/common/store/useStore";
 import { Player } from "../player/player";
+import useUiStore from "@/common/store/uiStore";
 
 type QueuedMessage = {
     event: string;
@@ -18,6 +19,7 @@ export class Multiplayer {
     private isBackendReady: boolean = false;
     private messageQueue: QueuedMessage[] = [];
     private currentScene: string = "MainMap";
+    private pingInterval: any = null;
 
     constructor(jwtToken?: string) {
         this.socket = io(CONFIG.SFU_SERVER_URL, {
@@ -33,14 +35,17 @@ export class Multiplayer {
     private setupLifecycleEvents() {
         this.socket.on("connect", () => {
             console.log("Socket Connected (Waiting for Logic Init...)");
+            this.startPingLoop();
         });
 
         this.socket.on("disconnect", () => {
             this.isBackendReady = false;
+            this.stopPingLoop();
         });
 
         this.socket.on("connect_error", (error: any) => {
             console.error("Socket connection error:", error.message);
+            this.stopPingLoop();
         });
 
         this.socket.on("sfuInitialized", () => {
@@ -70,6 +75,25 @@ export class Multiplayer {
                 this.socket.emit(msg.event, msg.payload);
             }
         }
+    }
+
+    private startPingLoop() {
+        this.stopPingLoop();
+        this.pingInterval = setInterval(() => {
+            const start = Date.now();
+            this.socket.emit("ping", start, (echo: number) => {
+                const latency = Date.now() - echo;
+                useUiStore.getState().setPing(latency);
+            });
+        }, 3000);
+    }
+
+    private stopPingLoop() {
+        if (this.pingInterval) {
+            clearInterval(this.pingInterval);
+            this.pingInterval = null;
+        }
+        useUiStore.getState().setPing(null);
     }
 
     public connectToserver() {

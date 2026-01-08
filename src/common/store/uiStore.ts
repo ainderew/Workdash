@@ -38,6 +38,10 @@ interface UiState {
     // Soccer endgame screen
     isSoccerEndgameVisible: boolean;
 
+    // Ping
+    ping: number | null;
+    setPing: (ping: number | null) => void;
+
     // Actions for panels
     toggleChatWindow: () => void;
     toggleMembersUi: () => void;
@@ -104,6 +108,7 @@ const useUiStore = create<UiState>((set) => ({
     isSoccerGameControlModalOpen: false,
     isMatchHistoryModalOpen: false,
     isSoccerEndgameVisible: false,
+    ping: null,
 
     // Panel actions
     toggleChatWindow: () =>
@@ -187,6 +192,9 @@ const useUiStore = create<UiState>((set) => ({
 
     // Soccer endgame screen actions
     setIsSoccerEndgameVisible: (visible: boolean) => set({ isSoccerEndgameVisible: visible }),
+
+    // Ping actions
+    setPing: (ping) => set({ ping }),
 }));
 
 export default useUiStore;

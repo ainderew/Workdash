@@ -23,6 +23,7 @@ import SoccerScoreboard from "./common/components/Soccer/SoccerScoreboard";
 import SkillsHud from "./common/components/Soccer/SkillsHud";
 import SkillSelectionOverlay from "./common/components/Soccer/SkillSelectionOverlay";
 import { SoccerGameControlButton } from "./common/components/SoccerGameControl/SoccerGameControlButton";
+import PingDisplay from "./common/components/PingDisplay/PingDisplay";
 // import { VideoChatService } from "./communication/videoChat/videoChat";
 // import { ScreenShareService } from "./communication/screenShare/screenShare";
 // import SplashScreen from "./common/components/Splash/SplashScreen";
@@ -161,6 +162,7 @@ function App() {
             <SkillsHud />
             <SkillSelectionOverlay />
             <SoccerGameControlButton />
+            <PingDisplay />
         </div>
     );
 }
