@@ -39,7 +39,8 @@ export class Ball extends Phaser.Physics.Arcade.Sprite {
             // Allow physics engine to drive movement, we steer it via velocity
             this.setImmovable(false);
             this.setMass(0.5);
-            this.setDrag(50);
+            // Disable Phaser's linear drag - we apply exponential drag manually in update()
+            this.setDrag(0);
             this.setBounce(0.7);
 
             this.targetPos = { x, y, vx: 0, vy: 0, t: Date.now() };
@@ -141,8 +142,25 @@ export class Ball extends Phaser.Physics.Arcade.Sprite {
         }
     }
 
+    private applyExponentialDrag(dt: number) {
+        if (!this.body) return;
+
+        // Match server's exponential drag: DRAG = 1 (from soccer.service.ts:95)
+        const DRAG = 1;
+        const dragFactor = Math.exp(-DRAG * dt);
+
+        const vx = this.body.velocity.x * dragFactor;
+        const vy = this.body.velocity.y * dragFactor;
+
+        this.setVelocity(vx, vy);
+    }
+
     public update() {
-        // No manual position updates needed.
-        // Phaser's physics engine handles movement based on the velocity we set.
+        // Apply server-matching exponential drag every frame in multiplayer
+        // This matches server physics (DRAG=1) and prevents prediction overshoot
+        if (this.isMultiplayer && this.body) {
+            const dt = 1 / 60; // Assume 60fps (16.6ms per frame)
+            this.applyExponentialDrag(dt);
+        }
     }
 }
