@@ -334,34 +334,44 @@ export class SoccerMap extends BaseGameScene {
                         }
                     }
 
-                    if (player.isLocal) {
-                        const dist = Phaser.Math.Distance.Between(
-                            player.x,
-                            player.y,
-                            update.x,
-                            update.y,
+                if (player.isLocal) {
+                    // Latency-aware reconciliation for local player
+                    // 1. Calculate how "old" this server update is
+                    const ping = useUiStore.getState().ping || 0;
+                    const rttSeconds = ping / 1000;
+                    const latencyCompensation = rttSeconds / 2; // RTT to 1-way delay
+
+                    // 2. Extrapolate where the server thinks we should be NOW
+                    const extrapolatedServerX = update.x + update.vx * latencyCompensation;
+                    const extrapolatedServerY = update.y + update.vy * latencyCompensation;
+
+                    const dist = Phaser.Math.Distance.Between(
+                        player.x,
+                        player.y,
+                        extrapolatedServerX,
+                        extrapolatedServerY,
+                    );
+
+                    if (dist > 150) {
+                        // Hard snap for major desyncs
+                        player.setPosition(extrapolatedServerX, extrapolatedServerY);
+                    } else if (dist > 20) {
+                        // Gentle correction for minor desyncs
+                        const newX = Phaser.Math.Interpolation.Linear(
+                            [player.x, extrapolatedServerX],
+                            0.1,
                         );
+                        const newY = Phaser.Math.Interpolation.Linear(
+                            [player.y, extrapolatedServerY],
+                            0.1,
+                        );
+                        player.setPosition(newX, newY);
+                    }
+                    // else: ignore desyncs < 20px - trust local prediction
 
-                        if (dist > 100) {
-                            player.setPosition(update.x, update.y);
-                        } else if (dist > 10) {
-                            const newX = Phaser.Math.Interpolation.Linear(
-                                [player.x, update.x],
-                                0.1,
-                            );
-                            const newY = Phaser.Math.Interpolation.Linear(
-                                [player.y, update.y],
-                                0.1,
-                            );
-                            player.setPosition(newX, newY);
-                        }
-
-                        if (player.body) {
-                            (
-                                player.body as Phaser.Physics.Arcade.Body
-                            ).setVelocity(update.vx, update.vy);
-                        }
-                    } else {
+                    // Trust server velocity for internal physics body only if it's a huge difference
+                    // (prevents jitter from overwriting our active acceleration)
+                } else {
                         player.targetPos = {
                             x: update.x,
                             y: update.y,
@@ -2017,6 +2027,12 @@ export class SoccerMap extends BaseGameScene {
             } else {
                 console.log("Soccer stats loaded:", stats);
                 this.soccerStats = stats;
+
+                // Also update the local player instance if it exists
+                const localPlayer = this.players.get(this.localPlayerId);
+                if (localPlayer) {
+                    localPlayer.soccerStats = stats;
+                }
             }
         } catch (error) {
             console.error("Failed to check soccer stats:", error);

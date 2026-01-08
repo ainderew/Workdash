@@ -606,6 +606,14 @@ export abstract class BaseGameScene extends Scene {
                 this.setupLocalPlayer(playerInstance);
                 const state = useUserStore.getState();
                 state.setCharacterCustomization(customization!);
+
+                // If in SoccerMap, pass soccer stats to the player instance
+                if (this.currentSceneName === "SoccerMap") {
+                    const soccerStore = (this as any).soccerStats;
+                    if (soccerStore) {
+                        playerInstance.soccerStats = soccerStore;
+                    }
+                }
                 console.log("loaded local");
             }
         } finally {
@@ -654,16 +662,19 @@ export abstract class BaseGameScene extends Scene {
             }
 
             if (p.isLocal && tickRate) {
-                this.multiplayer.emitPlayerMovement({
-                    x: Math.round(p.x),
-                    y: Math.round(p.y),
-                    isAttacking: p.isAttacking,
-                    isKartMode: p.isKartMode,
-                    vx: Math.round(p.vx),
-                    vy: Math.round(p.vy),
-                    id: this.localPlayerId,
-                    opts: { isLocal: true },
-                });
+                // Skip legacy movement updates in SoccerMap (handled by raw inputs)
+                if (this.currentSceneName !== "SoccerMap") {
+                    this.multiplayer.emitPlayerMovement({
+                        x: Math.round(p.x),
+                        y: Math.round(p.y),
+                        isAttacking: p.isAttacking,
+                        isKartMode: p.isKartMode,
+                        vx: Math.round(p.vx),
+                        vy: Math.round(p.vy),
+                        id: this.localPlayerId,
+                        opts: { isLocal: true },
+                    });
+                }
                 this.lastTick = time;
             }
         }

@@ -57,9 +57,17 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     private nameText: Phaser.GameObjects.Text;
     voiceIndicator: Phaser.GameObjects.Image;
     uiContainer: Phaser.GameObjects.Container;
+    public soccerStats: {
+        speed: number;
+        kickPower: number;
+        dribbling: number;
+    } | null = null;
 
     moveSpeed: number;
     private baseMoveSpeed: number = 600;
+    private readonly BASE_ACCEL: number = 1600;
+    private readonly BASE_MAX_SPEED: number = 600;
+    private readonly PLAYER_DRAG: number = 4;
     private kartSpeedMultiplier: number = 1.5;
     isLocal: boolean = true;
     cursors?: Phaser.Types.Input.Keyboard.CursorKeys;
@@ -602,8 +610,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         const isCommandPaletteOpen = useUiStore.getState().isCommandPaletteOpen;
         if (isCommandPaletteOpen) {
             this.setVelocity(0, 0);
+            this.setAcceleration(0, 0);
             return;
         }
+
+        const isSoccerMap = this.scene.scene.key === "SoccerMap";
 
         if (this.kartKey && Phaser.Input.Keyboard.JustDown(this.kartKey)) {
             this.isKartMode = !this.isKartMode;
@@ -625,10 +636,30 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
         let vx = 0;
         let vy = 0;
-        if (left) vx -= this.moveSpeed;
-        if (right) vx += this.moveSpeed;
-        if (up) vy -= this.moveSpeed;
-        if (down) vy += this.moveSpeed;
+        let ax = 0;
+        let ay = 0;
+
+        const speedStat = this.soccerStats?.speed ?? 0;
+        const speedMultiplier = 1.0 + speedStat * 0.1;
+        const accel = this.BASE_ACCEL * speedMultiplier;
+        const maxSpeed = this.BASE_MAX_SPEED * speedMultiplier;
+
+        if (left) {
+            vx -= this.moveSpeed;
+            ax -= accel;
+        }
+        if (right) {
+            vx += this.moveSpeed;
+            ax += accel;
+        }
+        if (up) {
+            vy -= this.moveSpeed;
+            ay -= accel;
+        }
+        if (down) {
+            vy += this.moveSpeed;
+            ay += accel;
+        }
 
         const attackAnimKey = AttackAnimationKeys[this.sprite];
         const isAnimateAttacking =
@@ -675,20 +706,31 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             }
         }
 
-        if (vx !== 0 && vy !== 0) {
-            vx *= Math.SQRT1_2;
-            vy *= Math.SQRT1_2;
+        if (isSoccerMap) {
+            if (ax !== 0 && ay !== 0) {
+                ax *= Math.SQRT1_2;
+                ay *= Math.SQRT1_2;
+            }
+            this.setAcceleration(ax, ay);
+            this.setMaxVelocity(maxSpeed, maxSpeed);
+        } else {
+            if (vx !== 0 && vy !== 0) {
+                vx *= Math.SQRT1_2;
+                vy *= Math.SQRT1_2;
+            }
+            this.setVelocity(vx, vy);
         }
-
-        this.setVelocity(vx, vy);
     }
 
     private applyExponentialDrag(dt: number) {
         if (!this.body || this.isSpectator) return;
 
-        // Match server's exponential drag: PLAYER_DRAG = 4
-        const DRAG = 4;
-        const dragFactor = Math.exp(-DRAG * dt);
+        // Match server's exponential drag
+        const dribblingStat = this.soccerStats?.dribbling ?? 0;
+        // Dribbling reduces drag: 0 stat = 1.0x drag, 10 stat = 0.5x drag
+        const dragMultiplier = Math.max(0.5, 1.0 - dribblingStat * 0.05);
+
+        const dragFactor = Math.exp(-this.PLAYER_DRAG * dragMultiplier * dt);
 
         const vx = this.body.velocity.x * dragFactor;
         const vy = this.body.velocity.y * dragFactor;
