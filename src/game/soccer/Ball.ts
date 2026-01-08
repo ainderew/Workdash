@@ -61,9 +61,9 @@ export class Ball extends Phaser.Physics.Arcade.Sprite {
         this.targetPos.vx = vx;
         this.targetPos.vy = vy;
 
-        // 3. Dynamic authority window: RTT * 1.5 (minimum 100ms, max 300ms)
-        // Prevents snap-back when server updates arrive late in production
-        const authorityWindow = Math.min(300, Math.max(100, rtt * 1.5));
+        // 3. Dynamic authority window: RTT * 2 (minimum 150ms, max 400ms)
+        // Extended to give more time for physics reconciliation
+        const authorityWindow = Math.min(400, Math.max(150, rtt * 2));
         this.ignoreServerUpdatesUntil = Date.now() + authorityWindow;
 
         console.log(
@@ -112,8 +112,8 @@ export class Ball extends Phaser.Physics.Arcade.Sprite {
                 );
             }
 
-            // Hard snap threshold (increased for high latency)
-            const snapThreshold = 150; // Was 120px
+            // Hard snap threshold (increased to tolerate prediction error)
+            const snapThreshold = 250; // Increased from 150px to handle physics mismatch
             if (dist > snapThreshold) {
                 console.log(
                     `[Ball] Hard snap (${dist.toFixed(1)}px > ${snapThreshold}px)`,

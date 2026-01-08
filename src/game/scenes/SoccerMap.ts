@@ -350,7 +350,11 @@ export class SoccerMap extends BaseGameScene {
         socket.on("ball:kicked", (data: any) => {
             const kicker = this.players.get(data.kickerId);
             if (kicker) this.addKickGlow(kicker);
-            this.sound.play("soccer_kick");
+
+            // Only play sound if it's NOT our local kick (we already played it)
+            if (data.kickerId !== this.localPlayerId) {
+                this.sound.play("soccer_kick");
+            }
         });
 
         socket.on("goal:scored", (data: any) => {
