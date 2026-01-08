@@ -33,6 +33,8 @@ export class SoccerMap extends BaseGameScene {
     private goalsLayer: Phaser.Tilemaps.TilemapLayer | null = null;
     private circleLayer: Phaser.Tilemaps.TilemapLayer | null = null;
     private floorMarkings2Layer: Phaser.Tilemaps.TilemapLayer | null = null;
+
+    // Input Keys
     private kickKey: Phaser.Input.Keyboard.Key | null = null;
     private skillKey: Phaser.Input.Keyboard.Key | null = null;
     private blinkKey: Phaser.Input.Keyboard.Key | null = null;
@@ -40,12 +42,17 @@ export class SoccerMap extends BaseGameScene {
     private ninjaStepKey: Phaser.Input.Keyboard.Key | null = null;
     private lurkingKey: Phaser.Input.Keyboard.Key | null = null;
     private powerShotKey: Phaser.Input.Keyboard.Key | null = null;
+
     private isMultiplayerMode: boolean = false;
     private inputLoop: Phaser.Time.TimerEvent | null = null;
+
+    // Skill Cooldowns
     private skillCooldown: number = 0;
     private blinkCooldown: number = 0;
     private metavisionCooldown: number = 0;
     private powerShotCooldown: number = 0;
+
+    // Visual Effects
     private ballFlameGraphics: Phaser.GameObjects.Graphics | null = null;
     private ballFlameActive: boolean = false;
     private ballFlameStartTime: number = 0;
@@ -77,7 +84,7 @@ export class SoccerMap extends BaseGameScene {
         dribbling: number;
     } | null = null;
 
-    // FIX: Add a buffer to store teams for players that haven't loaded yet
+    // Buffer to store teams for players that haven't loaded yet
     private pendingTeams: Map<string, "red" | "blue"> = new Map();
 
     constructor() {
@@ -101,6 +108,8 @@ export class SoccerMap extends BaseGameScene {
 
         this.centerCamera();
         this.createBall();
+
+        // Initialize Keys
         this.kickKey =
             this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.H) ||
             null;
@@ -145,20 +154,26 @@ export class SoccerMap extends BaseGameScene {
     update(time: number): void {
         super.update(time);
 
+        // FIX 1: Client-Side Prediction for smooth movement
+        // We apply velocity locally every frame based on input, rather than waiting for server
+        this.updateLocalPlayerMovement();
+
         const isSelectionPhaseActive =
             useSoccerStore.getState().isSelectionPhaseActive;
 
-        // FIX: Check for pending teams every frame until they are assigned
+        // FIX 2: Check for pending teams every frame until they are assigned
         this.processPendingTeams();
 
         this.updateSkillCooldownUI();
 
         // 1. UPDATE REMOTE PLAYERS INTERPOLATION
-        // This ensures remote players move smoothly instead of teleporting
+        // This ensures remote players move smoothly
         this.players.forEach((player: any) => {
-            // Skip the local player (handled by client input + server reconciliation)
+            // Skip the local player (handled by client input + reconciliation)
+            if (player.id === this.localPlayerId) return;
+
             // Skip if no target position exists yet
-            if (player.id === this.localPlayerId || !player.targetPos) return;
+            if (!player.targetPos) return;
 
             // Calculate distance to target
             const dist = Phaser.Math.Distance.Between(
@@ -169,7 +184,6 @@ export class SoccerMap extends BaseGameScene {
             );
 
             // TELEPORT: If desync is huge (e.g. just spawned or teleport skill), snap immediately
-            // Increased to 300 to account for fast movement skills like Blink
             if (dist > 300) {
                 player.x = player.targetPos.x;
                 player.y = player.targetPos.y;
@@ -177,7 +191,6 @@ export class SoccerMap extends BaseGameScene {
             // INTERPOLATE: Smoothly move toward target
             else {
                 // 0.15 is the lerp factor (15% per frame).
-                // Higher = snappier/jittery, Lower = smoother/laggy
                 player.x = Phaser.Math.Interpolation.Linear(
                     [player.x, player.targetPos.x],
                     0.15,
@@ -188,7 +201,7 @@ export class SoccerMap extends BaseGameScene {
                 );
             }
 
-            // Also update the team glow position immediately so it doesn't lag behind
+            // Also update the team glow position immediately
             if (player.teamGlow) {
                 player.teamGlow.setPosition(player.x, player.y);
             }
@@ -234,7 +247,7 @@ export class SoccerMap extends BaseGameScene {
             // Render ball flames if active
             this.renderBallFlames();
 
-            // Check if power shot buff expired (remove trail) - only for power shot
+            // Check if power shot buff expired (remove trail)
             if (
                 this.activeSkillId === "power_shot" &&
                 this.powerShotBuffEndTime > 0 &&
@@ -246,6 +259,53 @@ export class SoccerMap extends BaseGameScene {
         } else {
             this.handleKick();
         }
+    }
+
+    // --- NEW: Client Prediction Method ---
+    private updateLocalPlayerMovement() {
+        const player = this.players.get(this.localPlayerId);
+
+        // Don't move if spectator, during selection, or player not loaded
+        if (
+            !player ||
+            player.team === "spectator" ||
+            useSoccerStore.getState().isSelectionPhaseActive
+        )
+            return;
+
+        const cursors = this.input.keyboard?.createCursorKeys();
+        const wasd = this.input.keyboard?.addKeys("W,A,S,D") as any;
+
+        const up = cursors?.up.isDown || wasd?.W?.isDown;
+        const down = cursors?.down.isDown || wasd?.S?.isDown;
+        const left = cursors?.left.isDown || wasd?.A?.isDown;
+        const right = cursors?.right.isDown || wasd?.D?.isDown;
+
+        let vx = 0;
+        let vy = 0;
+
+        // Use configured base speed (adjust to match server if needed, default is usually around 160)
+        const baseSpeed = 160;
+
+        // Apply stats multiplier if available
+        const statsSpeed = this.soccerStats
+            ? baseSpeed * (1 + this.soccerStats.speed * 0.1)
+            : baseSpeed;
+        const speed = statsSpeed;
+
+        if (up) vy = -speed;
+        if (down) vy = speed;
+        if (left) vx = -speed;
+        if (right) vx = speed;
+
+        // Normalize diagonal movement
+        if (vx !== 0 && vy !== 0) {
+            vx *= 0.707;
+            vy *= 0.707;
+        }
+
+        // Apply immediately to local body for 0-latency feel
+        player.setVelocity(vx, vy);
     }
 
     // Force update all team glow positions to stay in perfect sync with players
@@ -349,6 +409,7 @@ export class SoccerMap extends BaseGameScene {
             this.ball.setVelocity(0, 0);
         });
 
+        // MODIFIED: Soft Reconciliation Logic
         socket.on("players:physicsUpdate", (updates: any[]) => {
             for (const update of updates) {
                 const player = this.players.get(update.id);
@@ -358,13 +419,8 @@ export class SoccerMap extends BaseGameScene {
                 player.isGhosted = !!update.isGhosted;
                 player.isSpectator = !!update.isSpectator;
 
-                // Update collision state based on team
-                if (player.isSpectator) {
-                    if (player.body) {
-                        player.body.enable = true;
-                        // For spectators, we might want them to still move but not collide
-                        // Actually, easiest is to let them move but disable their interaction in physics groups
-                    }
+                if (player.isSpectator && player.body) {
+                    player.body.enable = true;
                 }
 
                 if (player.isLocal) {
@@ -374,16 +430,28 @@ export class SoccerMap extends BaseGameScene {
                         update.x,
                         update.y,
                     );
-                    if (dist > 5) {
+
+                    // 1. SMALL DESYNC (< 30px): Ignore server (Client Authority/Prediction wins)
+                    if (dist < 30) {
+                        // Do nothing, trust local movement
+                    }
+                    // 2. LARGE DESYNC (> 150px): Hard Teleport (Respawn/Lag Spike)
+                    else if (dist > 150) {
                         player.setPosition(update.x, update.y);
                     }
-                    if (player.body) {
-                        (player.body as Phaser.Physics.Arcade.Body).setVelocity(
-                            update.vx,
-                            update.vy,
+                    // 3. MEDIUM DESYNC: Soft Reconciliation (Lerp)
+                    else {
+                        player.x = Phaser.Math.Interpolation.Linear(
+                            [player.x, update.x],
+                            0.1,
+                        );
+                        player.y = Phaser.Math.Interpolation.Linear(
+                            [player.y, update.y],
+                            0.1,
                         );
                     }
                 } else {
+                    // Remote players use interpolation buffer
                     player.targetPos = {
                         x: update.x,
                         y: update.y,
@@ -407,9 +475,6 @@ export class SoccerMap extends BaseGameScene {
                             0,
                         );
                     }
-                    console.log(
-                        `Player ${data.playerId} reset to position (${data.x}, ${data.y})`,
-                    );
                 }
             },
         );
@@ -500,8 +565,6 @@ export class SoccerMap extends BaseGameScene {
                 const { selectionOrder } = useSoccerStore.getState();
                 const isInitialDraft = selectionOrder.length > 0;
 
-                // Only close overlay immediately if it's a mid-game joiner (no selection order)
-                // For initial draft, wait for soccer:gameStarted
                 if (data.playerId === this.localPlayerId && !isInitialDraft) {
                     useSoccerStore.getState().setSelectionPhaseActive(false);
                 }
@@ -595,13 +658,6 @@ export class SoccerMap extends BaseGameScene {
                         // Activate ball trail for 3 seconds
                         this.ballTrailActive = true;
 
-                        console.log("Ball flames and trail activated!", {
-                            active: this.ballFlameActive,
-                            startTime: this.ballFlameStartTime,
-                            graphics: !!this.ballFlameGraphics,
-                            trailActive: this.ballTrailActive,
-                        });
-
                         // Store buff end time for trail duration
                         this.powerShotBuffEndTime =
                             this.time.now + (data.duration || 3000);
@@ -620,7 +676,6 @@ export class SoccerMap extends BaseGameScene {
                     this.activeSkillId = data.skillId;
                 }
 
-                // Play skill specific sound if provided, otherwise fallback to generic
                 const sfxKey =
                     data.visualConfig?.sfxKey || "soccer_skill_activation";
                 this.sound.play(sfxKey, { volume: 0.3 });
@@ -713,7 +768,8 @@ export class SoccerMap extends BaseGameScene {
 
     private startInputLoop() {
         this.inputLoop = this.time.addEvent({
-            delay: 16, // Matched to server 60Hz rate
+            // MODIFIED: Reduced input frequency to 50ms since prediction handles local smoothness
+            delay: 50,
             loop: true,
             callback: () => {
                 this.sendPlayerInputs();
@@ -743,9 +799,6 @@ export class SoccerMap extends BaseGameScene {
         const down = cursors?.down.isDown || wasd?.S?.isDown;
         const left = cursors?.left.isDown || wasd?.A?.isDown;
         const right = cursors?.right.isDown || wasd?.D?.isDown;
-
-        // Collision detection removed - players can now pass through CollisionLayer
-        // Ball collision is handled server-side
 
         const input = {
             up,
@@ -802,7 +855,7 @@ export class SoccerMap extends BaseGameScene {
             this.ball.y,
         );
 
-        // --- NEW: Client-Side Prediction Physics (Matches Server Logic) ---
+        // --- Client-Side Prediction Physics (Matches Server Logic) ---
         const baseKickPower = 1000;
 
         // 1. Get stats (or default to 0)
@@ -821,7 +874,7 @@ export class SoccerMap extends BaseGameScene {
         const kickVy = Math.sin(angle) * finalPower;
 
         // --- APPLY PREDICTION ---
-        // This moves the ball instantly on client, bypassing 50-100ms lag
+        // This moves the ball instantly on client, bypassing lag
         this.ball.predictKick(kickVx, kickVy);
 
         // Play sound immediately for responsiveness
@@ -835,7 +888,6 @@ export class SoccerMap extends BaseGameScene {
         });
     }
 
-    // ... (Remaining Local/Offline Methods kept same as provided) ...
     private setupLocalPhysics() {
         this.physics.add.collider(
             this.playersLayer,
@@ -929,37 +981,25 @@ export class SoccerMap extends BaseGameScene {
     }
 
     private triggerSlowdown() {
-        // Get slowdown skill config
         const skillConfig = this.skillConfigs.get("slowdown");
         if (!skillConfig) {
-            console.warn("Slowdown skill config not loaded yet");
             return;
         }
 
         const now = Date.now();
         if (now - this.skillCooldown < skillConfig.cooldownMs) {
-            const remainingSeconds = Math.ceil(
-                (skillConfig.cooldownMs - (now - this.skillCooldown)) / 1000,
-            );
-            console.log(`Skill on cooldown: ${remainingSeconds}s remaining`);
             return;
         }
 
-        // Get player's facing direction
         const localPlayer = this.players.get(this.localPlayerId);
         const facingDirection = localPlayer?.lastFacingDirection || "DOWN";
 
-        // Activate skill
         this.skillCooldown = now;
         this.multiplayer?.socket.emit("soccer:activateSkill", {
             playerId: this.localPlayerId,
             skillId: "slowdown",
             facingDirection: facingDirection,
         });
-
-        console.log(
-            `${skillConfig.name} activated! All other players slowed for ${skillConfig.durationMs / 1000} seconds`,
-        );
     }
 
     private handleBlinkInput() {
@@ -969,37 +1009,25 @@ export class SoccerMap extends BaseGameScene {
     }
 
     private triggerBlink() {
-        // Get blink skill config
         const skillConfig = this.skillConfigs.get("blink");
         if (!skillConfig) {
-            console.warn("Blink skill config not loaded yet");
             return;
         }
 
         const now = Date.now();
         if (now - this.blinkCooldown < skillConfig.cooldownMs) {
-            const remainingSeconds = Math.ceil(
-                (skillConfig.cooldownMs - (now - this.blinkCooldown)) / 1000,
-            );
-            console.log(`Blink on cooldown: ${remainingSeconds}s remaining`);
             return;
         }
 
-        // Get player's facing direction
         const localPlayer = this.players.get(this.localPlayerId);
         const facingDirection = localPlayer?.lastFacingDirection || "DOWN";
 
-        // Activate blink skill
         this.blinkCooldown = now;
         this.multiplayer?.socket.emit("soccer:activateSkill", {
             playerId: this.localPlayerId,
             skillId: "blink",
             facingDirection: facingDirection,
         });
-
-        console.log(
-            `${skillConfig.name} activated! Blinking ${facingDirection}`,
-        );
     }
 
     private handleMetaVisionInput() {
@@ -1061,8 +1089,6 @@ export class SoccerMap extends BaseGameScene {
     }
 
     private triggerLurkingRadius() {
-        // Cooldown check is handled by server mostly, but we can do a local check if we want
-        // For simplicity and consistency with server 2-stage logic, just emit
         this.multiplayer?.socket.emit("soccer:activateSkill", {
             playerId: this.localPlayerId,
             skillId: "lurking_radius",
@@ -1072,26 +1098,17 @@ export class SoccerMap extends BaseGameScene {
     private triggerPowerShot() {
         const skillConfig = this.skillConfigs.get("power_shot");
         if (!skillConfig) {
-            console.warn("Power shot config not loaded");
             return;
         }
 
         const now = Date.now();
         if (now - this.powerShotCooldown < skillConfig.cooldownMs) {
-            const remainingSeconds = Math.ceil(
-                (skillConfig.cooldownMs - (now - this.powerShotCooldown)) /
-                    1000,
-            );
-            console.log(
-                `Power Shot on cooldown: ${remainingSeconds}s remaining`,
-            );
             return;
         }
 
         const localPlayer = this.players.get(this.localPlayerId);
         if (!localPlayer) return;
 
-        // Check distance to ball
         const distance = Phaser.Math.Distance.Between(
             localPlayer.x,
             localPlayer.y,
@@ -1100,22 +1117,15 @@ export class SoccerMap extends BaseGameScene {
         );
 
         if (distance > 200) {
-            console.log(
-                `Power Shot failed: Too far from ball (${distance.toFixed(0)} > 200)`,
-            );
             return;
         }
 
-        // Update cooldown
         this.powerShotCooldown = now;
 
-        // Activate skill
         this.multiplayer?.socket.emit("soccer:activateSkill", {
             playerId: this.localPlayerId,
             skillId: "power_shot",
         });
-
-        console.log("Power Shot activated!");
     }
 
     private handleUnifiedSkillInput() {
@@ -1161,9 +1171,6 @@ export class SoccerMap extends BaseGameScene {
         const ballSpeed = Math.sqrt(ballVx * ballVx + ballVy * ballVy);
         const isBallMoving = ballSpeed > 10;
 
-        // Dynamic thresholds:
-        // - Aiming (stationary ball): 300px
-        // - Observation (moving ball): 2000px
         const threshold = isBallMoving ? 2000 : 300;
 
         if (distance > threshold) {
@@ -1172,10 +1179,9 @@ export class SoccerMap extends BaseGameScene {
 
         // Only draw the dash "aim line" if we are in aiming range (stationary ball)
         if (!isBallMoving) {
-            // 2. Draw the dashed aim line from player to ball
             const isInKickRange =
                 distance <= (this.isMetaVisionActive ? 200 : 140);
-            const lineColor = isInKickRange ? 0x00ff00 : 0x00ffff; // Green if in range, Cyan if not
+            const lineColor = isInKickRange ? 0x00ff00 : 0x00ffff;
             const lineAlpha = isInKickRange ? 0.6 : 0.3;
             this.metaVisionGraphics.lineStyle(2, lineColor, lineAlpha);
 
@@ -1203,8 +1209,6 @@ export class SoccerMap extends BaseGameScene {
             }
         }
 
-        // Improve the trajectory simulation:
-        // Use current ball velocity if moving, otherwise simulate a kick based on player-to-ball angle.
         let simX = this.ball.x;
         let simY = this.ball.y;
         let simVx = 0;
@@ -1222,35 +1226,31 @@ export class SoccerMap extends BaseGameScene {
             );
             const baseKickPower = 1000;
             const kickPowerStat = this.soccerStats?.kickPower ?? 0;
-            // Server applies 1.2x boost for Metavision
             const kickPowerMultiplier = (1.0 + kickPowerStat * 0.1) * 1.2;
             simVx = Math.cos(angle) * baseKickPower * kickPowerMultiplier;
             simVy = Math.sin(angle) * baseKickPower * kickPowerMultiplier;
         }
 
-        const DRAG = 1; // matching server SoccerService
-        const BOUNCE = 0.7; // matching server SoccerService
-        const BALL_RADIUS = 30; // matching server SoccerService
+        const DRAG = 1;
+        const BOUNCE = 0.7;
+        const BALL_RADIUS = 30;
         const WORLD_WIDTH = this.worldBounds.width;
         const WORLD_HEIGHT = this.worldBounds.height;
-        const dt = 0.0166; // ~60fps simulation step (16.6ms matching server)
-        const duration = 2; // Simulate 2 seconds
+        const dt = 0.0166;
+        const duration = 2;
 
         this.metaVisionGraphics.lineStyle(2, 0x00ffff, 1.0);
         this.metaVisionGraphics.beginPath();
         this.metaVisionGraphics.moveTo(simX, simY);
 
         for (let t = 0; t < duration; t += dt) {
-            // 1. Apply exponential drag (matching server)
             const dragFactor = Math.exp(-DRAG * dt);
             simVx *= dragFactor;
             simVy *= dragFactor;
 
-            // 2. Update position
             simX += simVx * dt;
             simY += simVy * dt;
 
-            // 3. Robust bounce logic against world bounds (matching server exactly)
             if (simX - BALL_RADIUS < 0) {
                 simX = BALL_RADIUS;
                 simVx = -simVx * BOUNCE;
@@ -1267,15 +1267,12 @@ export class SoccerMap extends BaseGameScene {
                 simVy = -simVy * BOUNCE;
             }
 
-            // 4. Tile-based collision (FloorMarkingsLayer)
             if (this.floorMarkingsLayer) {
                 const tile = this.floorMarkingsLayer.getTileAtWorldXY(
                     simX,
                     simY,
                 );
                 if (tile && tile.index !== -1) {
-                    // Simple reflection for tile collisions in simulation
-                    // We check which component of velocity brought us here
                     const prevX = simX - simVx * dt;
                     const prevY = simY - simVy * dt;
 
@@ -1290,11 +1287,11 @@ export class SoccerMap extends BaseGameScene {
 
                     if (tileX && tileX.index !== -1) {
                         simVy = -simVy * BOUNCE;
-                        simY = prevY; // snap back
+                        simY = prevY;
                     }
                     if (tileY && tileY.index !== -1) {
                         simVx = -simVx * BOUNCE;
-                        simX = prevX; // snap back
+                        simX = prevX;
                     }
                     if (!tileX && !tileY) {
                         simVx = -simVx * BOUNCE;
@@ -1307,13 +1304,11 @@ export class SoccerMap extends BaseGameScene {
 
             this.metaVisionGraphics.lineTo(simX, simY);
 
-            // Stop simulation if ball slows down below threshold (matching server)
             if (Math.sqrt(simVx * simVx + simVy * simVy) < 10) break;
         }
 
         this.metaVisionGraphics.strokePath();
 
-        // Draw a small cyan circle at the final predicted position.
         this.metaVisionGraphics.fillStyle(0x00ffff, 0.8);
         this.metaVisionGraphics.fillCircle(simX, simY, 6);
     }
@@ -1326,35 +1321,25 @@ export class SoccerMap extends BaseGameScene {
         const localPlayer = this.players.get(this.localPlayerId);
         if (localPlayer?.team === "spectator") return;
 
-        // Only visible when Metavision is active
         if (!this.isMetaVisionActive) return;
 
-        // Use game time for animations
         const time = this.time.now;
-
-        // 1. Standard range (140px)
         const stdRange = 140;
-        // Subtle fill for standard range
+
         this.kickRangeGraphics.fillStyle(0xffffff, 0.08);
         this.kickRangeGraphics.fillCircle(this.ball.x, this.ball.y, stdRange);
-
-        // Standard range outline
         this.kickRangeGraphics.lineStyle(2, 0xffffff, 0.4);
         this.kickRangeGraphics.strokeCircle(this.ball.x, this.ball.y, stdRange);
 
-        // 2. Highlight active Metavision range
         const mvRange = 200;
-        const pulse = (Math.sin(time / 150) + 1) / 2; // Faster pulse
+        const pulse = (Math.sin(time / 150) + 1) / 2;
 
-        // Glowing fill for Metavision range
         this.kickRangeGraphics.fillStyle(0x00ffff, 0.1 + pulse * 0.05);
         this.kickRangeGraphics.fillCircle(this.ball.x, this.ball.y, mvRange);
 
-        // Strong outer border
         this.kickRangeGraphics.lineStyle(3, 0x00ffff, 0.6);
         this.kickRangeGraphics.strokeCircle(this.ball.x, this.ball.y, mvRange);
 
-        // Pulsing "sonar" rings
         for (let i = 0; i < 2; i++) {
             const ringPulse = ((time + i * 500) % 1000) / 1000;
             const ringAlpha = 0.4 * (1 - ringPulse);
@@ -1368,7 +1353,6 @@ export class SoccerMap extends BaseGameScene {
             );
         }
 
-        // Extra outer glow pulse
         this.kickRangeGraphics.lineStyle(1, 0x00ffff, 0.2 + pulse * 0.3);
         this.kickRangeGraphics.strokeCircle(
             this.ball.x,
@@ -1385,7 +1369,6 @@ export class SoccerMap extends BaseGameScene {
         const player = this.players.get(this.lurkingPlayerId);
         if (!player) return;
 
-        // Check expiration
         if (this.time.now > this.lurkingEndTime) {
             this.lurkingPlayerId = null;
             this.lurkingGraphics.clear();
@@ -1402,19 +1385,14 @@ export class SoccerMap extends BaseGameScene {
         const isBallInside = distToBall <= radius;
         const time = this.time.now;
 
-        // Animation variables
         const pulse = (Math.sin(time / 100) + 1) / 2;
         const fastPulse = (Math.sin(time / 50) + 1) / 2;
-        const rotationAngle = (time / 1000) % (Math.PI * 2); // Full rotation every ~6 seconds
+        const rotationAngle = (time / 1000) % (Math.PI * 2);
 
         if (isBallInside) {
-            // ===== INTERCEPT READY STATE: Aggressive Green Energy =====
-
-            // 1. Pulsing inner glow
             this.lurkingGraphics.fillStyle(0x00ff00, 0.15 + pulse * 0.1);
             this.lurkingGraphics.fillCircle(player.x, player.y, radius);
 
-            // 2. Multiple concentric rings (expanding)
             for (let i = 0; i < 3; i++) {
                 const offset = (time / 80 + i * 60) % 180;
                 const ringRadius = radius - offset;
@@ -1429,11 +1407,9 @@ export class SoccerMap extends BaseGameScene {
                 }
             }
 
-            // 3. Main outer ring (bright)
             this.lurkingGraphics.lineStyle(5, 0x00ff00, 0.9 + fastPulse * 0.1);
             this.lurkingGraphics.strokeCircle(player.x, player.y, radius);
 
-            // 4. Energy sparks around perimeter
             const sparkCount = 8;
             for (let i = 0; i < sparkCount; i++) {
                 const angle = (i / sparkCount) * Math.PI * 2 + rotationAngle;
@@ -1444,7 +1420,6 @@ export class SoccerMap extends BaseGameScene {
                 this.lurkingGraphics.fillStyle(0xffffff, 0.8 + fastPulse * 0.2);
                 this.lurkingGraphics.fillCircle(sparkX, sparkY, sparkSize);
 
-                // Inner glow
                 this.lurkingGraphics.fillStyle(0x00ff00, 0.4);
                 this.lurkingGraphics.fillCircle(
                     sparkX,
@@ -1453,7 +1428,6 @@ export class SoccerMap extends BaseGameScene {
                 );
             }
 
-            // 5. Rotating energy arcs
             const arcCount = 4;
             for (let i = 0; i < arcCount; i++) {
                 const arcAngle =
@@ -1473,13 +1447,9 @@ export class SoccerMap extends BaseGameScene {
                 this.lurkingGraphics.strokePath();
             }
         } else {
-            // ===== SEARCHING STATE: Ominous Purple/Red Energy =====
-
-            // 1. Dark pulsing background
             this.lurkingGraphics.fillStyle(0x800080, 0.08 + pulse * 0.04);
             this.lurkingGraphics.fillCircle(player.x, player.y, radius);
 
-            // 2. Radar sweep effect
             const sweepAngle = rotationAngle;
             const sweepWidth = Math.PI / 3;
 
@@ -1494,14 +1464,12 @@ export class SoccerMap extends BaseGameScene {
             );
             this.lurkingGraphics.fillPath();
 
-            // 3. Dotted circle perimeter (scanning effect)
             const dotCount = 24;
             for (let i = 0; i < dotCount; i++) {
                 const angle = (i / dotCount) * Math.PI * 2;
                 const dotX = player.x + Math.cos(angle) * radius;
                 const dotY = player.y + Math.sin(angle) * radius;
 
-                // Fade dots based on sweep position
                 const angleDiff =
                     Math.abs(
                         Phaser.Math.Angle.ShortestBetween(
@@ -1515,11 +1483,9 @@ export class SoccerMap extends BaseGameScene {
                 this.lurkingGraphics.fillCircle(dotX, dotY, 2);
             }
 
-            // 4. Main outer ring (purple)
             this.lurkingGraphics.lineStyle(2, 0x800080, 0.6);
             this.lurkingGraphics.strokeCircle(player.x, player.y, radius);
 
-            // 5. Expanding danger pulse (red)
             const expandPulse = (time / 200) % 1;
             const expandRadius = radius + expandPulse * 20;
             const expandAlpha = (1 - expandPulse) * 0.5;
@@ -1527,7 +1493,6 @@ export class SoccerMap extends BaseGameScene {
             this.lurkingGraphics.lineStyle(2, 0xff0000, expandAlpha);
             this.lurkingGraphics.strokeCircle(player.x, player.y, expandRadius);
 
-            // 6. Inner concentric rings (slow pulse)
             for (let i = 1; i <= 2; i++) {
                 const innerRadius = radius * (i / 3);
                 this.lurkingGraphics.lineStyle(1, 0x800080, 0.3 + pulse * 0.2);
@@ -1539,19 +1504,16 @@ export class SoccerMap extends BaseGameScene {
             }
         }
 
-        // ===== ALWAYS DRAW: Heterochromia Eyes (Glowing) =====
         const eyeY = player.y - 15;
         const leftEyeX = player.x - 4;
         const rightEyeX = player.x + 4;
         const eyeGlow = 2 + fastPulse * 1;
 
-        // Left eye (Green) with glow
         this.lurkingGraphics.fillStyle(0x00ff00, 0.3);
         this.lurkingGraphics.fillCircle(leftEyeX, eyeY, eyeGlow);
         this.lurkingGraphics.fillStyle(0x00ff00, 1);
         this.lurkingGraphics.fillCircle(leftEyeX, eyeY, 3);
 
-        // Right eye (Purple) with glow
         this.lurkingGraphics.fillStyle(0x800080, 0.3);
         this.lurkingGraphics.fillCircle(rightEyeX, eyeY, eyeGlow);
         this.lurkingGraphics.fillStyle(0x800080, 1);
@@ -1568,11 +1530,9 @@ export class SoccerMap extends BaseGameScene {
         const timeSinceLastUse = now - this.skillCooldown;
 
         if (timeSinceLastUse >= skillConfig.cooldownMs) {
-            // Skill is ready
             this.skillCooldownText.setText("Q: READY");
             this.skillCooldownText.setColor("#00ff00");
         } else {
-            // Skill is on cooldown
             const remainingSeconds = Math.ceil(
                 (skillConfig.cooldownMs - timeSinceLastUse) / 1000,
             );
@@ -1582,11 +1542,9 @@ export class SoccerMap extends BaseGameScene {
     }
 
     private applySkillVisuals(activatorId: string, visualConfig: any) {
-        // Store the activator ID and visual config for trail effect
         this.activeSkillPlayerId = activatorId;
         this.activeSkillVisualConfig = visualConfig;
 
-        // Hide team glow during speed trail to prevent trailing outline effect
         if (visualConfig.enableSpeedTrail) {
             const activator = this.players.get(activatorId);
             if (activator && activator.teamGlow) {
@@ -1594,9 +1552,7 @@ export class SoccerMap extends BaseGameScene {
             }
         }
 
-        // Apply grayscale if enabled in config
         if (visualConfig.enableGrayscale) {
-            // Apply true grayscale (desaturation) to tilemap layers
             if (this.floorLayer && this.floorLayer.postFX) {
                 const colorMatrix = this.floorLayer.postFX.addColorMatrix();
                 colorMatrix.grayscale();
@@ -1619,14 +1575,12 @@ export class SoccerMap extends BaseGameScene {
                 this.grayscaleEffects.set(this.circleLayer, colorMatrix);
             }
 
-            // Apply grayscale to the ball
             if (this.ball && this.ball.postFX) {
                 const colorMatrix = this.ball.postFX.addColorMatrix();
                 colorMatrix.grayscale();
                 this.grayscaleEffects.set(this.ball, colorMatrix);
             }
 
-            // Apply grayscale to all players EXCEPT the activator
             for (const [playerId, player] of this.players.entries()) {
                 if (playerId !== activatorId) {
                     if (player.postFX) {
@@ -1634,7 +1588,6 @@ export class SoccerMap extends BaseGameScene {
                         colorMatrix.grayscale();
                         this.grayscaleEffects.set(player, colorMatrix);
                     }
-                    // Also apply to their team glow if it exists
                     if (player.teamGlow && player.teamGlow.postFX) {
                         const glowColorMatrix =
                             player.teamGlow.postFX.addColorMatrix();
@@ -1645,7 +1598,6 @@ export class SoccerMap extends BaseGameScene {
                         );
                     }
                 }
-                // Activating player remains fully colored (no effects)
             }
         }
 
@@ -1656,7 +1608,6 @@ export class SoccerMap extends BaseGameScene {
     }
 
     private removeSkillVisuals() {
-        // Don't remove if power shot buff is still active (only for power shot skill)
         if (
             this.activeSkillId === "power_shot" &&
             this.time.now < this.powerShotBuffEndTime
@@ -1669,46 +1620,37 @@ export class SoccerMap extends BaseGameScene {
                 player.teamGlow.setVisible(true);
             }
         }
-        // Clear activator ID to stop trail creation
         this.activeSkillPlayerId = null;
         this.activeSkillId = null;
 
-        // Clean up all trail sprites
         this.clearSpeedTrail();
 
-        // Remove all grayscale ColorMatrix effects
         for (const [
             gameObject,
             colorMatrix,
         ] of this.grayscaleEffects.entries()) {
             const go = gameObject as any;
             if (go && go.postFX) {
-                // Remove the specific ColorMatrix effect
                 go.postFX.remove(colorMatrix);
             }
         }
 
-        // Clear the effects map
         this.grayscaleEffects.clear();
-
         console.log("Skill visuals removed - all colors restored");
     }
 
     private createSpeedTrail(time: number) {
         if (!this.activeSkillPlayerId || !this.activeSkillVisualConfig) return;
 
-        // Check if speed trail is enabled in config
         if (!this.activeSkillVisualConfig.enableSpeedTrail) return;
 
         const player = this.players.get(this.activeSkillPlayerId);
         if (!player) return;
 
-        // Use configured trail interval (default 30ms)
         const trailInterval = this.activeSkillVisualConfig.trailInterval || 30;
         if (time - this.trailTimer < trailInterval) return;
         this.trailTimer = time;
 
-        // Create a trail sprite at the player's current position
         const trail = this.add.sprite(
             player.x,
             player.y,
@@ -1716,24 +1658,19 @@ export class SoccerMap extends BaseGameScene {
             player.frame.name,
         );
 
-        // Match player properties
         trail.setScale(player.scaleX, player.scaleY);
         trail.setFlipX(player.flipX);
         trail.setDepth(player.depth - 1);
 
-        // Use configured trail color (default cyan)
         const trailColor = this.activeSkillVisualConfig.trailColor || 0x00ffff;
         trail.setTintFill(trailColor);
         trail.setAlpha(0.7);
 
-        // Store the trail sprite
         this.trailSprites.push(trail);
 
-        // Use configured fade duration (default 300ms)
         const fadeDuration =
             this.activeSkillVisualConfig.trailFadeDuration || 300;
 
-        // Fade out and destroy the trail sprite
         this.tweens.add({
             targets: trail,
             alpha: 0,
@@ -1741,7 +1678,6 @@ export class SoccerMap extends BaseGameScene {
             ease: "Power2",
             onComplete: () => {
                 trail.destroy();
-                // Remove from array
                 const index = this.trailSprites.indexOf(trail);
                 if (index > -1) {
                     this.trailSprites.splice(index, 1);
@@ -1751,7 +1687,6 @@ export class SoccerMap extends BaseGameScene {
     }
 
     private clearSpeedTrail() {
-        // Destroy all trail sprites
         for (const trail of this.trailSprites) {
             if (trail && trail.active) {
                 trail.destroy();
@@ -1763,7 +1698,7 @@ export class SoccerMap extends BaseGameScene {
 
     private createBlinkEffect(
         playerId: string,
-        fromX: number, // MUST pass where the player was BEFORE the blink
+        fromX: number,
         fromY: number,
         toX: number,
         toY: number,
@@ -1775,21 +1710,16 @@ export class SoccerMap extends BaseGameScene {
         const tint = visualConfig.tint || 0x00ffff;
         const fadeDuration = visualConfig.trailFadeDuration || 200;
 
-        // 1. Force High Density (Multiple Ghosts)
-        // We set this very low (e.g., 8 pixels). This ensures that even a
-        // short blink (e.g., 100px) generates ~12 ghosts.
         const stepSize = 40;
 
         const distance = Phaser.Math.Distance.Between(fromX, fromY, toX, toY);
 
-        // If distance is too small, just exit (avoids division by zero or stacking)
         if (distance < stepSize) return;
 
         const numGhosts = Math.floor(distance / stepSize);
         const dx = (toX - fromX) / numGhosts;
         const dy = (toY - fromY) / numGhosts;
 
-        // 2. Create the Dense Trail
         for (let i = 0; i < numGhosts; i++) {
             const ghostX = fromX + dx * i;
             const ghostY = fromY + dy * i;
@@ -1801,31 +1731,27 @@ export class SoccerMap extends BaseGameScene {
                 player.frame.name,
             );
 
-            // Match Player Properties
             ghost.setOrigin(player.originX, player.originY);
             ghost.setScale(player.scaleX, player.scaleY);
             ghost.setRotation(player.rotation);
             ghost.setFlip(player.flipX, player.flipY);
             ghost.setDepth(player.depth - 1);
 
-            // Visuals
             ghost.setTint(tint);
-            ghost.setAlpha(0.4); // Lower alpha because there are many overlapping ghosts
+            ghost.setAlpha(0.4);
             ghost.setBlendMode(Phaser.BlendModes.ADD);
 
             this.tweens.add({
                 targets: ghost,
                 alpha: 0,
-                // Shrink slightly to create a "cone" shape trail
                 scaleX: player.scaleX * 0.6,
                 scaleY: player.scaleY * 0.6,
                 duration: fadeDuration,
-                delay: i * 5, // Fast ripple
+                delay: i * 5,
                 onComplete: () => ghost.destroy(),
             });
         }
 
-        // 3. Impact Ring (Destination)
         const impactRing = this.add.circle(toX, toY, 10);
         impactRing.setStrokeStyle(3, tint);
         this.tweens.add({
@@ -1837,18 +1763,17 @@ export class SoccerMap extends BaseGameScene {
             onComplete: () => impactRing.destroy(),
         });
 
-        // 4. Departure Ring (Optional: Leaves a ring where you came from)
-        // This helps visually confirm the start point even if standing still
         const startRing = this.add.circle(fromX, fromY, 15);
         startRing.setStrokeStyle(2, tint);
         this.tweens.add({
             targets: startRing,
-            scale: 0.1, // Implode effect
+            scale: 0.1,
             alpha: 0,
             duration: 200,
             onComplete: () => startRing.destroy(),
         });
     }
+
     private addKickGlow(player: Player) {
         player.setTint(0xffffff);
         const outline = this.add.sprite(player.x, player.y, player.texture.key);
@@ -1884,29 +1809,26 @@ export class SoccerMap extends BaseGameScene {
         if (!this.ballFlameActive || !this.ballFlameGraphics) return;
 
         const elapsed = this.time.now - this.ballFlameStartTime;
-        const duration = 3000; // 3 seconds
+        const duration = 3000;
 
-        // Deactivate after duration
         if (elapsed > duration) {
             this.ballFlameActive = false;
             this.ballFlameGraphics.clear();
-            this.clearBallTrail(); // Also clear ball trail
+            this.clearBallTrail();
             console.log("Ball flames and trail deactivated after 3 seconds");
             return;
         }
 
         this.ballFlameGraphics.clear();
 
-        // Create multiple flame layers
         const baseRadius = 30;
-        const time = this.time.now / 100; // Animation speed
+        const time = this.time.now / 100;
 
         for (let i = 0; i < 3; i++) {
             const offset = i * 0.5;
             const radius = baseRadius + Math.sin(time + offset) * 5;
             const alpha = 0.6 - i * 0.15;
 
-            // Outer orange glow
             this.ballFlameGraphics.fillStyle(0xff6600, alpha);
             this.ballFlameGraphics.fillCircle(
                 this.ball.x,
@@ -1914,7 +1836,6 @@ export class SoccerMap extends BaseGameScene {
                 radius + 10 - i * 3,
             );
 
-            // Inner red/yellow core
             this.ballFlameGraphics.fillStyle(0xffaa00, alpha + 0.2);
             this.ballFlameGraphics.fillCircle(
                 this.ball.x,
@@ -1923,7 +1844,6 @@ export class SoccerMap extends BaseGameScene {
             );
         }
 
-        // Add flame "sparks" trailing behind ball
         const body = this.ball.body as Phaser.Physics.Arcade.Body;
         if (body && body.velocity) {
             const velocityAngle = Math.atan2(body.velocity.y, body.velocity.x);
@@ -1945,33 +1865,24 @@ export class SoccerMap extends BaseGameScene {
     private createBallTrail(time: number) {
         if (!this.ballTrailActive) return;
 
-        const trailInterval = 1; // ms between trail sprites
-        const trailFadeDuration = 300; // ms for fade animation
+        const trailInterval = 1;
+        const trailFadeDuration = 300;
 
-        // Create trail sprite at intervals
         if (time - this.ballTrailTimer > trailInterval) {
             this.ballTrailTimer = time;
 
-            // Create a trail sprite at ball's current position
             const trailSprite = this.add.sprite(
                 this.ball.x,
                 this.ball.y,
-                "ball", // Use "ball" texture directly
+                "ball",
             );
             trailSprite.setScale(this.ball.scaleX, this.ball.scaleY);
-            trailSprite.setDepth(99); // High depth to be visible above floor layers
+            trailSprite.setDepth(99);
             trailSprite.setAlpha(0.3);
-            trailSprite.setTintFill(0xff6600); // Orange/red tint
+            trailSprite.setTintFill(0xff6600);
 
             this.ballTrailSprites.push(trailSprite);
 
-            console.log("Ball trail sprite created:", {
-                count: this.ballTrailSprites.length,
-                position: { x: this.ball.x, y: this.ball.y },
-                depth: trailSprite.depth,
-            });
-
-            // Fade out and destroy
             this.tweens.add({
                 targets: trailSprite,
                 alpha: 0,
@@ -1989,7 +1900,6 @@ export class SoccerMap extends BaseGameScene {
     }
 
     private clearBallTrail() {
-        // Destroy all existing trail sprites
         this.ballTrailSprites.forEach((sprite) => sprite.destroy());
         this.ballTrailSprites = [];
         this.ballTrailActive = false;
@@ -1998,8 +1908,6 @@ export class SoccerMap extends BaseGameScene {
     private async checkSoccerStats() {
         try {
             const stats = await getSoccerStats();
-
-            // If no stats exist, open the modal
             if (!stats) {
                 console.log("No soccer stats found - opening modal");
                 useUiStore.getState().openSoccerStatsModal();
@@ -2009,7 +1917,6 @@ export class SoccerMap extends BaseGameScene {
             }
         } catch (error) {
             console.error("Failed to check soccer stats:", error);
-            // Optionally open modal on error, or silently fail
         }
     }
 
@@ -2094,7 +2001,6 @@ export class SoccerMap extends BaseGameScene {
         const circleLayer = map.createLayer("Circle", allTilesets, 0, 0);
         goalsLayer?.setDepth(100);
 
-        // Store layer references for skill visuals
         this.floorLayer = floorLayer;
         this.goalsLayer = goalsLayer;
         this.circleLayer = circleLayer;

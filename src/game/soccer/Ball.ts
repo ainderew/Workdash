@@ -62,14 +62,13 @@ export class Ball extends Phaser.Physics.Arcade.Sprite {
         this.targetPos.vy = vy;
 
         // 3. Ignore incoming server packets for 150ms to prevent "rubberbanding"
-        // (The server will initially send back the old position before it processes the kick)
         this.ignoreServerUpdatesUntil = Date.now() + 150;
     }
 
     public updateFromServer(state: BallStateUpdate) {
         if (!this.isMultiplayer) return;
 
-        // Update stored state (useful for debug/trajectory logic elsewhere)
+        // Update stored state
         this.targetPos = {
             x: state.x,
             y: state.y,
@@ -78,7 +77,7 @@ export class Ball extends Phaser.Physics.Arcade.Sprite {
             t: state.timestamp,
         };
 
-        // Authority Window: Don't snap back if we just kicked
+        // Authority Window: Don't snap back if we just kicked locally
         if (Date.now() < this.ignoreServerUpdatesUntil) return;
 
         if (this.body) {
@@ -89,32 +88,34 @@ export class Ball extends Phaser.Physics.Arcade.Sprite {
                 state.y,
             );
 
-            // HARD SNAP: If desync is massive (e.g. goal reset), teleport
-            if (dist > 250) {
+            // 1. HARD SNAP: If desync is massive (e.g. goal reset), teleport
+            if (dist > 200) {
                 this.setPosition(state.x, state.y);
                 this.setVelocity(state.vx, state.vy);
             }
-            // SOFT CORRECTION: Velocity Steering
+            // 2. SMOOTH CORRECTION
             else {
-                // Calculate the difference between where we are and where server says we are
-                const errorX = state.x - this.x;
-                const errorY = state.y - this.y;
-
-                // How aggressively to correct?
-                // 5 means we try to close the gap quickly using velocity
-                const correctionFactor = 5;
-
-                // Set velocity to: Server Velocity + Nudge towards correct position
-                this.setVelocity(
-                    state.vx + errorX * correctionFactor,
-                    state.vy + errorY * correctionFactor,
+                // Blend positions slightly to close the gap without snapping
+                // We use a small factor (0.1) to gently pull it towards server pos
+                const newX = Phaser.Math.Interpolation.Linear(
+                    [this.x, state.x],
+                    0.1,
                 );
+                const newY = Phaser.Math.Interpolation.Linear(
+                    [this.y, state.y],
+                    0.1,
+                );
+
+                this.setPosition(newX, newY);
+
+                // Trust server velocity for the physics engine trajectory
+                this.setVelocity(state.vx, state.vy);
             }
         }
     }
 
     public update() {
         // No manual position updates needed.
-        // Phaser's physics engine handles movement based on the velocity we set above.
+        // Phaser's physics engine handles movement based on the velocity we set.
     }
 }
