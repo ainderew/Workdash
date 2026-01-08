@@ -153,6 +153,47 @@ export class SoccerMap extends BaseGameScene {
 
         this.updateSkillCooldownUI();
 
+        // 1. UPDATE REMOTE PLAYERS INTERPOLATION
+        // This ensures remote players move smoothly instead of teleporting
+        this.players.forEach((player: any) => {
+            // Skip the local player (handled by client input + server reconciliation)
+            // Skip if no target position exists yet
+            if (player.id === this.localPlayerId || !player.targetPos) return;
+
+            // Calculate distance to target
+            const dist = Phaser.Math.Distance.Between(
+                player.x,
+                player.y,
+                player.targetPos.x,
+                player.targetPos.y,
+            );
+
+            // TELEPORT: If desync is huge (e.g. just spawned or teleport skill), snap immediately
+            // Increased to 300 to account for fast movement skills like Blink
+            if (dist > 300) {
+                player.x = player.targetPos.x;
+                player.y = player.targetPos.y;
+            }
+            // INTERPOLATE: Smoothly move toward target
+            else {
+                // 0.15 is the lerp factor (15% per frame).
+                // Higher = snappier/jittery, Lower = smoother/laggy
+                player.x = Phaser.Math.Interpolation.Linear(
+                    [player.x, player.targetPos.x],
+                    0.15,
+                );
+                player.y = Phaser.Math.Interpolation.Linear(
+                    [player.y, player.targetPos.y],
+                    0.15,
+                );
+            }
+
+            // Also update the team glow position immediately so it doesn't lag behind
+            if (player.teamGlow) {
+                player.teamGlow.setPosition(player.x, player.y);
+            }
+        });
+
         if (this.activeSkillPlayerId) {
             this.createSpeedTrail(time);
         }
@@ -672,7 +713,7 @@ export class SoccerMap extends BaseGameScene {
 
     private startInputLoop() {
         this.inputLoop = this.time.addEvent({
-            delay: 20,
+            delay: 16, // Matched to server 60Hz rate
             loop: true,
             callback: () => {
                 this.sendPlayerInputs();
@@ -761,21 +802,16 @@ export class SoccerMap extends BaseGameScene {
             this.ball.y,
         );
 
-        // --- NEW: Physics Calculations (Must match Server Logic) ---
+        // --- NEW: Client-Side Prediction Physics (Matches Server Logic) ---
         const baseKickPower = 1000;
 
         // 1. Get stats (or default to 0)
         const kickPowerStat = this.soccerStats?.kickPower ?? 0;
 
-        // 2. Check for Buffs (Client doesn't strictly know server buffs,
-        //    but if you have a store for active buffs, check it here.
-        //    Otherwise, ignoring small stat buffs usually results in
-        //    smooth lerping rather than teleporting).
-
-        // 3. Calculate Multiplier
+        // 2. Calculate Multiplier
         let kickPowerMultiplier = 1.0 + kickPowerStat * 0.1;
 
-        // 4. Metavision Boost
+        // 3. Metavision Boost
         if (this.isMetaVisionActive) {
             kickPowerMultiplier *= 1.2;
         }
@@ -785,6 +821,7 @@ export class SoccerMap extends BaseGameScene {
         const kickVy = Math.sin(angle) * finalPower;
 
         // --- APPLY PREDICTION ---
+        // This moves the ball instantly on client, bypassing 50-100ms lag
         this.ball.predictKick(kickVx, kickVy);
 
         // Play sound immediately for responsiveness
@@ -797,6 +834,7 @@ export class SoccerMap extends BaseGameScene {
             angle: angle,
         });
     }
+
     // ... (Remaining Local/Offline Methods kept same as provided) ...
     private setupLocalPhysics() {
         this.physics.add.collider(
