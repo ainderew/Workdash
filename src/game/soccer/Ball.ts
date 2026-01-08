@@ -51,7 +51,7 @@ export class Ball extends Phaser.Physics.Arcade.Sprite {
         }
     }
 
-    public predictKick(vx: number, vy: number) {
+    public predictKick(vx: number, vy: number, rtt: number = 100) {
         if (!this.isMultiplayer) return;
 
         // 1. Apply velocity instantly for immediate feedback
@@ -61,48 +61,75 @@ export class Ball extends Phaser.Physics.Arcade.Sprite {
         this.targetPos.vx = vx;
         this.targetPos.vy = vy;
 
-        // 3. Ignore incoming server packets for 100ms to prevent "rubberbanding"
-        this.ignoreServerUpdatesUntil = Date.now() + 100;
+        // 3. Dynamic authority window: RTT * 1.5 (minimum 100ms, max 300ms)
+        // Prevents snap-back when server updates arrive late in production
+        const authorityWindow = Math.min(300, Math.max(100, rtt * 1.5));
+        this.ignoreServerUpdatesUntil = Date.now() + authorityWindow;
+
+        console.log(
+            `[Ball] Kick predicted, authority window: ${authorityWindow}ms (RTT: ${rtt}ms)`,
+        );
     }
 
     public updateFromServer(state: BallStateUpdate) {
         if (!this.isMultiplayer) return;
 
-        // Update stored state
+        // Calculate update age (how old is this data?)
+        const updateAge = Date.now() - state.timestamp;
+
+        // Extrapolate position based on velocity and age
+        // This compensates for network latency by predicting where the ball is NOW
+        const extrapolatedX = state.x + state.vx * (updateAge / 1000);
+        const extrapolatedY = state.y + state.vy * (updateAge / 1000);
+
+        // Store extrapolated state
         this.targetPos = {
-            x: state.x,
-            y: state.y,
+            x: extrapolatedX,
+            y: extrapolatedY,
             vx: state.vx,
             vy: state.vy,
             t: state.timestamp,
         };
 
         // Authority Window: Don't snap back if we just kicked locally
-        if (Date.now() < this.ignoreServerUpdatesUntil) return;
+        if (Date.now() < this.ignoreServerUpdatesUntil) {
+            console.log(`[Ball] Ignoring server update (authority window active)`);
+            return;
+        }
 
         if (this.body) {
             const dist = Phaser.Math.Distance.Between(
                 this.x,
                 this.y,
-                state.x,
-                state.y,
+                extrapolatedX,
+                extrapolatedY,
             );
 
-            // 1. HARD SNAP: If desync is too large, teleport
-            if (dist > 120) {
-                this.setPosition(state.x, state.y);
+            // Log diagnostics for stale updates
+            if (updateAge > 150) {
+                console.warn(
+                    `[Ball] Stale update: ${updateAge}ms old, dist: ${dist.toFixed(1)}px`,
+                );
+            }
+
+            // Hard snap threshold (increased for high latency)
+            const snapThreshold = 150; // Was 120px
+            if (dist > snapThreshold) {
+                console.log(
+                    `[Ball] Hard snap (${dist.toFixed(1)}px > ${snapThreshold}px)`,
+                );
+                this.setPosition(extrapolatedX, extrapolatedY);
                 this.setVelocity(state.vx, state.vy);
             }
-            // 2. SMOOTH CORRECTION
+            // Smooth correction
             else {
                 // Blend positions to close the gap without snapping
-                // Higher factor (0.25) = more responsive corrections
                 const newX = Phaser.Math.Interpolation.Linear(
-                    [this.x, state.x],
+                    [this.x, extrapolatedX],
                     0.25,
                 );
                 const newY = Phaser.Math.Interpolation.Linear(
-                    [this.y, state.y],
+                    [this.y, extrapolatedY],
                     0.25,
                 );
 

@@ -99,6 +99,9 @@ export class SoccerMap extends BaseGameScene {
         // Automatically open game controls
         useUiStore.getState().openSoccerGameControlModal();
 
+        // Add network diagnostics UI for debugging production latency
+        this.createNetworkDiagnosticsUI();
+
         this.centerCamera();
         this.createBall();
         this.kickKey =
@@ -153,37 +156,48 @@ export class SoccerMap extends BaseGameScene {
 
         this.updateSkillCooldownUI();
 
-        // 1. UPDATE REMOTE PLAYERS INTERPOLATION
+        // 1. UPDATE REMOTE PLAYERS INTERPOLATION WITH EXTRAPOLATION
         // This ensures remote players move smoothly instead of teleporting
         this.players.forEach((player: any) => {
             // Skip the local player (handled by client input + server reconciliation)
             // Skip if no target position exists yet
             if (player.id === this.localPlayerId || !player.targetPos) return;
 
-            // Calculate distance to target
+            // Calculate how old this target position is
+            const updateAge = Date.now() - player.targetPos.t;
+
+            // Extrapolate position based on velocity and update age
+            // This compensates for network latency by predicting where the player is NOW
+            const extrapolatedX =
+                player.targetPos.x + player.targetPos.vx * (updateAge / 1000);
+            const extrapolatedY =
+                player.targetPos.y + player.targetPos.vy * (updateAge / 1000);
+
+            // Calculate distance to extrapolated target
             const dist = Phaser.Math.Distance.Between(
                 player.x,
                 player.y,
-                player.targetPos.x,
-                player.targetPos.y,
+                extrapolatedX,
+                extrapolatedY,
             );
 
             // TELEPORT: If desync is huge (e.g. just spawned or teleport skill), snap immediately
-            // Set to 200 to handle fast movement skills like Blink while preventing drift
-            if (dist > 200) {
-                player.x = player.targetPos.x;
-                player.y = player.targetPos.y;
+            // Increased to 250px to handle fast movement skills like Blink in high-latency scenarios
+            const snapThreshold = 250; // Was 200px
+            if (dist > snapThreshold) {
+                player.x = extrapolatedX;
+                player.y = extrapolatedY;
             }
-            // INTERPOLATE: Smoothly move toward target
+            // INTERPOLATE: Smoothly move toward extrapolated target
             else {
                 // 0.25 is the lerp factor (25% per frame).
                 // Higher = snappier/responsive, Lower = smoother/laggy
                 player.x = Phaser.Math.Interpolation.Linear(
-                    [player.x, player.targetPos.x],
+                    [player.x, extrapolatedX],
                     0.25,
                 );
                 player.y = Phaser.Math.Interpolation.Linear(
-                    [player.y, player.targetPos.y],
+                    [player.y, extrapolatedY],
                     0.25,
                 );
             }
@@ -821,8 +835,10 @@ export class SoccerMap extends BaseGameScene {
         const kickVy = Math.sin(angle) * finalPower;
 
         // --- APPLY PREDICTION ---
-        // This moves the ball instantly on client, bypassing 50-100ms lag
-        this.ball.predictKick(kickVx, kickVy);
+        // This moves the ball instantly on client, bypassing network lag
+        // Get current RTT for dynamic authority window
+        const rtt = this.multiplayer?.ping || 100;
+        this.ball.predictKick(kickVx, kickVy, rtt);
 
         // Play sound immediately for responsiveness
         this.sound.play("soccer_kick");
@@ -1579,6 +1595,36 @@ export class SoccerMap extends BaseGameScene {
             this.skillCooldownText.setText(`Q: ${remainingSeconds}s`);
             this.skillCooldownText.setColor("#ff0000");
         }
+    }
+
+    private createNetworkDiagnosticsUI() {
+        if (!this.isMultiplayerMode) return;
+
+        const diagnosticsText = this.add.text(10, 50, "", {
+            fontSize: "14px",
+            color: "#00ff00",
+            backgroundColor: "#000000aa",
+            padding: { x: 5, y: 5 },
+        });
+        diagnosticsText.setScrollFactor(0);
+        diagnosticsText.setDepth(10000);
+
+        // Update every 500ms
+        this.time.addEvent({
+            delay: 500,
+            loop: true,
+            callback: () => {
+                const ping = this.multiplayer?.ping || 0;
+                const ballUpdateAge = this.ball.targetPos.t
+                    ? Date.now() - this.ball.targetPos.t
+                    : 0;
+                diagnosticsText.setText(
+                    [`Ping: ${ping}ms`, `Ball Age: ${ballUpdateAge}ms`].join(
+                        "\n",
+                    ),
+                );
+            },
+        });
     }
 
     private applySkillVisuals(activatorId: string, visualConfig: any) {
