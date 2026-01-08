@@ -61,8 +61,8 @@ export class Ball extends Phaser.Physics.Arcade.Sprite {
         this.targetPos.vx = vx;
         this.targetPos.vy = vy;
 
-        // 3. Ignore incoming server packets for 150ms to prevent "rubberbanding"
-        this.ignoreServerUpdatesUntil = Date.now() + 150;
+        // 3. Ignore incoming server packets for 100ms to prevent "rubberbanding"
+        this.ignoreServerUpdatesUntil = Date.now() + 100;
     }
 
     public updateFromServer(state: BallStateUpdate) {
@@ -88,22 +88,22 @@ export class Ball extends Phaser.Physics.Arcade.Sprite {
                 state.y,
             );
 
-            // 1. HARD SNAP: If desync is massive (e.g. goal reset), teleport
-            if (dist > 200) {
+            // 1. HARD SNAP: If desync is too large, teleport
+            if (dist > 120) {
                 this.setPosition(state.x, state.y);
                 this.setVelocity(state.vx, state.vy);
             }
             // 2. SMOOTH CORRECTION
             else {
-                // Blend positions slightly to close the gap without snapping
-                // We use a small factor (0.1) to gently pull it towards server pos
+                // Blend positions to close the gap without snapping
+                // Higher factor (0.25) = more responsive corrections
                 const newX = Phaser.Math.Interpolation.Linear(
                     [this.x, state.x],
-                    0.1,
+                    0.25,
                 );
                 const newY = Phaser.Math.Interpolation.Linear(
                     [this.y, state.y],
-                    0.1,
+                    0.25,
                 );
 
                 this.setPosition(newX, newY);

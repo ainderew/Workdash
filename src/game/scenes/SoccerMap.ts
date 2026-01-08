@@ -169,22 +169,22 @@ export class SoccerMap extends BaseGameScene {
             );
 
             // TELEPORT: If desync is huge (e.g. just spawned or teleport skill), snap immediately
-            // Increased to 300 to account for fast movement skills like Blink
-            if (dist > 300) {
+            // Set to 200 to handle fast movement skills like Blink while preventing drift
+            if (dist > 200) {
                 player.x = player.targetPos.x;
                 player.y = player.targetPos.y;
             }
             // INTERPOLATE: Smoothly move toward target
             else {
-                // 0.15 is the lerp factor (15% per frame).
-                // Higher = snappier/jittery, Lower = smoother/laggy
+                // 0.25 is the lerp factor (25% per frame).
+                // Higher = snappier/responsive, Lower = smoother/laggy
                 player.x = Phaser.Math.Interpolation.Linear(
                     [player.x, player.targetPos.x],
-                    0.15,
+                    0.25,
                 );
                 player.y = Phaser.Math.Interpolation.Linear(
                     [player.y, player.targetPos.y],
-                    0.15,
+                    0.25,
                 );
             }
 
