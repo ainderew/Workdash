@@ -711,30 +711,32 @@ export class SoccerMap extends BaseGameScene {
         });
     }
 
+    private lastInput: { up: boolean; down: boolean; left: boolean; right: boolean } | null = null;
     private sendPlayerInputs() {
         if (!this.multiplayer) return;
 
         // Block movement during skill selection
         if (useSoccerStore.getState().isSelectionPhaseActive) {
-            this.multiplayer.socket.emit("playerInput", {
+            const emptyInput = {
                 up: false,
                 down: false,
                 left: false,
                 right: false,
-            });
+            };
+            if (JSON.stringify(this.lastInput) !== JSON.stringify(emptyInput)) {
+                this.multiplayer.socket.emit("playerInput", emptyInput);
+                this.lastInput = emptyInput;
+            }
             return;
         }
 
         const cursors = this.input.keyboard?.createCursorKeys();
         const wasd = this.input.keyboard?.addKeys("W,A,S,D") as any;
 
-        const up = cursors?.up.isDown || wasd?.W?.isDown;
-        const down = cursors?.down.isDown || wasd?.S?.isDown;
-        const left = cursors?.left.isDown || wasd?.A?.isDown;
-        const right = cursors?.right.isDown || wasd?.D?.isDown;
-
-        // Collision detection removed - players can now pass through CollisionLayer
-        // Ball collision is handled server-side
+        const up = !!(cursors?.up.isDown || wasd?.W?.isDown);
+        const down = !!(cursors?.down.isDown || wasd?.S?.isDown);
+        const left = !!(cursors?.left.isDown || wasd?.A?.isDown);
+        const right = !!(cursors?.right.isDown || wasd?.D?.isDown);
 
         const input = {
             up,
@@ -742,10 +744,24 @@ export class SoccerMap extends BaseGameScene {
             left,
             right,
         };
-        this.multiplayer.socket.emit("playerInput", input);
+
+        if (
+            !this.lastInput ||
+            this.lastInput.up !== input.up ||
+            this.lastInput.down !== input.down ||
+            this.lastInput.left !== input.left ||
+            this.lastInput.right !== input.right
+        ) {
+            this.multiplayer.socket.emit("playerInput", input);
+            this.lastInput = input;
+        }
     }
 
+    private lastDribbleEmit: number = 0;
     private checkDribbleInput() {
+        const now = Date.now();
+        if (now - this.lastDribbleEmit < 50) return; // Throttle to ~20Hz
+
         const player = this.players.get(this.localPlayerId);
         if (!player) return;
         const distToBall = Phaser.Math.Distance.Between(
@@ -755,6 +771,7 @@ export class SoccerMap extends BaseGameScene {
             this.ball.y,
         );
         if (distToBall < 100) {
+            this.lastDribbleEmit = now;
             this.multiplayer.socket.emit("ball:dribble", {
                 playerId: player.id,
                 playerX: player.x,
@@ -2052,6 +2069,17 @@ export class SoccerMap extends BaseGameScene {
             this.multiplayer.socket.off("players:physicsUpdate");
             this.multiplayer.socket.off("soccer:playerReset");
             this.multiplayer.socket.off("soccer:teamAssigned");
+            this.multiplayer.socket.off("soccer:startMidGamePick");
+            this.multiplayer.socket.off("soccer:selectionPhaseStarted");
+            this.multiplayer.socket.off("soccer:selectionUpdate");
+            this.multiplayer.socket.off("soccer:skillPicked");
+            this.multiplayer.socket.off("soccer:gameStarted");
+            this.multiplayer.socket.off("soccer:gameEnd");
+            this.multiplayer.socket.off("soccer:gameReset");
+            this.multiplayer.socket.off("soccer:skillActivated");
+            this.multiplayer.socket.off("soccer:skillEnded");
+            this.multiplayer.socket.off("soccer:skillTriggered");
+            this.multiplayer.socket.off("soccer:blinkActivated");
         }
 
         useUiStore.getState().setCurrentScene("");
