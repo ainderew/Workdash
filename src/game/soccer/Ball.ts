@@ -58,6 +58,23 @@ export class Ball extends Phaser.Physics.Arcade.Sprite {
         }
     }
 
+    /**
+     * NEW: Called by Client when Spacebar/Kick is pressed.
+     * This moves the ball instantly on your screen while waiting for the server.
+     */
+    public predictKick(vx: number, vy: number) {
+        if (!this.isMultiplayer) return;
+
+        // Reset the target state based on CURRENT position + NEW velocity
+        this.targetPos = {
+            x: this.x,
+            y: this.y,
+            vx: vx,
+            vy: vy,
+            t: Date.now(),
+        };
+    }
+
     public updateFromServer(state: BallStateUpdate) {
         if (!this.isMultiplayer) return;
 
@@ -80,26 +97,41 @@ export class Ball extends Phaser.Physics.Arcade.Sprite {
         let predictedX = this.targetPos.x;
         let predictedY = this.targetPos.y;
 
-        // If update is recent (< 100ms), extrapolate position
-        if (timeSinceUpdate < 100) {
+        // Apply extrapolation (predict where ball is NOW based on last known data)
+        // We cap extrapolation at 500ms to prevent ball flying off infinitely during lag spikes
+        if (timeSinceUpdate < 500) {
             const dt = timeSinceUpdate / 1000;
             predictedX = this.targetPos.x + this.targetPos.vx * dt;
             predictedY = this.targetPos.y + this.targetPos.vy * dt;
         }
 
-        // Calculate distance to predicted position
+        // Calculate distance between where we are vs where we should be
         const distance = Math.sqrt(
             Math.pow(predictedX - this.x, 2) + Math.pow(predictedY - this.y, 2),
         );
 
+        // Calculate speed to determine context
+        const speed = Math.sqrt(
+            Math.pow(this.targetPos.vx, 2) + Math.pow(this.targetPos.vy, 2),
+        );
+
+        // Dynamic Teleport Threshold:
+        // If ball is moving fast (e.g. > 500), allow more drift (400px) before snapping.
+        // If ball is slow/stopped, keep tight (200px) to ensure precision.
+        const snapThreshold = speed > 500 ? 400 : 200;
+
         // Teleport if too far (desync recovery)
-        if (distance > 200) {
+        if (distance > snapThreshold) {
             this.x = predictedX;
             this.y = predictedY;
         } else {
-            // Smooth lerp
+            // Smooth lerp correction
+            // We increase the lerp factor slightly if moving fast to catch up quicker without snapping
             const baseLerp = 0.2;
-            const lerpFactor = Math.min(baseLerp + distance / 500, 0.5);
+            const dynamicLerp = speed > 500 ? 0.35 : baseLerp;
+
+            // Lerp factor increases if distance is large
+            const lerpFactor = Math.min(dynamicLerp + distance / 500, 0.6);
 
             this.x += (predictedX - this.x) * lerpFactor;
             this.y += (predictedY - this.y) * lerpFactor;

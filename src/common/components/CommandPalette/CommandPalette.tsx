@@ -3,6 +3,7 @@ import { useEffect, useRef } from "react";
 import useUiStore from "@/common/store/uiStore";
 import CommandSearch from "./CommandSearch";
 import { PollForm } from "./forms/PollForm";
+import { TeleportForm } from "./forms/TeleportForm";
 
 export default function CommandPalette() {
     const isOpen = useUiStore((state) => state.isCommandPaletteOpen);
@@ -52,6 +53,7 @@ export default function CommandPalette() {
             <div className="w-full max-w-2xl mx-4">
                 {currentCommandForm === null && <CommandSearch />}
                 {currentCommandForm === "poll" && <PollForm />}
+                {currentCommandForm === "teleport" && <TeleportForm />}
             </div>
         </div>
     );

@@ -320,30 +320,30 @@
                  "type":"",
                  "visible":true,
                  "width":44.2478,
-                 "x":517.851072592396,
+                 "x":517.851,
                  "y":-2.10704
                 }, 
                 {
-                 "height":508.727032280161,
+                 "height":508.727,
                  "id":10,
                  "name":"collision",
                  "rotation":0,
                  "type":"",
                  "visible":true,
                  "width":35.8196,
-                 "x":531.451077803026,
-                 "y":1077.9708568444
+                 "x":531.451,
+                 "y":1077.97
                 }, 
                 {
-                 "height":557.9117778939,
+                 "height":557.912,
                  "id":12,
                  "name":"collision",
                  "rotation":0,
                  "type":"",
                  "visible":true,
                  "width":44.2478,
-                 "x":2975.43525031726,
-                 "y":1044.68834066435
+                 "x":2975.44,
+                 "y":1044.69
                 }, 
                 {
                  "height":468.945,
@@ -353,7 +353,7 @@
                  "type":"",
                  "visible":true,
                  "width":44.2478,
-                 "x":2984.37321234601,
+                 "x":2984.37,
                  "y":9.42994
                 }, 
                 {
@@ -397,8 +397,8 @@
                  "type":"",
                  "visible":true,
                  "width":323.612,
-                 "x":216.23257469015,
-                 "y":616.039414872798
+                 "x":216.233,
+                 "y":616.039
                 }, 
                 {
                  "height":613.264,
@@ -419,41 +419,41 @@
                  "type":"",
                  "visible":true,
                  "width":363.564,
-                 "x":165.514159817352,
-                 "y":1069.16011089367
+                 "x":165.514,
+                 "y":1069.16
                 }, 
                 {
-                 "height":162.438118811881,
+                 "height":162.438,
                  "id":26,
                  "name":"collision",
                  "rotation":0,
                  "type":"",
                  "visible":true,
                  "width":468.75,
-                 "x":3005.00344941104,
-                 "y":457.70315457165
+                 "x":3005,
+                 "y":457.703
                 }, 
                 {
-                 "height":638.923267326733,
+                 "height":638.923,
                  "id":27,
                  "name":"collision",
                  "rotation":0,
                  "type":"",
                  "visible":true,
-                 "width":255.259900990099,
-                 "x":3256.49752475248,
-                 "y":543.007425742574
+                 "width":255.26,
+                 "x":3256.5,
+                 "y":543.007
                 }, 
                 {
-                 "height":108.292079207921,
+                 "height":108.292,
                  "id":28,
                  "name":"collision",
                  "rotation":0,
                  "type":"",
                  "visible":true,
-                 "width":504.331683168317,
-                 "x":2965.68983763134,
-                 "y":1037.59639110107
+                 "width":504.332,
+                 "x":2965.69,
+                 "y":1037.6
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -493,9 +493,31 @@
          "visible":true,
          "x":0,
          "y":0
+        }, 
+        {
+         "draworder":"topdown",
+         "id":10,
+         "name":"AudioZones",
+         "objects":[
+                {
+                 "height":1600.7972013937,
+                 "id":48,
+                 "name":"soccer_field",
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":3533.87055745754,
+                 "x":-13.7818291291228,
+                 "y":7.89733464955578
+                }],
+         "opacity":1,
+         "type":"objectgroup",
+         "visible":true,
+         "x":0,
+         "y":0
         }],
- "nextlayerid":10,
- "nextobjectid":47,
+ "nextlayerid":11,
+ "nextobjectid":51,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.11.2",

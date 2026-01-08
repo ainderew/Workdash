@@ -96,6 +96,9 @@ export class SoccerMap extends BaseGameScene {
         // Check if player has soccer stats, open modal if not
         this.checkSoccerStats();
 
+        // Automatically open game controls
+        useUiStore.getState().openSoccerGameControlModal();
+
         this.centerCamera();
         this.createBall();
         this.kickKey =
@@ -148,15 +151,12 @@ export class SoccerMap extends BaseGameScene {
         // FIX: Check for pending teams every frame until they are assigned
         this.processPendingTeams();
 
-        // Update skill cooldown UI
         this.updateSkillCooldownUI();
 
-        // Create speed trail for activating player during skill
         if (this.activeSkillPlayerId) {
             this.createSpeedTrail(time);
         }
 
-        // Create ball trail during power shot
         if (this.ballTrailActive) {
             this.createBallTrail(time);
         }
@@ -164,10 +164,8 @@ export class SoccerMap extends BaseGameScene {
         if (this.isMultiplayerMode) {
             this.ball.update();
 
-            // Force update team glow positions to sync with players
             this.updateTeamGlows();
 
-            // Skip inputs during selection phase
             if (!isSelectionPhaseActive) {
                 const isGameActive = useSoccerStore.getState().isGameActive;
                 this.drawKickRange();
@@ -744,7 +742,6 @@ export class SoccerMap extends BaseGameScene {
         const localPlayer = this.players.get(this.localPlayerId);
         if (!localPlayer) return;
 
-        // FIX: Client side distance check so you don't "ghost kick"
         const distance = Phaser.Math.Distance.Between(
             localPlayer.x,
             localPlayer.y,
@@ -752,7 +749,6 @@ export class SoccerMap extends BaseGameScene {
             this.ball.y,
         );
 
-        // If too far, do nothing (140 matches server threshold, but 200 if metavision is active)
         const kickThreshold = this.isMetaVisionActive ? 200 : 140;
         if (distance > kickThreshold) return;
 
@@ -765,13 +761,42 @@ export class SoccerMap extends BaseGameScene {
             this.ball.y,
         );
 
+        // --- NEW: Physics Calculations (Must match Server Logic) ---
+        const baseKickPower = 1000;
+
+        // 1. Get stats (or default to 0)
+        const kickPowerStat = this.soccerStats?.kickPower ?? 0;
+
+        // 2. Check for Buffs (Client doesn't strictly know server buffs,
+        //    but if you have a store for active buffs, check it here.
+        //    Otherwise, ignoring small stat buffs usually results in
+        //    smooth lerping rather than teleporting).
+
+        // 3. Calculate Multiplier
+        let kickPowerMultiplier = 1.0 + kickPowerStat * 0.1;
+
+        // 4. Metavision Boost
+        if (this.isMetaVisionActive) {
+            kickPowerMultiplier *= 1.2;
+        }
+
+        const finalPower = baseKickPower * kickPowerMultiplier;
+        const kickVx = Math.cos(angle) * finalPower;
+        const kickVy = Math.sin(angle) * finalPower;
+
+        // --- APPLY PREDICTION ---
+        this.ball.predictKick(kickVx, kickVy);
+
+        // Play sound immediately for responsiveness
+        this.sound.play("soccer_kick");
+
+        // Send to server
         this.multiplayer?.socket.emit("ball:kick", {
             playerId: this.localPlayerId,
-            kickPower: 1000,
+            kickPower: baseKickPower, // Send base power, server handles stats
             angle: angle,
         });
     }
-
     // ... (Remaining Local/Offline Methods kept same as provided) ...
     private setupLocalPhysics() {
         this.physics.add.collider(

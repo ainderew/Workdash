@@ -23,6 +23,7 @@ export type BackendCharacter = CharacterCustomization;
  */
 export interface ExtendedAccount extends Account {
     backendJwt?: string;
+    backendJwtExpiresAt?: number;
     backendUser?: BackendUser;
     backendCharacter?: BackendCharacter;
 }

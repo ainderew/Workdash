@@ -1,10 +1,38 @@
-import { MessageSquarePlus, ScreenShare, UserCog, Settings } from "lucide-react";
+import {
+    MessageSquarePlus,
+    ScreenShare,
+    UserCog,
+    Settings,
+    MapPin,
+} from "lucide-react";
 import { Command } from "./types";
 import { PollForm } from "./forms/PollForm";
+import { TeleportForm } from "./forms/TeleportForm";
 import { ScreenShareService } from "@/communication/screenShare/screenShare";
 import useUiStore from "@/common/store/uiStore";
 
 export const commands: Command[] = [
+    {
+        id: "teleport",
+        name: "Teleport",
+        description: "Move to a different area (Office or Soccer Map)",
+        icon: MapPin,
+        keywords: [
+            "teleport",
+            "move",
+            "travel",
+            "office",
+            "soccer",
+            "map",
+            "change scene",
+        ],
+        category: "Navigation",
+        requiresForm: true,
+        formComponent: TeleportForm,
+        handler: ({ setCommandForm }) => {
+            setCommandForm("teleport");
+        },
+    },
     {
         id: "create-poll",
         name: "Create Poll",

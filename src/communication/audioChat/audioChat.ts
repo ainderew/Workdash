@@ -190,6 +190,27 @@ export class AudioChat {
         console.log(`Closed consumer for producer ${producerId}`);
     }
 
+    /**
+     * Resume all AudioContexts (required for Firefox autoplay policy)
+     * Call this on user interaction (click, key press, etc.)
+     */
+    public async resumeAudioContexts(): Promise<void> {
+        const contexts = [this.audioContext, this.outputAudioContext].filter(
+            (ctx): ctx is AudioContext => ctx !== null,
+        );
+
+        for (const ctx of contexts) {
+            if (ctx.state === "suspended") {
+                try {
+                    await ctx.resume();
+                    console.log("AudioContext resumed successfully");
+                } catch (error) {
+                    console.error("Failed to resume AudioContext:", error);
+                }
+            }
+        }
+    }
+
     public async getAvailableMicrophones(): Promise<MediaDeviceInfo[]> {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
@@ -281,6 +302,10 @@ export class AudioChat {
         this.audioProducer = await this.sfuService.sendTransport!.produce({
             track: audioTrack,
         });
+
+        // Resume AudioContexts after joining (Firefox autoplay policy)
+        await this.resumeAudioContexts();
+
         this.muteMic();
     }
 
@@ -366,6 +391,12 @@ export class AudioChat {
             if (!this.outputAudioContext) {
                 this.outputAudioContext = new AudioContext();
             }
+
+            // Firefox requires AudioContext to be resumed after user gesture
+            if (this.outputAudioContext.state === "suspended") {
+                await this.outputAudioContext.resume();
+            }
+
             const source =
                 this.outputAudioContext.createMediaStreamSource(remoteStream);
             const gainNode = this.outputAudioContext.createGain();
@@ -420,6 +451,11 @@ export class AudioChat {
     ): Promise<MediaStream> {
         this.audioContext = new AudioContext({ sampleRate: 48000 });
 
+        // Firefox requires AudioContext to be resumed after user gesture
+        if (this.audioContext.state === "suspended") {
+            await this.audioContext.resume();
+        }
+
         const source = this.audioContext.createMediaStreamSource(stream);
 
         const compressor = this.audioContext.createDynamicsCompressor();
@@ -455,8 +491,11 @@ export class AudioChat {
         }
     }
 
-    public unMuteMic() {
+    public async unMuteMic() {
         if (this.audioProducer) {
+            // Resume AudioContexts on unmute (Firefox autoplay policy)
+            await this.resumeAudioContexts();
+
             this.audioProducer?.resume();
             this.isMuted = false;
         }

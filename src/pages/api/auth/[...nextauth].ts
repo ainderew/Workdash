@@ -50,6 +50,35 @@ async function refreshAccessToken(token: JWT) {
     }
 }
 
+async function performBackendSync(email: string, name: string, image?: string) {
+    const backendUrl = `${CONFIG.SFU_SERVER_URL}/api/auth/google-sync`;
+    console.log("Syncing with backend:", backendUrl);
+
+    const response = await fetch(backendUrl, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, name, image }),
+    });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Failed to sync user with backend", response.status, errorText);
+        throw new Error("BackendSyncError");
+    }
+
+    const data = await response.json();
+    return {
+        token: data.token,
+        user: data.user,
+        character: data.character,
+        // Set expiration to 25 days (less than the 30d server default)
+        expiresAt: Date.now() + 25 * 24 * 60 * 60 * 1000,
+    };
+}
+
+
 export const authOptions: AuthOptions = {
     providers: [
         GoogleProvider({
@@ -69,48 +98,21 @@ export const authOptions: AuthOptions = {
         async signIn({ user, account }) {
             if (account?.provider === "google") {
                 try {
-                    const backendUrl = `${CONFIG.SFU_SERVER_URL}/api/auth/google-sync`;
-                    console.log("Attempting to sync with backend:", backendUrl);
-                    console.log("User data:", {
-                        email: user.email,
-                        name: user.name,
-                    });
+                    const syncData = await performBackendSync(
+                        user.email!,
+                        user.name!,
+                        user.image!
+                    );
 
-                    // Send the user data to your Express Backend
-                    const response = await fetch(backendUrl, {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                        },
-                        body: JSON.stringify({
-                            email: user.email,
-                            name: user.name,
-                            image: user.image, // Optional: if you want to save their avatar
-                        }),
-                    });
+                    const extendedAccount = account as ExtendedAccount;
+                    extendedAccount.backendJwt = syncData.token;
+                    extendedAccount.backendJwtExpiresAt = syncData.expiresAt;
+                    extendedAccount.backendUser = syncData.user;
+                    extendedAccount.backendCharacter = syncData.character;
 
-                    console.log("Backend response status:", response.status);
-
-                    if (response.ok) {
-                        const data = await response.json();
-                        console.log("Backend sync successful, received token");
-
-                        const extendedAccount = account as ExtendedAccount;
-                        extendedAccount.backendJwt = data.token;
-                        extendedAccount.backendUser = data.user;
-                        extendedAccount.backendCharacter = data.character;
-
-                        return true;
-                    } else {
-                        const errorText = await response.text();
-                        console.error("Failed to sync user with backend");
-                        console.error("Status:", response.status);
-                        console.error("Response:", errorText);
-                        return false; // Blocks login if backend sync fails
-                    }
+                    return true;
                 } catch (error) {
                     console.error("Backend sync error:", error);
-                    console.error("EXPRESS_API_URL:", CONFIG.SFU_SERVER_URL);
                     return false;
                 }
             }
@@ -131,6 +133,7 @@ export const authOptions: AuthOptions = {
                         : Date.now() + 3600 * 1000,
                     refreshToken: account.refresh_token,
                     backendJwt: account.backendJwt,
+                    backendJwtExpiresAt: account.backendJwtExpiresAt,
                     backendUser: account.backendUser,
                     backendCharacter: account.backendCharacter,
                     user: token.user,
@@ -138,13 +141,35 @@ export const authOptions: AuthOptions = {
                 };
             }
 
-            // Return previous token if the access token has not expired yet
-            if (Date.now() < (token.accessTokenExpires as number)) {
-                return token;
+            // Return previous token if the access token and backend token have not expired yet
+            const isAccessTokenExpired = Date.now() >= (token.accessTokenExpires as number);
+            const isBackendTokenExpired = token.backendJwtExpiresAt && Date.now() >= (token.backendJwtExpiresAt as number);
+
+            let newToken = token;
+
+            if (isAccessTokenExpired) {
+                newToken = await refreshAccessToken(newToken);
             }
 
-            // Access token has expired, try to update it
-            return refreshAccessToken(token);
+            if (isBackendTokenExpired || isAccessTokenExpired) {
+                // Refresh backend token if it's expired OR if we just refreshed the google token
+                // (refreshing on google refresh keeps them somewhat in sync)
+                try {
+                    const syncData = await performBackendSync(
+                        newToken.email!,
+                        newToken.name!,
+                        newToken.picture! // token has picture instead of image
+                    );
+                    newToken.backendJwt = syncData.token;
+                    newToken.backendJwtExpiresAt = syncData.expiresAt;
+                    newToken.backendUser = syncData.user;
+                    newToken.backendCharacter = syncData.character;
+                } catch (error) {
+                    console.error("Failed to refresh backend token during JWT callback", error);
+                }
+            }
+
+            return newToken;
         },
         async session({ session, token }: { session: Session; token: JWT }) {
             if (token.accessToken) {
@@ -153,6 +178,10 @@ export const authOptions: AuthOptions = {
 
             if (token.backendJwt) {
                 session.backendJwt = token.backendJwt as string;
+            }
+
+            if (token.backendJwtExpiresAt) {
+                session.backendJwtExpiresAt = token.backendJwtExpiresAt as number;
             }
 
             if (token.backendUser) {

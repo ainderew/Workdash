@@ -80,8 +80,14 @@ export abstract class BaseGameScene extends Scene {
         this.setupMultiplayerWatchers();
         this.setupChatBlur();
 
+        EventBus.on("teleport", this.handleTeleportCommand, this);
+
         // Join game with scene name
-        this.multiplayer.joinGame(this.spawnX, this.spawnY, this.currentSceneName);
+        this.multiplayer.joinGame(
+            this.spawnX,
+            this.spawnY,
+            this.currentSceneName,
+        );
         this.multiplayer.setCurrentScene(this.currentSceneName);
 
         EventBus.emit("current-scene-ready", this);
@@ -281,8 +287,7 @@ export abstract class BaseGameScene extends Scene {
         this.teleportManager = new TeleportManager(this);
         this.teleportManager
             .createFromObjectLayer(map, "GameZones")
-            .setupCollision(this.playersLayer)
-            .enableDebug();
+            .setupCollision(this.playersLayer);
     }
 
     protected setupAudio(map: Phaser.Tilemaps.Tilemap) {
@@ -699,7 +704,29 @@ export abstract class BaseGameScene extends Scene {
         return window.__BACKEND_JWT__ || "";
     }
 
+    private handleTeleportCommand(data: {
+        scene: string;
+        x?: number;
+        y?: number;
+    }) {
+        if (this.scene.key === data.scene) return;
+
+        this.physics.pause();
+
+        if (this.multiplayer) {
+            this.multiplayer.emitSceneChange(
+                data.scene,
+                data.x || 1000,
+                data.y || 1000,
+            );
+            this.multiplayer.removeAllGameListeners();
+        }
+
+        this.scene.start(data.scene, { spawnX: data.x, spawnY: data.y });
+    }
+
     shutdown() {
+        EventBus.off("teleport", this.handleTeleportCommand, this);
         this.multiplayer?.removeAllGameListeners();
 
         for (const player of this.players.values()) {
