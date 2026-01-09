@@ -90,7 +90,7 @@ export class Ball extends Phaser.Physics.Arcade.Sprite {
         this.targetPos.t = Date.now();
 
         this.serverSnapshots = [];
-        this.ignoreServerUpdatesUntil = Date.now() + 180;
+        this.ignoreServerUpdatesUntil = Date.now() + 300;
     }
 
     public updateFromServer(state: BallStateUpdate) {
