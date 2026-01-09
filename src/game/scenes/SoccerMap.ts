@@ -333,8 +333,6 @@ export class SoccerMap extends BaseGameScene {
             }
 
             for (const update of updates) {
-                if (update.id === this.localPlayerId) continue;
-
                 const player = this.players.get(update.id);
                 if (!player) continue;
 
@@ -342,21 +340,8 @@ export class SoccerMap extends BaseGameScene {
                 player.isSpectator = !!update.isSpectator;
 
                 if (player.isLocal) {
-                    const dist = Phaser.Math.Distance.Between(
-                        player.x,
-                        player.y,
-                        update.x,
-                        update.y,
-                    );
-                    if (dist > 5) {
-                        player.setPosition(update.x, update.y);
-                    }
-                    if (player.body) {
-                        (player.body as Phaser.Physics.Arcade.Body).setVelocity(
-                            update.vx,
-                            update.vy,
-                        );
-                    }
+                    // Client-Side Prediction Reconciliation
+                    player.reconcile(update);
                 } else {
                     player.addServerSnapshot({
                         x: update.x,
@@ -698,7 +683,6 @@ export class SoccerMap extends BaseGameScene {
     private sendPlayerInputs() {
         if (!this.multiplayer) return;
 
-        // Block movement during skill selection
         if (useSoccerStore.getState().isSelectionPhaseActive) {
             return;
         }
@@ -706,15 +690,23 @@ export class SoccerMap extends BaseGameScene {
         const player = this.players.get(this.localPlayerId);
         if (!player) return;
 
-        this.multiplayer.emitPlayerMovement({
-            id: player.id,
-            x: player.x,
-            y: player.y,
-            vx: player.body?.velocity.x || 0,
-            vy: player.body?.velocity.y || 0,
-            timestamp: Date.now(),
-            isAttacking: player.isAttacking,
-            isKartMode: player.isKartMode,
+        const cursors = this.input.keyboard?.createCursorKeys();
+        const wasd = this.input.keyboard?.addKeys("W,A,S,D") as any;
+
+        const up = cursors?.up.isDown || wasd?.W?.isDown;
+        const down = cursors?.down.isDown || wasd?.S?.isDown;
+        const left = cursors?.left.isDown || wasd?.A?.isDown;
+        const right = cursors?.right.isDown || wasd?.D?.isDown;
+
+        const input = { up, down, left, right };
+        
+        // 1. Predict Locally (Instant)
+        const sequence = player.applyInput(input);
+
+        // 2. Send to Server (Authoritative)
+        this.multiplayer.socket.emit("playerInput", {
+            ...input,
+            sequence,
         });
     }
 

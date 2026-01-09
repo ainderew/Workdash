@@ -12,6 +12,8 @@ import { CharacterAnimationManager } from "../character/CharacterAnimationManage
 import { EVENT_TYPES } from "../character/_enums";
 import useUiStore from "@/common/store/uiStore";
 
+import { SoccerPhysics } from "../soccer/physicsConfig";
+
 export enum FacingDirection {
     UP = "UP",
     DOWN = "DOWN",
@@ -80,6 +82,15 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     public isGhosted: boolean = false;
     public isSpectator: boolean = false;
 
+    // --- Client Prediction ---
+    private inputHistory: {
+        sequence: number;
+        input: { up: boolean; down: boolean; left: boolean; right: boolean };
+    }[] = [];
+    private lastInputSequence: number = 0;
+    private soccerStats: { speed: number; kickPower: number; dribbling: number } | null = null;
+
+    // --- Legacy / Remote Interpolation ---
     private interpolationDelayMs: number = 80;
     private serverTimeOffset: number = 0;
     private lastServerTimestamp: number = 0;
@@ -623,11 +634,79 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         });
     }
 
+    public setSoccerStats(stats: { speed: number; kickPower: number; dribbling: number } | null) {
+        this.soccerStats = stats;
+    }
+
+    public applyInput(input: { up: boolean; down: boolean; left: boolean; right: boolean }) {
+        this.lastInputSequence++;
+        this.inputHistory.push({ sequence: this.lastInputSequence, input });
+        this.processPhysics(input);
+        return this.lastInputSequence;
+    }
+
+    public reconcile(serverState: { x: number; y: number; vx: number; vy: number; lastProcessedSequence: number }) {
+        // 1. Snap to Server State (Truth)
+        this.x = serverState.x;
+        this.y = serverState.y;
+        this.vx = serverState.vx;
+        this.vy = serverState.vy;
+        this.setPosition(this.x, this.y);
+        this.setVelocity(this.vx, this.vy);
+
+        // 2. Discard processed inputs
+        this.inputHistory = this.inputHistory.filter(h => h.sequence > serverState.lastProcessedSequence);
+
+        // 3. Replay pending inputs
+        for (const history of this.inputHistory) {
+            this.processPhysics(history.input);
+        }
+    }
+
+    private processPhysics(input: { up: boolean; down: boolean; left: boolean; right: boolean }) {
+        const dt = 0.0166; // Fixed timestep (60Hz)
+
+        const speedStat = this.soccerStats?.speed ?? 0;
+        const speedMultiplier = 1.0 + speedStat * 0.1;
+        
+        const ACCEL = SoccerPhysics.BASE_ACCEL * speedMultiplier;
+        const MAX_SPEED = SoccerPhysics.MAX_SPEED * speedMultiplier;
+
+        if (input.up) this.vy -= ACCEL * dt;
+        if (input.down) this.vy += ACCEL * dt;
+        if (input.left) this.vx -= ACCEL * dt;
+        if (input.right) this.vx += ACCEL * dt;
+
+        // Clamp Speed
+        const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+        if (speed > MAX_SPEED) {
+            const scale = MAX_SPEED / speed;
+            this.vx *= scale;
+            this.vy *= scale;
+        }
+
+        // Apply Friction
+        const dribblingStat = this.soccerStats?.dribbling ?? 0;
+        const frictionCoefficient = 0.95 - dribblingStat * 0.02;
+        
+        this.vx *= frictionCoefficient;
+        this.vy *= frictionCoefficient;
+
+        if (Math.abs(this.vx) < 5) this.vx = 0;
+        if (Math.abs(this.vy) < 5) this.vy = 0;
+
+        // Update Position
+        this.x += this.vx * dt;
+        this.y += this.vy * dt;
+        
+        this.setPosition(this.x, this.y);
+        this.setVelocity(this.vx, this.vy);
+        this.updateAnimationFromVelocity(this.vx, this.vy);
+    }
+
     public update() {
         if (this.isLocal) {
-            this.updateInput();
-            this.vx = this.body!.velocity.x;
-            this.vy = this.body!.velocity.y;
+            // Local physics driven by Scene applyInput()
         } else {
             this.interpolateRemote();
         }
