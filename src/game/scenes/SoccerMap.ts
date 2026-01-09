@@ -321,7 +321,17 @@ export class SoccerMap extends BaseGameScene {
             this.ball.setVelocity(0, 0);
         });
 
-        socket.on("players:physicsUpdate", (updates: any[]) => {
+        socket.on("players:physicsUpdate", (data: any) => {
+            let updates: any[] = [];
+            let sharedTimestamp = Date.now();
+
+            if (Array.isArray(data)) {
+                updates = data;
+            } else if (data && data.updates) {
+                updates = data.updates;
+                sharedTimestamp = data.timestamp || Date.now();
+            }
+
             for (const update of updates) {
                 const player = this.players.get(update.id);
                 if (!player) continue;
@@ -351,7 +361,7 @@ export class SoccerMap extends BaseGameScene {
                         y: update.y,
                         vx: update.vx,
                         vy: update.vy,
-                        timestamp: update.timestamp || Date.now(),
+                        timestamp: update.timestamp || sharedTimestamp,
                     });
                 }
             }
