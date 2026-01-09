@@ -137,22 +137,11 @@ export class Ball extends Phaser.Physics.Arcade.Sprite {
         // this.body!.reset(this.x, this.y);
     }
 
-    public setNetworkConditions(pingMs: number) {
-        // No-op: Visual interpolation (Error Decay) is robust against latency
-    }
 
-    public get targetPos() {
-        return {
-            x: this.phyState.x,
-            y: this.phyState.y,
-            vx: this.phyState.vx,
-            vy: this.phyState.vy,
-            t: Date.now()
-        };
-    }
+
+
 
     public predictKick(vx: number, vy: number) {
-        // Apply instant kick velocity to physics state for immediate feedback
         this.phyState.vx = vx;
         this.phyState.vy = vy;
     }

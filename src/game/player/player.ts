@@ -634,6 +634,10 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         });
     }
 
+
+
+
+
     public setSoccerStats(stats: { speed: number; kickPower: number; dribbling: number } | null) {
         this.soccerStats = stats;
     }
@@ -646,7 +650,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     }
 
     public reconcile(serverState: { x: number; y: number; vx: number; vy: number; lastProcessedSequence: number }) {
-        // 1. Snap to Server State (Truth)
         this.x = serverState.x;
         this.y = serverState.y;
         this.vx = serverState.vx;
@@ -654,17 +657,15 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         this.setPosition(this.x, this.y);
         this.setVelocity(this.vx, this.vy);
 
-        // 2. Discard processed inputs
         this.inputHistory = this.inputHistory.filter(h => h.sequence > serverState.lastProcessedSequence);
 
-        // 3. Replay pending inputs
         for (const history of this.inputHistory) {
             this.processPhysics(history.input);
         }
     }
 
     private processPhysics(input: { up: boolean; down: boolean; left: boolean; right: boolean }) {
-        const dt = 0.0166; // Fixed timestep (60Hz)
+        const dt = 0.0166;
 
         const speedStat = this.soccerStats?.speed ?? 0;
         const speedMultiplier = 1.0 + speedStat * 0.1;
@@ -677,7 +678,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         if (input.left) this.vx -= ACCEL * dt;
         if (input.right) this.vx += ACCEL * dt;
 
-        // Clamp Speed
         const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
         if (speed > MAX_SPEED) {
             const scale = MAX_SPEED / speed;
@@ -685,7 +685,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             this.vy *= scale;
         }
 
-        // Apply Friction
         const dribblingStat = this.soccerStats?.dribbling ?? 0;
         const frictionCoefficient = 0.95 - dribblingStat * 0.02;
         
@@ -695,7 +694,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         if (Math.abs(this.vx) < 5) this.vx = 0;
         if (Math.abs(this.vy) < 5) this.vy = 0;
 
-        // Update Position
         this.x += this.vx * dt;
         this.y += this.vy * dt;
         
