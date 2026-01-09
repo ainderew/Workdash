@@ -2,7 +2,7 @@
 
 A collaborative workspace that brings remote teams together through an immersive 2D game-like environment with video, audio, and screen sharing capabilities.
 
-![Workdash Interface](https://cdn.statically.io/gh/ainderew/Workdash@main/workdash.png)
+![Workdash Interface]([https://cdn.statically.io/gh/ainderew/Workdash@main/workdash.png](https://github.com/ainderew/Workdash/blob/main/workdash.png))
 
 ## Overview
 
@@ -27,3 +27,4 @@ Workdash transforms remote work into an engaging, interactive experience by comb
 ## Why Workdash?
 
 Remote work doesn't have to feel isolated. Workdash recreates the spontaneous interactions and spatial awareness of a physical office in a fun, engaging virtual environment. Whether you're having a quick chat by the virtual water cooler or diving into a focused collaboration session, Workdash makes working from home more interactive and enjoyable.
+
