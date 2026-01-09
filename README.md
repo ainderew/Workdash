@@ -2,7 +2,7 @@
 
 A collaborative workspace that brings remote teams together through an immersive 2D game-like environment with video, audio, and screen sharing capabilities.
 
-![Workdash Interface]([https://cdn.statically.io/gh/ainderew/Workdash@main/workdash.png](https://github.com/ainderew/Workdash/blob/main/workdash.png))
+![Workdash Interface](https://github.com/ainderew/Workdash/blob/main/workdash.png?raw=true)
 
 ## Overview
 
