@@ -333,6 +333,8 @@ export class SoccerMap extends BaseGameScene {
             }
 
             for (const update of updates) {
+                if (update.id === this.localPlayerId) continue;
+
                 const player = this.players.get(update.id);
                 if (!player) continue;
 
@@ -698,33 +700,22 @@ export class SoccerMap extends BaseGameScene {
 
         // Block movement during skill selection
         if (useSoccerStore.getState().isSelectionPhaseActive) {
-            this.multiplayer.socket.emit("playerInput", {
-                up: false,
-                down: false,
-                left: false,
-                right: false,
-            });
             return;
         }
 
-        const cursors = this.input.keyboard?.createCursorKeys();
-        const wasd = this.input.keyboard?.addKeys("W,A,S,D") as any;
+        const player = this.players.get(this.localPlayerId);
+        if (!player) return;
 
-        const up = cursors?.up.isDown || wasd?.W?.isDown;
-        const down = cursors?.down.isDown || wasd?.S?.isDown;
-        const left = cursors?.left.isDown || wasd?.A?.isDown;
-        const right = cursors?.right.isDown || wasd?.D?.isDown;
-
-        // Collision detection removed - players can now pass through CollisionLayer
-        // Ball collision is handled server-side
-
-        const input = {
-            up,
-            down,
-            left,
-            right,
-        };
-        this.multiplayer.socket.emit("playerInput", input);
+        this.multiplayer.emitPlayerMovement({
+            id: player.id,
+            x: player.x,
+            y: player.y,
+            vx: player.body?.velocity.x || 0,
+            vy: player.body?.velocity.y || 0,
+            timestamp: Date.now(),
+            isAttacking: player.isAttacking,
+            isKartMode: player.isKartMode,
+        });
     }
 
     private checkDribbleInput() {
