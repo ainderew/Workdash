@@ -103,6 +103,8 @@ export class Ball extends Phaser.Physics.Arcade.Sprite {
             const currentOffset =
                 localNow - state.timestamp - estimatedOneWayLatency;
 
+            console.log(`[Ball Update] Incoming TS: ${state.timestamp}, Local: ${localNow}, Offset: ${currentOffset}`);
+
             if (this.lastServerTimestamp === 0) {
                 this.serverTimeOffset = currentOffset;
             } else {
@@ -161,6 +163,7 @@ export class Ball extends Phaser.Physics.Arcade.Sprite {
         if (this.serverSnapshots.length > 0) {
             const lastSnapshot = this.serverSnapshots[this.serverSnapshots.length - 1];
             const gap = snapshot.timestamp - lastSnapshot.timestamp;
+            console.log(`[Ball Snapshot] Gap: ${gap}ms`);
             if (gap > 70) {
                  console.warn(`[Packet Gap] ${gap}ms since last snapshot (Expected ~50ms)`);
             }
@@ -200,6 +203,7 @@ export class Ball extends Phaser.Physics.Arcade.Sprite {
 
         if (this.serverSnapshots.length < 3) {
             console.warn(`[Buffer Warning] Low snapshot count: ${this.serverSnapshots.length}`);
+            console.log(`[Buffer Warning] Snapshots TS: ${this.serverSnapshots.map(s => s.timestamp).join(', ')}`);
         }
 
         const renderTime = localNow - this.interpolationDelayMs;
