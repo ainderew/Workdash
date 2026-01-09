@@ -150,49 +150,48 @@ export class SoccerMap extends BaseGameScene {
 
         // FIX: Check for pending teams every frame until they are assigned
         this.processPendingTeams();
-
         this.updateSkillCooldownUI();
 
         // 1. UPDATE REMOTE PLAYERS INTERPOLATION
         // This ensures remote players move smoothly instead of teleporting
-        this.players.forEach((player: any) => {
-            // Skip the local player (handled by client input + server reconciliation)
-            // Skip if no target position exists yet
-            if (player.id === this.localPlayerId || !player.targetPos) return;
-
-            // Calculate distance to target
-            const dist = Phaser.Math.Distance.Between(
-                player.x,
-                player.y,
-                player.targetPos.x,
-                player.targetPos.y,
-            );
-
-            // TELEPORT: If desync is huge (e.g. just spawned or teleport skill), snap immediately
-            // Increased to 300 to account for fast movement skills like Blink
-            if (dist > 300) {
-                player.x = player.targetPos.x;
-                player.y = player.targetPos.y;
-            }
-            // INTERPOLATE: Smoothly move toward target
-            else {
-                // 0.15 is the lerp factor (15% per frame).
-                // Higher = snappier/jittery, Lower = smoother/laggy
-                player.x = Phaser.Math.Interpolation.Linear(
-                    [player.x, player.targetPos.x],
-                    0.15,
-                );
-                player.y = Phaser.Math.Interpolation.Linear(
-                    [player.y, player.targetPos.y],
-                    0.15,
-                );
-            }
-
-            // Also update the team glow position immediately so it doesn't lag behind
-            if (player.teamGlow) {
-                player.teamGlow.setPosition(player.x, player.y);
-            }
-        });
+        // this.players.forEach((player: any) => {
+        //     // Skip the local player (handled by client input + server reconciliation)
+        //     // Skip if no target position exists yet
+        //     if (player.id === this.localPlayerId || !player.targetPos) return;
+        //
+        //     // Calculate distance to target
+        //     const dist = Phaser.Math.Distance.Between(
+        //         player.x,
+        //         player.y,
+        //         player.targetPos.x,
+        //         player.targetPos.y,
+        //     );
+        //
+        //     // TELEPORT: If desync is huge (e.g. just spawned or teleport skill), snap immediately
+        //     // Increased to 300 to account for fast movement skills like Blink
+        //     if (dist > 300) {
+        //         player.x = player.targetPos.x;
+        //         player.y = player.targetPos.y;
+        //     }
+        //     // INTERPOLATE: Smoothly move toward target
+        //     else {
+        //         // 0.15 is the lerp factor (15% per frame).
+        //         // Higher = snappier/jittery, Lower = smoother/laggy
+        //         player.x = Phaser.Math.Interpolation.Linear(
+        //             [player.x, player.targetPos.x],
+        //             0.15,
+        //         );
+        //         player.y = Phaser.Math.Interpolation.Linear(
+        //             [player.y, player.targetPos.y],
+        //             0.15,
+        //         );
+        //     }
+        //
+        //     // Also update the team glow position immediately so it doesn't lag behind
+        //     if (player.teamGlow) {
+        //         player.teamGlow.setPosition(player.x, player.y);
+        //     }
+        // });
 
         if (this.activeSkillPlayerId) {
             this.createSpeedTrail(time);
@@ -354,18 +353,8 @@ export class SoccerMap extends BaseGameScene {
                 const player = this.players.get(update.id);
                 if (!player) continue;
 
-                // Sync ghosted state
                 player.isGhosted = !!update.isGhosted;
                 player.isSpectator = !!update.isSpectator;
-
-                // Update collision state based on team
-                if (player.isSpectator) {
-                    if (player.body) {
-                        player.body.enable = true;
-                        // For spectators, we might want them to still move but not collide
-                        // Actually, easiest is to let them move but disable their interaction in physics groups
-                    }
-                }
 
                 if (player.isLocal) {
                     const dist = Phaser.Math.Distance.Between(
@@ -384,17 +373,16 @@ export class SoccerMap extends BaseGameScene {
                         );
                     }
                 } else {
-                    player.targetPos = {
+                    player.addServerSnapshot({
                         x: update.x,
                         y: update.y,
                         vx: update.vx,
                         vy: update.vy,
-                        t: Date.now(),
-                    };
+                        timestamp: update.timestamp || Date.now(),
+                    });
                 }
             }
         });
-
         socket.on(
             "soccer:playerReset",
             (data: { playerId: string; x: number; y: number }) => {

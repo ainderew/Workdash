@@ -19,6 +19,14 @@ export enum FacingDirection {
     RIGHT = "RIGHT",
 }
 
+interface ServerSnapshot {
+    x: number;
+    y: number;
+    vx: number;
+    vy: number;
+    timestamp: number;
+}
+
 export class Player extends Phaser.Physics.Arcade.Sprite {
     public id: string;
     public name: string;
@@ -31,18 +39,14 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     y: number;
     vx: number;
     vy: number;
-    targetPos = {
-        x: this.x,
-        y: this.y,
-        vx: 0,
-        vy: 0,
-        t: Date.now(),
-    };
-    prevPos = { x: this.x, y: this.y, t: Date.now() };
+
+    private serverSnapshots: ServerSnapshot[] = [];
+    private readonly MAX_SNAPSHOTS = 20;
+    private readonly INTERPOLATION_DELAY_MS = 80;
+
     public availabilityStatus: AvailabilityStatus = AvailabilityStatus.ONLINE;
     private statusCircle: Phaser.GameObjects.Graphics;
 
-    // The Outline Sprite
     public teamGlow: Phaser.GameObjects.Sprite | null = null;
     public team: "red" | "blue" | "spectator" | null = null;
 
@@ -106,7 +110,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         this.body!.setSize(w, h, true);
         this.body?.setOffset(0, this.height - h);
 
-        console.log(`SETTING ID FOR ${name}`, id);
         this.id = id;
         this.scene = scene;
 
@@ -125,8 +128,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         }
 
         this.initializeNameTag();
-
-        // FIX: Set explicit positive depth to ensure player is above background
         this.setDepth(10);
 
         if (customization) {
@@ -138,6 +139,28 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         this.setupUiEventListener();
     }
 
+    public addServerSnapshot(snapshot: {
+        x: number;
+        y: number;
+        vx: number;
+        vy: number;
+        timestamp?: number;
+    }) {
+        const serverSnapshot: ServerSnapshot = {
+            x: snapshot.x,
+            y: snapshot.y,
+            vx: snapshot.vx,
+            vy: snapshot.vy,
+            timestamp: snapshot.timestamp || Date.now(),
+        };
+
+        this.serverSnapshots.push(serverSnapshot);
+
+        while (this.serverSnapshots.length > this.MAX_SNAPSHOTS) {
+            this.serverSnapshots.shift();
+        }
+    }
+
     public changePlayerAvailabilityStatus(status: AvailabilityStatus) {
         this.availabilityStatus = status;
         if (this.statusCircle) {
@@ -147,12 +170,10 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     public showReactionTag(data: ReactionData) {
         if (!data.reaction) {
-            console.warn("No emoji provided");
             return;
         }
 
         if (data.playerId && data.playerId !== this.id) {
-            console.log("Emoji not for this player");
             return;
         }
 
@@ -396,13 +417,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
             const glowColor = this.team === "red" ? 0xff0000 : 0x0066ff;
 
-            // FIX: Use setTintFill for a SOLID color silhouette (better for outlines)
             this.teamGlow.setTintFill(glowColor);
-
             this.teamGlow.setAlpha(0.6);
-
-            // FIX: Set depth relative to the new Player depth (10 - 1 = 9)
-            // This ensures it is above the background (depth 0)
             this.teamGlow.setDepth(this.depth - 1);
         }
     }
@@ -506,7 +522,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             );
 
             if (!this.scene.textures.exists(spritesheetKey)) {
-                console.error(`Texture ${spritesheetKey} was not created`);
                 return;
             }
 
@@ -518,7 +533,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             this.setFrame(0);
             this.idleAnimation();
 
-            // IMPORTANT: Update glow texture if the player sprite changes
             if (this.teamGlow) {
                 this.teamGlow.setTexture(spritesheetKey);
             }
@@ -558,14 +572,13 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         } else {
             this.interpolateRemote();
         }
+
         this.uiContainer.setPosition(this.x, this.y - 40);
 
-        // --- GHOST EFFECT ---
-        // Treat unassigned (null) same as spectator
         if (this.isGhosted || this.isSpectator) {
             this.setAlpha(this.isGhosted ? 0.4 : 0.5);
             if (this.isGhosted) {
-                this.setTint(0x000000); // Black tint for shadow look
+                this.setTint(0x000000);
             } else {
                 this.clearTint();
             }
@@ -574,20 +587,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             this.clearTint();
         }
 
-        // --- GLOW UPDATE LOOP ---
         if (this.teamGlow && this.team) {
-            // 1. Sync Position
             this.teamGlow.setPosition(this.x, this.y);
-
-            // 2. Sync Frame (Copy exactly what the player is doing)
             this.teamGlow.setFrame(this.frame.name);
             this.teamGlow.setFlipX(this.flipX);
-
-            // 3. Sync Depth (ensure it stays just behind the player if depth changes)
             this.teamGlow.setDepth(this.depth - 1);
-
-            // 4. Scale Effect
-            // Using 1.15 to ensure it sticks out visibly around the edges
             this.teamGlow.setScale(this.scaleX * 1.15, this.scaleY * 1.15);
         }
     }
@@ -695,43 +699,129 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             return;
         }
 
-        if (!this.targetPos) return;
-
-        // Position-based interpolation
-        const predictedX = this.targetPos.x;
-        const predictedY = this.targetPos.y;
-
-        const distance = Math.sqrt(
-            Math.pow(predictedX - this.x, 2) + Math.pow(predictedY - this.y, 2),
-        );
-
-        if (distance > 200) {
-            this.x = predictedX;
-            this.y = predictedY;
-        } else {
-            const baseLerp = 0.2;
-            const lerpFactor = Math.min(baseLerp + distance / 500, 0.5);
-
-            this.x += (predictedX - this.x) * lerpFactor;
-            this.y += (predictedY - this.y) * lerpFactor;
+        if (this.serverSnapshots.length === 0) {
+            return;
         }
 
-        // Sync physics body with sprite position
+        const renderTime = Date.now() - this.INTERPOLATION_DELAY_MS;
+        const { before, after } = this.findBracketingSnapshots(renderTime);
+
+        let targetX = this.x;
+        let targetY = this.y;
+        let currentVx = 0;
+        let currentVy = 0;
+
+        if (before && after) {
+            const result = this.calculateInterpolatedPosition(
+                before,
+                after,
+                renderTime,
+            );
+            targetX = result.x;
+            targetY = result.y;
+            currentVx = result.vx;
+            currentVy = result.vy;
+        } else if (before) {
+            const result = this.extrapolateFrom(before);
+            targetX = result.x;
+            targetY = result.y;
+            currentVx = before.vx;
+            currentVy = before.vy;
+        } else if (after) {
+            targetX = after.x;
+            targetY = after.y;
+            currentVx = after.vx;
+            currentVy = after.vy;
+        }
+
+        const distance = Phaser.Math.Distance.Between(
+            this.x,
+            this.y,
+            targetX,
+            targetY,
+        );
+
+        if (distance > 300) {
+            this.x = targetX;
+            this.y = targetY;
+        } else {
+            const smoothing = 0.2;
+            this.x += (targetX - this.x) * smoothing;
+            this.y += (targetY - this.y) * smoothing;
+        }
+
         if (this.body) {
             this.body.updateFromGameObject();
         }
 
-        // Animation code
-        const isMoving =
-            Math.abs(this.targetPos.vx || 0) > 10 ||
-            Math.abs(this.targetPos.vy || 0) > 10;
+        this.updateAnimationFromVelocity(currentVx, currentVy);
+    }
 
+    private findBracketingSnapshots(renderTime: number): {
+        before: ServerSnapshot | null;
+        after: ServerSnapshot | null;
+    } {
+        let before: ServerSnapshot | null = null;
+        let after: ServerSnapshot | null = null;
+
+        for (let i = 0; i < this.serverSnapshots.length; i++) {
+            const snap = this.serverSnapshots[i];
+            if (snap.timestamp <= renderTime) {
+                before = snap;
+            } else {
+                after = snap;
+                break;
+            }
+        }
+
+        return { before, after };
+    }
+
+    private calculateInterpolatedPosition(
+        before: ServerSnapshot,
+        after: ServerSnapshot,
+        renderTime: number,
+    ): { x: number; y: number; vx: number; vy: number } {
+        const totalTime = after.timestamp - before.timestamp;
+
+        if (totalTime <= 0) {
+            return { x: after.x, y: after.y, vx: after.vx, vy: after.vy };
+        }
+
+        const t = Math.min(
+            1,
+            Math.max(0, (renderTime - before.timestamp) / totalTime),
+        );
+
+        const x = before.x + (after.x - before.x) * t;
+        const y = before.y + (after.y - before.y) * t;
+        const vx = before.vx + (after.vx - before.vx) * t;
+        const vy = before.vy + (after.vy - before.vy) * t;
+
+        return { x, y, vx, vy };
+    }
+
+    private extrapolateFrom(snapshot: ServerSnapshot): {
+        x: number;
+        y: number;
+    } {
+        const elapsed = Math.min(
+            (Date.now() - snapshot.timestamp) / 1000,
+            0.15,
+        );
+
+        const x = snapshot.x + snapshot.vx * elapsed;
+        const y = snapshot.y + snapshot.vy * elapsed;
+
+        return { x, y };
+    }
+
+    private updateAnimationFromVelocity(vx: number, vy: number) {
+        const isMoving = Math.abs(vx) > 10 || Math.abs(vy) > 10;
         const currentAnimKey = this.anims.currentAnim?.key;
 
         if (isMoving) {
             this.setFlipX(false);
-            const vx = this.targetPos.vx || 0;
-            const vy = this.targetPos.vy || 0;
 
             if (Math.abs(vx) > Math.abs(vy)) {
                 if (vx > 0) {
@@ -769,6 +859,10 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
                 this.idleAnimation();
             }
         }
+    }
+
+    public clearSnapshots() {
+        this.serverSnapshots = [];
     }
 
     public destroy() {

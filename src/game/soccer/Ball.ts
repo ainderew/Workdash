@@ -1,9 +1,24 @@
 import { Scene } from "phaser";
 import type { BallStateUpdate } from "./_types";
 
+interface ServerSnapshot {
+    x: number;
+    y: number;
+    vx: number;
+    vy: number;
+    timestamp: number;
+}
+
 export class Ball extends Phaser.Physics.Arcade.Sprite {
     private isMultiplayer: boolean = false;
     private ignoreServerUpdatesUntil: number = 0;
+
+    private serverSnapshots: ServerSnapshot[] = [];
+    private readonly MAX_SNAPSHOTS = 20;
+    private readonly INTERPOLATION_DELAY_MS = 100;
+
+    private readonly DRAG = 1;
+    private readonly BALL_RADIUS = 30;
 
     public targetPos = {
         x: 0,
@@ -36,12 +51,8 @@ export class Ball extends Phaser.Physics.Arcade.Sprite {
 
         if (isMultiplayer) {
             this.setCircle(30);
-            // Allow physics engine to drive movement, we steer it via velocity
-            this.setImmovable(false);
-            this.setMass(0.5);
-            this.setDrag(50);
-            this.setBounce(0.7);
-
+            this.setImmovable(true);
+            this.body!.enable = false;
             this.targetPos = { x, y, vx: 0, vy: 0, t: Date.now() };
         } else {
             this.setMass(0.5);
@@ -54,22 +65,16 @@ export class Ball extends Phaser.Physics.Arcade.Sprite {
     public predictKick(vx: number, vy: number) {
         if (!this.isMultiplayer) return;
 
-        // 1. Apply velocity instantly for immediate feedback
-        this.setVelocity(vx, vy);
-
-        // 2. Update local target data so we don't think we are desynced
         this.targetPos.vx = vx;
         this.targetPos.vy = vy;
+        this.targetPos.t = Date.now();
 
-        // 3. Ignore incoming server packets for 150ms to prevent "rubberbanding"
-        // (The server will initially send back the old position before it processes the kick)
         this.ignoreServerUpdatesUntil = Date.now() + 150;
     }
 
     public updateFromServer(state: BallStateUpdate) {
         if (!this.isMultiplayer) return;
 
-        // Update stored state (useful for debug/trajectory logic elsewhere)
         this.targetPos = {
             x: state.x,
             y: state.y,
@@ -78,43 +83,152 @@ export class Ball extends Phaser.Physics.Arcade.Sprite {
             t: state.timestamp,
         };
 
-        // Authority Window: Don't snap back if we just kicked
-        if (Date.now() < this.ignoreServerUpdatesUntil) return;
+        if (Date.now() < this.ignoreServerUpdatesUntil) {
+            return;
+        }
 
-        if (this.body) {
-            const dist = Phaser.Math.Distance.Between(
-                this.x,
-                this.y,
-                state.x,
-                state.y,
-            );
+        const snapshot: ServerSnapshot = {
+            x: state.x,
+            y: state.y,
+            vx: state.vx,
+            vy: state.vy,
+            timestamp: state.timestamp,
+        };
 
-            // HARD SNAP: If desync is massive (e.g. goal reset), teleport
-            if (dist > 250) {
-                this.setPosition(state.x, state.y);
-                this.setVelocity(state.vx, state.vy);
-            }
-            // SOFT CORRECTION: Velocity Steering
-            else {
-                // Calculate the difference between where we are and where server says we are
-                const errorX = state.x - this.x;
-                const errorY = state.y - this.y;
+        this.serverSnapshots.push(snapshot);
 
-                // How aggressively to correct?
-                // 5 means we try to close the gap quickly using velocity
-                const correctionFactor = 5;
+        while (this.serverSnapshots.length > this.MAX_SNAPSHOTS) {
+            this.serverSnapshots.shift();
+        }
 
-                // Set velocity to: Server Velocity + Nudge towards correct position
-                this.setVelocity(
-                    state.vx + errorX * correctionFactor,
-                    state.vy + errorY * correctionFactor,
-                );
-            }
+        const dist = Phaser.Math.Distance.Between(
+            this.x,
+            this.y,
+            state.x,
+            state.y,
+        );
+
+        if (dist > 300) {
+            this.setPosition(state.x, state.y);
+            this.serverSnapshots = [snapshot];
         }
     }
 
     public update() {
-        // No manual position updates needed.
-        // Phaser's physics engine handles movement based on the velocity we set above.
+        if (!this.isMultiplayer) return;
+
+        if (Date.now() < this.ignoreServerUpdatesUntil) {
+            this.runLocalPrediction();
+            return;
+        }
+
+        if (this.serverSnapshots.length < 2) {
+            if (this.serverSnapshots.length === 1) {
+                const snap = this.serverSnapshots[0];
+                this.extrapolateFrom(snap);
+            }
+            return;
+        }
+
+        const renderTime = Date.now() - this.INTERPOLATION_DELAY_MS;
+
+        const { before, after } = this.findBracketingSnapshots(renderTime);
+
+        if (before && after) {
+            this.interpolateBetween(before, after, renderTime);
+        } else if (before) {
+            this.extrapolateFrom(before);
+        } else if (after) {
+            this.setPosition(after.x, after.y);
+        }
+    }
+
+    private runLocalPrediction() {
+        const dt = 0.016;
+        const dragFactor = Math.exp(-this.DRAG * dt);
+
+        this.targetPos.vx *= dragFactor;
+        this.targetPos.vy *= dragFactor;
+
+        const newX = this.x + this.targetPos.vx * dt;
+        const newY = this.y + this.targetPos.vy * dt;
+
+        this.setPosition(newX, newY);
+    }
+
+    private findBracketingSnapshots(renderTime: number): {
+        before: ServerSnapshot | null;
+        after: ServerSnapshot | null;
+    } {
+        let before: ServerSnapshot | null = null;
+        let after: ServerSnapshot | null = null;
+
+        for (let i = 0; i < this.serverSnapshots.length; i++) {
+            const snap = this.serverSnapshots[i];
+            if (snap.timestamp <= renderTime) {
+                before = snap;
+            } else {
+                after = snap;
+                break;
+            }
+        }
+
+        return { before, after };
+    }
+
+    private interpolateBetween(
+        before: ServerSnapshot,
+        after: ServerSnapshot,
+        renderTime: number,
+    ) {
+        const totalTime = after.timestamp - before.timestamp;
+
+        if (totalTime <= 0) {
+            this.setPosition(after.x, after.y);
+            return;
+        }
+
+        const t = Math.min(
+            1,
+            Math.max(0, (renderTime - before.timestamp) / totalTime),
+        );
+
+        const x = before.x + (after.x - before.x) * t;
+        const y = before.y + (after.y - before.y) * t;
+
+        this.setPosition(x, y);
+    }
+
+    private extrapolateFrom(snapshot: ServerSnapshot) {
+        const elapsed = (Date.now() - snapshot.timestamp) / 1000;
+        const maxExtrapolation = 0.2;
+        const clampedElapsed = Math.min(elapsed, maxExtrapolation);
+
+        let vx = snapshot.vx;
+        let vy = snapshot.vy;
+        const dragFactor = Math.exp(-this.DRAG * clampedElapsed);
+        vx *= dragFactor;
+        vy *= dragFactor;
+
+        const avgVx = (snapshot.vx + vx) / 2;
+        const avgVy = (snapshot.vy + vy) / 2;
+
+        const x = snapshot.x + avgVx * clampedElapsed;
+        const y = snapshot.y + avgVy * clampedElapsed;
+
+        this.setPosition(x, y);
+    }
+
+    public getInterpolatedVelocity(): { vx: number; vy: number } {
+        if (this.serverSnapshots.length > 0) {
+            const latest =
+                this.serverSnapshots[this.serverSnapshots.length - 1];
+            return { vx: latest.vx, vy: latest.vy };
+        }
+        return { vx: this.targetPos.vx, vy: this.targetPos.vy };
+    }
+
+    public clearSnapshots() {
+        this.serverSnapshots = [];
     }
 }
