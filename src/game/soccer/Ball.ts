@@ -73,7 +73,7 @@ export class Ball extends Phaser.Physics.Arcade.Sprite {
 
     public setNetworkConditions(pingMs: number) {
         const oneWayLatency = pingMs / 2;
-        const jitterBuffer = 20;
+        const jitterBuffer = 40;
         this.interpolationDelayMs = Math.max(
             60,
             oneWayLatency + jitterBuffer + 50,
