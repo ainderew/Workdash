@@ -100,8 +100,24 @@ export class Ball extends Phaser.Physics.Arcade.Sprite {
 
         if (state.timestamp && state.timestamp > this.lastServerTimestamp) {
             const estimatedOneWayLatency = 25;
-            this.serverTimeOffset =
+            const currentOffset =
                 localNow - state.timestamp - estimatedOneWayLatency;
+
+            if (this.lastServerTimestamp === 0) {
+                this.serverTimeOffset = currentOffset;
+            } else {
+                // If the new offset is smaller (more negative), it means the packet arrived "faster"
+                // (relative to server time), implying less network delay. We adopt this "better" sync.
+                // If it's larger, it's likely network jitter/lag, so we ignore it or adapt very slowly.
+                if (currentOffset < this.serverTimeOffset) {
+                    this.serverTimeOffset = currentOffset;
+                } else {
+                    // Very slow drift correction (0.5%) to handle clock drift
+                    this.serverTimeOffset =
+                        this.serverTimeOffset * 0.995 + currentOffset * 0.005;
+                }
+            }
+
             this.lastServerTimestamp = state.timestamp;
         }
 
