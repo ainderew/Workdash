@@ -25,13 +25,12 @@ export interface PlayerDto {
 
 export interface MovementPacket {
     id: string;
-    name?: string;
     x: number;
     y: number;
-    isAttacking: boolean;
-    isKartMode?: boolean;
     vx: number;
     vy: number;
-    opts: { isLocal: boolean };
-    isInFocusMode?: boolean;
+    isAttacking: boolean;
+    isKartMode?: boolean;
+    timestamp?: number; // Add this
+    opts?: { isLocal: boolean };
 }

@@ -252,23 +252,24 @@ export class Multiplayer {
 
         this.socket.on("playerMoved", (player: MovementPacket) => {
             const targetPlayer = players.get(player.id);
-            if (targetPlayer) {
-                targetPlayer.targetPos = {
-                    x: player.x,
-                    y: player.y,
-                    vx: player.vx,
-                    vy: player.vy,
-                    t: Date.now(),
-                };
-                targetPlayer.isAttacking = player.isAttacking;
-                if (player.isKartMode !== undefined) {
-                    targetPlayer.isKartMode = player.isKartMode;
-                    targetPlayer.idleAnimation();
-                }
+            if (!targetPlayer) return;
+
+            // Use the new snapshot system for interpolation
+            targetPlayer.addServerSnapshot({
+                x: player.x,
+                y: player.y,
+                vx: player.vx,
+                vy: player.vy,
+                timestamp: player.timestamp || Date.now(),
+            });
+
+            targetPlayer.isAttacking = player.isAttacking;
+
+            if (player.isKartMode !== undefined) {
+                targetPlayer.isKartMode = player.isKartMode;
             }
         });
     }
-
     public watchCharacterUpdates(players: Map<string, Player>) {
         this.socket.off("characterUpdated");
 
