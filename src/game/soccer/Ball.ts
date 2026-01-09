@@ -158,6 +158,14 @@ export class Ball extends Phaser.Physics.Arcade.Sprite {
     }
 
     private insertSnapshot(snapshot: ServerSnapshot) {
+        if (this.serverSnapshots.length > 0) {
+            const lastSnapshot = this.serverSnapshots[this.serverSnapshots.length - 1];
+            const gap = snapshot.timestamp - lastSnapshot.timestamp;
+            if (gap > 70) {
+                 console.warn(`[Packet Gap] ${gap}ms since last snapshot (Expected ~50ms)`);
+            }
+        }
+
         let insertIndex = this.serverSnapshots.length;
         for (let i = this.serverSnapshots.length - 1; i >= 0; i--) {
             if (this.serverSnapshots[i].timestamp <= snapshot.timestamp) {
@@ -188,6 +196,10 @@ export class Ball extends Phaser.Physics.Arcade.Sprite {
 
         if (this.serverSnapshots.length === 0) {
             return;
+        }
+
+        if (this.serverSnapshots.length < 3) {
+            console.warn(`[Buffer Warning] Low snapshot count: ${this.serverSnapshots.length}`);
         }
 
         const renderTime = localNow - this.interpolationDelayMs;
