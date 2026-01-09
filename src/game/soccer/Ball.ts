@@ -131,10 +131,6 @@ export class Ball extends Phaser.Physics.Arcade.Sprite {
             t: state.timestamp || localNow,
         };
 
-        if (localNow < this.ignoreServerUpdatesUntil) {
-            return;
-        }
-
         const snapshot: ServerSnapshot = {
             x: state.x,
             y: state.y,
@@ -145,6 +141,10 @@ export class Ball extends Phaser.Physics.Arcade.Sprite {
         };
 
         this.insertSnapshot(snapshot);
+
+        if (localNow < this.ignoreServerUpdatesUntil) {
+            return;
+        }
 
         const dist = Phaser.Math.Distance.Between(
             this.x,
