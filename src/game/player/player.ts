@@ -25,6 +25,7 @@ interface ServerSnapshot {
     vx: number;
     vy: number;
     timestamp: number;
+    localReceiveTime: number;
 }
 
 export class Player extends Phaser.Physics.Arcade.Sprite {
@@ -42,7 +43,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     private serverSnapshots: ServerSnapshot[] = [];
     private readonly MAX_SNAPSHOTS = 20;
-    private readonly INTERPOLATION_DELAY_MS = 80;
 
     public availabilityStatus: AvailabilityStatus = AvailabilityStatus.ONLINE;
     private statusCircle: Phaser.GameObjects.Graphics;
@@ -79,6 +79,10 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     public isKartMode: boolean = false;
     public isGhosted: boolean = false;
     public isSpectator: boolean = false;
+
+    private interpolationDelayMs: number = 80;
+    private serverTimeOffset: number = 0;
+    private lastServerTimestamp: number = 0;
 
     constructor(
         scene: Scene,
@@ -146,19 +150,66 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         vy: number;
         timestamp?: number;
     }) {
+        const localNow = Date.now();
+        const serverTimestamp = snapshot.timestamp || localNow;
+
+        if (serverTimestamp > this.lastServerTimestamp) {
+            const estimatedOneWayLatency = 25;
+            this.serverTimeOffset =
+                localNow - serverTimestamp - estimatedOneWayLatency;
+            this.lastServerTimestamp = serverTimestamp;
+        }
+
         const serverSnapshot: ServerSnapshot = {
             x: snapshot.x,
             y: snapshot.y,
             vx: snapshot.vx,
             vy: snapshot.vy,
-            timestamp: snapshot.timestamp || Date.now(),
+            timestamp: serverTimestamp,
+            localReceiveTime: localNow,
         };
 
-        this.serverSnapshots.push(serverSnapshot);
+        this.insertSnapshot(serverSnapshot);
+
+        const dist = Phaser.Math.Distance.Between(
+            this.x,
+            this.y,
+            snapshot.x,
+            snapshot.y,
+        );
+        if (dist > 400) {
+            this.x = snapshot.x;
+            this.y = snapshot.y;
+            this.serverSnapshots = [serverSnapshot];
+        }
+    }
+
+    private insertSnapshot(snapshot: ServerSnapshot) {
+        let insertIndex = this.serverSnapshots.length;
+        for (let i = this.serverSnapshots.length - 1; i >= 0; i--) {
+            if (this.serverSnapshots[i].timestamp <= snapshot.timestamp) {
+                insertIndex = i + 1;
+                break;
+            }
+            if (i === 0) {
+                insertIndex = 0;
+            }
+        }
+
+        this.serverSnapshots.splice(insertIndex, 0, snapshot);
 
         while (this.serverSnapshots.length > this.MAX_SNAPSHOTS) {
             this.serverSnapshots.shift();
         }
+    }
+
+    public setNetworkConditions(pingMs: number) {
+        const oneWayLatency = pingMs / 2;
+        const jitterBuffer = 15;
+        this.interpolationDelayMs = Math.max(
+            50,
+            oneWayLatency + jitterBuffer + 30,
+        );
     }
 
     public changePlayerAvailabilityStatus(status: AvailabilityStatus) {
@@ -703,7 +754,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             return;
         }
 
-        const renderTime = Date.now() - this.INTERPOLATION_DELAY_MS;
+        const localNow = Date.now();
+        const renderTime = localNow - this.interpolationDelayMs;
         const { before, after } = this.findBracketingSnapshots(renderTime);
 
         let targetX = this.x;
@@ -711,20 +763,37 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         let currentVx = 0;
         let currentVy = 0;
 
-        if (before && after) {
-            const result = this.calculateInterpolatedPosition(
-                before,
-                after,
-                renderTime,
-            );
-            targetX = result.x;
-            targetY = result.y;
-            currentVx = result.vx;
-            currentVy = result.vy;
+        if (before && after && before !== after) {
+            const beforeTime = before.timestamp + this.serverTimeOffset;
+            const afterTime = after.timestamp + this.serverTimeOffset;
+            const totalTime = afterTime - beforeTime;
+
+            if (totalTime > 0) {
+                const t = Math.min(
+                    1,
+                    Math.max(0, (renderTime - beforeTime) / totalTime),
+                );
+                targetX = before.x + (after.x - before.x) * t;
+                targetY = before.y + (after.y - before.y) * t;
+                currentVx = before.vx + (after.vx - before.vx) * t;
+                currentVy = before.vy + (after.vy - before.vy) * t;
+            } else {
+                targetX = after.x;
+                targetY = after.y;
+                currentVx = after.vx;
+                currentVy = after.vy;
+            }
         } else if (before) {
-            const result = this.extrapolateFrom(before);
-            targetX = result.x;
-            targetY = result.y;
+            const snapshotTime = before.timestamp + this.serverTimeOffset;
+            const elapsed = Math.min((renderTime - snapshotTime) / 1000, 0.1);
+
+            if (elapsed > 0) {
+                targetX = before.x + before.vx * elapsed;
+                targetY = before.y + before.vy * elapsed;
+            } else {
+                targetX = before.x;
+                targetY = before.y;
+            }
             currentVx = before.vx;
             currentVy = before.vy;
         } else if (after) {
@@ -744,8 +813,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         if (distance > 300) {
             this.x = targetX;
             this.y = targetY;
-        } else {
-            const smoothing = 0.2;
+        } else if (distance > 0.5) {
+            const smoothing = Math.min(0.25, distance / 150);
             this.x += (targetX - this.x) * smoothing;
             this.y += (targetY - this.y) * smoothing;
         }
@@ -755,6 +824,18 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         }
 
         this.updateAnimationFromVelocity(currentVx, currentVy);
+        this.cleanOldSnapshots(renderTime);
+    }
+
+    private cleanOldSnapshots(renderTime: number) {
+        const keepTime = renderTime - 500;
+
+        while (
+            this.serverSnapshots.length > 2 &&
+            this.serverSnapshots[0].timestamp + this.serverTimeOffset < keepTime
+        ) {
+            this.serverSnapshots.shift();
+        }
     }
 
     private findBracketingSnapshots(renderTime: number): {
@@ -766,7 +847,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
         for (let i = 0; i < this.serverSnapshots.length; i++) {
             const snap = this.serverSnapshots[i];
-            if (snap.timestamp <= renderTime) {
+            const adjustedTimestamp = snap.timestamp + this.serverTimeOffset;
+
+            if (adjustedTimestamp <= renderTime) {
                 before = snap;
             } else {
                 after = snap;
@@ -775,45 +858,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         }
 
         return { before, after };
-    }
-
-    private calculateInterpolatedPosition(
-        before: ServerSnapshot,
-        after: ServerSnapshot,
-        renderTime: number,
-    ): { x: number; y: number; vx: number; vy: number } {
-        const totalTime = after.timestamp - before.timestamp;
-
-        if (totalTime <= 0) {
-            return { x: after.x, y: after.y, vx: after.vx, vy: after.vy };
-        }
-
-        const t = Math.min(
-            1,
-            Math.max(0, (renderTime - before.timestamp) / totalTime),
-        );
-
-        const x = before.x + (after.x - before.x) * t;
-        const y = before.y + (after.y - before.y) * t;
-        const vx = before.vx + (after.vx - before.vx) * t;
-        const vy = before.vy + (after.vy - before.vy) * t;
-
-        return { x, y, vx, vy };
-    }
-
-    private extrapolateFrom(snapshot: ServerSnapshot): {
-        x: number;
-        y: number;
-    } {
-        const elapsed = Math.min(
-            (Date.now() - snapshot.timestamp) / 1000,
-            0.15,
-        );
-
-        const x = snapshot.x + snapshot.vx * elapsed;
-        const y = snapshot.y + snapshot.vy * elapsed;
-
-        return { x, y };
     }
 
     private updateAnimationFromVelocity(vx: number, vy: number) {

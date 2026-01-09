@@ -84,10 +84,12 @@ export class Multiplayer {
             this.socket.emit("ping", start, (echo: number) => {
                 const latency = Date.now() - echo;
                 useUiStore.getState().setPing(latency);
-            });
-        }, 3000);
-    }
 
+                // Broadcast ping to game for adaptive interpolation
+                this.socket.emit("pong", latency);
+            });
+        }, 2000);
+    }
     private stopPingLoop() {
         if (this.pingInterval) {
             clearInterval(this.pingInterval);
