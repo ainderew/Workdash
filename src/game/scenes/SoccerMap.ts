@@ -828,6 +828,7 @@ export class SoccerMap extends BaseGameScene {
             playerId: this.localPlayerId,
             kickPower: baseKickPower, // Send base power, server handles stats
             angle: angle,
+            timestamp: Date.now(), // For lag compensation
         });
     }
 

@@ -651,21 +651,43 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         }
 
         // --- Visual Error Decay ---
-        // The visual sprite follows the physics body but with an offset that decays
+        // Adaptive decay: faster for small errors, slower for large errors
+        const errorMagnitude = Math.sqrt(
+            this.visualOffsetX ** 2 + this.visualOffsetY ** 2,
+        );
+
+        // Decay factor: 0.9 for large errors (>50px), 0.8 for medium, 0.7 for small
+        let decayFactor: number;
+        if (errorMagnitude > 50) {
+            decayFactor = 0.92; // Very slow decay for big snaps
+        } else if (errorMagnitude > 20) {
+            decayFactor = 0.88;
+        } else if (errorMagnitude > 5) {
+            decayFactor = 0.82;
+        } else {
+            decayFactor = 0.7; // Fast decay when close
+        }
+
+        this.visualOffsetX *= decayFactor;
+        this.visualOffsetY *= decayFactor;
+
+        // Snap to zero when very small to avoid floating point drift
+        if (Math.abs(this.visualOffsetX) < 0.5) this.visualOffsetX = 0;
+        if (Math.abs(this.visualOffsetY) < 0.5) this.visualOffsetY = 0;
+
+        // Visual sprite follows physics body with offset
         this.visualSprite.x = this.x + this.visualOffsetX;
         this.visualSprite.y = this.y + this.visualOffsetY;
-
-        // Smoothly decay the visual offset
-        // This is what makes snaps invisible
-        this.visualOffsetX *= 0.85;
-        this.visualOffsetY *= 0.85;
 
         // Apply drag matching server in multiplayer scenes (like SoccerMap)
         if (this.scene.scene.key === "SoccerMap" && this.body) {
             this.applyExponentialDrag(1 / 60);
         }
 
-        this.uiContainer.setPosition(this.visualSprite.x, this.visualSprite.y - 40);
+        this.uiContainer.setPosition(
+            this.visualSprite.x,
+            this.visualSprite.y - 40,
+        );
 
         // --- GHOST EFFECT ---
         if (this.isGhosted || this.isSpectator) {
@@ -832,24 +854,25 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     ) {
         if (!this.isLocal || !this.body) return;
 
-        // Record visual position before snap
-        const oldVisualX = this.x + this.visualOffsetX;
-        const oldVisualY = this.y + this.visualOffsetY;
-
         // 1. Remove history acknowledged by server
         this.inputHistory = this.inputHistory.filter(
             (input) => input.sequence > lastSequence,
         );
 
-        // 2. Snap physics state to server truth
-        this.setPosition(serverX, serverY);
-        this.setVelocity(serverVX, serverVY);
+        // 2. Calculate prediction error BEFORE we modify position
+        // Re-simulate from server state to get our predicted position
+        let predictedX = serverX;
+        let predictedY = serverY;
+        let predictedVX = serverVX;
+        let predictedVY = serverVY;
 
-        // 3. Re-run all pending inputs (Fast-Forward)
         const dt = 1 / 60;
         const speedStat = this.soccerStats?.speed ?? 0;
         const speedMultiplier = 1.0 + speedStat * 0.1;
         const accel = this.BASE_ACCEL * speedMultiplier;
+        const maxSpeed = this.BASE_MAX_SPEED * speedMultiplier;
+        const dribblingStat = this.soccerStats?.dribbling ?? 0;
+        const dragMultiplier = Math.max(0.5, 1.0 - dribblingStat * 0.05);
 
         for (const input of this.inputHistory) {
             let ax = 0;
@@ -864,39 +887,59 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
                 ay *= Math.SQRT1_2;
             }
 
-            const newVX = this.body.velocity.x + ax * dt;
-            const newVY = this.body.velocity.y + ay * dt;
+            // Velocity update
+            predictedVX += ax * dt;
+            predictedVY += ay * dt;
 
-            const dribblingStat = this.soccerStats?.dribbling ?? 0;
-            const dragMultiplier = Math.max(0.5, 1.0 - dribblingStat * 0.05);
-            const dragFactor = Math.exp(
-                -this.PLAYER_DRAG * dragMultiplier * dt,
-            );
+            // Drag
+            const dragFactor = Math.exp(-this.PLAYER_DRAG * dragMultiplier * dt);
+            predictedVX *= dragFactor;
+            predictedVY *= dragFactor;
 
-            this.body.velocity.x = newVX * dragFactor;
-            this.body.velocity.y = newVY * dragFactor;
-
-            const currentSpeed = Math.sqrt(
-                this.body.velocity.x ** 2 + this.body.velocity.y ** 2,
-            );
-            const maxSpeed = this.BASE_MAX_SPEED * speedMultiplier;
+            // Speed clamp
+            const currentSpeed = Math.sqrt(predictedVX ** 2 + predictedVY ** 2);
             if (currentSpeed > maxSpeed) {
                 const scale = maxSpeed / currentSpeed;
-                this.body.velocity.x *= scale;
-                this.body.velocity.y *= scale;
+                predictedVX *= scale;
+                predictedVY *= scale;
             }
 
-            this.x += this.body.velocity.x * dt;
-            this.y += this.body.velocity.y * dt;
+            // Position update
+            predictedX += predictedVX * dt;
+            predictedY += predictedVY * dt;
         }
 
-        // 4. Update the physics body to match the new gameObject position
+        // 3. Calculate error between our current position and where we SHOULD be
+        const errorX = this.x - predictedX;
+        const errorY = this.y - predictedY;
+        const errorDistance = Math.sqrt(errorX * errorX + errorY * errorY);
+
+        // 4. Only correct if error is significant
+        if (errorDistance < 2) {
+            // We're close enough, just sync velocity
+            this.setVelocity(predictedVX, predictedVY);
+            return;
+        }
+
+        // 5. Store visual position before snap
+        const oldVisualX = this.visualSprite.x;
+        const oldVisualY = this.visualSprite.y;
+
+        // 6. Snap physics to predicted position
+        this.setPosition(predictedX, predictedY);
+        this.setVelocity(predictedVX, predictedVY);
         this.body.updateFromGameObject();
 
-        // 5. Visual Error Compensation
-        // We want the visual sprite to NOT move at all from its old screen position
+        // 7. Visual Error Compensation - keep visual sprite where it was
         this.visualOffsetX = oldVisualX - this.x;
         this.visualOffsetY = oldVisualY - this.y;
+
+        // Debug logging for large corrections
+        if (errorDistance > 20) {
+            console.log(
+                `[Reconcile] Large correction: ${errorDistance.toFixed(1)}px, pending inputs: ${this.inputHistory.length}`,
+            );
+        }
     }
 
     private applyExponentialDrag(dt: number) {
