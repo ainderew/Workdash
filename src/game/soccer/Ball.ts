@@ -1,10 +1,13 @@
 import { Scene } from "phaser";
 import type { BallStateUpdate } from "./_types";
+import {
+    integrateBall,
+    PhysicsState,
+} from "./shared-physics";
 
 export class Ball extends Phaser.Physics.Arcade.Sprite {
     private isMultiplayer: boolean = false;
-    private lastLocalKickSequence: number = 0;
-    private serverSequence: number = 0;
+    private simState: PhysicsState = { x: 0, y: 0, vx: 0, vy: 0 };
 
     // Snapshot buffer for interpolation
     private snapshotBuffer: BallStateUpdate[] = [];
@@ -12,9 +15,9 @@ export class Ball extends Phaser.Physics.Arcade.Sprite {
 
     // Blending state for kick prediction handoff
     private isBlending: boolean = false;
-    private blendStartTime: number = 0;
-    private blendDuration: number = 200; // ms
-    private blendStartPos = { x: 0, y: 0 };
+    private isPredicting: boolean = false;
+    private lastLocalKickSequence: number = 0;
+    private serverSequence: number = 0;
 
     public targetPos = {
         x: 0,
@@ -44,6 +47,7 @@ export class Ball extends Phaser.Physics.Arcade.Sprite {
         scene.physics.add.existing(this);
 
         this.isMultiplayer = isMultiplayer;
+        this.simState = { x, y, vx: 0, vy: 0 };
 
         if (isMultiplayer) {
             this.setCircle(30);
@@ -60,11 +64,44 @@ export class Ball extends Phaser.Physics.Arcade.Sprite {
         }
     }
 
-    public predictKick(vx: number, vy: number, _rtt: number = 100) {
+    // Called by SoccerMap accumulator loop
+    public tickPhysics(dt: number) {
+        if (!this.isMultiplayer) {
+            integrateBall(this.simState, dt);
+            this.syncVisuals();
+            return;
+        }
+
+        if (this.isBlending || this.isPredicting) {
+            // We are predicting: Use shared kernel
+            integrateBall(this.simState, dt);
+        } else {
+            // We are following server: Interpolate snapshot buffer
+            const interpState = this.getInterpolatedState();
+            if (interpState) {
+                this.simState = { ...interpState };
+            }
+        }
+        this.syncVisuals();
+    }
+
+    private syncVisuals() {
+        // Render sprite at simulation position
+        this.setPosition(this.simState.x, this.simState.y);
+
+        // Sync Arcade Body for collisions
+        if (this.body) {
+            this.body.reset(this.simState.x, this.simState.y);
+        }
+    }
+
+    public predictKick(vx: number, vy: number) {
         if (!this.isMultiplayer) return;
 
-        // Apply velocity instantly
-        this.setVelocity(vx, vy);
+        // Apply kick immediately to local simulation
+        this.simState.vx = vx;
+        this.simState.vy = vy;
+        this.isPredicting = true;
 
         // Update target for trajectory preview
         this.targetPos.vx = vx;
@@ -72,13 +109,6 @@ export class Ball extends Phaser.Physics.Arcade.Sprite {
 
         // Increment sequence - ignore server updates until they catch up
         this.lastLocalKickSequence++;
-
-        // Cancel any ongoing blend
-        this.isBlending = false;
-
-        console.log(
-            `[Ball] Kick predicted, local seq: ${this.lastLocalKickSequence}`,
-        );
     }
 
     public updateFromServer(state: BallStateUpdate) {
@@ -94,17 +124,11 @@ export class Ball extends Phaser.Physics.Arcade.Sprite {
             return;
         }
 
-        // Server has caught up - start blending if we were predicting
-        if (
-            this.serverSequence < this.lastLocalKickSequence &&
-            incomingSeq >= this.lastLocalKickSequence
-        ) {
-            // Transition from prediction to server authority
-            this.isBlending = true;
-            this.blendStartTime = Date.now();
-            this.blendStartPos = { x: this.x, y: this.y };
+        // Server has caught up
+        if (this.isPredicting && incomingSeq >= this.lastLocalKickSequence) {
+            this.isPredicting = false;
             console.log(
-                `[Ball] Server caught up, starting blend from (${this.x.toFixed(0)}, ${this.y.toFixed(0)})`,
+                `[Ball] Server caught up, switching to server authority`,
             );
         }
 
@@ -184,65 +208,6 @@ export class Ball extends Phaser.Physics.Arcade.Sprite {
         }
     }
 
-    private applyExponentialDrag(dt: number) {
-        if (!this.body) return;
-        const DRAG = 1;
-        const dragFactor = Math.exp(-DRAG * dt);
-        this.setVelocity(
-            this.body.velocity.x * dragFactor,
-            this.body.velocity.y * dragFactor,
-        );
-    }
-
-    public update() {
-        if (!this.isMultiplayer) return;
-
-        const isPredicting = this.serverSequence < this.lastLocalKickSequence;
-
-        if (isPredicting) {
-            // We kicked - use local physics
-            this.applyExponentialDrag(1 / 60);
-        } else if (this.isBlending) {
-            // Transitioning from prediction to server
-            const serverState = this.getInterpolatedState();
-            if (!serverState) {
-                this.applyExponentialDrag(1 / 60);
-                return;
-            }
-
-            const elapsed = Date.now() - this.blendStartTime;
-            const t = Math.min(1, elapsed / this.blendDuration);
-
-            // Use smooth easing
-            const eased = Phaser.Math.Easing.Quadratic.InOut(t);
-
-            const blendedX = Phaser.Math.Linear(
-                this.blendStartPos.x,
-                serverState.x,
-                eased,
-            );
-            const blendedY = Phaser.Math.Linear(
-                this.blendStartPos.y,
-                serverState.y,
-                eased,
-            );
-
-            this.setPosition(blendedX, blendedY);
-            this.setVelocity(serverState.vx, serverState.vy);
-
-            if (t >= 1) {
-                this.isBlending = false;
-                console.log(
-                    `[Ball] Blend complete at (${this.x.toFixed(0)}, ${this.y.toFixed(0)})`,
-                );
-            }
-        } else {
-            // Full server authority - use interpolation
-            const serverState = this.getInterpolatedState();
-            if (serverState) {
-                this.setPosition(serverState.x, serverState.y);
-                this.setVelocity(serverState.vx, serverState.vy);
-            }
-        }
-    }
+    // Override update to do nothing (physics is now driven by tickPhysics)
+    public update() {}
 }

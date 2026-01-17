@@ -609,6 +609,7 @@ export abstract class BaseGameScene extends Scene {
 
                 // If in SoccerMap, pass soccer stats to the player instance
                 if (this.currentSceneName === "SoccerMap") {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     const soccerStore = (this as any).soccerStats;
                     if (soccerStore) {
                         playerInstance.soccerStats = soccerStore;
@@ -644,7 +645,8 @@ export abstract class BaseGameScene extends Scene {
         this.loadingPlayers.delete(id);
     }
 
-    update(time: number) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    update(time: number, _delta: number) {
         if (!this.players) return;
 
         const tickRate = time - this.lastTick > this.Hz;

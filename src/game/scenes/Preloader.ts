@@ -104,10 +104,7 @@ export class Preloader extends Scene {
         // const characterLoader = new CharacterAssetLoader(this);
         // characterLoader.loadAllCharacterAssets();
 
-        this.load.image("goal", "tile-sets/goal.png");
-        this.load.image("goal_2", "tile-sets/goal_2.png");
-        this.load.image("circle", "tile-sets/circle.png");
-        this.load.image("soccer", "tile-sets/soccer.png");
+        // Soccer assets are lazy-loaded in SoccerMap.ts
 
         this.load.image(
             "Office",
@@ -168,25 +165,12 @@ export class Preloader extends Scene {
             { frameWidth: 96, frameHeight: 192 },
         );
 
-        // Load sounds
+        // Load sounds (soccer sounds are lazy-loaded in SoccerMap.ts)
         this.load.audio("door_open", "sounds/door_open.mp3");
         this.load.audio("bg_music_1", "sounds/bg_music_1.mp3");
         this.load.audio("kart_start", "sounds/kart.mp3");
-        this.load.audio("soccer_kick", "sounds/soccer_kick.mp3");
-        this.load.audio("soccer_cheer", "sounds/soccer_cheer.mp3");
-        this.load.audio(
-            "soccer_skill_activation",
-            "sounds/soccer_skill_activation.mp3",
-        );
-        this.load.audio("time_dilation", "sounds/skill_slow_down.mp3");
-        this.load.audio("blink", "sounds/skill_blink.mp3");
-        this.load.audio("skill_metavision", "sounds/ninja-sound-effect.mp3");
-        this.load.audio("shadow", "sounds/skill_shadow.mp3");
-        this.load.audio("lurking", "sounds/skill_lurking.mp3");
-        this.load.audio("power_shot", "sounds/skill_power_shot.mp3");
 
         this.load.tilemapTiledJSON("map", "map1.json");
-        this.load.tilemapTiledJSON("soccer_map", "soccer_map.json");
 
         // Spritesheets
         const loadChar = (k: string, p: string, w: number, h: number) =>

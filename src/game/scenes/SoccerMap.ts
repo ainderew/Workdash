@@ -6,6 +6,7 @@ import { Player } from "../player/player";
 import { Ball } from "../soccer/Ball";
 import { getSoccerStats } from "@/lib/api/soccer-stats";
 import useSoccerStore from "@/common/store/soccerStore";
+import { PHYSICS_CONSTANTS } from "../soccer/shared-physics";
 
 export interface SkillConfig {
     id: string;
@@ -77,11 +78,41 @@ export class SoccerMap extends BaseGameScene {
         dribbling: number;
     } | null = null;
 
+    private accumulator: number = 0;
+
     // FIX: Add a buffer to store teams for players that haven't loaded yet
     private pendingTeams: Map<string, "red" | "blue"> = new Map();
 
     constructor() {
         super("SoccerMap");
+    }
+
+    preload() {
+        // Lazy-load soccer-specific assets
+        this.load.setPath("/assets");
+
+        // Soccer tile images
+        this.load.image("goal", "tile-sets/goal.png");
+        this.load.image("goal_2", "tile-sets/goal_2.png");
+        this.load.image("circle", "tile-sets/circle.png");
+        this.load.image("soccer", "tile-sets/soccer.png");
+
+        // Soccer sounds
+        this.load.audio("soccer_kick", "sounds/soccer_kick.mp3");
+        this.load.audio("soccer_cheer", "sounds/soccer_cheer.mp3");
+        this.load.audio(
+            "soccer_skill_activation",
+            "sounds/soccer_skill_activation.mp3",
+        );
+        this.load.audio("time_dilation", "sounds/skill_slow_down.mp3");
+        this.load.audio("blink", "sounds/skill_blink.mp3");
+        this.load.audio("skill_metavision", "sounds/ninja-sound-effect.mp3");
+        this.load.audio("shadow", "sounds/skill_shadow.mp3");
+        this.load.audio("lurking", "sounds/skill_lurking.mp3");
+        this.load.audio("power_shot", "sounds/skill_power_shot.mp3");
+
+        // Soccer tilemap
+        this.load.tilemapTiledJSON("soccer_map", "soccer_map.json");
     }
 
     create() {
@@ -145,8 +176,22 @@ export class SoccerMap extends BaseGameScene {
         }
     }
 
-    update(time: number): void {
-        super.update(time);
+    update(time: number, delta: number): void {
+        super.update(time, delta);
+
+        // Add frame time to accumulator
+        this.accumulator += delta;
+
+        // Consume in fixed 16.66ms chunks
+        while (this.accumulator >= PHYSICS_CONSTANTS.FIXED_TIMESTEP_MS) {
+            // Step Ball Physics
+            if (this.ball) {
+                this.ball.tickPhysics(PHYSICS_CONSTANTS.FIXED_TIMESTEP_SEC);
+            }
+
+            // Step Accumulator
+            this.accumulator -= PHYSICS_CONSTANTS.FIXED_TIMESTEP_MS;
+        }
 
         const isSelectionPhaseActive =
             useSoccerStore.getState().isSelectionPhaseActive;
@@ -816,9 +861,7 @@ export class SoccerMap extends BaseGameScene {
 
         // --- APPLY PREDICTION ---
         // This moves the ball instantly on client, bypassing network lag
-        // Get current RTT for dynamic authority window
-        const rtt = useUiStore.getState().ping || 100;
-        this.ball.predictKick(kickVx, kickVy, rtt);
+        this.ball.predictKick(kickVx, kickVy);
 
         // Play sound immediately for responsiveness
         this.sound.play("soccer_kick");
