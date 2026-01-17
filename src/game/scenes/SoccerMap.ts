@@ -182,13 +182,14 @@ export class SoccerMap extends BaseGameScene {
         // Add frame time to accumulator
         this.accumulator += delta;
 
-        // Consume in fixed 16.66ms chunks
-        while (this.accumulator >= PHYSICS_CONSTANTS.FIXED_TIMESTEP_MS) {
-            // Step Ball Physics
-            if (this.ball) {
-                this.ball.tickPhysics(PHYSICS_CONSTANTS.FIXED_TIMESTEP_SEC);
-            }
+        // Step Accumulator logic for Ball Physics (now handled internally by Ball)
+        // We just call ball.update(time, delta) once per frame.
+        if (this.ball) {
+            this.ball.update(time, delta);
+        }
 
+        // Consume in fixed 16.66ms chunks for OTHER game logic if needed
+        while (this.accumulator >= PHYSICS_CONSTANTS.FIXED_TIMESTEP_MS) {
             // Step Accumulator
             this.accumulator -= PHYSICS_CONSTANTS.FIXED_TIMESTEP_MS;
         }
@@ -210,7 +211,7 @@ export class SoccerMap extends BaseGameScene {
         }
 
         if (this.isMultiplayerMode) {
-            this.ball.update();
+            // this.ball.update() is already called in the main loop
 
             this.updateTeamGlows();
 
@@ -337,7 +338,7 @@ export class SoccerMap extends BaseGameScene {
         });
 
         socket.on("ball:state", (state: any) => {
-            this.ball.updateFromServer(state);
+            this.ball.onServerUpdate(state);
         });
 
         socket.on("ball:kicked", (data: any) => {
@@ -902,7 +903,11 @@ export class SoccerMap extends BaseGameScene {
 
                 const ballSprite = ball as Ball;
                 const maxSpeed = 150;
-                const velocity = ballSprite.body!.velocity;
+                // Cast to Arcade Body to access vector methods
+                const body = ballSprite.body as Phaser.Physics.Arcade.Body;
+                if (!body) return;
+                
+                const velocity = body.velocity;
                 if (velocity.length() > maxSpeed) {
                     velocity.normalize().scale(maxSpeed);
                 }
