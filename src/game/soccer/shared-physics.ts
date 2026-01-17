@@ -14,6 +14,8 @@ export interface PhysicsState {
   y: number;
   vx: number;
   vy: number;
+  // NOTE: Keep this interface flat (no nested objects) to ensure
+  // shallow copying in ClientBall.history remains safe.
 }
 
 export function integrateBall(state: PhysicsState, dt: number): void {

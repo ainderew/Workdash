@@ -6,7 +6,7 @@ import { Player } from "../player/player";
 import { Ball } from "../soccer/Ball";
 import { getSoccerStats } from "@/lib/api/soccer-stats";
 import useSoccerStore from "@/common/store/soccerStore";
-import { PHYSICS_CONSTANTS } from "../soccer/shared-physics";
+// import { PHYSICS_CONSTANTS } from "../soccer/shared-physics";
 
 export interface SkillConfig {
     id: string;
@@ -77,8 +77,6 @@ export class SoccerMap extends BaseGameScene {
         kickPower: number;
         dribbling: number;
     } | null = null;
-
-    private accumulator: number = 0;
 
     // FIX: Add a buffer to store teams for players that haven't loaded yet
     private pendingTeams: Map<string, "red" | "blue"> = new Map();
@@ -179,19 +177,10 @@ export class SoccerMap extends BaseGameScene {
     update(time: number, delta: number): void {
         super.update(time, delta);
 
-        // Add frame time to accumulator
-        this.accumulator += delta;
-
-        // Step Accumulator logic for Ball Physics (now handled internally by Ball)
-        // We just call ball.update(time, delta) once per frame.
+        // 1. Update the Ball
+        // The Ball class now handles its own fixed-timestep accumulator internally.
         if (this.ball) {
             this.ball.update(time, delta);
-        }
-
-        // Consume in fixed 16.66ms chunks for OTHER game logic if needed
-        while (this.accumulator >= PHYSICS_CONSTANTS.FIXED_TIMESTEP_MS) {
-            // Step Accumulator
-            this.accumulator -= PHYSICS_CONSTANTS.FIXED_TIMESTEP_MS;
         }
 
         const isSelectionPhaseActive =
@@ -1644,13 +1633,13 @@ export class SoccerMap extends BaseGameScene {
             loop: true,
             callback: () => {
                 const ping = useUiStore.getState().ping || 0;
-                const ballUpdateAge = this.ball.targetPos.t
-                    ? Date.now() - this.ball.targetPos.t
-                    : 0;
+                
+                // Show Physics Ticks instead of Time
+                // Use a safety check for ball existence
+                const currentTick = this.ball && this.ball.targetPos ? this.ball.targetPos.t : 0;
+                
                 diagnosticsText.setText(
-                    [`Ping: ${ping}ms`, `Ball Age: ${ballUpdateAge}ms`].join(
-                        "\n",
-                    ),
+                    [`Ping: ${ping}ms`, `Sim Tick: ${currentTick}`].join("\n")
                 );
             },
         });

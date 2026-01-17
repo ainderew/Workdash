@@ -10,18 +10,31 @@ interface StateSnapshot {
   state: PhysicsState;
 }
 
+interface PendingKick {
+  tick: number;
+  sequence: number; // Use Sequence ID instead of Velocity matching
+  vx: number;
+  vy: number;
+}
+
 export class Ball extends Phaser.GameObjects.Sprite {
-  // 1. The "True" Simulation State (Client Prediction)
+  // 1. Decouple Physics from Rendering
   public simState: PhysicsState = { x: 0, y: 0, vx: 0, vy: 0 };
-
-  // 2. The Accumulator for Fixed Timestep
+  
   private accumulator: number = 0;
-
-  // 3. The History Buffer (for Rewinding)
   private history: StateSnapshot[] = [];
   private currentTick: number = 0;
+  
+  // Track the last sequence processed by the server to avoid double-kicking during replays
+  private lastServerSequence: number = 0;
+  private nextClientSequence: number = 1; 
 
+  private pendingKicks: PendingKick[] = [];
   private isMultiplayer: boolean = false;
+
+  // Smoothing factor (0.1 = loose/smooth, 0.9 = tight/jittery)
+   
+  private readonly INTERPOLATION_FACTOR = 0.5;
 
   constructor(
     scene: Scene,
@@ -38,93 +51,89 @@ export class Ball extends Phaser.GameObjects.Sprite {
     graphics.destroy();
 
     super(scene, x, y, "ball");
+    
     this.simState = { x, y, vx: 0, vy: 0 };
     this.isMultiplayer = isMultiplayer;
 
     scene.add.existing(this);
-    // NOTE: No scene.physics.add.existing(this)! We do physics manually.
-    
-    // Add a simple circular body for Arcade Physics overlap checks (like kick range)
-    // We won't use it for movement, just for "is touching" checks if needed by SoccerMap
     scene.physics.add.existing(this);
+    
     if (this.body) {
-        (this.body as Phaser.Physics.Arcade.Body).setCircle(30);
+      (this.body as Phaser.Physics.Arcade.Body).setCircle(30);
     }
   }
 
-  // Shim for SoccerMap compatibility
+  // Debug shim
   public get targetPos() {
-      return {
-          x: this.simState.x,
-          y: this.simState.y,
-          vx: this.simState.vx,
-          vy: this.simState.vy,
-          t: Date.now() // rough approximation
-      };
+    return {
+      x: this.simState.x,
+      y: this.simState.y,
+      vx: this.simState.vx,
+      vy: this.simState.vy,
+      t: this.currentTick 
+    };
   }
 
-  // Shim for SoccerMap compatibility
+  // Physics shim
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  public setBounce(val: number) {
-      // TODO: Feed this into shared-physics if needed.
-      // Currently shared-physics uses PHYSICS_CONSTANTS.BOUNCE (0.7)
-  }
+  public setBounce(val: number) {}
 
-  /**
-   * Called every frame by SoccerMap update loop
-   */
   public update(time: number, delta: number) {
-    // Add frame time (converted to ms) to accumulator
+    // 1. Accumulate Time
     this.accumulator += delta;
 
-    // Consume accumulator in fixed chunks (Exactly like Server)
+    // Safety cap to prevent spiral of death if tab is backgrounded
+    if (this.accumulator > 250) this.accumulator = 250;
+
+    // 2. Consume Physics Steps (Fixed Update)
     while (this.accumulator >= PHYSICS_CONSTANTS.FIXED_TIMESTEP_MS) {
       this.runPhysicsStep();
       this.accumulator -= PHYSICS_CONSTANTS.FIXED_TIMESTEP_MS;
     }
 
-    // Render Interpolation (Optional, for buttery smooth 144hz)
-    const alpha = this.accumulator / PHYSICS_CONSTANTS.FIXED_TIMESTEP_MS;
-    this.updateVisuals(alpha);
+    // 3. Render Interpolation (The Anti-Jitter)
+    this.updateVisuals(delta);
   }
 
-  /**
-   * Runs 1 tick of physics (16.66ms)
-   */
   private runPhysicsStep() {
     this.currentTick++;
 
-    // 1. Run the Shared Kernel
+    // Re-apply kicks that the server hasn't acknowledged yet
+    // AND that belong to this specific tick timeframe
+    const kick = this.pendingKicks.find(k => k.tick === this.currentTick);
+    if (kick) {
+        // Only apply if the server hasn't already processed this sequence
+        if (kick.sequence > this.lastServerSequence) {
+            this.simState.vx = kick.vx;
+            this.simState.vy = kick.vy;
+        }
+    }
+
+    // Shared Physics Kernel
     integrateBall(this.simState, PHYSICS_CONSTANTS.FIXED_TIMESTEP_SEC);
 
-    // 2. Store the result in history
+    // Record History
     this.history.push({
       tick: this.currentTick,
-      state: { ...this.simState }, // Clone the object!
+      state: { ...this.simState },
     });
 
-    // 3. Keep history small (max 1 second buffer)
-    if (this.history.length > 60) {
+    // Keep buffer manageable (2 seconds @ 60hz)
+    if (this.history.length > 120) {
       this.history.shift();
     }
   }
 
-  /**
-   * The Magic: Called when Socket.io receives "ball:state"
-   */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public onServerUpdate(serverPacket: any) {
-    if (!serverPacket.tick) {
-        // Fallback for packets without tick (shouldn't happen with updated server)
-        // Or if it's the initial state
-        this.simState.x = serverPacket.x;
-        this.simState.y = serverPacket.y;
-        this.simState.vx = serverPacket.vx;
-        this.simState.vy = serverPacket.vy;
-        return;
-    }
+    if (!serverPacket.tick) return; 
 
     const serverTick = serverPacket.tick;
+    // Update the authoritative sequence from server
+    if (serverPacket.sequence) {
+        this.lastServerSequence = serverPacket.sequence;
+    }
+
     const serverState = {
       x: serverPacket.x,
       y: serverPacket.y,
@@ -132,67 +141,69 @@ export class Ball extends Phaser.GameObjects.Sprite {
       vy: serverPacket.vy,
     };
 
-    // 1. Find our local history for this specific tick
+    // --- STEP 1: Clean up Pending Kicks ---
+    // Remove kicks that are older than this server tick
+    // OR have been processed via sequence ID
+    this.pendingKicks = this.pendingKicks.filter(kick => {
+        if (kick.sequence <= this.lastServerSequence) return false; // Handled
+        if (kick.tick < serverTick) {
+            // Missed kick? Force it to next available tick to retry (Lag handling)
+            kick.tick = serverTick + 1;
+        }
+        return true;
+    });
+
+    // --- STEP 2: Reconciliation ---
     const historyState = this.history.find((h) => h.tick === serverTick);
 
-    // If we don't have history (too old or new connection), just snap
-    if (!historyState) {
-      this.simState = serverState;
-      this.currentTick = serverTick;
-      this.history = []; // Reset history
-      return;
+    // Tolerance check (pixels). If we are close, do not snap physics.
+    // This reduces micro-stuttering when physics engines drift slightly.
+    if (historyState) {
+        const errorX = Math.abs(serverState.x - historyState.state.x);
+        const errorY = Math.abs(serverState.y - historyState.state.y);
+        const errorVx = Math.abs(serverState.vx - historyState.state.vx);
+        const errorVy = Math.abs(serverState.vy - historyState.state.vy);
+
+        // If position is close (< 5px) and velocity is close, trust client physics
+        // This prevents the "vibrating ball" when resting
+        if (errorX < 5 && errorY < 5 && errorVx < 10 && errorVy < 10) {
+            // Prune old history, but don't rewind
+            this.history = this.history.filter(h => h.tick >= serverTick);
+            return; 
+        }
     }
 
-    // 2. Check for Divergence (Did we predict wrong?)
-    const errorX = Math.abs(serverState.x - historyState.state.x);
-    const errorY = Math.abs(serverState.y - historyState.state.y);
-
-    // Tolerance: 1 pixel. If < 1px, we assume our prediction was correct.
-    if (errorX < 1 && errorY < 1) {
-      // Perfect prediction! Do nothing.
-      // (Optional) We can delete history older than this tick now.
-      this.history = this.history.filter((h) => h.tick >= serverTick);
-      return;
-    }
-
-    // 3. RECONCILIATION NEEDED
-    // console.log(`Prediction Error: ${errorX.toFixed(2)}, Reconciling...`);
-
-    // A. Rewind: Snap simulation to Server's Truth
+    // --- STEP 3: Rewind & Replay (Hard Correction) ---
+    // Snap simulation to server truth
     this.simState = { ...serverState };
-
-    // B. Replay: Re-run physics for every tick since the server update up to NOW
+    
+    // Find future frames to replay
     const ticksToReplay = this.history.filter((h) => h.tick > serverTick);
-
-    // Remove old invalid history
-    this.history = [];
+    
+    // Reset simulation timeline
+    this.history = []; 
+    this.currentTick = serverTick;
 
     // Re-simulate
-    for (const pastFrame of ticksToReplay) {
-      // Note: If you had player inputs (kicks) stored, you would re-apply them here
-      // based on the pastFrame.tick. For Ball, we rely on momentum.
-      
-      // We need to advance currentTick appropriately during replay? 
-      // Actually runPhysicsStep increments currentTick. 
-      // We are essentially re-building the history from serverTick + 1 to NOW.
-      // So we should temporarily reset currentTick to serverTick, OR just realize runPhysicsStep relies on state.
-      
-      // FIX: runPhysicsStep increments currentTick. We need to preserve the sequence of ticks.
-      // The simplest way is to just call runPhysicsStep() N times.
-      // But we need to make sure `this.currentTick` ends up at the correct value.
-      
-      // Let's manually manage currentTick to match the replay
-      this.currentTick = pastFrame.tick - 1; 
-      this.runPhysicsStep();
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    for (const _pastFrame of ticksToReplay) {
+      this.runPhysicsStep(); 
     }
   }
 
-  /**
-   * Apply a local kick immediately (Prediction)
-   */
   public predictKick(vx: number, vy: number) {
-    this.simState.vx = vx;
-    this.simState.vy = vy;
+    const kickTick = this.currentTick + 1;
+    
+    // Ensure we don't assign a sequence ID that the server already considers "past"
+    this.nextClientSequence = Math.max(this.nextClientSequence, this.lastServerSequence + 1);
+    const sequence = this.nextClientSequence++;
+    
+    this.pendingKicks.push({
+        tick: kickTick,
+        sequence: sequence,
+        vx, 
+        vy
+    });
   }
 
   public setVelocity(vx: number, vy: number) {
@@ -201,25 +212,42 @@ export class Ball extends Phaser.GameObjects.Sprite {
   
   public setPosition(x?: number, y?: number, z?: number, w?: number): this {
       super.setPosition(x, y, z, w);
-      if (x !== undefined && y !== undefined) {
+      // If position is manually set (e.g. Respawn), hard reset sim state
+      if (this.simState && x !== undefined && y !== undefined) {
         this.simState.x = x;
         this.simState.y = y;
-        if(this.body) {
-            (this.body as Phaser.Physics.Arcade.Body).reset(x, y);
-        }
+        this.simState.vx = 0;
+        this.simState.vy = 0;
+        this.history = []; // Clear history on teleport to prevent lerping across map
       }
       return this;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  private updateVisuals(alpha: number) {
-    // Interpolate between previous physics state and current for visual smoothness
-    // For now, just snap to simState (ignoring alpha)
-    super.setPosition(this.simState.x, this.simState.y);
+  private updateVisuals(dt: number) {
+    // Calculate distance between Render Pos and Sim Pos
+    const dist = Phaser.Math.Distance.Between(this.x, this.y, this.simState.x, this.simState.y);
+
+    // If the distance is huge (teleport/respawn), snap instantly
+    if (dist > 200) {
+        super.setPosition(this.simState.x, this.simState.y);
+    } else {
+        // Otherwise, Interpolate (Lerp) for smoothness
+        // We use a frame-rate independent lerp formula:
+        // a = 1 - pow(f, dt)
+        const t = 1 - Math.pow(0.001, dt / 1000); // Tuned for snappy but smooth
+        
+        const newX = Phaser.Math.Interpolation.Linear([this.x, this.simState.x], t);
+        const newY = Phaser.Math.Interpolation.Linear([this.y, this.simState.y], t);
+        
+        super.setPosition(newX, newY);
+    }
     
-    // Sync Arcade Body for overlaps (SoccerMap uses overlaps for kick range etc)
+    // Sync Arcade Body (Hitbox) to Render Position (so collisions look right)
     if (this.body) {
-        (this.body as Phaser.Physics.Arcade.Body).reset(this.simState.x, this.simState.y);
+        const body = this.body as Phaser.Physics.Arcade.Body;
+        body.x = this.x - body.halfWidth;
+        body.y = this.y - body.halfHeight;
+        body.updateCenter();
     }
   }
 }
