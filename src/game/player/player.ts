@@ -160,6 +160,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         if (this.body) {
             this.body.setSize(w, h, true);
             this.body.setOffset(0, this.height - h);
+            this.body.moves = false;
         }
 
         this.moveSpeed = this.baseMoveSpeed;
