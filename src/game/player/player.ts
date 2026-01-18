@@ -11,12 +11,34 @@ import { CharacterCompositor } from "../character/CharacterCompositor";
 import { CharacterAnimationManager } from "../character/CharacterAnimationManager";
 import { EVENT_TYPES } from "../character/_enums";
 import useUiStore from "@/common/store/uiStore";
+import {
+    integratePlayer,
+    calculateSpeedMultiplier,
+    calculateDragMultiplier,
+    PHYSICS_CONSTANTS,
+    PhysicsState,
+    PlayerPhysicsInput,
+} from "../soccer/shared-physics";
 
 export enum FacingDirection {
     UP = "UP",
     DOWN = "DOWN",
     LEFT = "LEFT",
     RIGHT = "RIGHT",
+}
+
+// Input with sequence number for reconciliation
+interface RecordedInput extends PlayerPhysicsInput {
+    sequence: number;
+}
+
+// Snapshot for remote player interpolation
+interface RemoteSnapshot {
+    x: number;
+    y: number;
+    vx: number;
+    vy: number;
+    timestamp: number;
 }
 
 export class Player extends Phaser.Physics.Arcade.Sprite {
@@ -27,39 +49,50 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     private isChangingSprite: boolean = false;
     public lastFacingDirection: FacingDirection = FacingDirection.DOWN;
 
-    // Visual Smoothing
-    public visualSprite: Phaser.GameObjects.Sprite;
+    // === Physics State (authoritative for local, interpolated for remote) ===
+    public physicsState: PhysicsState = { x: 0, y: 0, vx: 0, vy: 0 };
 
-    x: number;
-    y: number;
-    vx: number;
-    vy: number;
-    targetPos = {
-        x: this.x,
-        y: this.y,
-        vx: 0,
-        vy: 0,
-        t: Date.now(),
+    // === Visual State (smoothed, what we actually render) ===
+    public visualSprite: Phaser.GameObjects.Sprite;
+    private visualOffsetX: number = 0;
+    private visualOffsetY: number = 0;
+
+    // === Input Tracking (for client-side prediction) ===
+    private inputHistory: RecordedInput[] = [];
+    public currentSequence: number = 0;
+    private currentInput: PlayerPhysicsInput = {
+        up: false,
+        down: false,
+        left: false,
+        right: false,
     };
-    prevPos = { x: this.x, y: this.y, t: Date.now() };
+
+    // === Remote Player Interpolation ===
+    private snapshotBuffer: RemoteSnapshot[] = [];
+    private readonly INTERPOLATION_DELAY_MS = 100; // Render 100ms behind
+
+    // === Fixed Timestep Accumulator ===
+    private physicsAccumulator: number = 0;
+
     public availabilityStatus: AvailabilityStatus = AvailabilityStatus.ONLINE;
-    private statusCircle: Phaser.GameObjects.Graphics;
+    private statusCircle!: Phaser.GameObjects.Graphics;
 
     // The Outline Sprite
     public teamGlow: Phaser.GameObjects.Sprite | null = null;
     public team: "red" | "blue" | "spectator" | null = null;
 
-    public isAttacking: boolean;
+    public isAttacking: boolean = false;
     public isRaisingHand: boolean = false;
     private raisHandGraphics: {
         bubble: Phaser.GameObjects.Graphics;
         emojiText: Phaser.GameObjects.Text;
     } | null = null;
 
-    public playerProducerIds: string[];
-    private nameText: Phaser.GameObjects.Text;
-    voiceIndicator: Phaser.GameObjects.Image;
-    uiContainer: Phaser.GameObjects.Container;
+    public playerProducerIds: string[] = [];
+    private nameText!: Phaser.GameObjects.Text;
+    voiceIndicator!: Phaser.GameObjects.Image;
+    uiContainer!: Phaser.GameObjects.Container;
+
     public soccerStats: {
         speed: number;
         kickPower: number;
@@ -68,46 +101,19 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     moveSpeed: number;
     private baseMoveSpeed: number = 600;
-    private readonly BASE_ACCEL: number = 1600;
-    private readonly BASE_MAX_SPEED: number = 600;
-    private readonly PLAYER_DRAG: number = 4;
     private kartSpeedMultiplier: number = 1.5;
     isLocal: boolean = true;
 
-    // Sequence tracking for reconciliation
-    private inputHistory: Array<{
-        sequence: number;
-        up: boolean;
-        down: boolean;
-        left: boolean;
-        right: boolean;
-    }> = [];
-    public currentSequence: number = 0;
-
-    // Snapshot Interpolation for remote players
-    private snapshotBuffer: Array<{
-        x: number;
-        y: number;
-        vx: number;
-        vy: number;
-        timestamp: number;
-    }> = [];
-    private readonly INTERPOLATION_OFFSET = 100; // 100ms render delay for smoothness
-
-    // Visual smoothing for reconciliation snaps
-    private visualOffsetX: number = 0;
-    private visualOffsetY: number = 0;
-
+    // Keyboard
     cursors?: Phaser.Types.Input.Keyboard.CursorKeys;
-
     wasd?: {
         up: Phaser.Input.Keyboard.Key;
         left: Phaser.Input.Keyboard.Key;
         down: Phaser.Input.Keyboard.Key;
         right: Phaser.Input.Keyboard.Key;
     };
-
     kartKey?: Phaser.Input.Keyboard.Key;
+
     public isKartMode: boolean = false;
     public isGhosted: boolean = false;
     public isSpectator: boolean = false;
@@ -125,37 +131,38 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     ) {
         super(scene, x, y, sprite);
 
-        // --- Visual/Physics Separation ---
-        // 'this' is the physics body. We make it invisible.
-        this.setAlpha(0);
-
-        // Create the actual visible sprite
-        this.visualSprite = scene.add.sprite(x, y, sprite);
-        this.visualSprite.setDepth(10); // Match player depth
-
+        this.id = id;
         this.name = name as string;
         this.availabilityStatus = availabilityStatus;
+        this.isLocal = ops.isLocal;
+        this.sprite = sprite;
+        this.scene = scene;
+
+        // Initialize physics state
+        this.physicsState = { x, y, vx: 0, vy: 0 };
+
+        // Make physics sprite invisible - we render visualSprite instead
+        this.setAlpha(0);
+
+        // Create visible sprite
+        this.visualSprite = scene.add.sprite(x, y, sprite);
+        this.visualSprite.setDepth(10);
+
+        // Add to physics
         scene.add.existing(this);
         scene.physics.add.existing(this);
 
         this.setCollideWorldBounds(true);
-        this.setMaxVelocity(500, 500);
-        this.setBounce(0.1);
-        this.setScale(1);
         this.setPushable(false);
-        this.sprite = sprite;
 
         const w = Math.round(this.width * 1);
         const h = Math.round(this.height * 0.5);
-        this.body!.setSize(w, h, true);
-        this.body?.setOffset(0, this.height - h);
-
-        console.log(`SETTING ID FOR ${name}`, id);
-        this.id = id;
-        this.scene = scene;
+        if (this.body) {
+            this.body.setSize(w, h, true);
+            this.body.setOffset(0, this.height - h);
+        }
 
         this.moveSpeed = this.baseMoveSpeed;
-        this.isLocal = ops.isLocal;
 
         if (this.isLocal) {
             this.cursors = scene.input.keyboard!.createCursorKeys();
@@ -169,8 +176,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         }
 
         this.initializeNameTag();
-
-        // FIX: Set explicit positive depth to ensure player is above background
         this.setDepth(10);
 
         if (customization) {
@@ -181,6 +186,503 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
         this.setupUiEventListener();
     }
+
+    // ============================================================================
+    // MAIN UPDATE - Called every frame
+    // ============================================================================
+
+    public update(time: number, delta: number) {
+        if (this.isLocal) {
+            this.updateLocalPlayer(delta);
+        } else {
+            this.updateRemotePlayer();
+        }
+
+        // Visual smoothing - decay offset over time
+        this.decayVisualOffset();
+
+        // Update visual sprite position
+        this.visualSprite.x = this.physicsState.x + this.visualOffsetX;
+        this.visualSprite.y = this.physicsState.y + this.visualOffsetY;
+
+        // Sync Phaser physics body (for collisions and internal systems)
+        super.setPosition(this.physicsState.x, this.physicsState.y);
+        if (this.body) {
+            (this.body as Phaser.Physics.Arcade.Body).setVelocity(
+                this.physicsState.vx,
+                this.physicsState.vy,
+            );
+        }
+
+        // Update UI
+        if (this.uiContainer) {
+            this.uiContainer.setPosition(
+                this.visualSprite.x,
+                this.visualSprite.y - 40,
+            );
+        }
+
+        // Handle visual effects (Ghost, Team Glow)
+        this.handleVisualEffects();
+
+        // Animation logic
+        this.handleAnimations();
+    }
+
+    private handleVisualEffects() {
+        // --- GHOST EFFECT ---
+        if (this.isGhosted || this.isSpectator) {
+            this.visualSprite.setAlpha(this.isGhosted ? 0.4 : 0.5);
+            if (this.isGhosted) {
+                this.visualSprite.setTint(0x000000);
+            } else {
+                this.visualSprite.clearTint();
+            }
+        } else {
+            this.visualSprite.setAlpha(1.0);
+            this.visualSprite.clearTint();
+        }
+
+        // --- GLOW UPDATE LOOP ---
+        if (this.teamGlow && this.team) {
+            this.teamGlow.setPosition(this.visualSprite.x, this.visualSprite.y);
+            this.teamGlow.setFrame(this.visualSprite.frame.name);
+            this.teamGlow.setFlipX(this.visualSprite.flipX);
+            this.teamGlow.setDepth(this.visualSprite.depth - 1);
+            this.teamGlow.setScale(
+                this.visualSprite.scaleX * 1.15,
+                this.visualSprite.scaleY * 1.15,
+            );
+        }
+    }
+
+    private handleAnimations() {
+        const isSoccerMap = this.scene.scene.key === "SoccerMap";
+
+        // Don't override attack animations
+        const attackAnimKey = AttackAnimationKeys[this.sprite];
+        const isAnimateAttacking =
+            this.visualSprite.anims.currentAnim?.key === attackAnimKey;
+
+        if (isAnimateAttacking && this.visualSprite.anims.isPlaying) {
+            return;
+        }
+
+        if (this.isAttacking && !this.visualSprite.anims.isPlaying) {
+            this.isAttacking = false;
+        }
+
+        // Input-based animation (Local)
+        if (this.isLocal) {
+            const { up, down, left, right } = this.currentInput;
+            const space = this.cursors?.space.isDown;
+
+            if (left || right || up || down) {
+                if (up) {
+                    this.visualSprite.setFlipX(false);
+                    this.lastFacingDirection = FacingDirection.UP;
+                    this.playWalkAnimation(
+                        `${this.sprite}_UP`,
+                        this.isKartMode,
+                    );
+                } else if (down) {
+                    this.visualSprite.setFlipX(false);
+                    this.lastFacingDirection = FacingDirection.DOWN;
+                    this.playWalkAnimation(
+                        `${this.sprite}_DOWN`,
+                        this.isKartMode,
+                    );
+                } else if (left) {
+                    this.visualSprite.setFlipX(false);
+                    this.lastFacingDirection = FacingDirection.LEFT;
+                    this.playWalkAnimation(
+                        `${this.sprite}_LEFT`,
+                        this.isKartMode,
+                    );
+                } else if (right) {
+                    this.visualSprite.setFlipX(false);
+                    this.lastFacingDirection = FacingDirection.RIGHT;
+                    this.playWalkAnimation(
+                        `${this.sprite}_RIGHT`,
+                        this.isKartMode,
+                    );
+                }
+            } else if (space && !isSoccerMap) {
+                // Space is only attack in non-soccer maps
+                this.isAttacking = true;
+                this.attackAnimation();
+            } else {
+                this.idleAnimation();
+            }
+        } else {
+            // Remote player animation based on velocity
+            const vx = this.physicsState.vx;
+            const vy = this.physicsState.vy;
+            const isMoving = Math.abs(vx) > 10 || Math.abs(vy) > 10;
+
+            if (isMoving) {
+                this.visualSprite.setFlipX(false);
+                if (Math.abs(vx) > Math.abs(vy)) {
+                    if (vx > 0) {
+                        this.lastFacingDirection = FacingDirection.RIGHT;
+                        this.playWalkAnimation(
+                            `${this.sprite}_RIGHT`,
+                            this.isKartMode,
+                        );
+                    } else {
+                        this.lastFacingDirection = FacingDirection.LEFT;
+                        this.playWalkAnimation(
+                            `${this.sprite}_LEFT`,
+                            this.isKartMode,
+                        );
+                    }
+                } else {
+                    if (vy > 0) {
+                        this.lastFacingDirection = FacingDirection.DOWN;
+                        this.playWalkAnimation(
+                            `${this.sprite}_DOWN`,
+                            this.isKartMode,
+                        );
+                    } else {
+                        this.lastFacingDirection = FacingDirection.UP;
+                        this.playWalkAnimation(
+                            `${this.sprite}_UP`,
+                            this.isKartMode,
+                        );
+                    }
+                }
+            } else {
+                this.idleAnimation();
+            }
+        }
+    }
+
+    // ============================================================================
+    // LOCAL PLAYER - Client-side prediction
+    // ============================================================================
+
+    private updateLocalPlayer(delta: number) {
+        // 1. Sample input
+        this.sampleInput();
+
+        // 2. Handle Kart Mode Toggle
+        if (
+            this.isLocal &&
+            this.kartKey &&
+            Phaser.Input.Keyboard.JustDown(this.kartKey)
+        ) {
+            this.isKartMode = !this.isKartMode;
+            this.moveSpeed = this.isKartMode
+                ? this.baseMoveSpeed * this.kartSpeedMultiplier
+                : this.baseMoveSpeed;
+
+            if (this.isKartMode) {
+                this.scene.sound.play("kart_start", { volume: 0.1 });
+            }
+            this.idleAnimation();
+        }
+
+        // 3. Fixed timestep physics
+        this.physicsAccumulator += delta;
+
+        // Cap accumulator
+        const maxAccumulator = PHYSICS_CONSTANTS.FIXED_TIMESTEP_MS * 5;
+        if (this.physicsAccumulator > maxAccumulator) {
+            this.physicsAccumulator = maxAccumulator;
+        }
+
+        while (this.physicsAccumulator >= PHYSICS_CONSTANTS.FIXED_TIMESTEP_MS) {
+            // Increment sequence
+            this.currentSequence++;
+
+            // Record input for this tick
+            this.inputHistory.push({
+                ...this.currentInput,
+                sequence: this.currentSequence,
+            });
+
+            // Run physics
+            this.runPhysicsTick();
+
+            this.physicsAccumulator -= PHYSICS_CONSTANTS.FIXED_TIMESTEP_MS;
+        }
+
+        // 4. Trim old input history (keep ~1 second)
+        while (this.inputHistory.length > 60) {
+            this.inputHistory.shift();
+        }
+    }
+
+    private sampleInput() {
+        const isCommandPaletteOpen = useUiStore.getState().isCommandPaletteOpen;
+        if (isCommandPaletteOpen || !this.cursors || !this.wasd) {
+            this.currentInput = {
+                up: false,
+                down: false,
+                left: false,
+                right: false,
+            };
+            return;
+        }
+
+        this.currentInput = {
+            up: this.cursors.up.isDown || this.wasd.up.isDown,
+            down: this.cursors.down.isDown || this.wasd.down.isDown,
+            left: this.cursors.left.isDown || this.wasd.left.isDown,
+            right: this.cursors.right.isDown || this.wasd.right.isDown,
+        };
+    }
+
+    private runPhysicsTick() {
+        const isSoccerMap = this.scene.scene.key === "SoccerMap";
+
+        if (isSoccerMap) {
+            // Calculate stat multipliers
+            const speedStat = this.soccerStats?.speed ?? 0;
+            const dribblingStat = this.soccerStats?.dribbling ?? 0;
+            const speedMultiplier = calculateSpeedMultiplier(speedStat);
+            const dragMultiplier = calculateDragMultiplier(dribblingStat);
+
+            // Run deterministic physics (MUST match server exactly)
+            integratePlayer(
+                this.physicsState,
+                this.currentInput,
+                PHYSICS_CONSTANTS.FIXED_TIMESTEP_SEC,
+                dragMultiplier,
+                speedMultiplier,
+            );
+        } else {
+            // Simple non-soccer physics
+            let vx = 0;
+            let vy = 0;
+            const speed = this.moveSpeed;
+
+            if (this.currentInput.left) vx -= speed;
+            if (this.currentInput.right) vx += speed;
+            if (this.currentInput.up) vy -= speed;
+            if (this.currentInput.down) vy += speed;
+
+            if (vx !== 0 && vy !== 0) {
+                vx *= Math.SQRT1_2;
+                vy *= Math.SQRT1_2;
+            }
+
+            this.physicsState.vx = vx;
+            this.physicsState.vy = vy;
+            this.physicsState.x += vx * PHYSICS_CONSTANTS.FIXED_TIMESTEP_SEC;
+            this.physicsState.y += vy * PHYSICS_CONSTANTS.FIXED_TIMESTEP_SEC;
+        }
+    }
+
+    /**
+     * Get current input state to send to server.
+     * Called by the scene's network tick.
+     */
+    public getCurrentInput(): PlayerPhysicsInput & { sequence: number } {
+        return {
+            ...this.currentInput,
+            sequence: this.currentSequence,
+        };
+    }
+
+    // ============================================================================
+    // SERVER RECONCILIATION
+    // ============================================================================
+
+    /**
+     * Called when we receive authoritative state from server.
+     * Compares our prediction to server truth and corrects if needed.
+     */
+    public reconcile(
+        serverX: number,
+        serverY: number,
+        serverVX: number,
+        serverVY: number,
+        lastServerSequence: number,
+    ) {
+        if (!this.isLocal) return;
+
+        // 1. Remove acknowledged inputs from history
+        this.inputHistory = this.inputHistory.filter(
+            (input) => input.sequence > lastServerSequence,
+        );
+
+        // 2. Re-simulate from server state with remaining unacknowledged inputs
+        const predictedState: PhysicsState = {
+            x: serverX,
+            y: serverY,
+            vx: serverVX,
+            vy: serverVY,
+        };
+
+        const speedStat = this.soccerStats?.speed ?? 0;
+        const dribblingStat = this.soccerStats?.dribbling ?? 0;
+        const speedMultiplier = calculateSpeedMultiplier(speedStat);
+        const dragMultiplier = calculateDragMultiplier(dribblingStat);
+
+        for (const input of this.inputHistory) {
+            integratePlayer(
+                predictedState,
+                input,
+                PHYSICS_CONSTANTS.FIXED_TIMESTEP_SEC,
+                dragMultiplier,
+                speedMultiplier,
+            );
+        }
+
+        // 3. Calculate error between our current state and re-simulated state
+        const errorX = this.physicsState.x - predictedState.x;
+        const errorY = this.physicsState.y - predictedState.y;
+        const errorDist = Math.sqrt(errorX * errorX + errorY * errorY);
+
+        // 4. Decide how to correct
+        if (errorDist < PHYSICS_CONSTANTS.POSITION_CORRECT_THRESHOLD) {
+            // Close enough - no correction needed
+            // Just sync velocity to prevent drift
+            this.physicsState.vx = predictedState.vx;
+            this.physicsState.vy = predictedState.vy;
+            return;
+        }
+
+        if (errorDist > PHYSICS_CONSTANTS.POSITION_SNAP_THRESHOLD) {
+            // Large error - hard snap
+            this.physicsState.x = predictedState.x;
+            this.physicsState.y = predictedState.y;
+            this.physicsState.vx = predictedState.vx;
+            this.physicsState.vy = predictedState.vy;
+
+            // Also snap visual to prevent lerping across map
+            this.visualOffsetX = 0;
+            this.visualOffsetY = 0;
+
+            console.log(
+                `[Player] Hard snap: error was ${errorDist.toFixed(1)}px`,
+            );
+            return;
+        }
+
+        // Medium error - snap physics, smooth visuals
+        // Store visual position before snap
+        const oldVisualX = this.visualSprite.x;
+        const oldVisualY = this.visualSprite.y;
+
+        // Snap physics to re-simulated state
+        this.physicsState.x = predictedState.x;
+        this.physicsState.y = predictedState.y;
+        this.physicsState.vx = predictedState.vx;
+        this.physicsState.vy = predictedState.vy;
+
+        // Calculate visual offset (where sprite WAS relative to where it SHOULD BE)
+        this.visualOffsetX = oldVisualX - this.physicsState.x;
+        this.visualOffsetY = oldVisualY - this.physicsState.y;
+    }
+
+    // ============================================================================
+    // REMOTE PLAYER - Snapshot Interpolation
+    // ============================================================================
+
+    private updateRemotePlayer() {
+        if (this.snapshotBuffer.length < 2) {
+            // Not enough data to interpolate - just use latest
+            if (this.snapshotBuffer.length === 1) {
+                const snap = this.snapshotBuffer[0];
+                this.physicsState.x = snap.x;
+                this.physicsState.y = snap.y;
+                this.physicsState.vx = snap.vx;
+                this.physicsState.vy = snap.vy;
+            }
+            return;
+        }
+
+        // Render time is INTERPOLATION_DELAY_MS behind real time
+        const renderTime = Date.now() - this.INTERPOLATION_DELAY_MS;
+
+        // Find the two snapshots to interpolate between
+        let snap0 = this.snapshotBuffer[0];
+        let snap1 = this.snapshotBuffer[1];
+
+        // Drop old snapshots until we find the right pair
+        while (
+            this.snapshotBuffer.length > 2 &&
+            this.snapshotBuffer[1].timestamp < renderTime
+        ) {
+            this.snapshotBuffer.shift();
+            snap0 = this.snapshotBuffer[0];
+            snap1 = this.snapshotBuffer[1];
+        }
+
+        // Interpolate
+        if (renderTime <= snap0.timestamp) {
+            // We're behind even the oldest snapshot - use it directly
+            this.physicsState.x = snap0.x;
+            this.physicsState.y = snap0.y;
+            this.physicsState.vx = snap0.vx;
+            this.physicsState.vy = snap0.vy;
+        } else if (renderTime >= snap1.timestamp) {
+            // We're ahead of latest snapshot - extrapolate slightly
+            const dt = (renderTime - snap1.timestamp) / 1000;
+            const maxExtrapolate = 0.1; // Max 100ms extrapolation
+            const clampedDt = Math.min(dt, maxExtrapolate);
+
+            this.physicsState.x = snap1.x + snap1.vx * clampedDt;
+            this.physicsState.y = snap1.y + snap1.vy * clampedDt;
+            this.physicsState.vx = snap1.vx;
+            this.physicsState.vy = snap1.vy;
+        } else {
+            // Normal interpolation
+            const total = snap1.timestamp - snap0.timestamp;
+            const t = (renderTime - snap0.timestamp) / total;
+
+            this.physicsState.x = Phaser.Math.Linear(snap0.x, snap1.x, t);
+            this.physicsState.y = Phaser.Math.Linear(snap0.y, snap1.y, t);
+            this.physicsState.vx = Phaser.Math.Linear(snap0.vx, snap1.vx, t);
+            this.physicsState.vy = Phaser.Math.Linear(snap0.vy, snap1.vy, t);
+        }
+    }
+
+    /**
+     * Push a new snapshot from server (for remote players)
+     */
+    public pushSnapshot(snapshot: RemoteSnapshot) {
+        this.snapshotBuffer.push(snapshot);
+        while (this.snapshotBuffer.length > 20) {
+            this.snapshotBuffer.shift();
+        }
+    }
+
+    // ============================================================================
+    // VISUAL SMOOTHING
+    // ============================================================================
+
+    private decayVisualOffset() {
+        const errorMag = Math.sqrt(
+            this.visualOffsetX * this.visualOffsetX +
+                this.visualOffsetY * this.visualOffsetY,
+        );
+
+        // Adaptive decay: faster for small errors, slower for large
+        let decay: number;
+        if (errorMag > 50) {
+            decay = 0.92; // Slow decay for big corrections
+        } else if (errorMag > 20) {
+            decay = 0.88;
+        } else if (errorMag > 5) {
+            decay = 0.82;
+        } else {
+            decay = 0.7; // Fast decay when close
+        }
+
+        this.visualOffsetX *= decay;
+        this.visualOffsetY *= decay;
+
+        // Snap to zero when very small
+        if (Math.abs(this.visualOffsetX) < 0.5) this.visualOffsetX = 0;
+        if (Math.abs(this.visualOffsetY) < 0.5) this.visualOffsetY = 0;
+    }
+
+    // ============================================================================
+    // HELPER METHODS
+    // ============================================================================
 
     public setScale(x: number, y?: number): this {
         super.setScale(x, y);
@@ -236,21 +738,16 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     }
 
     public showReactionTag(data: ReactionData) {
-        if (!data.reaction) {
-            console.warn("No emoji provided");
-            return;
-        }
-
-        if (data.playerId && data.playerId !== this.id) {
-            console.log("Emoji not for this player");
-            return;
-        }
+        if (!data.reaction) return;
+        if (data.playerId && data.playerId !== this.id) return;
 
         if (data.reaction === "stop-raise-hand") {
-            this.destroyReactionTagInstantly(
-                this.raisHandGraphics!.bubble,
-                this.raisHandGraphics!.emojiText,
-            );
+            if (this.raisHandGraphics) {
+                this.destroyReactionTagInstantly(
+                    this.raisHandGraphics.bubble,
+                    this.raisHandGraphics.emojiText,
+                );
+            }
             return;
         }
 
@@ -268,7 +765,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         const tailHeight = 10;
 
         const bubble = this.scene.add.graphics();
-
         this.createBubble(
             bubble,
             bubbleWidth,
@@ -278,7 +774,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             emojiText.y,
         );
 
-        this.uiContainer.add([bubble, emojiText]);
+        if (this.uiContainer) {
+            this.uiContainer.add([bubble, emojiText]);
+        }
 
         bubble.setScale(0);
         emojiText.setScale(0);
@@ -290,8 +788,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             duration: 200,
             ease: "Back.easeOut",
         });
-
-        this.uiContainer.add([bubble, emojiText]);
 
         if (data.reaction === "🤚") {
             this.isRaisingHand = true;
@@ -318,7 +814,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         });
     }
 
-    destroyReactionTagInstantly(
+    public destroyReactionTagInstantly(
         bubble: Phaser.GameObjects.Graphics,
         emojiText: Phaser.GameObjects.Text,
     ) {
@@ -378,7 +874,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     }
 
     public destroyNameTag() {
-        this.uiContainer.destroy();
+        if (this.uiContainer) {
+            this.uiContainer.destroy();
+        }
     }
 
     public initializeNameTag() {
@@ -485,24 +983,18 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             );
 
             const glowColor = this.team === "red" ? 0xff0000 : 0x0066ff;
-
-            // FIX: Use setTintFill for a SOLID color silhouette (better for outlines)
             this.teamGlow.setTintFill(glowColor);
-
             this.teamGlow.setAlpha(0.6);
-
-            // FIX: Set depth relative to the new Player depth (10 - 1 = 9)
-            // This ensures it is above the background (depth 0)
             this.teamGlow.setDepth(this.depth - 1);
         }
     }
 
     public showVoiceIndicator() {
-        this.voiceIndicator.setVisible(true);
+        if (this.voiceIndicator) this.voiceIndicator.setVisible(true);
     }
 
     public hideVoiceIndicator() {
-        this.voiceIndicator.setVisible(false);
+        if (this.voiceIndicator) this.voiceIndicator.setVisible(false);
     }
 
     public idleAnimation(direction?: FacingDirection) {
@@ -578,9 +1070,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     public async changeSprite(
         newCustomization: CharacterCustomization,
     ): Promise<void> {
-        if (this.isChangingSprite) {
-            return;
-        }
+        if (this.isChangingSprite) return;
         this.isChangingSprite = true;
 
         try {
@@ -609,7 +1099,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             this.visualSprite.setFrame(0);
             this.idleAnimation();
 
-            // IMPORTANT: Update glow texture if the player sprite changes
             if (this.teamGlow) {
                 this.teamGlow.setTexture(spritesheetKey);
             }
@@ -641,441 +1130,49 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         });
     }
 
-    public update() {
-        if (this.isLocal) {
-            this.updateInput();
-            this.vx = this.body!.velocity.x;
-            this.vy = this.body!.velocity.y;
-        } else {
-            this.interpolateRemote();
+    // ============================================================================
+    // POSITION SETTERS (for teleports, respawns, etc.)
+    // ============================================================================
+
+    public setPosition(x?: number, y?: number, z?: number, w?: number): this {
+        super.setPosition(x, y, z, w);
+
+        // Guard: physicsState doesn't exist yet during parent constructor
+        if (!this.physicsState) {
+            return this;
         }
 
-        // --- Visual Error Decay ---
-        // Adaptive decay: faster for small errors, slower for large errors
-        const errorMagnitude = Math.sqrt(
-            this.visualOffsetX ** 2 + this.visualOffsetY ** 2,
-        );
+        if (x !== undefined && y !== undefined) {
+            this.physicsState.x = x;
+            this.physicsState.y = y;
+            this.physicsState.vx = 0;
+            this.physicsState.vy = 0;
 
-        // Decay factor: 0.9 for large errors (>50px), 0.8 for medium, 0.7 for small
-        let decayFactor: number;
-        if (errorMagnitude > 50) {
-            decayFactor = 0.92; // Very slow decay for big snaps
-        } else if (errorMagnitude > 20) {
-            decayFactor = 0.88;
-        } else if (errorMagnitude > 5) {
-            decayFactor = 0.82;
-        } else {
-            decayFactor = 0.7; // Fast decay when close
+            // Clear visual offset on teleport
+            this.visualOffsetX = 0;
+            this.visualOffsetY = 0;
+
+            // Clear input history - predictions are now invalid
+            this.inputHistory = [];
         }
 
-        this.visualOffsetX *= decayFactor;
-        this.visualOffsetY *= decayFactor;
-
-        // Snap to zero when very small to avoid floating point drift
-        if (Math.abs(this.visualOffsetX) < 0.5) this.visualOffsetX = 0;
-        if (Math.abs(this.visualOffsetY) < 0.5) this.visualOffsetY = 0;
-
-        // Visual sprite follows physics body with offset
-        this.visualSprite.x = this.x + this.visualOffsetX;
-        this.visualSprite.y = this.y + this.visualOffsetY;
-
-        // Apply drag matching server in multiplayer scenes (like SoccerMap)
-        if (this.scene.scene.key === "SoccerMap" && this.body) {
-            this.applyExponentialDrag(1 / 60);
-        }
-
-        this.uiContainer.setPosition(
-            this.visualSprite.x,
-            this.visualSprite.y - 40,
-        );
-
-        // --- GHOST EFFECT ---
-        if (this.isGhosted || this.isSpectator) {
-            this.visualSprite.setAlpha(this.isGhosted ? 0.4 : 0.5);
-            if (this.isGhosted) {
-                this.visualSprite.setTint(0x000000);
-            } else {
-                this.visualSprite.clearTint();
-            }
-        } else {
-            this.visualSprite.setAlpha(1.0);
-            this.visualSprite.clearTint();
-        }
-
-        // --- GLOW UPDATE LOOP ---
-        if (this.teamGlow && this.team) {
-            this.teamGlow.setPosition(this.visualSprite.x, this.visualSprite.y);
-            this.teamGlow.setFrame(this.visualSprite.frame.name);
-            this.teamGlow.setFlipX(this.visualSprite.flipX);
-            this.teamGlow.setDepth(this.visualSprite.depth - 1);
-            this.teamGlow.setScale(
-                this.visualSprite.scaleX * 1.15,
-                this.visualSprite.scaleY * 1.15,
-            );
-        }
+        return this;
     }
+    public setVelocity(vx: number, vy: number): this {
+        this.physicsState.vx = vx;
+        this.physicsState.vy = vy;
 
-    private updateInput() {
-        const isCommandPaletteOpen = useUiStore.getState().isCommandPaletteOpen;
-        if (isCommandPaletteOpen) {
-            this.setVelocity(0, 0);
-            this.setAcceleration(0, 0);
-            return;
-        }
-
-        const isSoccerMap = this.scene.scene.key === "SoccerMap";
-
-        if (this.kartKey && Phaser.Input.Keyboard.JustDown(this.kartKey)) {
-            this.isKartMode = !this.isKartMode;
-            this.moveSpeed = this.isKartMode
-                ? this.baseMoveSpeed * this.kartSpeedMultiplier
-                : this.baseMoveSpeed;
-
-            if (this.isKartMode) {
-                this.scene.sound.play("kart_start", { volume: 0.1 });
-            }
-            this.idleAnimation();
-        }
-
-        const left = this.cursors!.left.isDown || this.wasd!.left.isDown;
-        const right = this.cursors!.right.isDown || this.wasd!.right.isDown;
-        const up = this.cursors!.up.isDown || this.wasd!.up.isDown;
-        const down = this.cursors!.down.isDown || this.wasd!.down.isDown;
-        const space = this.cursors!.space.isDown;
-
-        let vx = 0;
-        let vy = 0;
-        let ax = 0;
-        let ay = 0;
-
-        const speedStat = this.soccerStats?.speed ?? 0;
-        const speedMultiplier = 1.0 + speedStat * 0.1;
-        const accel = this.BASE_ACCEL * speedMultiplier;
-        const maxSpeed = this.BASE_MAX_SPEED * speedMultiplier;
-
-        if (left) {
-            vx -= this.moveSpeed;
-            ax -= accel;
-        }
-        if (right) {
-            vx += this.moveSpeed;
-            ax += accel;
-        }
-        if (up) {
-            vy -= this.moveSpeed;
-            ay -= accel;
-        }
-        if (down) {
-            vy += this.moveSpeed;
-            ay += accel;
-        }
-
-        const attackAnimKey = AttackAnimationKeys[this.sprite];
-        const isAnimateAttacking =
-            this.visualSprite.anims.currentAnim?.key === attackAnimKey;
-
-        if (isAnimateAttacking && this.visualSprite.anims.isPlaying) {
-            return;
-        }
-
-        if (this.isAttacking) {
-            this.isAttacking = false;
-        }
-
-        if (left || right || up || down) {
-            if (up) {
-                this.visualSprite.setFlipX(false);
-                this.lastFacingDirection = FacingDirection.UP;
-                this.playWalkAnimation(`${this.sprite}_UP`, this.isKartMode);
-            } else if (down) {
-                this.visualSprite.setFlipX(false);
-                this.lastFacingDirection = FacingDirection.DOWN;
-                this.playWalkAnimation(`${this.sprite}_DOWN`, this.isKartMode);
-            } else if (left) {
-                this.visualSprite.setFlipX(false);
-                this.lastFacingDirection = FacingDirection.LEFT;
-                this.playWalkAnimation(`${this.sprite}_LEFT`, this.isKartMode);
-            } else if (right) {
-                this.visualSprite.setFlipX(false);
-                this.lastFacingDirection = FacingDirection.RIGHT;
-                this.playWalkAnimation(`${this.sprite}_RIGHT`, this.isKartMode);
-            }
-        } else if (space) {
-            const currentAnimKey = this.visualSprite.anims.currentAnim?.key;
-            if (currentAnimKey !== attackAnimKey) {
-                this.isAttacking = true;
-                this.attackAnimation();
-            }
-        } else {
-            const idleAnimKey =
-                IdleAnimationKeys[`${this.sprite}_${this.lastFacingDirection}`];
-            const currentAnimKey = this.visualSprite.anims.currentAnim?.key;
-            if (currentAnimKey !== idleAnimKey) {
-                this.idleAnimation();
-            }
-        }
-
-        if (isSoccerMap) {
-            if (ax !== 0 && ay !== 0) {
-                ax *= Math.SQRT1_2;
-                ay *= Math.SQRT1_2;
-            }
-            this.setAcceleration(ax, ay);
-            this.setMaxVelocity(maxSpeed, maxSpeed);
-
-            // Record for reconciliation
-            this.inputHistory.push({
-                sequence: this.currentSequence,
-                up,
-                down,
-                left,
-                right,
-            });
-
-            // Cap history at 1 second
-            if (this.inputHistory.length > 60) {
-                this.inputHistory.shift();
-            }
-        } else {
-            if (vx !== 0 && vy !== 0) {
-                vx *= Math.SQRT1_2;
-                vy *= Math.SQRT1_2;
-            }
-            this.setVelocity(vx, vy);
-        }
-    }
-
-    public reconcile(
-        serverX: number,
-        serverY: number,
-        serverVX: number,
-        serverVY: number,
-        lastSequence: number,
-    ) {
-        if (!this.isLocal || !this.body) return;
-
-        // 1. Remove history acknowledged by server
-        this.inputHistory = this.inputHistory.filter(
-            (input) => input.sequence > lastSequence,
-        );
-
-        // 2. Calculate prediction error BEFORE we modify position
-        // Re-simulate from server state to get our predicted position
-        let predictedX = serverX;
-        let predictedY = serverY;
-        let predictedVX = serverVX;
-        let predictedVY = serverVY;
-
-        const dt = 1 / 60;
-        const speedStat = this.soccerStats?.speed ?? 0;
-        const speedMultiplier = 1.0 + speedStat * 0.1;
-        const accel = this.BASE_ACCEL * speedMultiplier;
-        const maxSpeed = this.BASE_MAX_SPEED * speedMultiplier;
-        const dribblingStat = this.soccerStats?.dribbling ?? 0;
-        const dragMultiplier = Math.max(0.5, 1.0 - dribblingStat * 0.05);
-
-        for (const input of this.inputHistory) {
-            let ax = 0;
-            let ay = 0;
-            if (input.left) ax -= accel;
-            if (input.right) ax += accel;
-            if (input.up) ay -= accel;
-            if (input.down) ay += accel;
-
-            if (ax !== 0 && ay !== 0) {
-                ax *= Math.SQRT1_2;
-                ay *= Math.SQRT1_2;
-            }
-
-            // Velocity update
-            predictedVX += ax * dt;
-            predictedVY += ay * dt;
-
-            // Drag
-            const dragFactor = Math.exp(-this.PLAYER_DRAG * dragMultiplier * dt);
-            predictedVX *= dragFactor;
-            predictedVY *= dragFactor;
-
-            // Speed clamp
-            const currentSpeed = Math.sqrt(predictedVX ** 2 + predictedVY ** 2);
-            if (currentSpeed > maxSpeed) {
-                const scale = maxSpeed / currentSpeed;
-                predictedVX *= scale;
-                predictedVY *= scale;
-            }
-
-            // Position update
-            predictedX += predictedVX * dt;
-            predictedY += predictedVY * dt;
-        }
-
-        // 3. Calculate error between our current position and where we SHOULD be
-        const errorX = this.x - predictedX;
-        const errorY = this.y - predictedY;
-        const errorDistance = Math.sqrt(errorX * errorX + errorY * errorY);
-
-        // 4. Only correct if error is significant
-        if (errorDistance < 2) {
-            // We're close enough, just sync velocity
-            this.setVelocity(predictedVX, predictedVY);
-            return;
-        }
-
-        // 5. Store visual position before snap
-        const oldVisualX = this.visualSprite.x;
-        const oldVisualY = this.visualSprite.y;
-
-        // 6. Snap physics to predicted position
-        this.setPosition(predictedX, predictedY);
-        this.setVelocity(predictedVX, predictedVY);
-        this.body.updateFromGameObject();
-
-        // 7. Visual Error Compensation - keep visual sprite where it was
-        this.visualOffsetX = oldVisualX - this.x;
-        this.visualOffsetY = oldVisualY - this.y;
-
-        // Debug logging for large corrections
-        if (errorDistance > 20) {
-            console.log(
-                `[Reconcile] Large correction: ${errorDistance.toFixed(1)}px, pending inputs: ${this.inputHistory.length}`,
-            );
-        }
-    }
-
-    private applyExponentialDrag(dt: number) {
-        if (!this.body || this.isSpectator) return;
-
-        // Match server's exponential drag
-        const dribblingStat = this.soccerStats?.dribbling ?? 0;
-        // Dribbling reduces drag: 0 stat = 1.0x drag, 10 stat = 0.5x drag
-        const dragMultiplier = Math.max(0.5, 1.0 - dribblingStat * 0.05);
-
-        const dragFactor = Math.exp(-this.PLAYER_DRAG * dragMultiplier * dt);
-
-        const vx = this.body.velocity.x * dragFactor;
-        const vy = this.body.velocity.y * dragFactor;
-
-        this.setVelocity(vx, vy);
-    }
-
-    private interpolateRemote() {
-        const attackAnimKey = AttackAnimationKeys[this.sprite];
-        const isAnimateAttacking =
-            this.visualSprite.anims.currentAnim?.key === attackAnimKey;
-
-        if (isAnimateAttacking && this.visualSprite.anims.isPlaying) {
-            return;
-        }
-
-        if (this.isAttacking && !this.visualSprite.anims.isPlaying) {
-            this.isAttacking = false;
-        }
-
-        if (this.isAttacking && !isAnimateAttacking) {
-            this.attackAnimation();
-            return;
-        }
-
-        if (this.snapshotBuffer.length < 2) return;
-
-        const renderTime = Date.now() - this.INTERPOLATION_OFFSET;
-
-        // Drop old snapshots
-        while (
-            this.snapshotBuffer.length > 2 &&
-            this.snapshotBuffer[1].timestamp < renderTime
-        ) {
-            this.snapshotBuffer.shift();
-        }
-
-        const s0 = this.snapshotBuffer[0];
-        const s1 = this.snapshotBuffer[1];
-
-        if (renderTime < s0.timestamp) {
-            // We are behind the oldest snapshot, just stay at s0
-            this.setPosition(s0.x, s0.y);
-        } else if (renderTime > s1.timestamp) {
-            // We are ahead of the latest snapshot (lagging), extrapolate or stay at s1
-            const dt = (renderTime - s1.timestamp) / 1000;
-            this.setPosition(s1.x + s1.vx * dt, s1.y + s1.vy * dt);
-        } else {
-            // Interpolate
-            const total = s1.timestamp - s0.timestamp;
-            const fraction = (renderTime - s0.timestamp) / total;
-
-            const x = Phaser.Math.Linear(s0.x, s1.x, fraction);
-            const y = Phaser.Math.Linear(s0.y, s1.y, fraction);
-
-            this.setPosition(x, y);
-
-            // Animation logic based on velocity
-            const vx = s1.vx;
-            const vy = s1.vy;
-            const isMoving = Math.abs(vx) > 10 || Math.abs(vy) > 10;
-
-            if (isMoving) {
-                this.visualSprite.setFlipX(false);
-                if (Math.abs(vx) > Math.abs(vy)) {
-                    if (vx > 0) {
-                        this.lastFacingDirection = FacingDirection.RIGHT;
-                        this.playWalkAnimation(
-                            `${this.sprite}_RIGHT`,
-                            this.isKartMode,
-                        );
-                    } else {
-                        this.lastFacingDirection = FacingDirection.LEFT;
-                        this.playWalkAnimation(
-                            `${this.sprite}_LEFT`,
-                            this.isKartMode,
-                        );
-                    }
-                } else {
-                    if (vy > 0) {
-                        this.lastFacingDirection = FacingDirection.DOWN;
-                        this.playWalkAnimation(
-                            `${this.sprite}_DOWN`,
-                            this.isKartMode,
-                        );
-                    } else {
-                        this.lastFacingDirection = FacingDirection.UP;
-                        this.playWalkAnimation(
-                            `${this.sprite}_UP`,
-                            this.isKartMode,
-                        );
-                    }
-                }
-            } else {
-                this.idleAnimation();
-            }
-        }
-
-        // Sync physics body
         if (this.body) {
-            this.body.updateFromGameObject();
+            (this.body as Phaser.Physics.Arcade.Body).setVelocity(vx, vy);
         }
-    }
 
-    public pushSnapshot(snapshot: {
-        x: number;
-        y: number;
-        vx: number;
-        vy: number;
-        timestamp: number;
-    }) {
-        this.snapshotBuffer.push(snapshot);
-        if (this.snapshotBuffer.length > 20) {
-            this.snapshotBuffer.shift();
-        }
+        return this;
     }
 
     public destroy() {
-        if (this.teamGlow) {
-            this.teamGlow.destroy();
-        }
-        if (this.visualSprite) {
-            this.visualSprite.destroy();
-        }
-        this.uiContainer.destroy();
+        if (this.teamGlow) this.teamGlow.destroy();
+        if (this.visualSprite) this.visualSprite.destroy();
+        if (this.uiContainer) this.uiContainer.destroy();
         super.destroy();
     }
 }

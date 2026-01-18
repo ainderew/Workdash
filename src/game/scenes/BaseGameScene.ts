@@ -645,14 +645,14 @@ export abstract class BaseGameScene extends Scene {
         this.loadingPlayers.delete(id);
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+     
     update(time: number, _delta: number) {
         if (!this.players) return;
 
         const tickRate = time - this.lastTick > this.Hz;
 
         for (const p of this.players.values()) {
-            p.update();
+            p.update(time, _delta);
 
             if (p.isLocal) {
                 if (p.isAttacking && !this.wasAttacking) {
@@ -671,8 +671,8 @@ export abstract class BaseGameScene extends Scene {
                         y: Math.round(p.y),
                         isAttacking: p.isAttacking,
                         isKartMode: p.isKartMode,
-                        vx: Math.round(p.vx),
-                        vy: Math.round(p.vy),
+                        vx: Math.round(p.physicsState.vx),
+                        vy: Math.round(p.physicsState.vy),
                         id: this.localPlayerId,
                         opts: { isLocal: true },
                     });

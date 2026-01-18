@@ -6,7 +6,10 @@ import { Player } from "../player/player";
 import { Ball } from "../soccer/Ball";
 import { getSoccerStats } from "@/lib/api/soccer-stats";
 import useSoccerStore from "@/common/store/soccerStore";
-// import { PHYSICS_CONSTANTS } from "../soccer/shared-physics";
+import {
+    calculateKickVelocity,
+    PHYSICS_CONSTANTS,
+} from "../soccer/shared-physics";
 
 export interface SkillConfig {
     id: string;
@@ -34,6 +37,8 @@ export class SoccerMap extends BaseGameScene {
     private goalsLayer: Phaser.Tilemaps.TilemapLayer | null = null;
     private circleLayer: Phaser.Tilemaps.TilemapLayer | null = null;
     private floorMarkings2Layer: Phaser.Tilemaps.TilemapLayer | null = null;
+    
+    // Keys
     private kickKey: Phaser.Input.Keyboard.Key | null = null;
     private skillKey: Phaser.Input.Keyboard.Key | null = null;
     private blinkKey: Phaser.Input.Keyboard.Key | null = null;
@@ -41,8 +46,14 @@ export class SoccerMap extends BaseGameScene {
     private ninjaStepKey: Phaser.Input.Keyboard.Key | null = null;
     private lurkingKey: Phaser.Input.Keyboard.Key | null = null;
     private powerShotKey: Phaser.Input.Keyboard.Key | null = null;
+    
     private isMultiplayerMode: boolean = false;
+    
+    // Network/Input Loop
     private inputLoop: Phaser.Time.TimerEvent | null = null;
+    private lastSentInput: { up: boolean; down: boolean; left: boolean; right: boolean } | null = null;
+    
+    // Skill State
     private skillCooldown: number = 0;
     private blinkCooldown: number = 0;
     private metavisionCooldown: number = 0;
@@ -78,7 +89,6 @@ export class SoccerMap extends BaseGameScene {
         dribbling: number;
     } | null = null;
 
-    // FIX: Add a buffer to store teams for players that haven't loaded yet
     private pendingTeams: Map<string, "red" | "blue"> = new Map();
 
     constructor() {
@@ -86,22 +96,15 @@ export class SoccerMap extends BaseGameScene {
     }
 
     preload() {
-        // Lazy-load soccer-specific assets
         this.load.setPath("/assets");
-
-        // Soccer tile images
         this.load.image("goal", "tile-sets/goal.png");
         this.load.image("goal_2", "tile-sets/goal_2.png");
         this.load.image("circle", "tile-sets/circle.png");
         this.load.image("soccer", "tile-sets/soccer.png");
 
-        // Soccer sounds
         this.load.audio("soccer_kick", "sounds/soccer_kick.mp3");
         this.load.audio("soccer_cheer", "sounds/soccer_cheer.mp3");
-        this.load.audio(
-            "soccer_skill_activation",
-            "sounds/soccer_skill_activation.mp3",
-        );
+        this.load.audio("soccer_skill_activation", "sounds/soccer_skill_activation.mp3");
         this.load.audio("time_dilation", "sounds/skill_slow_down.mp3");
         this.load.audio("blink", "sounds/skill_blink.mp3");
         this.load.audio("skill_metavision", "sounds/ninja-sound-effect.mp3");
@@ -109,51 +112,28 @@ export class SoccerMap extends BaseGameScene {
         this.load.audio("lurking", "sounds/skill_lurking.mp3");
         this.load.audio("power_shot", "sounds/skill_power_shot.mp3");
 
-        // Soccer tilemap
         this.load.tilemapTiledJSON("soccer_map", "soccer_map.json");
     }
 
     create() {
         super.create();
-
-        // Detect multiplayer mode
         this.isMultiplayerMode = this.multiplayer !== undefined;
 
-        // Set current scene in UI store for scoreboard visibility
         useUiStore.getState().setCurrentScene("SoccerMap");
-
-        // Check if player has soccer stats, open modal if not
         this.checkSoccerStats();
-
-        // Automatically open game controls
         useUiStore.getState().openSoccerGameControlModal();
-
-        // Add network diagnostics UI for debugging production latency
         this.createNetworkDiagnosticsUI();
 
         this.centerCamera();
         this.createBall();
-        this.kickKey =
-            this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.H) ||
-            null;
-        this.skillKey =
-            this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.Q) ||
-            null;
-        this.blinkKey =
-            this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.E) ||
-            null;
-        this.metavisionKey =
-            this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.R) ||
-            null;
-        this.ninjaStepKey =
-            this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.T) ||
-            null;
-        this.lurkingKey =
-            this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.F) ||
-            null;
-        this.powerShotKey =
-            this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.G) ||
-            null;
+
+        this.kickKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.H) || null;
+        this.skillKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.Q) || null;
+        this.blinkKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.E) || null;
+        this.metavisionKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.R) || null;
+        this.ninjaStepKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.T) || null;
+        this.lurkingKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.F) || null;
+        this.powerShotKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.G) || null;
 
         this.metaVisionGraphics = this.add.graphics();
         this.metaVisionGraphics.setDepth(1000);
@@ -177,31 +157,23 @@ export class SoccerMap extends BaseGameScene {
     update(time: number, delta: number): void {
         super.update(time, delta);
 
-        // 1. Update the Ball
-        // The Ball class now handles its own fixed-timestep accumulator internally.
         if (this.ball) {
             this.ball.update(time, delta);
         }
 
-        const isSelectionPhaseActive =
-            useSoccerStore.getState().isSelectionPhaseActive;
-
-        // FIX: Check for pending teams every frame until they are assigned
+        const isSelectionPhaseActive = useSoccerStore.getState().isSelectionPhaseActive;
         this.processPendingTeams();
-
         this.updateSkillCooldownUI();
 
         if (this.activeSkillPlayerId) {
             this.createSpeedTrail(time);
         }
 
-        if (this.ballTrailActive) {
+        if (this.ballFlameActive) {
             this.createBallTrail(time);
         }
 
         if (this.isMultiplayerMode) {
-            // this.ball.update() is already called in the main loop
-
             this.updateTeamGlows();
 
             if (!isSelectionPhaseActive) {
@@ -211,10 +183,8 @@ export class SoccerMap extends BaseGameScene {
                 this.handleMultiplayerKickInput();
 
                 if (isGameActive) {
-                    // During active game, all skills are on Q
                     this.handleUnifiedSkillInput();
                 } else {
-                    // Lobby mode: original hotkeys
                     this.handleSkillInput();
                     this.handleBlinkInput();
                     this.handleMetaVisionInput();
@@ -228,10 +198,8 @@ export class SoccerMap extends BaseGameScene {
                 this.drawTrajectory();
             }
 
-            // Render ball flames if active
             this.renderBallFlames();
 
-            // Check if power shot buff expired (remove trail) - only for power shot
             if (
                 this.activeSkillId === "power_shot" &&
                 this.powerShotBuffEndTime > 0 &&
@@ -245,85 +213,24 @@ export class SoccerMap extends BaseGameScene {
         }
     }
 
-    // Force update all team glow positions to stay in perfect sync with players
-    private updateTeamGlows() {
-        for (const player of this.players.values()) {
-            if (player.teamGlow && player.team) {
-                player.teamGlow.setPosition(player.x, player.y);
-                player.teamGlow.setFrame(player.frame.name);
-                player.teamGlow.setFlipX(player.flipX);
-                player.teamGlow.setDepth(player.depth - 1);
-                player.teamGlow.setScale(
-                    player.scaleX * 1.15,
-                    player.scaleY * 1.15,
-                );
-            }
-        }
-    }
-
-    // Process pending teams once player sprites exist
-    private processPendingTeams() {
-        if (this.pendingTeams.size === 0) return;
-
-        // Iterate through pending assignments
-        for (const [playerId, team] of this.pendingTeams.entries()) {
-            const player = this.players.get(playerId);
-
-            // If the player sprite now exists, set the team and remove from pending
-            if (player) {
-                player.setTeam(team);
-                this.pendingTeams.delete(playerId);
-                console.log(
-                    `Applied pending team ${team} to player ${playerId}`,
-                );
-            }
-        }
-    }
-
-    private createBall() {
-        this.ball = new Ball(
-            this,
-            this.worldBounds.width / 2,
-            this.worldBounds.height / 2,
-            this.isMultiplayerMode,
-        );
-    }
-
     private setupServerListeners() {
         if (!this.multiplayer) return;
         const socket = this.multiplayer.socket;
 
-        // Fetch initial team assignments for all players
-        socket.emit(
-            "soccer:getPlayers",
-            (
-                playerList: Array<{ id: string; team: "red" | "blue" | null }>,
-            ) => {
-                playerList.forEach((playerData) => {
-                    if (!playerData.team) return;
+        socket.emit("soccer:getPlayers", (playerList: Array<{ id: string; team: "red" | "blue" | null }>) => {
+            playerList.forEach((playerData) => {
+                if (!playerData.team) return;
+                const player = this.players.get(playerData.id);
+                if (player) {
+                    player.setTeam(playerData.team);
+                } else {
+                    this.pendingTeams.set(playerData.id, playerData.team);
+                }
+            });
+        });
 
-                    const player = this.players.get(playerData.id);
-
-                    if (player) {
-                        // If player exists immediately, set it
-                        player.setTeam(playerData.team);
-                    } else {
-                        // FIX: If player doesn't exist yet (still loading), buffer it
-                        this.pendingTeams.set(playerData.id, playerData.team);
-                    }
-                });
-            },
-        );
-
-        // Request skill configs from server
         socket.emit("soccer:requestSkillConfig", (configs: SkillConfig[]) => {
-            configs.forEach((config) =>
-                this.skillConfigs.set(config.id, config),
-            );
-            console.log(
-                `Loaded ${configs.length} skill configs:`,
-                Array.from(this.skillConfigs.keys()),
-            );
+            configs.forEach((config) => this.skillConfigs.set(config.id, config));
         });
 
         socket.on("ball:state", (state: any) => {
@@ -331,187 +238,93 @@ export class SoccerMap extends BaseGameScene {
         });
 
         socket.on("ball:kicked", (data: any) => {
-            const kicker = this.players.get(data.kickerId);
-            if (kicker) this.addKickGlow(kicker);
-
-            // Only play sound if it's NOT our local kick (we already played it)
             if (data.kickerId !== this.localPlayerId) {
                 this.sound.play("soccer_kick");
+                const kicker = this.players.get(data.kickerId);
+                if (kicker) this.addKickGlow(kicker);
             }
         });
 
         socket.on("goal:scored", (data: any) => {
             console.log(`GOAL! ${data.scoringTeam} scored!`);
             this.sound.play("soccer_cheer", { volume: 0.2 });
-            this.ball.setPosition(
-                this.worldBounds.width / 2,
-                this.worldBounds.height / 2,
-            );
-            this.ball.setVelocity(0, 0);
+            this.ball.setPosition(PHYSICS_CONSTANTS.WORLD_WIDTH / 2, PHYSICS_CONSTANTS.WORLD_HEIGHT / 2);
         });
 
-        socket.on(
-            "players:physicsUpdate",
-            (data: { players: any[]; timestamp: number }) => {
-                const { players, timestamp } = data;
-                for (const update of players) {
-                    const player = this.players.get(update.id);
-                    if (!player) continue;
+        socket.on("players:physicsUpdate", (data: { players: any[]; timestamp: number }) => {
+            const { players, timestamp } = data;
+            for (const update of players) {
+                const player = this.players.get(update.id);
+                if (!player) continue;
 
-                    // Sync ghosted state
-                    player.isGhosted = !!update.isGhosted;
-                    player.isSpectator = !!update.isSpectator;
+                player.isGhosted = !!update.isGhosted;
+                player.isSpectator = !!update.isSpectator;
 
-                    // Update collision state based on team
-                    if (player.isSpectator) {
-                        if (player.body) {
-                            player.body.enable = true;
-                        }
-                    }
-
-                    if (player.isLocal) {
-                        // Professional Sequence-Based Reconciliation
-                        player.reconcile(
-                            update.x,
-                            update.y,
-                            update.vx,
-                            update.vy,
-                            update.lastSequence || 0,
-                        );
-                    } else {
-                        player.pushSnapshot({
-                            x: update.x,
-                            y: update.y,
-                            vx: update.vx,
-                            vy: update.vy,
-                            timestamp,
-                        });
-                    }
+                if (player.isSpectator && player.body) {
+                    player.body.enable = true;
                 }
-            },
-        );
 
-        socket.on(
-            "soccer:playerReset",
-            (data: { playerId: string; x: number; y: number }) => {
-                const player = this.players.get(data.playerId);
-                if (player) {
-                    player.setPosition(data.x, data.y);
-                    if (player.body) {
-                        (player.body as Phaser.Physics.Arcade.Body).setVelocity(
-                            0,
-                            0,
-                        );
-                    }
-                    console.log(
-                        `Player ${data.playerId} reset to position (${data.x}, ${data.y})`,
-                    );
+                if (player.isLocal) {
+                    player.reconcile(update.x, update.y, update.vx, update.vy, update.lastSequence || 0);
+                } else {
+                    player.pushSnapshot({
+                        x: update.x, y: update.y, vx: update.vx, vy: update.vy, timestamp,
+                    });
                 }
-            },
-        );
+            }
+        });
 
-        socket.on(
-            "soccer:teamAssigned",
-            (data: {
-                playerId: string;
-                team: "red" | "blue" | "spectator" | null;
-            }) => {
-                // Update player sprite glow
-                const player = this.players.get(data.playerId);
-                if (player) {
-                    player.setTeam(data.team as any);
-                    // Also remove from pending if we happen to get a live update
-                    this.pendingTeams.delete(data.playerId);
-                } else if (data.team) {
-                    // If we get a live update for a player we haven't rendered yet
-                    this.pendingTeams.set(data.playerId, data.team as any);
-                }
-            },
-        );
+        socket.on("soccer:playerReset", (data: { playerId: string; x: number; y: number }) => {
+            const player = this.players.get(data.playerId);
+            if (player) {
+                player.setPosition(data.x, data.y);
+            }
+        });
 
-        socket.on(
-            "soccer:startMidGamePick",
-            (data: { availableSkills: string[] }) => {
-                console.log("Mid-game Skill Pick Started", data);
-                useSoccerStore
-                    .getState()
-                    .setAvailableSkillIds(data.availableSkills);
-                useSoccerStore.getState().setSelectionPhaseActive(true);
-                useSoccerStore
-                    .getState()
-                    .setCurrentPickerId(this.localPlayerId);
-                useSoccerStore
-                    .getState()
-                    .setSelectionTurnEndTime(Date.now() + 30000);
-            },
-        );
+        socket.on("soccer:teamAssigned", (data: { playerId: string; team: "red" | "blue" | "spectator" | null }) => {
+            const player = this.players.get(data.playerId);
+            if (player) {
+                player.setTeam(data.team as any);
+                this.pendingTeams.delete(data.playerId);
+            } else if (data.team) {
+                this.pendingTeams.set(data.playerId, data.team as any);
+            }
+        });
 
-        // Skill Selection Events
-        socket.on(
-            "soccer:selectionPhaseStarted",
-            (data: { order: string[]; availableSkills: string[] }) => {
-                console.log("Skill Selection Started", data);
-                useSoccerStore.getState().resetSelection();
-                useSoccerStore.getState().setSelectionOrder(data.order);
-                useSoccerStore
-                    .getState()
-                    .setAvailableSkillIds(data.availableSkills);
-                useSoccerStore.getState().setSelectionPhaseActive(true);
-            },
-        );
+        socket.on("soccer:startMidGamePick", (data: { availableSkills: string[] }) => {
+            useSoccerStore.getState().setAvailableSkillIds(data.availableSkills);
+            useSoccerStore.getState().setSelectionPhaseActive(true);
+            useSoccerStore.getState().setCurrentPickerId(this.localPlayerId);
+            useSoccerStore.getState().setSelectionTurnEndTime(Date.now() + 30000);
+        });
 
-        socket.on(
-            "soccer:selectionUpdate",
-            (data: {
-                currentPickerId: string;
-                endTime: number;
-                availableSkills: string[];
-            }) => {
-                console.log("Selection Update", data);
-                useSoccerStore
-                    .getState()
-                    .setCurrentPickerId(data.currentPickerId);
-                useSoccerStore.getState().setSelectionTurnEndTime(data.endTime);
-                useSoccerStore
-                    .getState()
-                    .setAvailableSkillIds(data.availableSkills);
-            },
-        );
+        socket.on("soccer:selectionPhaseStarted", (data: { order: string[]; availableSkills: string[] }) => {
+            useSoccerStore.getState().resetSelection();
+            useSoccerStore.getState().setSelectionOrder(data.order);
+            useSoccerStore.getState().setAvailableSkillIds(data.availableSkills);
+            useSoccerStore.getState().setSelectionPhaseActive(true);
+        });
 
-        socket.on(
-            "soccer:skillPicked",
-            (data: {
-                playerId: string;
-                skillId: string;
-                availableSkills: string[];
-            }) => {
-                console.log("Skill Picked", data);
-                useSoccerStore
-                    .getState()
-                    .setPlayerPick(data.playerId, data.skillId);
-                useSoccerStore
-                    .getState()
-                    .setAvailableSkillIds(data.availableSkills);
+        socket.on("soccer:selectionUpdate", (data: { currentPickerId: string; endTime: number; availableSkills: string[] }) => {
+            useSoccerStore.getState().setCurrentPickerId(data.currentPickerId);
+            useSoccerStore.getState().setSelectionTurnEndTime(data.endTime);
+            useSoccerStore.getState().setAvailableSkillIds(data.availableSkills);
+        });
 
-                const { selectionOrder } = useSoccerStore.getState();
-                const isInitialDraft = selectionOrder.length > 0;
+        socket.on("soccer:skillPicked", (data: { playerId: string; skillId: string; availableSkills: string[] }) => {
+            useSoccerStore.getState().setPlayerPick(data.playerId, data.skillId);
+            useSoccerStore.getState().setAvailableSkillIds(data.availableSkills);
+            if (data.playerId === this.localPlayerId && useSoccerStore.getState().selectionOrder.length === 0) {
+                useSoccerStore.getState().setSelectionPhaseActive(false);
+            }
+        });
 
-                // Only close overlay immediately if it's a mid-game joiner (no selection order)
-                // For initial draft, wait for soccer:gameStarted
-                if (data.playerId === this.localPlayerId && !isInitialDraft) {
-                    useSoccerStore.getState().setSelectionPhaseActive(false);
-                }
-            },
-        );
-
-        socket.on("soccer:gameStarted", (data: { duration: number }) => {
-            console.log("Game Started", data);
+        socket.on("soccer:gameStarted", () => {
             useSoccerStore.getState().setSelectionPhaseActive(false);
             useSoccerStore.getState().setGameActive(true);
         });
 
-        socket.on("soccer:gameEnd", (data: any) => {
-            console.log("Game Ended", data);
+        socket.on("soccer:gameEnd", () => {
             useSoccerStore.getState().setGameActive(false);
             useSoccerStore.getState().resetSelection();
         });
@@ -521,14 +334,11 @@ export class SoccerMap extends BaseGameScene {
             useSoccerStore.getState().resetSelection();
         });
 
-        // Request initial game state
         socket.emit("soccer:requestGameState", (state: any) => {
-            console.log("Initial game state received:", state);
             useSoccerStore.getState().setGameActive(!!state.isGameActive);
             if (state.gameStatus === "SKILL_SELECTION") {
                 useSoccerStore.getState().setSelectionPhaseActive(true);
             }
-            // Sync any existing picks
             if (state.playerPicks) {
                 Object.entries(state.playerPicks).forEach(([pid, sid]) => {
                     useSoccerStore.getState().setPlayerPick(pid, sid as string);
@@ -536,522 +346,221 @@ export class SoccerMap extends BaseGameScene {
             }
         });
 
-        // Listen for skill activation
-        socket.on(
-            "soccer:skillActivated",
-            (data: {
-                activatorId: string;
-                skillId: string;
-                affectedPlayers: string[];
-                duration: number;
-                visualConfig: any;
-            }) => {
-                if (data.skillId === "metavision") {
-                    if (data.activatorId === this.localPlayerId) {
-                        this.isMetaVisionActive = true;
+        socket.on("soccer:skillActivated", (data: { activatorId: string; skillId: string; affectedPlayers: string[]; duration: number; visualConfig: any }) => {
+            if (data.skillId === "metavision") {
+                if (data.activatorId === this.localPlayerId) this.isMetaVisionActive = true;
+                const activator = this.players.get(data.activatorId);
+                if (activator) this.addKickGlow(activator);
+            } else if (data.skillId === "lurking_radius") {
+                this.lurkingPlayerId = data.activatorId;
+                this.lurkingEndTime = this.time.now + data.duration;
+            } else if (data.skillId === "power_shot") {
+                const activator = this.players.get(data.activatorId);
+                if (activator) {
+                    const chargeRing = this.add.circle(activator.x, activator.y, 10);
+                    chargeRing.setStrokeStyle(4, 0xff6600);
+                    chargeRing.setDepth(activator.depth + 1);
+                    this.tweens.add({
+                        targets: chargeRing, radius: 80, alpha: 0, duration: 400, ease: "Quad.out", onComplete: () => chargeRing.destroy()
+                    });
+                    this.cameras.main.shake(200, 0.01);
+                    this.ballFlameActive = true;
+                    this.ballFlameStartTime = this.time.now;
+                    if (!this.ballFlameGraphics) {
+                        this.ballFlameGraphics = this.add.graphics();
+                        this.ballFlameGraphics.setDepth(this.ball.depth + 1);
                     }
-                    const activator = this.players.get(data.activatorId);
-                    if (activator) this.addKickGlow(activator);
-                } else if (data.skillId === "lurking_radius") {
-                    this.lurkingPlayerId = data.activatorId;
-                    this.lurkingEndTime = this.time.now + data.duration;
-                } else if (data.skillId === "power_shot") {
-                    const activator = this.players.get(data.activatorId);
-                    if (activator) {
-                        const chargeRing = this.add.circle(
-                            activator.x,
-                            activator.y,
-                            10,
-                        );
-                        chargeRing.setStrokeStyle(4, 0xff6600);
-                        chargeRing.setDepth(activator.depth + 1);
-
-                        this.tweens.add({
-                            targets: chargeRing,
-                            radius: 80,
-                            alpha: 0,
-                            duration: 400,
-                            ease: "Quad.out",
-                            onComplete: () => chargeRing.destroy(),
-                        });
-
-                        // Screen shake
-                        this.cameras.main.shake(200, 0.01);
-
-                        // Activate ball flames for 3 seconds
-                        this.ballFlameActive = true;
-                        this.ballFlameStartTime = this.time.now;
-                        if (!this.ballFlameGraphics) {
-                            this.ballFlameGraphics = this.add.graphics();
-                            this.ballFlameGraphics.setDepth(
-                                this.ball.depth + 1,
-                            ); // Above ball
-                        }
-
-                        // Activate ball trail for 3 seconds
-                        this.ballTrailActive = true;
-
-                        console.log("Ball flames and trail activated!", {
-                            active: this.ballFlameActive,
-                            startTime: this.ballFlameStartTime,
-                            graphics: !!this.ballFlameGraphics,
-                            trailActive: this.ballTrailActive,
-                        });
-
-                        // Store buff end time for trail duration
-                        this.powerShotBuffEndTime =
-                            this.time.now + (data.duration || 3000);
-
-                        // Add visual trail to player (tied to buff)
-                        this.applySkillVisuals(
-                            data.activatorId,
-                            data.visualConfig,
-                        );
-
-                        // Track that power_shot is the active skill
-                        this.activeSkillId = "power_shot";
-                    }
-                } else {
+                    this.ballTrailActive = true;
+                    this.powerShotBuffEndTime = this.time.now + (data.duration || 3000);
                     this.applySkillVisuals(data.activatorId, data.visualConfig);
-                    this.activeSkillId = data.skillId;
+                    this.activeSkillId = "power_shot";
                 }
+            } else {
+                this.applySkillVisuals(data.activatorId, data.visualConfig);
+                this.activeSkillId = data.skillId;
+            }
+            this.sound.play(data.visualConfig?.sfxKey || "soccer_skill_activation", { volume: 0.3 });
+        });
 
-                // Play skill specific sound if provided, otherwise fallback to generic
-                const sfxKey =
-                    data.visualConfig?.sfxKey || "soccer_skill_activation";
-                this.sound.play(sfxKey, { volume: 0.3 });
-            },
-        );
+        socket.on("soccer:skillEnded", (data: { activatorId: string; skillId: string }) => {
+            if (data.skillId === "lurking_radius" && this.lurkingPlayerId === data.activatorId) {
+                this.lurkingPlayerId = null;
+                this.lurkingGraphics?.clear();
+            }
+            this.removeSkillVisuals();
+            this.isMetaVisionActive = false;
+            this.metaVisionGraphics?.clear();
+        });
 
-        // Listen for skill end
-        socket.on(
-            "soccer:skillEnded",
-            (data: { activatorId: string; skillId: string }) => {
-                if (
-                    data.skillId === "lurking_radius" &&
-                    this.lurkingPlayerId === data.activatorId
-                ) {
-                    this.lurkingPlayerId = null;
-                    this.lurkingGraphics?.clear();
-                }
-                this.removeSkillVisuals();
-                this.isMetaVisionActive = false;
-                this.metaVisionGraphics?.clear();
-            },
-        );
-
-        // Listen for skill trigger (e.g. Lurking Intercept)
         socket.on("soccer:skillTriggered", (data: any) => {
             if (data.type === "intercept") {
                 const player = this.players.get(data.activatorId);
                 if (player) {
-                    // Teleport visual (Blink-like)
-                    this.createBlinkEffect(
-                        data.activatorId,
-                        player.x,
-                        player.y,
-                        data.targetX,
-                        data.targetY,
-                        { trailColor: 0x800080 }, // Purple trail
-                    );
-
-                    // Snap position immediately
+                    this.createBlinkEffect(data.activatorId, player.x, player.y, data.targetX, data.targetY, { trailColor: 0x800080 });
                     player.setPosition(data.targetX, data.targetY);
-
-                    // End lurking
                     this.lurkingPlayerId = null;
                     this.lurkingGraphics?.clear();
-
                     this.sound.play("blink", { volume: 0.3 });
                 }
             }
         });
 
-        // Listen for blink activation
-        socket.on(
-            "soccer:blinkActivated",
-            (data: {
-                activatorId: string;
-                fromX: number;
-                fromY: number;
-                toX: number;
-                toY: number;
-                visualConfig: any;
-            }) => {
-                const player = this.players.get(data.activatorId);
-                if (player) {
-                    // Instant teleport
-                    player.setPosition(data.toX, data.toY);
-                    if (player.body) {
-                        (player.body as Phaser.Physics.Arcade.Body).setVelocity(
-                            0,
-                            0,
-                        );
-                    }
-
-                    // Visual effects
-                    this.createBlinkEffect(
-                        data.activatorId,
-                        data.fromX,
-                        data.fromY,
-                        data.toX,
-                        data.toY,
-                        data.visualConfig,
-                    );
-
-                    // Sound effect
-                    const sfxKey = data.visualConfig?.sfxKey || "blink";
-                    this.sound.play(sfxKey, { volume: 0.3 });
-                }
-            },
-        );
+        socket.on("soccer:blinkActivated", (data: { activatorId: string; fromX: number; fromY: number; toX: number; toY: number; visualConfig: any }) => {
+            const player = this.players.get(data.activatorId);
+            if (player) {
+                player.setPosition(data.toX, data.toY);
+                this.createBlinkEffect(data.activatorId, data.fromX, data.fromY, data.toX, data.toY, data.visualConfig);
+                this.sound.play(data.visualConfig?.sfxKey || "blink", { volume: 0.3 });
+            }
+        });
     }
 
     private startInputLoop() {
         this.inputLoop = this.time.addEvent({
-            delay: 16, // Matched to server 60Hz rate
+            delay: PHYSICS_CONSTANTS.FIXED_TIMESTEP_MS,
             loop: true,
             callback: () => {
-                this.sendPlayerInputs();
+                this.sendPlayerInput();
                 this.checkDribbleInput();
             },
         });
     }
 
-    private lastInput: {
-        up: boolean;
-        down: boolean;
-        left: boolean;
-        right: boolean;
-    } | null = null;
-    private sendPlayerInputs() {
+    private sendPlayerInput() {
         if (!this.multiplayer) return;
-
         const player = this.players.get(this.localPlayerId);
-        if (!player) return;
+        if (!player || !player.isLocal) return;
 
-        // Block movement during skill selection
-        if (useSoccerStore.getState().isSelectionPhaseActive) {
-            const emptyInput = {
-                up: false,
-                down: false,
-                left: false,
-                right: false,
-            };
-            if (JSON.stringify(this.lastInput) !== JSON.stringify(emptyInput)) {
-                player.currentSequence++;
-                this.multiplayer.socket.emit("playerInput", {
-                    ...emptyInput,
-                    sequence: player.currentSequence,
-                });
-                this.lastInput = emptyInput;
-            }
-            return;
+        if (useSoccerStore.getState().isSelectionPhaseActive) return;
+
+        const input = player.getCurrentInput();
+
+        if (this.lastSentInput &&
+            this.lastSentInput.up === input.up &&
+            this.lastSentInput.down === input.down &&
+            this.lastSentInput.left === input.left &&
+            this.lastSentInput.right === input.right) {
+            // Optimization: could skip here, but server expects sequence continuity
         }
 
-        const cursors = this.input.keyboard?.createCursorKeys();
-        const wasd = this.input.keyboard?.addKeys("W,A,S,D") as any;
+        this.multiplayer.socket.emit("playerInput", {
+            up: input.up,
+            down: input.down,
+            left: input.left,
+            right: input.right,
+            sequence: input.sequence,
+        });
 
-        const up = !!(cursors?.up.isDown || wasd?.W?.isDown);
-        const down = !!(cursors?.down.isDown || wasd?.S?.isDown);
-        const left = !!(cursors?.left.isDown || wasd?.A?.isDown);
-        const right = !!(cursors?.right.isDown || wasd?.D?.isDown);
-
-        const input = {
-            up,
-            down,
-            left,
-            right,
-        };
-
-        if (
-            !this.lastInput ||
-            this.lastInput.up !== input.up ||
-            this.lastInput.down !== input.down ||
-            this.lastInput.left !== input.left ||
-            this.lastInput.right !== input.right
-        ) {
-            player.currentSequence++;
-            this.multiplayer.socket.emit("playerInput", {
-                ...input,
-                sequence: player.currentSequence,
-            });
-            this.lastInput = input;
-        }
+        this.lastSentInput = { up: input.up, down: input.down, left: input.left, right: input.right };
     }
 
     private lastDribbleEmit: number = 0;
     private checkDribbleInput() {
         const now = Date.now();
-        if (now - this.lastDribbleEmit < 50) return; // Throttle to ~20Hz
+        if (now - this.lastDribbleEmit < 50) return;
 
         const player = this.players.get(this.localPlayerId);
         if (!player) return;
-        const distToBall = Phaser.Math.Distance.Between(
-            player.x,
-            player.y,
-            this.ball.x,
-            this.ball.y,
-        );
+        const distToBall = Phaser.Math.Distance.Between(player.x, player.y, this.ball.x, this.ball.y);
         if (distToBall < 100) {
             this.lastDribbleEmit = now;
             this.multiplayer.socket.emit("ball:dribble", {
                 playerId: player.id,
                 playerX: player.x,
                 playerY: player.y,
-                playerVx: player.body?.velocity.x || 0,
-                playerVy: player.body?.velocity.y || 0,
+                playerVx: player.physicsState.vx,
+                playerVy: player.physicsState.vy,
             });
         }
     }
 
     private handleMultiplayerKickInput() {
-        if (!this.kickKey || !Phaser.Input.Keyboard.JustDown(this.kickKey))
-            return;
+        if (!this.kickKey || !Phaser.Input.Keyboard.JustDown(this.kickKey)) return;
 
         const localPlayer = this.players.get(this.localPlayerId);
         if (!localPlayer) return;
 
-        const distance = Phaser.Math.Distance.Between(
-            localPlayer.x,
-            localPlayer.y,
-            this.ball.x,
-            this.ball.y,
-        );
+        const distance = Phaser.Math.Distance.Between(localPlayer.x, localPlayer.y, this.ball.x, this.ball.y);
+        const kickRange = this.isMetaVisionActive ? 200 : 140;
+        if (distance > kickRange) return;
 
-        const kickThreshold = this.isMetaVisionActive ? 200 : 140;
-        if (distance > kickThreshold) return;
-
-        this.addKickGlow(localPlayer);
-
-        const angle = Phaser.Math.Angle.Between(
-            localPlayer.x,
-            localPlayer.y,
-            this.ball.x,
-            this.ball.y,
-        );
-
-        // --- NEW: Client-Side Prediction Physics (Matches Server Logic) ---
-        const baseKickPower = 1000;
-
-        // 1. Get stats (or default to 0)
+        const angle = Phaser.Math.Angle.Between(localPlayer.x, localPlayer.y, this.ball.x, this.ball.y);
+        const basePower = 1000;
         const kickPowerStat = this.soccerStats?.kickPower ?? 0;
 
-        // 2. Calculate Multiplier
-        let kickPowerMultiplier = 1.0 + kickPowerStat * 0.1;
-
-        // 3. Metavision Boost
-        if (this.isMetaVisionActive) {
-            kickPowerMultiplier *= 1.2;
-        }
-
-        const finalPower = baseKickPower * kickPowerMultiplier;
-        const kickVx = Math.cos(angle) * finalPower;
-        const kickVy = Math.sin(angle) * finalPower;
-
-        // --- APPLY PREDICTION ---
-        // This moves the ball instantly on client, bypassing network lag
-        this.ball.predictKick(kickVx, kickVy);
-
-        // Play sound immediately for responsiveness
+        const kickVelocity = calculateKickVelocity(angle, basePower, kickPowerStat, this.isMetaVisionActive);
+        this.ball.predictKick(kickVelocity.vx, kickVelocity.vy);
         this.sound.play("soccer_kick");
+        this.addKickGlow(localPlayer);
 
-        // Send to server
         this.multiplayer?.socket.emit("ball:kick", {
             playerId: this.localPlayerId,
-            kickPower: baseKickPower, // Send base power, server handles stats
+            kickPower: basePower,
             angle: angle,
-            timestamp: Date.now(), // For lag compensation
+            timestamp: Date.now(),
         });
     }
 
-    // ... (Remaining Local/Offline Methods kept same as provided) ...
-    private setupLocalPhysics() {
-        this.physics.add.collider(
-            this.playersLayer,
-            this.playersLayer,
-            (p1, p2) => {
-                const player1 = p1 as Player;
-                const player2 = p2 as Player;
-                // Skip collision if either is spectator
-                if (
-                    player1.team === "spectator" ||
-                    player2.team === "spectator"
-                ) {
-                    return false;
-                }
-                return true;
-            },
-        );
-        this.physics.add.collider(
-            this.playersLayer,
-            this.ball,
-            (ball, player) => {
-                const playerSprite = player as Player;
-                if (playerSprite.team === "spectator") return;
-
-                const ballSprite = ball as Ball;
-                const maxSpeed = 150;
-                // Cast to Arcade Body to access vector methods
-                const body = ballSprite.body as Phaser.Physics.Arcade.Body;
-                if (!body) return;
-                
-                const velocity = body.velocity;
-                if (velocity.length() > maxSpeed) {
-                    velocity.normalize().scale(maxSpeed);
-                }
-            },
-            (ball, player) => {
-                const playerSprite = player as Player;
-                if (playerSprite.team === "spectator") return false;
-
-                (ball as Ball).setBounce(0.4);
-                return true;
-            },
-            this,
-        );
-        if (this.floorMarkingsLayer) {
-            this.physics.add.collider(
-                this.ball,
-                this.floorMarkingsLayer,
-                undefined,
-                (ball) => {
-                    (ball as Ball).setBounce(0.7);
-                    return true;
-                },
-                this,
-            );
-        }
-    }
-
     private handleKick() {
-        if (!this.kickKey || !Phaser.Input.Keyboard.JustDown(this.kickKey))
-            return;
+        if (!this.kickKey || !Phaser.Input.Keyboard.JustDown(this.kickKey)) return;
         const localPlayer = this.players.get(this.localPlayerId);
         if (!localPlayer) return;
-        const distance = Phaser.Math.Distance.Between(
-            localPlayer.x,
-            localPlayer.y,
-            this.ball.x,
-            this.ball.y,
-        );
+        const distance = Phaser.Math.Distance.Between(localPlayer.x, localPlayer.y, this.ball.x, this.ball.y);
         if (distance > 200) return;
-        const angle = Phaser.Math.Angle.Between(
-            localPlayer.x,
-            localPlayer.y,
-            this.ball.x,
-            this.ball.y,
-        );
+        const angle = Phaser.Math.Angle.Between(localPlayer.x, localPlayer.y, this.ball.x, this.ball.y);
         const kickPower = 1000;
-        const knockbackPower = 300;
-        const knockbackVx = -Math.cos(angle) * knockbackPower;
-        const knockbackVy = -Math.sin(angle) * knockbackPower;
-        localPlayer.setVelocity(
-            localPlayer.body!.velocity.x + knockbackVx,
-            localPlayer.body!.velocity.y + knockbackVy,
-        );
-        this.ball.setVelocity(
-            Math.cos(angle) * kickPower,
-            Math.sin(angle) * kickPower,
-        );
+        this.ball.setVelocity(Math.cos(angle) * kickPower, Math.sin(angle) * kickPower);
+        this.sound.play("soccer_kick");
     }
 
     private handleSkillInput() {
-        if (!this.skillKey || !Phaser.Input.Keyboard.JustDown(this.skillKey))
-            return;
+        if (!this.skillKey || !Phaser.Input.Keyboard.JustDown(this.skillKey)) return;
         this.triggerSlowdown();
     }
 
     private triggerSlowdown() {
-        // Get slowdown skill config
         const skillConfig = this.skillConfigs.get("slowdown");
-        if (!skillConfig) {
-            console.warn("Slowdown skill config not loaded yet");
-            return;
-        }
-
+        if (!skillConfig) return;
         const now = Date.now();
-        if (now - this.skillCooldown < skillConfig.cooldownMs) {
-            const remainingSeconds = Math.ceil(
-                (skillConfig.cooldownMs - (now - this.skillCooldown)) / 1000,
-            );
-            console.log(`Skill on cooldown: ${remainingSeconds}s remaining`);
-            return;
-        }
-
-        // Get player's facing direction
+        if (now - this.skillCooldown < skillConfig.cooldownMs) return;
         const localPlayer = this.players.get(this.localPlayerId);
-        const facingDirection = localPlayer?.lastFacingDirection || "DOWN";
-
-        // Activate skill
         this.skillCooldown = now;
         this.multiplayer?.socket.emit("soccer:activateSkill", {
             playerId: this.localPlayerId,
             skillId: "slowdown",
-            facingDirection: facingDirection,
+            facingDirection: localPlayer?.lastFacingDirection || "DOWN",
         });
-
-        console.log(
-            `${skillConfig.name} activated! All other players slowed for ${skillConfig.durationMs / 1000} seconds`,
-        );
     }
 
     private handleBlinkInput() {
-        if (!this.blinkKey || !Phaser.Input.Keyboard.JustDown(this.blinkKey))
-            return;
+        if (!this.blinkKey || !Phaser.Input.Keyboard.JustDown(this.blinkKey)) return;
         this.triggerBlink();
     }
 
     private triggerBlink() {
-        // Get blink skill config
         const skillConfig = this.skillConfigs.get("blink");
-        if (!skillConfig) {
-            console.warn("Blink skill config not loaded yet");
-            return;
-        }
-
+        if (!skillConfig) return;
         const now = Date.now();
-        if (now - this.blinkCooldown < skillConfig.cooldownMs) {
-            const remainingSeconds = Math.ceil(
-                (skillConfig.cooldownMs - (now - this.blinkCooldown)) / 1000,
-            );
-            console.log(`Blink on cooldown: ${remainingSeconds}s remaining`);
-            return;
-        }
-
-        // Get player's facing direction
+        if (now - this.blinkCooldown < skillConfig.cooldownMs) return;
         const localPlayer = this.players.get(this.localPlayerId);
-        const facingDirection = localPlayer?.lastFacingDirection || "DOWN";
-
-        // Activate blink skill
         this.blinkCooldown = now;
         this.multiplayer?.socket.emit("soccer:activateSkill", {
             playerId: this.localPlayerId,
             skillId: "blink",
-            facingDirection: facingDirection,
+            facingDirection: localPlayer?.lastFacingDirection || "DOWN",
         });
-
-        console.log(
-            `${skillConfig.name} activated! Blinking ${facingDirection}`,
-        );
     }
 
     private handleMetaVisionInput() {
-        if (
-            !this.metavisionKey ||
-            !Phaser.Input.Keyboard.JustDown(this.metavisionKey)
-        )
-            return;
+        if (!this.metavisionKey || !Phaser.Input.Keyboard.JustDown(this.metavisionKey)) return;
         this.triggerMetaVision();
     }
 
     private triggerMetaVision() {
         const skillConfig = this.skillConfigs.get("metavision");
         if (!skillConfig) return;
-
         const now = Date.now();
         if (now - this.metavisionCooldown < skillConfig.cooldownMs) return;
-
         this.metavisionCooldown = now;
         this.multiplayer?.socket.emit("soccer:activateSkill", {
             playerId: this.localPlayerId,
@@ -1060,11 +569,7 @@ export class SoccerMap extends BaseGameScene {
     }
 
     private handleNinjaStepInput() {
-        if (
-            !this.ninjaStepKey ||
-            !Phaser.Input.Keyboard.JustDown(this.ninjaStepKey)
-        )
-            return;
+        if (!this.ninjaStepKey || !Phaser.Input.Keyboard.JustDown(this.ninjaStepKey)) return;
         this.triggerNinjaStep();
     }
 
@@ -1076,1137 +581,339 @@ export class SoccerMap extends BaseGameScene {
     }
 
     private handleLurkingInput() {
-        if (
-            !this.lurkingKey ||
-            !Phaser.Input.Keyboard.JustDown(this.lurkingKey)
-        )
-            return;
+        if (!this.lurkingKey || !Phaser.Input.Keyboard.JustDown(this.lurkingKey)) return;
         this.triggerLurkingRadius();
     }
 
-    private handlePowerShotInput() {
-        if (
-            !this.powerShotKey ||
-            !Phaser.Input.Keyboard.JustDown(this.powerShotKey)
-        )
-            return;
-
-        this.triggerPowerShot();
-    }
-
     private triggerLurkingRadius() {
-        // Cooldown check is handled by server mostly, but we can do a local check if we want
-        // For simplicity and consistency with server 2-stage logic, just emit
         this.multiplayer?.socket.emit("soccer:activateSkill", {
             playerId: this.localPlayerId,
             skillId: "lurking_radius",
         });
     }
 
+    private handlePowerShotInput() {
+        if (!this.powerShotKey || !Phaser.Input.Keyboard.JustDown(this.powerShotKey)) return;
+        this.triggerPowerShot();
+    }
+
     private triggerPowerShot() {
         const skillConfig = this.skillConfigs.get("power_shot");
-        if (!skillConfig) {
-            console.warn("Power shot config not loaded");
-            return;
-        }
-
+        if (!skillConfig) return;
         const now = Date.now();
-        if (now - this.powerShotCooldown < skillConfig.cooldownMs) {
-            const remainingSeconds = Math.ceil(
-                (skillConfig.cooldownMs - (now - this.powerShotCooldown)) /
-                    1000,
-            );
-            console.log(
-                `Power Shot on cooldown: ${remainingSeconds}s remaining`,
-            );
-            return;
-        }
-
+        if (now - this.powerShotCooldown < skillConfig.cooldownMs) return;
         const localPlayer = this.players.get(this.localPlayerId);
         if (!localPlayer) return;
-
-        // Check distance to ball
-        const distance = Phaser.Math.Distance.Between(
-            localPlayer.x,
-            localPlayer.y,
-            this.ball.x,
-            this.ball.y,
-        );
-
-        if (distance > 200) {
-            console.log(
-                `Power Shot failed: Too far from ball (${distance.toFixed(0)} > 200)`,
-            );
-            return;
-        }
-
-        // Update cooldown
+        const distance = Phaser.Math.Distance.Between(localPlayer.x, localPlayer.y, this.ball.x, this.ball.y);
+        if (distance > 200) return;
         this.powerShotCooldown = now;
-
-        // Activate skill
         this.multiplayer?.socket.emit("soccer:activateSkill", {
             playerId: this.localPlayerId,
             skillId: "power_shot",
         });
-
-        console.log("Power Shot activated!");
     }
 
     private handleUnifiedSkillInput() {
-        if (!this.skillKey || !Phaser.Input.Keyboard.JustDown(this.skillKey))
-            return;
-
+        if (!this.skillKey || !Phaser.Input.Keyboard.JustDown(this.skillKey)) return;
         const { playerPicks } = useSoccerStore.getState();
         const assignedSkillId = playerPicks[this.localPlayerId];
         if (!assignedSkillId) return;
-
-        if (assignedSkillId === "slowdown") {
-            this.triggerSlowdown();
-        } else if (assignedSkillId === "blink") {
-            this.triggerBlink();
-        } else if (assignedSkillId === "metavision") {
-            this.triggerMetaVision();
-        } else if (assignedSkillId === "ninja_step") {
-            this.triggerNinjaStep();
-        } else if (assignedSkillId === "lurking_radius") {
-            this.triggerLurkingRadius();
-        } else if (assignedSkillId === "power_shot") {
-            this.triggerPowerShot();
-        }
+        const handlers: any = {
+            slowdown: () => this.triggerSlowdown(),
+            blink: () => this.triggerBlink(),
+            metavision: () => this.triggerMetaVision(),
+            ninja_step: () => this.triggerNinjaStep(),
+            lurking_radius: () => this.triggerLurkingRadius(),
+            power_shot: () => this.triggerPowerShot(),
+        };
+        handlers[assignedSkillId]?.();
     }
 
     private drawTrajectory() {
         if (!this.metaVisionGraphics) return;
-
         this.metaVisionGraphics.clear();
-
         const localPlayer = this.players.get(this.localPlayerId);
         if (!localPlayer || localPlayer.team === "spectator") return;
 
-        const distance = Phaser.Math.Distance.Between(
-            localPlayer.x,
-            localPlayer.y,
-            this.ball.x,
-            this.ball.y,
-        );
-
-        const ballVx = this.ball.targetPos.vx;
-        const ballVy = this.ball.targetPos.vy;
-        const ballSpeed = Math.sqrt(ballVx * ballVx + ballVy * ballVy);
+        const distance = Phaser.Math.Distance.Between(localPlayer.x, localPlayer.y, this.ball.x, this.ball.y);
+        const ballSpeed = Math.sqrt(this.ball.targetPos.vx ** 2 + this.ball.targetPos.vy ** 2);
         const isBallMoving = ballSpeed > 10;
-
-        // Dynamic thresholds:
-        // - Aiming (stationary ball): 300px
-        // - Observation (moving ball): 2000px
         const threshold = isBallMoving ? 2000 : 300;
+        if (distance > threshold) return;
 
-        if (distance > threshold) {
-            return;
-        }
-
-        // Only draw the dash "aim line" if we are in aiming range (stationary ball)
         if (!isBallMoving) {
-            // 2. Draw the dashed aim line from player to ball
-            const isInKickRange =
-                distance <= (this.isMetaVisionActive ? 200 : 140);
-            const lineColor = isInKickRange ? 0x00ff00 : 0x00ffff; // Green if in range, Cyan if not
-            const lineAlpha = isInKickRange ? 0.6 : 0.3;
-            this.metaVisionGraphics.lineStyle(2, lineColor, lineAlpha);
-
-            const dashLength = 10;
-            const gapLength = 5;
-            const angleToBall = Phaser.Math.Angle.Between(
-                localPlayer.x,
-                localPlayer.y,
-                this.ball.x,
-                this.ball.y,
-            );
-            let currentX = localPlayer.x;
-            let currentY = localPlayer.y;
-            const totalSteps = distance / (dashLength + gapLength);
-
-            for (let i = 0; i < totalSteps; i++) {
+            const isInKickRange = distance <= (this.isMetaVisionActive ? 200 : 140);
+            this.metaVisionGraphics.lineStyle(2, isInKickRange ? 0x00ff00 : 0x00ffff, isInKickRange ? 0.6 : 0.3);
+            const angleToBall = Phaser.Math.Angle.Between(localPlayer.x, localPlayer.y, this.ball.x, this.ball.y);
+            let cx = localPlayer.x, cy = localPlayer.y;
+            for (let i = 0; i < distance / 15; i++) {
                 this.metaVisionGraphics.beginPath();
-                this.metaVisionGraphics.moveTo(currentX, currentY);
-                currentX += Math.cos(angleToBall) * dashLength;
-                currentY += Math.sin(angleToBall) * dashLength;
-                this.metaVisionGraphics.lineTo(currentX, currentY);
+                this.metaVisionGraphics.moveTo(cx, cy);
+                cx += Math.cos(angleToBall) * 10; cy += Math.sin(angleToBall) * 10;
+                this.metaVisionGraphics.lineTo(cx, cy);
                 this.metaVisionGraphics.strokePath();
-                currentX += Math.cos(angleToBall) * gapLength;
-                currentY += Math.sin(angleToBall) * gapLength;
+                cx += Math.cos(angleToBall) * 5; cy += Math.sin(angleToBall) * 5;
             }
         }
 
-        // Improve the trajectory simulation:
-        // Use current ball velocity if moving, otherwise simulate a kick based on player-to-ball angle.
-        let simX = this.ball.x;
-        let simY = this.ball.y;
-        let simVx = 0;
-        let simVy = 0;
-
+        let sx = this.ball.x, sy = this.ball.y, svx = 0, svy = 0;
         if (isBallMoving) {
-            simVx = ballVx;
-            simVy = ballVy;
+            svx = this.ball.targetPos.vx; svy = this.ball.targetPos.vy;
         } else {
-            const angle = Phaser.Math.Angle.Between(
-                localPlayer.x,
-                localPlayer.y,
-                this.ball.x,
-                this.ball.y,
-            );
-            const baseKickPower = 1000;
-            const kickPowerStat = this.soccerStats?.kickPower ?? 0;
-            // Server applies 1.2x boost for Metavision
-            const kickPowerMultiplier = (1.0 + kickPowerStat * 0.1) * 1.2;
-            simVx = Math.cos(angle) * baseKickPower * kickPowerMultiplier;
-            simVy = Math.sin(angle) * baseKickPower * kickPowerMultiplier;
+            const angle = Phaser.Math.Angle.Between(localPlayer.x, localPlayer.y, this.ball.x, this.ball.y);
+            const kickVel = calculateKickVelocity(angle, 1000, this.soccerStats?.kickPower ?? 0, true);
+            svx = kickVel.vx; svy = kickVel.vy;
         }
-
-        const DRAG = 1; // matching server SoccerService
-        const BOUNCE = 0.7; // matching server SoccerService
-        const BALL_RADIUS = 30; // matching server SoccerService
-        const WORLD_WIDTH = this.worldBounds.width;
-        const WORLD_HEIGHT = this.worldBounds.height;
-        const dt = 0.0166; // ~60fps simulation step (16.6ms matching server)
-        const duration = 2; // Simulate 2 seconds
 
         this.metaVisionGraphics.lineStyle(2, 0x00ffff, 1.0);
         this.metaVisionGraphics.beginPath();
-        this.metaVisionGraphics.moveTo(simX, simY);
-
-        for (let t = 0; t < duration; t += dt) {
-            // 1. Apply exponential drag (matching server)
-            const dragFactor = Math.exp(-DRAG * dt);
-            simVx *= dragFactor;
-            simVy *= dragFactor;
-
-            // 2. Update position
-            simX += simVx * dt;
-            simY += simVy * dt;
-
-            // 3. Robust bounce logic against world bounds (matching server exactly)
-            if (simX - BALL_RADIUS < 0) {
-                simX = BALL_RADIUS;
-                simVx = -simVx * BOUNCE;
-            } else if (simX + BALL_RADIUS > WORLD_WIDTH) {
-                simX = WORLD_WIDTH - BALL_RADIUS;
-                simVx = -simVx * BOUNCE;
-            }
-
-            if (simY - BALL_RADIUS < 0) {
-                simY = BALL_RADIUS;
-                simVy = -simVy * BOUNCE;
-            } else if (simY + BALL_RADIUS > WORLD_HEIGHT) {
-                simY = WORLD_HEIGHT - BALL_RADIUS;
-                simVy = -simVy * BOUNCE;
-            }
-
-            // 4. Tile-based collision (FloorMarkingsLayer)
-            if (this.floorMarkingsLayer) {
-                const tile = this.floorMarkingsLayer.getTileAtWorldXY(
-                    simX,
-                    simY,
-                );
-                if (tile && tile.index !== -1) {
-                    // Simple reflection for tile collisions in simulation
-                    // We check which component of velocity brought us here
-                    const prevX = simX - simVx * dt;
-                    const prevY = simY - simVy * dt;
-
-                    const tileX = this.floorMarkingsLayer.getTileAtWorldXY(
-                        prevX,
-                        simY,
-                    );
-                    const tileY = this.floorMarkingsLayer.getTileAtWorldXY(
-                        simX,
-                        prevY,
-                    );
-
-                    if (tileX && tileX.index !== -1) {
-                        simVy = -simVy * BOUNCE;
-                        simY = prevY; // snap back
-                    }
-                    if (tileY && tileY.index !== -1) {
-                        simVx = -simVx * BOUNCE;
-                        simX = prevX; // snap back
-                    }
-                    if (!tileX && !tileY) {
-                        simVx = -simVx * BOUNCE;
-                        simVy = -simVy * BOUNCE;
-                        simX = prevX;
-                        simY = prevY;
-                    }
-                }
-            }
-
-            this.metaVisionGraphics.lineTo(simX, simY);
-
-            // Stop simulation if ball slows down below threshold (matching server)
-            if (Math.sqrt(simVx * simVx + simVy * simVy) < 10) break;
+        this.metaVisionGraphics.moveTo(sx, sy);
+        const dt = 0.016, dur = 2;
+        for (let t = 0; t < dur; t += dt) {
+            const df = Math.exp(-PHYSICS_CONSTANTS.BALL_DRAG * dt);
+            svx *= df; svy *= df;
+            sx += svx * dt; sy += svy * dt;
+            if (sx < 30 || sx > this.worldBounds.width - 30) svx *= -PHYSICS_CONSTANTS.BALL_BOUNCE;
+            if (sy < 30 || sy > this.worldBounds.height - 30) svy *= -PHYSICS_CONSTANTS.BALL_BOUNCE;
+            this.metaVisionGraphics.lineTo(sx, sy);
+            if (Math.sqrt(svx * svx + svy * svy) < 10) break;
         }
-
         this.metaVisionGraphics.strokePath();
-
-        // Draw a small cyan circle at the final predicted position.
-        this.metaVisionGraphics.fillStyle(0x00ffff, 0.8);
-        this.metaVisionGraphics.fillCircle(simX, simY, 6);
+        this.metaVisionGraphics.fillStyle(0x00ffff, 0.8).fillCircle(sx, sy, 6);
     }
 
     private drawKickRange() {
-        if (!this.kickRangeGraphics) return;
-
+        if (!this.kickRangeGraphics || !this.isMetaVisionActive) return;
         this.kickRangeGraphics.clear();
-
-        const localPlayer = this.players.get(this.localPlayerId);
-        if (localPlayer?.team === "spectator") return;
-
-        // Only visible when Metavision is active
-        if (!this.isMetaVisionActive) return;
-
-        // Use game time for animations
         const time = this.time.now;
-
-        // 1. Standard range (140px)
-        const stdRange = 140;
-        // Subtle fill for standard range
-        this.kickRangeGraphics.fillStyle(0xffffff, 0.08);
-        this.kickRangeGraphics.fillCircle(this.ball.x, this.ball.y, stdRange);
-
-        // Standard range outline
-        this.kickRangeGraphics.lineStyle(2, 0xffffff, 0.4);
-        this.kickRangeGraphics.strokeCircle(this.ball.x, this.ball.y, stdRange);
-
-        // 2. Highlight active Metavision range
-        const mvRange = 200;
-        const pulse = (Math.sin(time / 150) + 1) / 2; // Faster pulse
-
-        // Glowing fill for Metavision range
-        this.kickRangeGraphics.fillStyle(0x00ffff, 0.1 + pulse * 0.05);
-        this.kickRangeGraphics.fillCircle(this.ball.x, this.ball.y, mvRange);
-
-        // Strong outer border
-        this.kickRangeGraphics.lineStyle(3, 0x00ffff, 0.6);
-        this.kickRangeGraphics.strokeCircle(this.ball.x, this.ball.y, mvRange);
-
-        // Pulsing "sonar" rings
+        const stdRange = 140, mvRange = 200, pulse = (Math.sin(time / 150) + 1) / 2;
+        this.kickRangeGraphics.fillStyle(0xffffff, 0.08).fillCircle(this.ball.x, this.ball.y, stdRange);
+        this.kickRangeGraphics.lineStyle(2, 0xffffff, 0.4).strokeCircle(this.ball.x, this.ball.y, stdRange);
+        this.kickRangeGraphics.fillStyle(0x00ffff, 0.1 + pulse * 0.05).fillCircle(this.ball.x, this.ball.y, mvRange);
+        this.kickRangeGraphics.lineStyle(3, 0x00ffff, 0.6).strokeCircle(this.ball.x, this.ball.y, mvRange);
         for (let i = 0; i < 2; i++) {
-            const ringPulse = ((time + i * 500) % 1000) / 1000;
-            const ringAlpha = 0.4 * (1 - ringPulse);
-            const ringRadius = stdRange + (mvRange - stdRange) * ringPulse;
-
-            this.kickRangeGraphics.lineStyle(2, 0x00ffff, ringAlpha);
-            this.kickRangeGraphics.strokeCircle(
-                this.ball.x,
-                this.ball.y,
-                ringRadius,
-            );
+            const p = ((time + i * 500) % 1000) / 1000;
+            this.kickRangeGraphics.lineStyle(2, 0x00ffff, 0.4 * (1 - p)).strokeCircle(this.ball.x, this.ball.y, stdRange + (mvRange - stdRange) * p);
         }
-
-        // Extra outer glow pulse
-        this.kickRangeGraphics.lineStyle(1, 0x00ffff, 0.2 + pulse * 0.3);
-        this.kickRangeGraphics.strokeCircle(
-            this.ball.x,
-            this.ball.y,
-            mvRange + 5 + pulse * 10,
-        );
     }
 
     private drawLurkingRadius() {
         if (!this.lurkingGraphics || !this.lurkingPlayerId) return;
-
         this.lurkingGraphics.clear();
-
         const player = this.players.get(this.lurkingPlayerId);
-        if (!player) return;
-
-        // Check expiration
-        if (this.time.now > this.lurkingEndTime) {
-            this.lurkingPlayerId = null;
-            this.lurkingGraphics.clear();
-            return;
-        }
-
-        const radius = 300;
-        const distToBall = Phaser.Math.Distance.Between(
-            player.x,
-            player.y,
-            this.ball.x,
-            this.ball.y,
-        );
-        const isBallInside = distToBall <= radius;
-        const time = this.time.now;
-
-        // Animation variables
-        const pulse = (Math.sin(time / 100) + 1) / 2;
-        const fastPulse = (Math.sin(time / 50) + 1) / 2;
-        const rotationAngle = (time / 1000) % (Math.PI * 2); // Full rotation every ~6 seconds
-
-        if (isBallInside) {
-            // ===== INTERCEPT READY STATE: Aggressive Green Energy =====
-
-            // 1. Pulsing inner glow
-            this.lurkingGraphics.fillStyle(0x00ff00, 0.15 + pulse * 0.1);
-            this.lurkingGraphics.fillCircle(player.x, player.y, radius);
-
-            // 2. Multiple concentric rings (expanding)
-            for (let i = 0; i < 3; i++) {
-                const offset = (time / 80 + i * 60) % 180;
-                const ringRadius = radius - offset;
-                if (ringRadius > 20) {
-                    const alpha = 1 - offset / 180;
-                    this.lurkingGraphics.lineStyle(3, 0x00ff00, alpha * 0.6);
-                    this.lurkingGraphics.strokeCircle(
-                        player.x,
-                        player.y,
-                        ringRadius,
-                    );
-                }
-            }
-
-            // 3. Main outer ring (bright)
-            this.lurkingGraphics.lineStyle(5, 0x00ff00, 0.9 + fastPulse * 0.1);
-            this.lurkingGraphics.strokeCircle(player.x, player.y, radius);
-
-            // 4. Energy sparks around perimeter
-            const sparkCount = 8;
-            for (let i = 0; i < sparkCount; i++) {
-                const angle = (i / sparkCount) * Math.PI * 2 + rotationAngle;
-                const sparkX = player.x + Math.cos(angle) * radius;
-                const sparkY = player.y + Math.sin(angle) * radius;
-                const sparkSize = 3 + pulse * 2;
-
-                this.lurkingGraphics.fillStyle(0xffffff, 0.8 + fastPulse * 0.2);
-                this.lurkingGraphics.fillCircle(sparkX, sparkY, sparkSize);
-
-                // Inner glow
-                this.lurkingGraphics.fillStyle(0x00ff00, 0.4);
-                this.lurkingGraphics.fillCircle(
-                    sparkX,
-                    sparkY,
-                    sparkSize * 1.5,
-                );
-            }
-
-            // 5. Rotating energy arcs
-            const arcCount = 4;
-            for (let i = 0; i < arcCount; i++) {
-                const arcAngle =
-                    (i / arcCount) * Math.PI * 2 + rotationAngle * 2;
-                const startAngle = arcAngle;
-                const endAngle = arcAngle + Math.PI / 4;
-
-                this.lurkingGraphics.lineStyle(2, 0x00ff00, 0.6);
-                this.lurkingGraphics.beginPath();
-                this.lurkingGraphics.arc(
-                    player.x,
-                    player.y,
-                    radius * 0.7,
-                    startAngle,
-                    endAngle,
-                );
-                this.lurkingGraphics.strokePath();
-            }
+        if (!player || this.time.now > this.lurkingEndTime) { this.lurkingPlayerId = null; return; }
+        const r = 300, time = this.time.now, p = (Math.sin(time / 100) + 1) / 2;
+        const inside = Phaser.Math.Distance.Between(player.x, player.y, this.ball.x, this.ball.y) <= r;
+        if (inside) {
+            this.lurkingGraphics.fillStyle(0x00ff00, 0.15 + p * 0.1).fillCircle(player.x, player.y, r);
+            this.lurkingGraphics.lineStyle(5, 0x00ff00, 1).strokeCircle(player.x, player.y, r);
         } else {
-            // ===== SEARCHING STATE: Ominous Purple/Red Energy =====
-
-            // 1. Dark pulsing background
-            this.lurkingGraphics.fillStyle(0x800080, 0.08 + pulse * 0.04);
-            this.lurkingGraphics.fillCircle(player.x, player.y, radius);
-
-            // 2. Radar sweep effect
-            const sweepAngle = rotationAngle;
-            const sweepWidth = Math.PI / 3;
-
-            this.lurkingGraphics.fillStyle(0x800080, 0.2);
-            this.lurkingGraphics.slice(
-                player.x,
-                player.y,
-                radius,
-                sweepAngle - sweepWidth / 2,
-                sweepAngle + sweepWidth / 2,
-                false,
-            );
-            this.lurkingGraphics.fillPath();
-
-            // 3. Dotted circle perimeter (scanning effect)
-            const dotCount = 24;
-            for (let i = 0; i < dotCount; i++) {
-                const angle = (i / dotCount) * Math.PI * 2;
-                const dotX = player.x + Math.cos(angle) * radius;
-                const dotY = player.y + Math.sin(angle) * radius;
-
-                // Fade dots based on sweep position
-                const angleDiff =
-                    Math.abs(
-                        Phaser.Math.Angle.ShortestBetween(
-                            angle * Phaser.Math.RAD_TO_DEG,
-                            sweepAngle * Phaser.Math.RAD_TO_DEG,
-                        ),
-                    ) / 180;
-                const dotAlpha = Math.max(0.2, 1 - angleDiff);
-
-                this.lurkingGraphics.fillStyle(0x800080, dotAlpha * 0.8);
-                this.lurkingGraphics.fillCircle(dotX, dotY, 2);
-            }
-
-            // 4. Main outer ring (purple)
-            this.lurkingGraphics.lineStyle(2, 0x800080, 0.6);
-            this.lurkingGraphics.strokeCircle(player.x, player.y, radius);
-
-            // 5. Expanding danger pulse (red)
-            const expandPulse = (time / 200) % 1;
-            const expandRadius = radius + expandPulse * 20;
-            const expandAlpha = (1 - expandPulse) * 0.5;
-
-            this.lurkingGraphics.lineStyle(2, 0xff0000, expandAlpha);
-            this.lurkingGraphics.strokeCircle(player.x, player.y, expandRadius);
-
-            // 6. Inner concentric rings (slow pulse)
-            for (let i = 1; i <= 2; i++) {
-                const innerRadius = radius * (i / 3);
-                this.lurkingGraphics.lineStyle(1, 0x800080, 0.3 + pulse * 0.2);
-                this.lurkingGraphics.strokeCircle(
-                    player.x,
-                    player.y,
-                    innerRadius,
-                );
-            }
+            this.lurkingGraphics.fillStyle(0x800080, 0.08 + p * 0.04).fillCircle(player.x, player.y, r);
+            this.lurkingGraphics.lineStyle(2, 0x800080, 0.6).strokeCircle(player.x, player.y, r);
         }
-
-        // ===== ALWAYS DRAW: Heterochromia Eyes (Glowing) =====
-        const eyeY = player.y - 15;
-        const leftEyeX = player.x - 4;
-        const rightEyeX = player.x + 4;
-        const eyeGlow = 2 + fastPulse * 1;
-
-        // Left eye (Green) with glow
-        this.lurkingGraphics.fillStyle(0x00ff00, 0.3);
-        this.lurkingGraphics.fillCircle(leftEyeX, eyeY, eyeGlow);
-        this.lurkingGraphics.fillStyle(0x00ff00, 1);
-        this.lurkingGraphics.fillCircle(leftEyeX, eyeY, 3);
-
-        // Right eye (Purple) with glow
-        this.lurkingGraphics.fillStyle(0x800080, 0.3);
-        this.lurkingGraphics.fillCircle(rightEyeX, eyeY, eyeGlow);
-        this.lurkingGraphics.fillStyle(0x800080, 1);
-        this.lurkingGraphics.fillCircle(rightEyeX, eyeY, 3);
     }
 
     private updateSkillCooldownUI() {
         if (!this.skillCooldownText) return;
-
-        const skillConfig = this.skillConfigs.get("slowdown");
-        if (!skillConfig) return;
-
-        const now = Date.now();
-        const timeSinceLastUse = now - this.skillCooldown;
-
-        if (timeSinceLastUse >= skillConfig.cooldownMs) {
-            // Skill is ready
-            this.skillCooldownText.setText("Q: READY");
-            this.skillCooldownText.setColor("#00ff00");
+        const config = this.skillConfigs.get("slowdown");
+        if (!config) return;
+        const diff = Date.now() - this.skillCooldown;
+        if (diff >= config.cooldownMs) {
+            this.skillCooldownText.setText("Q: READY").setColor("#00ff00");
         } else {
-            // Skill is on cooldown
-            const remainingSeconds = Math.ceil(
-                (skillConfig.cooldownMs - timeSinceLastUse) / 1000,
-            );
-            this.skillCooldownText.setText(`Q: ${remainingSeconds}s`);
-            this.skillCooldownText.setColor("#ff0000");
+            this.skillCooldownText.setText(`Q: ${Math.ceil((config.cooldownMs - diff) / 1000)}s`).setColor("#ff0000");
         }
     }
 
     private createNetworkDiagnosticsUI() {
         if (!this.isMultiplayerMode) return;
-
-        const diagnosticsText = this.add.text(10, 50, "", {
-            fontSize: "14px",
-            color: "#00ff00",
-            backgroundColor: "#000000aa",
-            padding: { x: 5, y: 5 },
-        });
-        diagnosticsText.setScrollFactor(0);
-        diagnosticsText.setDepth(10000);
-
-        // Update every 500ms
-        this.time.addEvent({
-            delay: 500,
-            loop: true,
-            callback: () => {
-                const ping = useUiStore.getState().ping || 0;
-                
-                // Show Physics Ticks instead of Time
-                // Use a safety check for ball existence
-                const currentTick = this.ball && this.ball.targetPos ? this.ball.targetPos.t : 0;
-                
-                diagnosticsText.setText(
-                    [`Ping: ${ping}ms`, `Sim Tick: ${currentTick}`].join("\n")
-                );
-            },
-        });
+        const text = this.add.text(10, 50, "", { fontSize: "14px", color: "#00ff00", backgroundColor: "#000000aa", padding: { x: 5, y: 5 } }).setScrollFactor(0).setDepth(10000);
+        this.time.addEvent({ delay: 500, loop: true, callback: () => {
+            const ping = useUiStore.getState().ping || 0;
+            const tick = this.ball?.targetPos?.t || 0;
+            text.setText([`Ping: ${ping}ms`, `Sim Tick: ${tick}`].join("\n"));
+        }});
     }
 
     private applySkillVisuals(activatorId: string, visualConfig: any) {
-        // Store the activator ID and visual config for trail effect
         this.activeSkillPlayerId = activatorId;
         this.activeSkillVisualConfig = visualConfig;
-
-        // Hide team glow during speed trail to prevent trailing outline effect
-        if (visualConfig.enableSpeedTrail) {
-            const activator = this.players.get(activatorId);
-            if (activator && activator.teamGlow) {
-                activator.teamGlow.setVisible(false);
-            }
-        }
-
-        // Apply grayscale if enabled in config
+        if (visualConfig.enableSpeedTrail) this.players.get(activatorId)?.teamGlow?.setVisible(false);
         if (visualConfig.enableGrayscale) {
-            // Apply true grayscale (desaturation) to tilemap layers
-            if (this.floorLayer && this.floorLayer.postFX) {
-                const colorMatrix = this.floorLayer.postFX.addColorMatrix();
-                colorMatrix.grayscale();
-                this.grayscaleEffects.set(this.floorLayer, colorMatrix);
-            }
-            if (this.floorMarkingsLayer && this.floorMarkingsLayer.postFX) {
-                const colorMatrix =
-                    this.floorMarkingsLayer.postFX.addColorMatrix();
-                colorMatrix.grayscale();
-                this.grayscaleEffects.set(this.floorMarkingsLayer, colorMatrix);
-            }
-            if (this.goalsLayer && this.goalsLayer.postFX) {
-                const colorMatrix = this.goalsLayer.postFX.addColorMatrix();
-                colorMatrix.grayscale();
-                this.grayscaleEffects.set(this.goalsLayer, colorMatrix);
-            }
-            if (this.circleLayer && this.circleLayer.postFX) {
-                const colorMatrix = this.circleLayer.postFX.addColorMatrix();
-                colorMatrix.grayscale();
-                this.grayscaleEffects.set(this.circleLayer, colorMatrix);
-            }
-
-            // Apply grayscale to the ball
-            if (this.ball && this.ball.postFX) {
-                const colorMatrix = this.ball.postFX.addColorMatrix();
-                colorMatrix.grayscale();
-                this.grayscaleEffects.set(this.ball, colorMatrix);
-            }
-
-            // Apply grayscale to all players EXCEPT the activator
-            for (const [playerId, player] of this.players.entries()) {
-                if (playerId !== activatorId) {
-                    if (player.postFX) {
-                        const colorMatrix = player.postFX.addColorMatrix();
-                        colorMatrix.grayscale();
-                        this.grayscaleEffects.set(player, colorMatrix);
-                    }
-                    // Also apply to their team glow if it exists
-                    if (player.teamGlow && player.teamGlow.postFX) {
-                        const glowColorMatrix =
-                            player.teamGlow.postFX.addColorMatrix();
-                        glowColorMatrix.grayscale();
-                        this.grayscaleEffects.set(
-                            player.teamGlow,
-                            glowColorMatrix,
-                        );
-                    }
+            [this.floorLayer, this.floorMarkingsLayer, this.goalsLayer, this.circleLayer, this.ball].forEach(go => {
+                if (go?.postFX) this.grayscaleEffects.set(go, go.postFX.addColorMatrix().grayscale());
+            });
+            for (const [pid, p] of this.players.entries()) {
+                if (pid !== activatorId) {
+                    if (p.postFX) this.grayscaleEffects.set(p, p.postFX.addColorMatrix().grayscale());
+                    if (p.teamGlow?.postFX) this.grayscaleEffects.set(p.teamGlow, p.teamGlow.postFX.addColorMatrix().grayscale());
                 }
-                // Activating player remains fully colored (no effects)
             }
         }
-
-        console.log(
-            `Skill visuals applied - player ${activatorId} with config:`,
-            visualConfig,
-        );
     }
 
     private removeSkillVisuals() {
-        // Don't remove if power shot buff is still active (only for power shot skill)
-        if (
-            this.activeSkillId === "power_shot" &&
-            this.time.now < this.powerShotBuffEndTime
-        ) {
-            return;
-        }
-
-        for (const player of this.players.values()) {
-            if (player.teamGlow) {
-                player.teamGlow.setVisible(true);
-            }
-        }
-        // Clear activator ID to stop trail creation
-        this.activeSkillPlayerId = null;
-        this.activeSkillId = null;
-
-        // Clean up all trail sprites
+        if (this.activeSkillId === "power_shot" && this.time.now < this.powerShotBuffEndTime) return;
+        for (const p of this.players.values()) p.teamGlow?.setVisible(true);
+        this.activeSkillPlayerId = null; this.activeSkillId = null;
         this.clearSpeedTrail();
-
-        // Remove all grayscale ColorMatrix effects
-        for (const [
-            gameObject,
-            colorMatrix,
-        ] of this.grayscaleEffects.entries()) {
-            const go = gameObject as any;
-            if (go && go.postFX) {
-                // Remove the specific ColorMatrix effect
-                go.postFX.remove(colorMatrix);
-            }
-        }
-
-        // Clear the effects map
+        for (const [go, fx] of this.grayscaleEffects.entries()) (go as any).postFX?.remove(fx);
         this.grayscaleEffects.clear();
-
-        console.log("Skill visuals removed - all colors restored");
     }
 
     private createSpeedTrail(time: number) {
-        if (!this.activeSkillPlayerId || !this.activeSkillVisualConfig) return;
-
-        // Check if speed trail is enabled in config
-        if (!this.activeSkillVisualConfig.enableSpeedTrail) return;
-
-        const player = this.players.get(this.activeSkillPlayerId);
-        if (!player) return;
-
-        // Use configured trail interval (default 30ms)
-        const trailInterval = this.activeSkillVisualConfig.trailInterval || 30;
-        if (time - this.trailTimer < trailInterval) return;
+        if (!this.activeSkillPlayerId || !this.activeSkillVisualConfig?.enableSpeedTrail) return;
+        const p = this.players.get(this.activeSkillPlayerId);
+        if (!p || time - this.trailTimer < (this.activeSkillVisualConfig.trailInterval || 30)) return;
         this.trailTimer = time;
-
-        // Create a trail sprite at the player's current position
-        const trail = this.add.sprite(
-            player.x,
-            player.y,
-            player.texture.key,
-            player.frame.name,
-        );
-
-        // Match player properties
-        trail.setScale(player.scaleX, player.scaleY);
-        trail.setFlipX(player.flipX);
-        trail.setDepth(player.depth - 1);
-
-        // Use configured trail color (default cyan)
-        const trailColor = this.activeSkillVisualConfig.trailColor || 0x00ffff;
-        trail.setTintFill(trailColor);
-        trail.setAlpha(0.7);
-
-        // Store the trail sprite
+        const trail = this.add.sprite(p.x, p.y, p.texture.key, p.frame.name).setScale(p.scaleX, p.scaleY).setFlipX(p.flipX).setDepth(p.depth - 1).setTintFill(this.activeSkillVisualConfig.trailColor || 0x00ffff).setAlpha(0.7);
         this.trailSprites.push(trail);
-
-        // Use configured fade duration (default 300ms)
-        const fadeDuration =
-            this.activeSkillVisualConfig.trailFadeDuration || 300;
-
-        // Fade out and destroy the trail sprite
-        this.tweens.add({
-            targets: trail,
-            alpha: 0,
-            duration: fadeDuration,
-            ease: "Power2",
-            onComplete: () => {
-                trail.destroy();
-                // Remove from array
-                const index = this.trailSprites.indexOf(trail);
-                if (index > -1) {
-                    this.trailSprites.splice(index, 1);
-                }
-            },
-        });
+        this.tweens.add({ targets: trail, alpha: 0, duration: this.activeSkillVisualConfig.trailFadeDuration || 300, onComplete: () => { trail.destroy(); this.trailSprites.splice(this.trailSprites.indexOf(trail), 1); }});
     }
 
     private clearSpeedTrail() {
-        // Destroy all trail sprites
-        for (const trail of this.trailSprites) {
-            if (trail && trail.active) {
-                trail.destroy();
-            }
-        }
-        this.trailSprites = [];
-        this.trailTimer = 0;
+        this.trailSprites.forEach(t => t.destroy());
+        this.trailSprites = []; this.trailTimer = 0;
     }
 
-    private createBlinkEffect(
-        playerId: string,
-        fromX: number, // MUST pass where the player was BEFORE the blink
-        fromY: number,
-        toX: number,
-        toY: number,
-        visualConfig: any,
-    ) {
-        const player = this.players.get(playerId);
-        if (!player) return;
-
-        const tint = visualConfig.tint || 0x00ffff;
-        const fadeDuration = visualConfig.trailFadeDuration || 200;
-
-        // 1. Force High Density (Multiple Ghosts)
-        // We set this very low (e.g., 8 pixels). This ensures that even a
-        // short blink (e.g., 100px) generates ~12 ghosts.
-        const stepSize = 40;
-
-        const distance = Phaser.Math.Distance.Between(fromX, fromY, toX, toY);
-
-        // If distance is too small, just exit (avoids division by zero or stacking)
-        if (distance < stepSize) return;
-
-        const numGhosts = Math.floor(distance / stepSize);
-        const dx = (toX - fromX) / numGhosts;
-        const dy = (toY - fromY) / numGhosts;
-
-        // 2. Create the Dense Trail
-        for (let i = 0; i < numGhosts; i++) {
-            const ghostX = fromX + dx * i;
-            const ghostY = fromY + dy * i;
-
-            const ghost = this.add.sprite(
-                ghostX,
-                ghostY,
-                player.texture.key,
-                player.frame.name,
-            );
-
-            // Match Player Properties
-            ghost.setOrigin(player.originX, player.originY);
-            ghost.setScale(player.scaleX, player.scaleY);
-            ghost.setRotation(player.rotation);
-            ghost.setFlip(player.flipX, player.flipY);
-            ghost.setDepth(player.depth - 1);
-
-            // Visuals
-            ghost.setTint(tint);
-            ghost.setAlpha(0.4); // Lower alpha because there are many overlapping ghosts
-            ghost.setBlendMode(Phaser.BlendModes.ADD);
-
-            this.tweens.add({
-                targets: ghost,
-                alpha: 0,
-                // Shrink slightly to create a "cone" shape trail
-                scaleX: player.scaleX * 0.6,
-                scaleY: player.scaleY * 0.6,
-                duration: fadeDuration,
-                delay: i * 5, // Fast ripple
-                onComplete: () => ghost.destroy(),
-            });
+    private createBlinkEffect(pid: string, fx: number, fy: number, tx: number, ty: number, config: any) {
+        const p = this.players.get(pid);
+        if (!p) return;
+        const dist = Phaser.Math.Distance.Between(fx, fy, tx, ty), steps = 40;
+        if (dist < steps) return;
+        const n = Math.floor(dist / steps);
+        for (let i = 0; i < n; i++) {
+            const g = this.add.sprite(fx + ((tx - fx) / n) * i, fy + ((ty - fy) / n) * i, p.texture.key, p.frame.name).setOrigin(p.originX, p.originY).setScale(p.scaleX, p.scaleY).setFlip(p.flipX, p.flipY).setDepth(p.depth - 1).setTint(config.tint || 0x00ffff).setAlpha(0.4).setBlendMode(Phaser.BlendModes.ADD);
+            this.tweens.add({ targets: g, alpha: 0, scaleX: p.scaleX * 0.6, scaleY: p.scaleY * 0.6, duration: config.trailFadeDuration || 200, delay: i * 5, onComplete: () => g.destroy() });
         }
-
-        // 3. Impact Ring (Destination)
-        const impactRing = this.add.circle(toX, toY, 10);
-        impactRing.setStrokeStyle(3, tint);
-        this.tweens.add({
-            targets: impactRing,
-            radius: 40,
-            alpha: 0,
-            duration: 300,
-            ease: "Quad.out",
-            onComplete: () => impactRing.destroy(),
-        });
-
-        // 4. Departure Ring (Optional: Leaves a ring where you came from)
-        // This helps visually confirm the start point even if standing still
-        const startRing = this.add.circle(fromX, fromY, 15);
-        startRing.setStrokeStyle(2, tint);
-        this.tweens.add({
-            targets: startRing,
-            scale: 0.1, // Implode effect
-            alpha: 0,
-            duration: 200,
-            onComplete: () => startRing.destroy(),
-        });
+        const r = this.add.circle(tx, ty, 10).setStrokeStyle(3, config.tint || 0x00ffff);
+        this.tweens.add({ targets: r, radius: 40, alpha: 0, duration: 300, ease: "Quad.out", onComplete: () => r.destroy() });
     }
+
     private addKickGlow(player: Player) {
         player.setTint(0xffffff);
-        const outline = this.add.sprite(player.x, player.y, player.texture.key);
-        outline.setFrame(player.frame.name);
-        outline.setTint(0xffffff);
-        outline.setAlpha(0.8);
-        outline.setScale(player.scaleX * 1.2, player.scaleY * 1.2);
-        outline.setDepth(player.depth - 1);
-        outline.setFlipX(player.flipX);
-        const glowCircle = this.add.circle(player.x, player.y, 30, 0xffffff, 0);
-        glowCircle.setStrokeStyle(4, 0xffffff, 1);
-        glowCircle.setDepth(player.depth - 1);
-        this.tweens.add({
-            targets: outline,
-            alpha: 0,
-            scale: player.scaleX * 1.3,
-            duration: 200,
-            ease: "Power2",
-            onComplete: () => outline.destroy(),
-        });
-        this.tweens.add({
-            targets: glowCircle,
-            alpha: 0,
-            scale: 1.5,
-            duration: 200,
-            ease: "Power2",
-            onComplete: () => glowCircle.destroy(),
-        });
+        const o = this.add.sprite(player.x, player.y, player.texture.key).setFrame(player.frame.name).setTint(0xffffff).setAlpha(0.8).setScale(player.scaleX * 1.2, player.scaleY * 1.2).setDepth(player.depth - 1).setFlipX(player.flipX);
+        const c = this.add.circle(player.x, player.y, 30, 0xffffff, 0).setStrokeStyle(4, 0xffffff, 1).setDepth(player.depth - 1);
+        this.tweens.add({ targets: o, alpha: 0, scale: player.scaleX * 1.3, duration: 200, onComplete: () => o.destroy() });
+        this.tweens.add({ targets: c, alpha: 0, scale: 1.5, duration: 200, onComplete: () => c.destroy() });
         this.time.delayedCall(150, () => player.clearTint());
     }
 
     private renderBallFlames() {
         if (!this.ballFlameActive || !this.ballFlameGraphics) return;
-
-        const elapsed = this.time.now - this.ballFlameStartTime;
-        const duration = 3000; // 3 seconds
-
-        // Deactivate after duration
-        if (elapsed > duration) {
-            this.ballFlameActive = false;
-            this.ballFlameGraphics.clear();
-            this.clearBallTrail(); // Also clear ball trail
-            console.log("Ball flames and trail deactivated after 3 seconds");
-            return;
-        }
-
+        if (this.time.now - this.ballFlameStartTime > 3000) { this.ballFlameActive = false; this.ballFlameGraphics.clear(); this.clearBallTrail(); return; }
         this.ballFlameGraphics.clear();
-
-        // Create multiple flame layers
-        const baseRadius = 30;
-        const time = this.time.now / 100; // Animation speed
-
+        const t = this.time.now / 100;
         for (let i = 0; i < 3; i++) {
-            const offset = i * 0.5;
-            const radius = baseRadius + Math.sin(time + offset) * 5;
-            const alpha = 0.6 - i * 0.15;
-
-            // Outer orange glow
-            this.ballFlameGraphics.fillStyle(0xff6600, alpha);
-            this.ballFlameGraphics.fillCircle(
-                this.ball.x,
-                this.ball.y,
-                radius + 10 - i * 3,
-            );
-
-            // Inner red/yellow core
-            this.ballFlameGraphics.fillStyle(0xffaa00, alpha + 0.2);
-            this.ballFlameGraphics.fillCircle(
-                this.ball.x,
-                this.ball.y,
-                radius - i * 5,
-            );
+            const r = 30 + Math.sin(t + i * 0.5) * 5, a = 0.6 - i * 0.15;
+            this.ballFlameGraphics.fillStyle(0xff6600, a).fillCircle(this.ball.x, this.ball.y, r + 10 - i * 3);
+            this.ballFlameGraphics.fillStyle(0xffaa00, a + 0.2).fillCircle(this.ball.x, this.ball.y, r - i * 5);
         }
-
-        // Add flame "sparks" trailing behind ball
         const body = this.ball.body as Phaser.Physics.Arcade.Body;
-        if (body && body.velocity) {
-            const velocityAngle = Math.atan2(body.velocity.y, body.velocity.x);
+        if (body?.velocity) {
+            const ang = Math.atan2(body.velocity.y, body.velocity.x);
             for (let i = 0; i < 5; i++) {
-                const trailDist = 20 + i * 8;
-                const sparkX =
-                    this.ball.x - Math.cos(velocityAngle) * trailDist;
-                const sparkY =
-                    this.ball.y - Math.sin(velocityAngle) * trailDist;
-                const sparkSize = 4 - i * 0.6;
-                const sparkAlpha = 0.8 - i * 0.15;
-
-                this.ballFlameGraphics.fillStyle(0xff3300, sparkAlpha);
-                this.ballFlameGraphics.fillCircle(sparkX, sparkY, sparkSize);
+                const d = 20 + i * 8;
+                this.ballFlameGraphics.fillStyle(0xff3300, 0.8 - i * 0.15).fillCircle(this.ball.x - Math.cos(ang) * d, this.ball.y - Math.sin(ang) * d, 4 - i * 0.6);
             }
         }
     }
 
     private createBallTrail(time: number) {
-        if (!this.ballTrailActive) return;
-
-        const trailInterval = 1; // ms between trail sprites
-        const trailFadeDuration = 300; // ms for fade animation
-
-        // Create trail sprite at intervals
-        if (time - this.ballTrailTimer > trailInterval) {
-            this.ballTrailTimer = time;
-
-            // Create a trail sprite at ball's current position
-            const trailSprite = this.add.sprite(
-                this.ball.x,
-                this.ball.y,
-                "ball", // Use "ball" texture directly
-            );
-            trailSprite.setScale(this.ball.scaleX, this.ball.scaleY);
-            trailSprite.setDepth(99); // High depth to be visible above floor layers
-            trailSprite.setAlpha(0.3);
-            trailSprite.setTintFill(0xff6600); // Orange/red tint
-
-            this.ballTrailSprites.push(trailSprite);
-
-            console.log("Ball trail sprite created:", {
-                count: this.ballTrailSprites.length,
-                position: { x: this.ball.x, y: this.ball.y },
-                depth: trailSprite.depth,
-            });
-
-            // Fade out and destroy
-            this.tweens.add({
-                targets: trailSprite,
-                alpha: 0,
-                duration: trailFadeDuration,
-                ease: "Power2",
-                onComplete: () => {
-                    trailSprite.destroy();
-                    const index = this.ballTrailSprites.indexOf(trailSprite);
-                    if (index > -1) {
-                        this.ballTrailSprites.splice(index, 1);
-                    }
-                },
-            });
-        }
+        if (!this.ballTrailActive || time - this.ballTrailTimer < 1) return;
+        this.ballTrailTimer = time;
+        const ts = this.add.sprite(this.ball.x, this.ball.y, "ball").setScale(this.ball.scaleX, this.ball.scaleY).setDepth(99).setAlpha(0.3).setTintFill(0xff6600);
+        this.ballTrailSprites.push(ts);
+        this.tweens.add({ targets: ts, alpha: 0, duration: 300, onComplete: () => { ts.destroy(); this.ballTrailSprites.splice(this.ballTrailSprites.indexOf(ts), 1); }});
     }
 
     private clearBallTrail() {
-        // Destroy all existing trail sprites
-        this.ballTrailSprites.forEach((sprite) => sprite.destroy());
-        this.ballTrailSprites = [];
-        this.ballTrailActive = false;
+        this.ballTrailSprites.forEach(s => s.destroy());
+        this.ballTrailSprites = []; this.ballTrailActive = false;
     }
 
     private async checkSoccerStats() {
         try {
             const stats = await getSoccerStats();
+            if (!stats) useUiStore.getState().openSoccerStatsModal();
+            else { this.soccerStats = stats; this.players.get(this.localPlayerId)!.soccerStats = stats; }
+        } catch (e) { console.error(e); }
+    }
 
-            // If no stats exist, open the modal
-            if (!stats) {
-                console.log("No soccer stats found - opening modal");
-                useUiStore.getState().openSoccerStatsModal();
-            } else {
-                console.log("Soccer stats loaded:", stats);
-                this.soccerStats = stats;
+    private processPendingTeams() {
+        if (this.pendingTeams.size === 0) return;
+        for (const [pid, team] of this.pendingTeams.entries()) {
+            const p = this.players.get(pid);
+            if (p) { p.setTeam(team); this.pendingTeams.delete(pid); }
+        }
+    }
 
-                // Also update the local player instance if it exists
-                const localPlayer = this.players.get(this.localPlayerId);
-                if (localPlayer) {
-                    localPlayer.soccerStats = stats;
-                }
+    private createBall() {
+        this.ball = new Ball(this, PHYSICS_CONSTANTS.WORLD_WIDTH / 2, PHYSICS_CONSTANTS.WORLD_HEIGHT / 2, this.isMultiplayerMode);
+    }
+
+    private updateTeamGlows() {
+        for (const p of this.players.values()) {
+            if (p.teamGlow && p.team) {
+                p.teamGlow.setPosition(p.visualSprite.x, p.visualSprite.y);
+                p.teamGlow.setFrame(p.visualSprite.frame.name);
+                p.teamGlow.setFlipX(p.visualSprite.flipX);
+                p.teamGlow.setDepth(p.visualSprite.depth - 1);
+                p.teamGlow.setScale(p.visualSprite.scaleX * 1.15, p.visualSprite.scaleY * 1.15);
             }
-        } catch (error) {
-            console.error("Failed to check soccer stats:", error);
-            // Optionally open modal on error, or silently fail
         }
     }
 
-    destroy() {
-        if (this.inputLoop) this.inputLoop.destroy();
-        if (this.skillCooldownText) this.skillCooldownText.destroy();
-        this.metaVisionGraphics?.destroy();
-        this.kickRangeGraphics?.destroy();
-        if (this.multiplayer) {
-            this.multiplayer.socket.off("ball:state");
-            this.multiplayer.socket.off("ball:kicked");
-            this.multiplayer.socket.off("goal:scored");
-            this.multiplayer.socket.off("players:physicsUpdate");
-            this.multiplayer.socket.off("soccer:playerReset");
-            this.multiplayer.socket.off("soccer:teamAssigned");
-            this.multiplayer.socket.off("soccer:startMidGamePick");
-            this.multiplayer.socket.off("soccer:selectionPhaseStarted");
-            this.multiplayer.socket.off("soccer:selectionUpdate");
-            this.multiplayer.socket.off("soccer:skillPicked");
-            this.multiplayer.socket.off("soccer:gameStarted");
-            this.multiplayer.socket.off("soccer:gameEnd");
-            this.multiplayer.socket.off("soccer:gameReset");
-            this.multiplayer.socket.off("soccer:skillActivated");
-            this.multiplayer.socket.off("soccer:skillEnded");
-            this.multiplayer.socket.off("soccer:skillTriggered");
-            this.multiplayer.socket.off("soccer:blinkActivated");
-        }
-
-        useUiStore.getState().setCurrentScene("");
-    }
-
-    protected setupLocalPlayer(localPlayer: Player): void {
-        this.localPlayerId = localPlayer.id;
-        usePlayersStore.getState().setLocalPlayerId(localPlayer.id);
-        localPlayer.setPosition(this.spawnX, this.spawnY);
-        localPlayer.setScale(2);
-        localPlayer.setSize(40, 40);
-        localPlayer.setOffset(0, 20);
-        localPlayer.moveSpeed = localPlayer.moveSpeed * 0.5;
-    }
-
-    protected setupRemotePlayer(player: Player): void {
-        player.setScale(2);
-        player.destroyNameTag();
-        player.moveSpeed = player.moveSpeed * 1.5;
-        player.setSize(40, 40);
-        player.setOffset(0, 20);
-    }
-
-    private centerCamera() {
-        const zoomX = this.scale.width / this.worldBounds.width;
-        const zoomY = this.scale.height / this.worldBounds.height;
-        const zoom = Math.min(zoomX, zoomY);
-        const gameWidth = this.worldBounds.width * zoom;
-        const gameHeight = this.worldBounds.height * zoom;
-        const offsetX = (this.scale.width - gameWidth) / 2;
-        const offsetY = (this.scale.height - gameHeight) / 2;
-        this.cameras.main.setViewport(offsetX, offsetY, gameWidth, gameHeight);
-        this.cameras.main.setZoom(zoom);
-        this.cameras.main.stopFollow();
-        this.cameras.main.setScroll(0, 0);
-    }
-
-    protected createLayers(
-        map: Phaser.Tilemaps.Tilemap,
-    ): Map<string, Phaser.Tilemaps.TilemapLayer> {
+    protected createLayers(map: Phaser.Tilemaps.Tilemap): Map<string, Phaser.Tilemaps.TilemapLayer> {
         const layers = new Map<string, Phaser.Tilemaps.TilemapLayer>();
-        const soccerTileset = map.addTilesetImage("soccer", "soccer");
-        const goalTileset = map.addTilesetImage("goal", "goal");
-        const goal2Tileset = map.addTilesetImage("goal_2", "goal_2");
-        const circleTileset = map.addTilesetImage("circle", "circle");
-        const allTilesets = [
-            goalTileset!,
-            goal2Tileset!,
-            circleTileset!,
-            soccerTileset!,
-        ];
-        const floorLayer = map.createLayer("Floor", allTilesets, 0, 0);
-        const floorMarkingsLayer = map.createLayer(
-            "FloorMarkings",
-            allTilesets,
-            0,
-            0,
-        );
-        const floorMarkings2Layer = map.createLayer(
-            "FloorMarkings2",
-            allTilesets,
-            0,
-            0,
-        );
-
-        const goalsLayer = map.createLayer("Goals", allTilesets, 0, 0);
-        const circleLayer = map.createLayer("Circle", allTilesets, 0, 0);
-        goalsLayer?.setDepth(100);
-
-        // Store layer references for skill visuals
-        this.floorLayer = floorLayer;
-        this.goalsLayer = goalsLayer;
-        this.circleLayer = circleLayer;
-        this.floorMarkings2Layer = floorMarkings2Layer;
-
-        if (floorMarkingsLayer) {
-            layers.set("Floor_Markings_Layer", floorMarkingsLayer);
-            this.floorMarkingsLayer = floorMarkingsLayer;
-        }
-
-        void this.floorMarkings2Layer;
+        const s = map.addTilesetImage("soccer", "soccer"), g = map.addTilesetImage("goal", "goal"), g2 = map.addTilesetImage("goal_2", "goal_2"), c = map.addTilesetImage("circle", "circle");
+        const ts = [g!, g2!, c!, s!];
+        this.floorLayer = map.createLayer("Floor", ts, 0, 0);
+        this.floorMarkingsLayer = map.createLayer("FloorMarkings", ts, 0, 0);
+        this.floorMarkings2Layer = map.createLayer("FloorMarkings2", ts, 0, 0);
+        this.goalsLayer = map.createLayer("Goals", ts, 0, 0);
+        this.circleLayer = map.createLayer("Circle", ts, 0, 0);
+        this.goalsLayer?.setDepth(100);
+        if (this.floorMarkingsLayer) layers.set("Floor_Markings_Layer", this.floorMarkingsLayer);
         return layers;
     }
 
-    protected setupCollisions(
-        layers: Map<string, Phaser.Tilemaps.TilemapLayer>,
-    ): void {
-        const floorMarkingLayer = layers.get("Floor_Markings_Layer");
-        if (floorMarkingLayer) {
-            floorMarkingLayer.setCollisionBetween(0, 100000, true);
-        }
+    protected setupCollisions(layers: Map<string, Phaser.Tilemaps.TilemapLayer>): void {
+        layers.get("Floor_Markings_Layer")?.setCollisionBetween(0, 100000, true);
         this.setupDoorCollisions();
     }
 
-    protected createAnimatedObjects(_map: Phaser.Tilemaps.Tilemap) {
-        void _map;
-    }
-    protected createDoors(_map: Phaser.Tilemaps.Tilemap) {
-        this.doors = [];
-        void _map;
-    }
+    protected createAnimatedObjects() {}
+    protected createDoors() { this.doors = []; }
     protected setupAudio() {}
     protected setupCamera() {}
+
+    protected setupLocalPlayer(p: Player): void {
+        this.localPlayerId = p.id;
+        usePlayersStore.getState().setLocalPlayerId(p.id);
+        p.setPosition(this.spawnX, this.spawnY).setScale(2).setSize(40, 40).setOffset(0, 20);
+        p.moveSpeed *= 0.5;
+    }
+
+    protected setupRemotePlayer(p: Player): void {
+        p.setScale(2).destroyNameTag();
+        p.moveSpeed *= 1.5;
+        p.setSize(40, 40).setOffset(0, 20);
+    }
+
+    private centerCamera() {
+        const z = Math.min(this.scale.width / 3520, this.scale.height / 1600);
+        const w = 3520 * z, h = 1600 * z;
+        this.cameras.main.setViewport((this.scale.width - w) / 2, (this.scale.height - h) / 2, w, h).setZoom(z).setScroll(0, 0);
+    }
+
+    private setupLocalPhysics() {
+        this.physics.add.collider(this.playersLayer, this.playersLayer, (p1: any, p2: any) => p1.team !== "spectator" && p2.team !== "spectator");
+        this.physics.add.collider(this.playersLayer, this.ball, (b: any, p: any) => {
+            if (p.team === "spectator") return;
+            const vel = b.body.velocity;
+            if (vel.length() > 150) vel.normalize().scale(150);
+        }, (b: any, p: any) => p.team !== "spectator", this);
+        if (this.floorMarkingsLayer) this.physics.add.collider(this.ball, this.floorMarkingsLayer);
+    }
 }
