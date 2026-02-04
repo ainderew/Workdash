@@ -26,6 +26,10 @@ export interface SkillConfig {
         trailFadeDuration?: number;
         iconKey: string;
     };
+    serverEffect?: {
+        type: string;
+        params: Record<string, any>;
+    };
 }
 
 export class SoccerMap extends BaseGameScene {
@@ -70,6 +74,8 @@ export class SoccerMap extends BaseGameScene {
     private kickRangeGraphics: Phaser.GameObjects.Graphics | null = null;
     private lurkingGraphics: Phaser.GameObjects.Graphics | null = null;
     private skillCooldownText: Phaser.GameObjects.Text | null = null;
+    private localSpeedMultiplier: number = 1.0;
+    private activeSpeedSkillId: string | null = null;
 
     private activeSkillPlayerId: string | null = null;
     private activeSkillId: string | null = null;
@@ -347,6 +353,28 @@ export class SoccerMap extends BaseGameScene {
         });
 
         socket.on("soccer:skillActivated", (data: { activatorId: string; skillId: string; affectedPlayers: string[]; duration: number; visualConfig: any }) => {
+            const skillConfig = this.skillConfigs.get(data.skillId);
+            const effectParams = skillConfig?.serverEffect?.params as any;
+            const isSpeedEffect =
+                effectParams?.type === "speed_slow" ||
+                effectParams?.type === "speed_boost";
+
+            if (
+                isSpeedEffect &&
+                data.affectedPlayers?.includes(this.localPlayerId)
+            ) {
+                const multiplier =
+                    typeof effectParams.multiplier === "number"
+                        ? effectParams.multiplier
+                        : 1.0;
+                this.localSpeedMultiplier = multiplier;
+                this.activeSpeedSkillId = data.skillId;
+                const localPlayer = this.players.get(this.localPlayerId);
+                if (localPlayer) {
+                    localPlayer.setExternalSpeedMultiplier(multiplier);
+                }
+            }
+
             if (data.skillId === "metavision") {
                 if (data.activatorId === this.localPlayerId) this.isMetaVisionActive = true;
                 const activator = this.players.get(data.activatorId);
@@ -386,6 +414,14 @@ export class SoccerMap extends BaseGameScene {
             if (data.skillId === "lurking_radius" && this.lurkingPlayerId === data.activatorId) {
                 this.lurkingPlayerId = null;
                 this.lurkingGraphics?.clear();
+            }
+            if (this.activeSpeedSkillId === data.skillId) {
+                this.localSpeedMultiplier = 1.0;
+                this.activeSpeedSkillId = null;
+                const localPlayer = this.players.get(this.localPlayerId);
+                if (localPlayer) {
+                    localPlayer.setExternalSpeedMultiplier(1.0);
+                }
             }
             this.removeSkillVisuals();
             this.isMetaVisionActive = false;
@@ -834,9 +870,17 @@ export class SoccerMap extends BaseGameScene {
 
     private async checkSoccerStats() {
         try {
+            if (this.soccerStats) return;
             const stats = await getSoccerStats();
-            if (!stats) useUiStore.getState().openSoccerStatsModal();
-            else { this.soccerStats = stats; this.players.get(this.localPlayerId)!.soccerStats = stats; }
+            if (!stats) {
+                useUiStore.getState().openSoccerStatsModal();
+            } else {
+                this.soccerStats = stats;
+                const localPlayer = this.players.get(this.localPlayerId);
+                if (localPlayer) {
+                    localPlayer.soccerStats = stats;
+                }
+            }
         } catch (e) { console.error(e); }
     }
 
@@ -893,6 +937,7 @@ export class SoccerMap extends BaseGameScene {
         usePlayersStore.getState().setLocalPlayerId(p.id);
         p.setPosition(this.spawnX, this.spawnY).setScale(2).setSize(40, 40).setOffset(0, 20);
         p.moveSpeed *= 0.5;
+        p.setExternalSpeedMultiplier(this.localSpeedMultiplier);
     }
 
     protected setupRemotePlayer(p: Player): void {

@@ -530,6 +530,11 @@ export abstract class BaseGameScene extends Scene {
         availabilityStatus: AvailabilityStatus = AvailabilityStatus.ONLINE,
         customization: CharacterCustomization | null,
         opts: { isLocal: boolean },
+        soccerStats?: {
+            speed: number;
+            kickPower: number;
+            dribbling: number;
+        } | null,
     ): Promise<void> {
         if (!this.scene || !this.physics || !this.playersLayer) {
             console.warn(
@@ -595,6 +600,10 @@ export abstract class BaseGameScene extends Scene {
                 { isLocal: opts.isLocal },
             );
 
+            if (soccerStats) {
+                playerInstance.soccerStats = soccerStats;
+            }
+
             usePlayersStore
                 .getState()
                 .addPlayerToMap(id, playerInstance as Player);
@@ -611,8 +620,12 @@ export abstract class BaseGameScene extends Scene {
                 if (this.currentSceneName === "SoccerMap") {
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     const soccerStore = (this as any).soccerStats;
-                    if (soccerStore) {
-                        playerInstance.soccerStats = soccerStore;
+                    const resolvedStats = soccerStats ?? soccerStore;
+                    if (resolvedStats) {
+                        playerInstance.soccerStats = resolvedStats;
+                        if (!soccerStore) {
+                            (this as any).soccerStats = resolvedStats;
+                        }
                     }
                 }
                 console.log("loaded local");

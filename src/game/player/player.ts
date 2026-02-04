@@ -66,6 +66,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         left: false,
         right: false,
     };
+    private previousInput: PlayerPhysicsInput | null = null;
+    private movementStartSequence: number = 0;
+    private externalSpeedMultiplier: number = 1.0;
 
     // === Remote Player Interpolation ===
     private snapshotBuffer: RemoteSnapshot[] = [];
@@ -432,6 +435,19 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             left: this.cursors.left.isDown || this.wasd.left.isDown,
             right: this.cursors.right.isDown || this.wasd.right.isDown,
         };
+
+        // Detect when movement starts (was stationary, now moving)
+        const wasMoving = this.previousInput && (
+            this.previousInput.up || this.previousInput.down ||
+            this.previousInput.left || this.previousInput.right
+        );
+        const isMoving = this.currentInput.up || this.currentInput.down ||
+                         this.currentInput.left || this.currentInput.right;
+
+        if (!wasMoving && isMoving) {
+            this.movementStartSequence = this.currentSequence;
+        }
+        this.previousInput = { ...this.currentInput };
     }
 
     private runPhysicsTick() {
@@ -441,7 +457,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             // Calculate stat multipliers
             const speedStat = this.soccerStats?.speed ?? 0;
             const dribblingStat = this.soccerStats?.dribbling ?? 0;
-            const speedMultiplier = calculateSpeedMultiplier(speedStat);
+            const speedMultiplier =
+                calculateSpeedMultiplier(speedStat) * this.externalSpeedMultiplier;
             const dragMultiplier = calculateDragMultiplier(dribblingStat);
 
             // Run deterministic physics (MUST match server exactly)
@@ -518,7 +535,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
         const speedStat = this.soccerStats?.speed ?? 0;
         const dribblingStat = this.soccerStats?.dribbling ?? 0;
-        const speedMultiplier = calculateSpeedMultiplier(speedStat);
+        const speedMultiplier =
+            calculateSpeedMultiplier(speedStat) * this.externalSpeedMultiplier;
         const dragMultiplier = calculateDragMultiplier(dribblingStat);
 
         for (const input of this.inputHistory) {
@@ -546,7 +564,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         }
 
         if (errorDist > PHYSICS_CONSTANTS.POSITION_SNAP_THRESHOLD) {
-            // Large error - hard snap
+            // Large error (teleport case) - hard snap
             this.physicsState.x = predictedState.x;
             this.physicsState.y = predictedState.y;
             this.physicsState.vx = predictedState.vx;
@@ -562,7 +580,21 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             return;
         }
 
-        // Medium error - snap physics, smooth visuals
+        // During movement startup phase, skip reconciliation entirely
+        // Trust client prediction until server has caught up with our inputs
+        const STARTUP_GRACE_TICKS = 10;
+        const inStartupPhase = this.movementStartSequence > 0 &&
+            (this.currentSequence - this.movementStartSequence) < STARTUP_GRACE_TICKS &&
+            lastServerSequence < this.movementStartSequence + STARTUP_GRACE_TICKS;
+
+        if (inStartupPhase) {
+            // Only sync velocity, don't touch position during startup
+            this.physicsState.vx = predictedState.vx;
+            this.physicsState.vy = predictedState.vy;
+            return;
+        }
+
+        // Medium error - snap physics, smooth visuals (original behavior)
         // Store visual position before snap
         const oldVisualX = this.visualSprite.x;
         const oldVisualY = this.visualSprite.y;
@@ -1168,6 +1200,10 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         }
 
         return this;
+    }
+
+    public setExternalSpeedMultiplier(multiplier: number) {
+        this.externalSpeedMultiplier = multiplier;
     }
 
     public destroy() {

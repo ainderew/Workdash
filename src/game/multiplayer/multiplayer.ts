@@ -150,6 +150,11 @@ export class Multiplayer {
             availabilityStatus: AvailabilityStatus,
             customization: CharacterCustomization | null,
             opts: { isLocal: boolean },
+            soccerStats?: {
+                speed: number;
+                kickPower: number;
+                dribbling: number;
+            } | null,
         ) => void,
         destroyPlayer: (id: string) => void,
         players: Map<string, Player>,
@@ -203,6 +208,11 @@ export class Multiplayer {
             availabilityStatus: AvailabilityStatus,
             customization: CharacterCustomization | null,
             opts: { isLocal: boolean },
+            soccerStats?: {
+                speed: number;
+                kickPower: number;
+                dribbling: number;
+            } | null,
         ) => void,
         players?: Map<string, Player>,
     ) {
@@ -230,6 +240,7 @@ export class Multiplayer {
             availabilityStatus,
             player.characterCustomization || player.character || null,
             { isLocal },
+            player.soccerStats ?? null,
         );
 
         if (players && player.isKartMode !== undefined) {

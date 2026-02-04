@@ -18,8 +18,11 @@ export interface PlayerDto {
     character?: CharacterCustomization;
     currentScene?: string;
     soccerStats?: {
-        mmr: number;
-        winStreak: number;
+        speed: number;
+        kickPower: number;
+        dribbling: number;
+        mmr?: number;
+        winStreak?: number;
     } | null;
 }
 
