@@ -419,7 +419,14 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     private sampleInput() {
         const isCommandPaletteOpen = useUiStore.getState().isCommandPaletteOpen;
-        if (isCommandPaletteOpen || !this.cursors || !this.wasd) {
+        const isSoccerMap = this.scene.scene.key === "SoccerMap";
+        const isSoccerStatsReady = !isSoccerMap || this.soccerStats !== null;
+        if (
+            isCommandPaletteOpen ||
+            !this.cursors ||
+            !this.wasd ||
+            !isSoccerStatsReady
+        ) {
             this.currentInput = {
                 up: false,
                 down: false,
