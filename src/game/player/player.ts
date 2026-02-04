@@ -121,6 +121,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     public isKartMode: boolean = false;
     public isGhosted: boolean = false;
     public isSpectator: boolean = false;
+    public lastServerTick: number = 0;
 
     constructor(
         scene: Scene,
@@ -539,8 +540,12 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         serverVX: number,
         serverVY: number,
         lastServerSequence: number,
+        serverTick?: number,
     ) {
         if (!this.isLocal) return;
+        if (serverTick !== undefined) {
+            this.lastServerTick = serverTick;
+        }
 
         // 1. Remove acknowledged inputs from history
         this.inputHistory = this.inputHistory.filter(

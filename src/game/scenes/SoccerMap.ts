@@ -76,6 +76,7 @@ export class SoccerMap extends BaseGameScene {
     private skillCooldownText: Phaser.GameObjects.Text | null = null;
     private localSpeedMultiplier: number = 1.0;
     private activeSpeedSkillId: string | null = null;
+    private serverTickOffsetMs: number | null = null;
 
     private activeSkillPlayerId: string | null = null;
     private activeSkillId: string | null = null;
@@ -257,11 +258,29 @@ export class SoccerMap extends BaseGameScene {
             this.ball.setPosition(PHYSICS_CONSTANTS.WORLD_WIDTH / 2, PHYSICS_CONSTANTS.WORLD_HEIGHT / 2);
         });
 
-        socket.on("players:physicsUpdate", (data: { players: any[]; timestamp: number }) => {
-            const { players, timestamp } = data;
+        socket.on("players:physicsUpdate", (data: { players: any[]; timestamp: number; tick?: number }) => {
+            const { players, timestamp, tick } = data;
+            const tickMs = PHYSICS_CONSTANTS.FIXED_TIMESTEP_MS;
+            if (typeof tick === "number") {
+                const serverTickTime = tick * tickMs;
+                const targetOffset = Date.now() - serverTickTime;
+                if (this.serverTickOffsetMs === null) {
+                    this.serverTickOffsetMs = targetOffset;
+                } else {
+                    this.serverTickOffsetMs =
+                        this.serverTickOffsetMs * 0.9 + targetOffset * 0.1;
+                }
+            }
+            const effectiveTimestamp =
+                typeof tick === "number" && this.serverTickOffsetMs !== null
+                    ? tick * tickMs + this.serverTickOffsetMs
+                    : timestamp;
             for (const update of players) {
                 const player = this.players.get(update.id);
                 if (!player) continue;
+                if (typeof tick === "number" && player.lastServerTick >= tick) {
+                    continue;
+                }
 
                 player.isGhosted = !!update.isGhosted;
                 player.isSpectator = !!update.isSpectator;
@@ -271,10 +290,21 @@ export class SoccerMap extends BaseGameScene {
                 }
 
                 if (player.isLocal) {
-                    player.reconcile(update.x, update.y, update.vx, update.vy, update.lastSequence || 0);
+                    player.reconcile(
+                        update.x,
+                        update.y,
+                        update.vx,
+                        update.vy,
+                        update.lastSequence || 0,
+                        tick,
+                    );
                 } else {
                     player.pushSnapshot({
-                        x: update.x, y: update.y, vx: update.vx, vy: update.vy, timestamp,
+                        x: update.x,
+                        y: update.y,
+                        vx: update.vx,
+                        vy: update.vy,
+                        timestamp: effectiveTimestamp,
                     });
                 }
             }
