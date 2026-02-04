@@ -30,6 +30,7 @@ export enum FacingDirection {
 // Input with sequence number for reconciliation
 interface RecordedInput extends PlayerPhysicsInput {
     sequence: number;
+    speedMultiplier?: number;
 }
 
 // Snapshot for remote player interpolation
@@ -400,9 +401,17 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             this.currentSequence++;
 
             // Record input for this tick
+            let speedMultiplier: number | undefined;
+            if (this.scene.scene.key === "SoccerMap") {
+                const speedStat = this.soccerStats?.speed ?? 0;
+                speedMultiplier =
+                    calculateSpeedMultiplier(speedStat) *
+                    this.externalSpeedMultiplier;
+            }
             this.inputHistory.push({
                 ...this.currentInput,
                 sequence: this.currentSequence,
+                speedMultiplier,
             });
 
             // Run physics
@@ -465,7 +474,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             const speedStat = this.soccerStats?.speed ?? 0;
             const dribblingStat = this.soccerStats?.dribbling ?? 0;
             const speedMultiplier =
-                calculateSpeedMultiplier(speedStat) * this.externalSpeedMultiplier;
+                calculateSpeedMultiplier(speedStat) *
+                this.externalSpeedMultiplier;
             const dragMultiplier = calculateDragMultiplier(dribblingStat);
 
             // Run deterministic physics (MUST match server exactly)
@@ -476,6 +486,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
                 dragMultiplier,
                 speedMultiplier,
             );
+
+            // Local prediction for soccer collisions/knockback
+            if (this.isLocal) {
+                this.applySoccerPredictionCollisions();
+            }
         } else {
             // Simple non-soccer physics
             let vx = 0;
@@ -542,11 +557,13 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
         const speedStat = this.soccerStats?.speed ?? 0;
         const dribblingStat = this.soccerStats?.dribbling ?? 0;
-        const speedMultiplier =
-            calculateSpeedMultiplier(speedStat) * this.externalSpeedMultiplier;
         const dragMultiplier = calculateDragMultiplier(dribblingStat);
 
         for (const input of this.inputHistory) {
+            const speedMultiplier =
+                input.speedMultiplier ??
+                calculateSpeedMultiplier(speedStat) *
+                    this.externalSpeedMultiplier;
             integratePlayer(
                 predictedState,
                 input,
@@ -1211,6 +1228,70 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     public setExternalSpeedMultiplier(multiplier: number) {
         this.externalSpeedMultiplier = multiplier;
+    }
+
+    private applySoccerPredictionCollisions() {
+        const sceneAny = this.scene as any;
+        const players: Map<string, Player> | undefined = sceneAny.players;
+        const ball = sceneAny.ball as
+            | { targetPos: { x: number; y: number; vx: number; vy: number } }
+            | undefined;
+
+        if (players) {
+            const localId = this.id;
+            for (const [id, other] of players.entries()) {
+                if (id === localId) continue;
+                if (other.isSpectator || other.isGhosted) continue;
+                if (this.isSpectator || this.isGhosted) continue;
+
+                const dx = other.physicsState.x - this.physicsState.x;
+                const dy = other.physicsState.y - this.physicsState.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                const minDistance =
+                    PHYSICS_CONSTANTS.PLAYER_RADIUS * 2;
+
+                if (distance < minDistance && distance > 0) {
+                    const nx = dx / distance;
+                    const ny = dy / distance;
+                    const overlap = minDistance - distance;
+
+                    // Apply half separation to local only (server splits evenly)
+                    this.physicsState.x -= nx * (overlap / 2);
+                    this.physicsState.y -= ny * (overlap / 2);
+
+                    // Apply push force to local only (server applies to both)
+                    const pushForce = 1.5 * 100;
+                    this.physicsState.vx -= nx * pushForce;
+                    this.physicsState.vy -= ny * pushForce;
+                }
+            }
+        }
+
+        if (ball) {
+            const dx = ball.targetPos.x - this.physicsState.x;
+            const dy = ball.targetPos.y - this.physicsState.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const minDistance =
+                PHYSICS_CONSTANTS.BALL_RADIUS +
+                PHYSICS_CONSTANTS.PLAYER_RADIUS;
+
+            if (distance < minDistance && distance > 0) {
+                const ballSpeed = Math.sqrt(
+                    ball.targetPos.vx * ball.targetPos.vx +
+                        ball.targetPos.vy * ball.targetPos.vy,
+                );
+                if (ballSpeed >= 100) {
+                    const nx = -dx / distance;
+                    const ny = -dy / distance;
+                    const knockbackMagnitude = Math.min(
+                        ballSpeed * 0.6,
+                        200,
+                    );
+                    this.physicsState.vx += nx * knockbackMagnitude;
+                    this.physicsState.vy += ny * knockbackMagnitude;
+                }
+            }
+        }
     }
 
     public destroy() {
