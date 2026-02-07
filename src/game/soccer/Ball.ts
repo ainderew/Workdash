@@ -62,7 +62,7 @@ export class Ball extends Phaser.GameObjects.Sprite {
     private readonly SNAP_THRESHOLD = PHYSICS_CONSTANTS.POSITION_SNAP_THRESHOLD;
     private readonly CORRECT_THRESHOLD =
         PHYSICS_CONSTANTS.POSITION_CORRECT_THRESHOLD;
-    private readonly PENDING_KICK_TIMEOUT = 500; // ms - drop unacknowledged kicks after this
+    private readonly PENDING_KICK_TIMEOUT = 1200; // ms - tolerate brief jitter spikes before dropping
 
     constructor(
         scene: Scene,
@@ -190,19 +190,9 @@ export class Ball extends Phaser.GameObjects.Sprite {
         }
 
         // Track server state
-        const prevSequence = this.lastServerSequence;
         this.lastServerSequence = packet.sequence;
         this.lastServerTick = packet.tick;
         this.lastServerTimestamp = packet.timestamp;
-
-        // Check if server acknowledged a new kick
-        const serverAcknowledgedKick = packet.sequence > prevSequence;
-
-        if (serverAcknowledgedKick) {
-            console.log(`[Ball] Server acknowledged kick! seq: ${prevSequence} -> ${packet.sequence}, pending: ${this.pendingKicks.length}`);
-            // Remove the oldest pending kick (FIFO - kicks are processed in order)
-            this.pendingKicks.shift();
-        }
 
         // Calculate prediction error
         const errorX = this.simState.x - packet.x;
@@ -448,5 +438,26 @@ export class Ball extends Phaser.GameObjects.Sprite {
             pendingKicks: this.pendingKicks.length,
             pendingKickIds: this.pendingKicks.map((k) => k.localId),
         };
+    }
+
+    /**
+     * Acknowledge a predicted kick when the authoritative "ball:kicked" event arrives.
+     * This avoids false acks from global ball sequence increments created by other players' kicks.
+     */
+    public acknowledgeKick(localKickId?: number): void {
+        if (this.pendingKicks.length === 0) return;
+
+        if (typeof localKickId === "number") {
+            const index = this.pendingKicks.findIndex(
+                (kick) => kick.localId === localKickId,
+            );
+            if (index !== -1) {
+                this.pendingKicks.splice(index, 1);
+                return;
+            }
+        }
+
+        // Fallback: if server didn't echo local ID, drop oldest pending kick.
+        this.pendingKicks.shift();
     }
 }

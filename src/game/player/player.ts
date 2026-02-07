@@ -33,6 +33,10 @@ interface RecordedInput extends PlayerPhysicsInput {
     speedMultiplier?: number;
 }
 
+interface NetworkInputPacket extends PlayerPhysicsInput {
+    sequence: number;
+}
+
 // Snapshot for remote player interpolation
 interface RemoteSnapshot {
     x: number;
@@ -40,6 +44,11 @@ interface RemoteSnapshot {
     vx: number;
     vy: number;
     timestamp: number;
+}
+
+interface SoccerPredictionScene {
+    players?: Map<string, Player>;
+    ball?: { targetPos: { x: number; y: number; vx: number; vy: number } };
 }
 
 export class Player extends Phaser.Physics.Arcade.Sprite {
@@ -60,6 +69,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     // === Input Tracking (for client-side prediction) ===
     private inputHistory: RecordedInput[] = [];
+    private pendingNetworkInputs: NetworkInputPacket[] = [];
     public currentSequence: number = 0;
     private currentInput: PlayerPhysicsInput = {
         up: false,
@@ -70,6 +80,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     private previousInput: PlayerPhysicsInput | null = null;
     private movementStartSequence: number = 0;
     private externalSpeedMultiplier: number = 1.0;
+    // Predictive contact against moving remote entities can diverge from server authority
+    // and get amplified during reconciliation replays.
+    private readonly ENABLE_LOCAL_COLLISION_PREDICTION: boolean = false;
 
     // === Remote Player Interpolation ===
     private snapshotBuffer: RemoteSnapshot[] = [];
@@ -401,6 +414,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             // Increment sequence
             this.currentSequence++;
 
+            const networkInput: NetworkInputPacket = {
+                ...this.currentInput,
+                sequence: this.currentSequence,
+            };
+
             // Record input for this tick
             let speedMultiplier: number | undefined;
             if (this.scene.scene.key === "SoccerMap") {
@@ -410,10 +428,10 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
                     this.externalSpeedMultiplier;
             }
             this.inputHistory.push({
-                ...this.currentInput,
-                sequence: this.currentSequence,
+                ...networkInput,
                 speedMultiplier,
             });
+            this.pendingNetworkInputs.push(networkInput);
 
             // Run physics
             this.runPhysicsTick();
@@ -424,6 +442,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         // 4. Trim old input history (keep ~1 second)
         while (this.inputHistory.length > 60) {
             this.inputHistory.shift();
+        }
+        while (this.pendingNetworkInputs.length > 120) {
+            this.pendingNetworkInputs.shift();
         }
     }
 
@@ -488,8 +509,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
                 speedMultiplier,
             );
 
-            // Local prediction for soccer collisions/knockback
-            if (this.isLocal) {
+            // Optional local contact prediction (disabled by default for stability)
+            if (this.isLocal && this.ENABLE_LOCAL_COLLISION_PREDICTION) {
                 this.applySoccerPredictionCollisions(this.physicsState);
             }
         } else {
@@ -524,6 +545,17 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             ...this.currentInput,
             sequence: this.currentSequence,
         };
+    }
+
+    /**
+     * Drain locally-simulated fixed-tick inputs to send over the network.
+     * Keeping this aligned with physics ticks avoids reconciliation jitter.
+     */
+    public drainPendingNetworkInputs(): NetworkInputPacket[] {
+        if (this.pendingNetworkInputs.length === 0) return [];
+        const drained = this.pendingNetworkInputs;
+        this.pendingNetworkInputs = [];
+        return drained;
     }
 
     // ============================================================================
@@ -576,7 +608,10 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
                 dragMultiplier,
                 speedMultiplier,
             );
-            if (this.scene.scene.key === "SoccerMap") {
+            if (
+                this.scene.scene.key === "SoccerMap" &&
+                this.ENABLE_LOCAL_COLLISION_PREDICTION
+            ) {
                 this.applySoccerPredictionCollisions(predictedState);
             }
         }
@@ -1219,6 +1254,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
             // Clear input history - predictions are now invalid
             this.inputHistory = [];
+            this.pendingNetworkInputs = [];
         }
 
         return this;
@@ -1239,11 +1275,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     }
 
     private applySoccerPredictionCollisions(state: PhysicsState) {
-        const sceneAny = this.scene as any;
-        const players: Map<string, Player> | undefined = sceneAny.players;
-        const ball = sceneAny.ball as
-            | { targetPos: { x: number; y: number; vx: number; vy: number } }
-            | undefined;
+        const soccerScene = this.scene as unknown as SoccerPredictionScene;
+        const players = soccerScene.players;
+        const ball = soccerScene.ball;
 
         if (players) {
             const localId = this.id;

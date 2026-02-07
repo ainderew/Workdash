@@ -53,8 +53,7 @@ export class SoccerMap extends BaseGameScene {
     
     private isMultiplayerMode: boolean = false;
     
-    // Network/Input Loop
-    private inputLoop: Phaser.Time.TimerEvent | null = null;
+    // Network/Input State
     private lastSentInput: { up: boolean; down: boolean; left: boolean; right: boolean } | null = null;
     
     // Skill State
@@ -155,7 +154,6 @@ export class SoccerMap extends BaseGameScene {
 
         if (this.isMultiplayerMode) {
             this.setupServerListeners();
-            this.startInputLoop();
         } else {
             this.setupLocalPhysics();
         }
@@ -184,6 +182,8 @@ export class SoccerMap extends BaseGameScene {
             this.updateTeamGlows();
 
             if (!isSelectionPhaseActive) {
+                this.sendPlayerInput();
+                this.checkDribbleInput();
                 const isGameActive = useSoccerStore.getState().isGameActive;
                 this.drawKickRange();
                 this.drawLurkingRadius();
@@ -245,11 +245,14 @@ export class SoccerMap extends BaseGameScene {
         });
 
         socket.on("ball:kicked", (data: any) => {
-            if (data.kickerId !== this.localPlayerId) {
-                this.sound.play("soccer_kick");
-                const kicker = this.players.get(data.kickerId);
-                if (kicker) this.addKickGlow(kicker);
+            if (data.kickerId === this.localPlayerId) {
+                this.ball.acknowledgeKick(data.localKickId);
+                return;
             }
+
+            this.sound.play("soccer_kick");
+            const kicker = this.players.get(data.kickerId);
+            if (kicker) this.addKickGlow(kicker);
         });
 
         socket.on("goal:scored", (data: any) => {
@@ -481,43 +484,36 @@ export class SoccerMap extends BaseGameScene {
         });
     }
 
-    private startInputLoop() {
-        this.inputLoop = this.time.addEvent({
-            delay: PHYSICS_CONSTANTS.FIXED_TIMESTEP_MS,
-            loop: true,
-            callback: () => {
-                this.sendPlayerInput();
-                this.checkDribbleInput();
-            },
-        });
-    }
-
     private sendPlayerInput() {
         if (!this.multiplayer) return;
         const player = this.players.get(this.localPlayerId);
         if (!player || !player.isLocal) return;
 
-        if (useSoccerStore.getState().isSelectionPhaseActive) return;
-
-        const input = player.getCurrentInput();
-
-        if (this.lastSentInput &&
-            this.lastSentInput.up === input.up &&
-            this.lastSentInput.down === input.down &&
-            this.lastSentInput.left === input.left &&
-            this.lastSentInput.right === input.right) {
-            // Optimization: could skip here, but server expects sequence continuity
+        if (useSoccerStore.getState().isSelectionPhaseActive) {
+            player.drainPendingNetworkInputs();
+            return;
         }
 
-        this.multiplayer.socket.emit("playerInput", {
-            up: input.up,
-            down: input.down,
-            left: input.left,
-            right: input.right,
-            sequence: input.sequence,
-        });
+        const pendingInputs = player.drainPendingNetworkInputs();
+        if (pendingInputs.length === 0) return;
 
-        this.lastSentInput = { up: input.up, down: input.down, left: input.left, right: input.right };
+        for (const input of pendingInputs) {
+            this.multiplayer.socket.emit("playerInput", {
+                up: input.up,
+                down: input.down,
+                left: input.left,
+                right: input.right,
+                sequence: input.sequence,
+            });
+        }
+
+        const latestInput = pendingInputs[pendingInputs.length - 1];
+        this.lastSentInput = {
+            up: latestInput.up,
+            down: latestInput.down,
+            left: latestInput.left,
+            right: latestInput.right,
+        };
     }
 
     private lastDribbleEmit: number = 0;
@@ -555,7 +551,7 @@ export class SoccerMap extends BaseGameScene {
         const kickPowerStat = this.soccerStats?.kickPower ?? 0;
 
         const kickVelocity = calculateKickVelocity(angle, basePower, kickPowerStat, this.isMetaVisionActive);
-        this.ball.predictKick(kickVelocity.vx, kickVelocity.vy);
+        const localKickId = this.ball.predictKick(kickVelocity.vx, kickVelocity.vy);
         this.sound.play("soccer_kick");
         this.addKickGlow(localPlayer);
 
@@ -564,6 +560,7 @@ export class SoccerMap extends BaseGameScene {
             kickPower: basePower,
             angle: angle,
             timestamp: Date.now(),
+            localKickId,
         });
     }
 
