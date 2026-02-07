@@ -86,7 +86,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     // === Remote Player Interpolation ===
     private snapshotBuffer: RemoteSnapshot[] = [];
-    private readonly INTERPOLATION_DELAY_MS = 100; // Render 100ms behind
+    private readonly INTERPOLATION_DELAY_MS = 33; // Lower delay for LAN-like feel
 
     // === Fixed Timestep Accumulator ===
     private physicsAccumulator: number = 0;
@@ -452,11 +452,13 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         const isCommandPaletteOpen = useUiStore.getState().isCommandPaletteOpen;
         const isSoccerMap = this.scene.scene.key === "SoccerMap";
         const isSoccerStatsReady = !isSoccerMap || this.soccerStats !== null;
+        const canMoveInSoccer = !isSoccerMap || !this.isSpectator;
         if (
             isCommandPaletteOpen ||
             !this.cursors ||
             !this.wasd ||
-            !isSoccerStatsReady
+            !isSoccerStatsReady ||
+            !canMoveInSoccer
         ) {
             this.currentInput = {
                 up: false,
@@ -641,9 +643,31 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             this.visualOffsetX = 0;
             this.visualOffsetY = 0;
 
-            console.log(
-                `[Player] Hard snap: error was ${errorDist.toFixed(1)}px`,
+            return;
+        }
+
+        const isMovingInput =
+            this.currentInput.up ||
+            this.currentInput.down ||
+            this.currentInput.left ||
+            this.currentInput.right;
+        const SOFT_CORRECT_WHILE_MOVING_THRESHOLD = 40;
+        if (isMovingInput && errorDist <= SOFT_CORRECT_WHILE_MOVING_THRESHOLD) {
+            // Preserve immediate movement feel by gently converging during active WASD.
+            // Hard snaps while moving are perceived as rubberbanding.
+            const blend = 0.35;
+            this.physicsState.x = Phaser.Math.Linear(
+                this.physicsState.x,
+                predictedState.x,
+                blend,
             );
+            this.physicsState.y = Phaser.Math.Linear(
+                this.physicsState.y,
+                predictedState.y,
+                blend,
+            );
+            this.physicsState.vx = predictedState.vx;
+            this.physicsState.vy = predictedState.vy;
             return;
         }
 
@@ -721,7 +745,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         } else if (renderTime >= snap1.timestamp) {
             // We're ahead of latest snapshot - extrapolate slightly
             const dt = (renderTime - snap1.timestamp) / 1000;
-            const maxExtrapolate = 0.1; // Max 100ms extrapolation
+            const maxExtrapolate = 0.033; // Max 33ms extrapolation
             const clampedDt = Math.min(dt, maxExtrapolate);
 
             this.physicsState.x = snap1.x + snap1.vx * clampedDt;

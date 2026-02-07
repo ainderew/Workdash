@@ -55,6 +55,8 @@ export class SoccerMap extends BaseGameScene {
     
     // Network/Input State
     private lastSentInput: { up: boolean; down: boolean; left: boolean; right: boolean } | null = null;
+    private lastInputSentAt: number = 0;
+    private readonly INPUT_HEARTBEAT_MS: number = 25;
     
     // Skill State
     private skillCooldown: number = 0;
@@ -497,23 +499,40 @@ export class SoccerMap extends BaseGameScene {
         const pendingInputs = player.drainPendingNetworkInputs();
         if (pendingInputs.length === 0) return;
 
-        for (const input of pendingInputs) {
-            this.multiplayer.socket.emit("playerInput", {
-                up: input.up,
-                down: input.down,
-                left: input.left,
-                right: input.right,
-                sequence: input.sequence,
-            });
-        }
-
         const latestInput = pendingInputs[pendingInputs.length - 1];
-        this.lastSentInput = {
+        if (!latestInput) return;
+
+        const latestDirectionalInput = {
             up: latestInput.up,
             down: latestInput.down,
             left: latestInput.left,
             right: latestInput.right,
         };
+
+        const now = Date.now();
+        const isInputChanged =
+            !this.lastSentInput ||
+            this.lastSentInput.up !== latestDirectionalInput.up ||
+            this.lastSentInput.down !== latestDirectionalInput.down ||
+            this.lastSentInput.left !== latestDirectionalInput.left ||
+            this.lastSentInput.right !== latestDirectionalInput.right;
+        const heartbeatElapsed =
+            now - this.lastInputSentAt >= this.INPUT_HEARTBEAT_MS;
+
+        if (!isInputChanged && !heartbeatElapsed) {
+            return;
+        }
+
+        this.multiplayer.socket.emit("playerInput", {
+            up: latestInput.up,
+            down: latestInput.down,
+            left: latestInput.left,
+            right: latestInput.right,
+            sequence: latestInput.sequence,
+        });
+
+        this.lastSentInput = latestDirectionalInput;
+        this.lastInputSentAt = now;
     }
 
     private lastDribbleEmit: number = 0;

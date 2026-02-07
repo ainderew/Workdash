@@ -62,7 +62,8 @@ export class Ball extends Phaser.GameObjects.Sprite {
     private readonly SNAP_THRESHOLD = PHYSICS_CONSTANTS.POSITION_SNAP_THRESHOLD;
     private readonly CORRECT_THRESHOLD =
         PHYSICS_CONSTANTS.POSITION_CORRECT_THRESHOLD;
-    private readonly PENDING_KICK_TIMEOUT = 1200; // ms - tolerate brief jitter spikes before dropping
+    private readonly PENDING_KICK_TIMEOUT = 700; // ms - avoids long-lived divergent kick prediction
+    private readonly DEBUG_LOGS = false;
 
     constructor(
         scene: Scene,
@@ -171,7 +172,7 @@ export class Ball extends Phaser.GameObjects.Sprite {
         });
 
         if (this.pendingKicks.length < beforeCount) {
-            console.warn(
+            this.debugWarn(
                 `[Ball] Dropped ${beforeCount - this.pendingKicks.length} stale pending kick(s)`,
             );
         }
@@ -205,7 +206,7 @@ export class Ball extends Phaser.GameObjects.Sprite {
         // DEBUG: Log every server update when ball is moving
         const speed = Math.sqrt(packet.vx * packet.vx + packet.vy * packet.vy);
         if (speed > 10 || positionError > 5) {
-            console.log(`[Ball] Server update:`, {
+            this.debugLog(`[Ball] Server update:`, {
                 serverPos: { x: packet.x.toFixed(0), y: packet.y.toFixed(0) },
                 serverVel: { vx: packet.vx.toFixed(0), vy: packet.vy.toFixed(0) },
                 clientPos: { x: this.simState.x.toFixed(0), y: this.simState.y.toFixed(0) },
@@ -226,7 +227,7 @@ export class Ball extends Phaser.GameObjects.Sprite {
             if (positionError > this.SNAP_THRESHOLD) {
                 // Massive error even with pending kicks - something is very wrong
                 // This could be a goal reset, teleport, or severe desync
-                console.warn(
+                this.debugWarn(
                     `[Ball] Large error (${positionError.toFixed(0)}px) with pending kicks - hard snap`,
                 );
                 this.hardSnapToServer(packet);
@@ -266,7 +267,7 @@ export class Ball extends Phaser.GameObjects.Sprite {
 
     /** Hard snap both physics and visuals to server state */
     private hardSnapToServer(packet: ServerBallState): void {
-        console.log(`[Ball] HARD SNAP to server: (${packet.x.toFixed(0)}, ${packet.y.toFixed(0)})`);
+        this.debugLog(`[Ball] HARD SNAP to server: (${packet.x.toFixed(0)}, ${packet.y.toFixed(0)})`);
         this.simState.x = packet.x;
         this.simState.y = packet.y;
         this.simState.vx = packet.vx;
@@ -284,7 +285,7 @@ export class Ball extends Phaser.GameObjects.Sprite {
 
     /** Snap physics to server but let visuals smooth */
     private correctToServer(packet: ServerBallState): void {
-        console.log(`[Ball] CORRECT to server: (${packet.x.toFixed(0)}, ${packet.y.toFixed(0)}) from (${this.simState.x.toFixed(0)}, ${this.simState.y.toFixed(0)})`);
+        this.debugLog(`[Ball] CORRECT to server: (${packet.x.toFixed(0)}, ${packet.y.toFixed(0)}) from (${this.simState.x.toFixed(0)}, ${this.simState.y.toFixed(0)})`);
         this.simState.x = packet.x;
         this.simState.y = packet.y;
         this.simState.vx = packet.vx;
@@ -294,7 +295,7 @@ export class Ball extends Phaser.GameObjects.Sprite {
 
     /** Gently blend physics toward server (for when we have pending kicks) */
     private softBlendToServer(packet: ServerBallState, factor: number): void {
-        console.log(`[Ball] SOFT BLEND (${factor}): toward (${packet.x.toFixed(0)}, ${packet.y.toFixed(0)})`);
+        this.debugLog(`[Ball] SOFT BLEND (${factor}): toward (${packet.x.toFixed(0)}, ${packet.y.toFixed(0)})`);
         this.simState.x += (packet.x - this.simState.x) * factor;
         this.simState.y += (packet.y - this.simState.y) * factor;
         // Don't blend velocity - keep our predicted velocity
@@ -327,7 +328,7 @@ export class Ball extends Phaser.GameObjects.Sprite {
         // Limit pending kicks (shouldn't have many in flight)
         while (this.pendingKicks.length > 3) {
             const dropped = this.pendingKicks.shift();
-            console.warn(
+            this.debugWarn(
                 `[Ball] Too many pending kicks, dropped #${dropped?.localId}`,
             );
         }
@@ -385,7 +386,7 @@ export class Ball extends Phaser.GameObjects.Sprite {
         // DEBUG: Log when there's significant render/sim divergence
         if (dist > 20) {
             const body = this.body as Phaser.Physics.Arcade.Body | null;
-            console.log(`[Ball] Position check:`, {
+            this.debugLog(`[Ball] Position check:`, {
                 spriteXY: { x: this.x.toFixed(0), y: this.y.toFixed(0) },
                 renderXY: { x: this.renderX.toFixed(0), y: this.renderY.toFixed(0) },
                 simXY: { x: this.simState.x.toFixed(0), y: this.simState.y.toFixed(0) },
@@ -459,5 +460,15 @@ export class Ball extends Phaser.GameObjects.Sprite {
 
         // Fallback: if server didn't echo local ID, drop oldest pending kick.
         this.pendingKicks.shift();
+    }
+
+    private debugLog(message?: unknown, ...optionalParams: unknown[]) {
+        if (!this.DEBUG_LOGS) return;
+        console.log(message, ...optionalParams);
+    }
+
+    private debugWarn(message?: unknown, ...optionalParams: unknown[]) {
+        if (!this.DEBUG_LOGS) return;
+        console.warn(message, ...optionalParams);
     }
 }
