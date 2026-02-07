@@ -439,11 +439,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             this.physicsAccumulator -= PHYSICS_CONSTANTS.FIXED_TIMESTEP_MS;
         }
 
-        // 4. Trim old input history (keep ~1 second)
-        while (this.inputHistory.length > 60) {
+        // 4. Trim old input history (keep several seconds to tolerate ack jitter)
+        while (this.inputHistory.length > 300) {
             this.inputHistory.shift();
         }
-        while (this.pendingNetworkInputs.length > 120) {
+        while (this.pendingNetworkInputs.length > 480) {
             this.pendingNetworkInputs.shift();
         }
     }
@@ -626,6 +626,18 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             0,
             this.currentSequence - lastServerSequence,
         );
+        const oldestUnackedSequence = this.inputHistory[0]?.sequence;
+        const ackOutOfReplayWindow =
+            oldestUnackedSequence !== undefined &&
+            lastServerSequence < oldestUnackedSequence - 1;
+
+        if (ackOutOfReplayWindow) {
+            // Server ack is older than our replay window, so positional correction
+            // would pull toward stale authority. Keep velocity synced and wait.
+            this.physicsState.vx = predictedState.vx;
+            this.physicsState.vy = predictedState.vy;
+            return;
+        }
 
         // 4. Decide how to correct
         const dynamicCorrectThreshold =
