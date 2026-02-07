@@ -80,13 +80,13 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     private previousInput: PlayerPhysicsInput | null = null;
     private movementStartSequence: number = 0;
     private externalSpeedMultiplier: number = 1.0;
-    // Predictive contact against moving remote entities can diverge from server authority
-    // and get amplified during reconciliation replays.
-    private readonly ENABLE_LOCAL_COLLISION_PREDICTION: boolean = false;
+    // Keep local movement aligned with server-side collision/knockback authority.
+    private readonly ENABLE_LOCAL_COLLISION_PREDICTION: boolean = true;
+    private wasPredictivelyTouchingBall: boolean = false;
 
     // === Remote Player Interpolation ===
     private snapshotBuffer: RemoteSnapshot[] = [];
-    private readonly INTERPOLATION_DELAY_MS = 33; // Lower delay for LAN-like feel
+    private readonly INTERPOLATION_DELAY_MS = 24; // Lower delay for LAN-like feel
 
     // === Fixed Timestep Accumulator ===
     private physicsAccumulator: number = 0;
@@ -622,9 +622,16 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         const errorX = this.physicsState.x - predictedState.x;
         const errorY = this.physicsState.y - predictedState.y;
         const errorDist = Math.sqrt(errorX * errorX + errorY * errorY);
+        const serverLagSequences = Math.max(
+            0,
+            this.currentSequence - lastServerSequence,
+        );
 
         // 4. Decide how to correct
-        if (errorDist < PHYSICS_CONSTANTS.POSITION_CORRECT_THRESHOLD) {
+        const dynamicCorrectThreshold =
+            PHYSICS_CONSTANTS.POSITION_CORRECT_THRESHOLD +
+            Math.min(10, this.inputHistory.length * 0.35);
+        if (errorDist < dynamicCorrectThreshold) {
             // Close enough - no correction needed
             // Just sync velocity to prevent drift
             this.physicsState.vx = predictedState.vx;
@@ -651,11 +658,13 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             this.currentInput.down ||
             this.currentInput.left ||
             this.currentInput.right;
-        const SOFT_CORRECT_WHILE_MOVING_THRESHOLD = 40;
-        if (isMovingInput && errorDist <= SOFT_CORRECT_WHILE_MOVING_THRESHOLD) {
+        const softCorrectWhileMovingThreshold =
+            90 + Math.min(60, serverLagSequences);
+        if (isMovingInput && errorDist <= softCorrectWhileMovingThreshold) {
             // Preserve immediate movement feel by gently converging during active WASD.
             // Hard snaps while moving are perceived as rubberbanding.
-            const blend = 0.35;
+            const blend =
+                errorDist > 90 ? 0.2 : errorDist > 45 ? 0.15 : 0.1;
             this.physicsState.x = Phaser.Math.Linear(
                 this.physicsState.x,
                 predictedState.x,
@@ -673,13 +682,38 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
         // During movement startup phase, skip reconciliation entirely
         // Trust client prediction until server has caught up with our inputs
-        const STARTUP_GRACE_TICKS = 10;
+        const STARTUP_GRACE_TICKS = 4;
         const inStartupPhase = this.movementStartSequence > 0 &&
             (this.currentSequence - this.movementStartSequence) < STARTUP_GRACE_TICKS &&
             lastServerSequence < this.movementStartSequence + STARTUP_GRACE_TICKS;
 
         if (inStartupPhase) {
             // Only sync velocity, don't touch position during startup
+            this.physicsState.vx = predictedState.vx;
+            this.physicsState.vy = predictedState.vy;
+            return;
+        }
+
+        if (isMovingInput) {
+            // Avoid medium-range hard snaps while actively moving.
+            // Keep server authority but converge continuously to preserve LAN-like feel.
+            const lagDamping = Phaser.Math.Clamp(
+                serverLagSequences / 40,
+                0,
+                1,
+            );
+            const baseBlend = errorDist > 120 ? 0.22 : 0.16;
+            const blend = baseBlend * (1 - lagDamping * 0.45);
+            this.physicsState.x = Phaser.Math.Linear(
+                this.physicsState.x,
+                predictedState.x,
+                blend,
+            );
+            this.physicsState.y = Phaser.Math.Linear(
+                this.physicsState.y,
+                predictedState.y,
+                blend,
+            );
             this.physicsState.vx = predictedState.vx;
             this.physicsState.vy = predictedState.vy;
             return;
@@ -745,7 +779,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         } else if (renderTime >= snap1.timestamp) {
             // We're ahead of latest snapshot - extrapolate slightly
             const dt = (renderTime - snap1.timestamp) / 1000;
-            const maxExtrapolate = 0.033; // Max 33ms extrapolation
+            const maxExtrapolate = 0.024; // Max 24ms extrapolation
             const clampedDt = Math.min(dt, maxExtrapolate);
 
             this.physicsState.x = snap1.x + snap1.vx * clampedDt;
@@ -1271,6 +1305,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             this.physicsState.y = y;
             this.physicsState.vx = 0;
             this.physicsState.vy = 0;
+            this.wasPredictivelyTouchingBall = false;
 
             // Clear visual offset on teleport
             this.visualOffsetX = 0;
@@ -1316,9 +1351,17 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
                 const minDistance =
                     PHYSICS_CONSTANTS.PLAYER_RADIUS * 2;
 
-                if (distance < minDistance && distance > 0) {
-                    const nx = dx / distance;
-                    const ny = dy / distance;
+                if (distance < minDistance) {
+                    let nx: number;
+                    let ny: number;
+                    if (distance <= 0.0001) {
+                        const localBeforeOther = this.id < id;
+                        nx = localBeforeOther ? 1 : -1;
+                        ny = 0;
+                    } else {
+                        nx = dx / distance;
+                        ny = dy / distance;
+                    }
                     const overlap = minDistance - distance;
 
                     // Apply half separation to local only (server splits evenly)
@@ -1340,8 +1383,13 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             const minDistance =
                 PHYSICS_CONSTANTS.BALL_RADIUS +
                 PHYSICS_CONSTANTS.PLAYER_RADIUS;
+            const touchingBall = distance < minDistance;
 
-            if (distance < minDistance && distance > 0) {
+            if (
+                touchingBall &&
+                !this.wasPredictivelyTouchingBall &&
+                distance > 0
+            ) {
                 const ballSpeed = Math.sqrt(
                     ball.targetPos.vx * ball.targetPos.vx +
                         ball.targetPos.vy * ball.targetPos.vy,
@@ -1357,6 +1405,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
                     state.vy += ny * knockbackMagnitude;
                 }
             }
+            this.wasPredictivelyTouchingBall = touchingBall;
         }
     }
 

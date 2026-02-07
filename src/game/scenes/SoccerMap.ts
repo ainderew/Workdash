@@ -54,9 +54,9 @@ export class SoccerMap extends BaseGameScene {
     private isMultiplayerMode: boolean = false;
     
     // Network/Input State
-    private lastSentInput: { up: boolean; down: boolean; left: boolean; right: boolean } | null = null;
-    private lastInputSentAt: number = 0;
-    private readonly INPUT_HEARTBEAT_MS: number = 25;
+    private inputFlushTimer: ReturnType<typeof setInterval> | null = null;
+    private readonly INPUT_FLUSH_INTERVAL_MS: number = 8;
+    private readonly MAX_INPUT_BATCH_SIZE: number = 32;
     
     // Skill State
     private skillCooldown: number = 0;
@@ -156,6 +156,13 @@ export class SoccerMap extends BaseGameScene {
 
         if (this.isMultiplayerMode) {
             this.setupServerListeners();
+            this.startInputFlushLoop();
+            this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+                this.stopInputFlushLoop();
+            });
+            this.events.once(Phaser.Scenes.Events.DESTROY, () => {
+                this.stopInputFlushLoop();
+            });
         } else {
             this.setupLocalPhysics();
         }
@@ -184,7 +191,6 @@ export class SoccerMap extends BaseGameScene {
             this.updateTeamGlows();
 
             if (!isSelectionPhaseActive) {
-                this.sendPlayerInput();
                 this.checkDribbleInput();
                 const isGameActive = useSoccerStore.getState().isGameActive;
                 this.drawKickRange();
@@ -499,40 +505,30 @@ export class SoccerMap extends BaseGameScene {
         const pendingInputs = player.drainPendingNetworkInputs();
         if (pendingInputs.length === 0) return;
 
-        const latestInput = pendingInputs[pendingInputs.length - 1];
-        if (!latestInput) return;
-
-        const latestDirectionalInput = {
-            up: latestInput.up,
-            down: latestInput.down,
-            left: latestInput.left,
-            right: latestInput.right,
-        };
-
-        const now = Date.now();
-        const isInputChanged =
-            !this.lastSentInput ||
-            this.lastSentInput.up !== latestDirectionalInput.up ||
-            this.lastSentInput.down !== latestDirectionalInput.down ||
-            this.lastSentInput.left !== latestDirectionalInput.left ||
-            this.lastSentInput.right !== latestDirectionalInput.right;
-        const heartbeatElapsed =
-            now - this.lastInputSentAt >= this.INPUT_HEARTBEAT_MS;
-
-        if (!isInputChanged && !heartbeatElapsed) {
-            return;
+        for (let i = 0; i < pendingInputs.length; i += this.MAX_INPUT_BATCH_SIZE) {
+            const chunk = pendingInputs.slice(i, i + this.MAX_INPUT_BATCH_SIZE);
+            if (chunk.length === 0) continue;
+            this.multiplayer.socket.emit("playerInputBatch", { inputs: chunk });
         }
 
-        this.multiplayer.socket.emit("playerInput", {
-            up: latestInput.up,
-            down: latestInput.down,
-            left: latestInput.left,
-            right: latestInput.right,
-            sequence: latestInput.sequence,
-        });
+    }
 
-        this.lastSentInput = latestDirectionalInput;
-        this.lastInputSentAt = now;
+    private startInputFlushLoop() {
+        if (this.inputFlushTimer !== null) {
+            clearInterval(this.inputFlushTimer);
+            this.inputFlushTimer = null;
+        }
+
+        this.inputFlushTimer = setInterval(() => {
+            this.sendPlayerInput();
+        }, this.INPUT_FLUSH_INTERVAL_MS);
+    }
+
+    private stopInputFlushLoop() {
+        if (this.inputFlushTimer === null) return;
+        this.sendPlayerInput();
+        clearInterval(this.inputFlushTimer);
+        this.inputFlushTimer = null;
     }
 
     private lastDribbleEmit: number = 0;
@@ -917,13 +913,19 @@ export class SoccerMap extends BaseGameScene {
     private async checkSoccerStats() {
         try {
             if (this.soccerStats) return;
+            const localPlayer = this.players.get(this.localPlayerId);
+            if (localPlayer?.soccerStats) {
+                this.soccerStats = localPlayer.soccerStats;
+                return;
+            }
+
             const stats = await getSoccerStats();
             if (!stats) {
                 useUiStore.getState().openSoccerStatsModal();
             } else {
+                // API stats are only a fallback before socket-synced player data arrives.
                 this.soccerStats = stats;
-                const localPlayer = this.players.get(this.localPlayerId);
-                if (localPlayer) {
+                if (localPlayer && !localPlayer.soccerStats) {
                     localPlayer.soccerStats = stats;
                 }
             }

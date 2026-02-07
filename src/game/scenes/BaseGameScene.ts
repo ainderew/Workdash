@@ -618,13 +618,22 @@ export abstract class BaseGameScene extends Scene {
 
                 // If in SoccerMap, pass soccer stats to the player instance
                 if (this.currentSceneName === "SoccerMap") {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    const soccerStore = (this as any).soccerStats;
+                    const sceneWithSoccerStats = this as this & {
+                        soccerStats?: {
+                            speed: number;
+                            kickPower: number;
+                            dribbling: number;
+                        } | null;
+                    };
+                    const soccerStore = sceneWithSoccerStats.soccerStats;
                     const resolvedStats = soccerStats ?? soccerStore;
                     if (resolvedStats) {
                         playerInstance.soccerStats = resolvedStats;
-                        if (!soccerStore) {
-                            (this as any).soccerStats = resolvedStats;
+                        // Keep scene-level stats aligned with authoritative socket payload.
+                        if (soccerStats) {
+                            sceneWithSoccerStats.soccerStats = soccerStats;
+                        } else if (!soccerStore) {
+                            sceneWithSoccerStats.soccerStats = resolvedStats;
                         }
                     }
                 }
@@ -640,7 +649,7 @@ export abstract class BaseGameScene extends Scene {
 
     protected setupLocalPlayer(localPlayer: Player): void {
         this.localPlayerId = localPlayer.id;
-        this.cameras.main.startFollow(localPlayer, true, 0.1, 0.1);
+        this.cameras.main.startFollow(localPlayer, true, 0.25, 0.25);
         usePlayersStore.getState().setLocalPlayerId(localPlayer.id);
     }
 

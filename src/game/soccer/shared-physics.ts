@@ -16,8 +16,8 @@ export const PHYSICS_CONSTANTS = {
   BALL_RADIUS: 30,
 
   // Player physics
-  PLAYER_DRAG: 4, // Higher = snappier stops
-  PLAYER_ACCEL: 1600, // Base acceleration
+  PLAYER_DRAG: 4.5, // Higher = snappier stops
+  PLAYER_ACCEL: 2600, // Base acceleration
   PLAYER_MAX_SPEED: 600, // Base max speed
   PLAYER_RADIUS: 30,
 
@@ -30,13 +30,13 @@ export const PHYSICS_CONSTANTS = {
   FIXED_TIMESTEP_SEC: 0.016, // Exactly 16/1000
 
   // Network
-  NETWORK_TICK_MS: 25, // 40 Hz broadcast rate
+  NETWORK_TICK_MS: 16, // ~62.5 Hz broadcast rate
 
   // Thresholds
   VELOCITY_STOP_THRESHOLD: 10, // Ball considered stopped below this
-  POSITION_SNAP_THRESHOLD: 200, // Teleport if error exceeds this
-  POSITION_CORRECT_THRESHOLD: 10, // Ignore errors below this
-  VELOCITY_CORRECT_THRESHOLD: 40, // Ignore velocity errors below this
+  POSITION_SNAP_THRESHOLD: 280, // Teleport if error exceeds this
+  POSITION_CORRECT_THRESHOLD: 14, // Ignore errors below this
+  VELOCITY_CORRECT_THRESHOLD: 60, // Ignore velocity errors below this
 } as const;
 
 // Type definitions
