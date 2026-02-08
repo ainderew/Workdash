@@ -78,6 +78,12 @@ export class SoccerMap extends BaseGameScene {
     private localSpeedMultiplier: number = 1.0;
     private activeSpeedSkillId: string | null = null;
     private serverTickOffsetMs: number | null = null;
+    private diagnosticsText: Phaser.GameObjects.Text | null = null;
+    private diagnosticsEvent: Phaser.Time.TimerEvent | null = null;
+    private localServerAckSequence: number = 0;
+    private localServerQueueDepth: number = 0;
+    private localServerInputSequence: number = 0;
+    private localServerTick: number = 0;
 
     private activeSkillPlayerId: string | null = null;
     private activeSkillId: string | null = null;
@@ -159,9 +165,11 @@ export class SoccerMap extends BaseGameScene {
             this.startInputFlushLoop();
             this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
                 this.stopInputFlushLoop();
+                this.destroyNetworkDiagnosticsUI();
             });
             this.events.once(Phaser.Scenes.Events.DESTROY, () => {
                 this.stopInputFlushLoop();
+                this.destroyNetworkDiagnosticsUI();
             });
         } else {
             this.setupLocalPhysics();
@@ -301,6 +309,12 @@ export class SoccerMap extends BaseGameScene {
                 }
 
                 if (player.isLocal) {
+                    this.localServerAckSequence = update.lastSequence || 0;
+                    this.localServerQueueDepth = update.inputQueueDepth || 0;
+                    this.localServerInputSequence = update.serverInputSequence || 0;
+                    if (typeof tick === "number") {
+                        this.localServerTick = tick;
+                    }
                     player.reconcile(
                         update.x,
                         update.y,
@@ -805,12 +819,63 @@ export class SoccerMap extends BaseGameScene {
 
     private createNetworkDiagnosticsUI() {
         if (!this.isMultiplayerMode) return;
-        const text = this.add.text(10, 50, "", { fontSize: "14px", color: "#00ff00", backgroundColor: "#000000aa", padding: { x: 5, y: 5 } }).setScrollFactor(0).setDepth(10000);
-        this.time.addEvent({ delay: 500, loop: true, callback: () => {
-            const ping = useUiStore.getState().ping || 0;
-            const tick = this.ball?.targetPos?.t || 0;
-            text.setText([`Ping: ${ping}ms`, `Sim Tick: ${tick}`].join("\n"));
-        }});
+        this.destroyNetworkDiagnosticsUI();
+
+        this.diagnosticsText = this.add
+            .text(10, 50, "", {
+                fontSize: "13px",
+                color: "#00ff00",
+                backgroundColor: "#000000cc",
+                padding: { x: 6, y: 6 },
+            })
+            .setScrollFactor(0)
+            .setDepth(10000);
+
+        this.diagnosticsEvent = this.time.addEvent({
+            delay: 200,
+            loop: true,
+            callback: () => {
+                const ping = useUiStore.getState().ping || 0;
+                const localPlayer = this.players.get(this.localPlayerId);
+                const localSequence = localPlayer?.currentSequence || 0;
+                const ackLag = Math.max(
+                    0,
+                    localSequence - this.localServerAckSequence,
+                );
+                const telemetry = localPlayer?.isLocal
+                    ? localPlayer.getReconcileTelemetry()
+                    : null;
+
+                const lines = [
+                    `Ping: ${ping}ms`,
+                    `Server Tick: ${this.localServerTick}`,
+                    `Client Seq: ${localSequence}`,
+                    `Ack Seq: ${this.localServerAckSequence}`,
+                    `Ack Lag Seq: ${ackLag}`,
+                    `Srv Input Seq: ${this.localServerInputSequence}`,
+                    `Srv Queue Depth: ${this.localServerQueueDepth}`,
+                    `Rec Action: ${telemetry?.action || "n/a"}`,
+                    `Rec Error: ${(telemetry?.errorDist || 0).toFixed(2)}`,
+                    `Rec Lag Seq: ${telemetry?.serverLagSequences || 0}`,
+                    `Rec Along: ${(telemetry?.correctionAlongMotion || 0).toFixed(2)}`,
+                    `Rec Hist: ${telemetry?.inputHistoryLength || 0}`,
+                    `Rec StaleAck: ${telemetry?.ackOutOfReplayWindow ? "yes" : "no"}`,
+                ];
+
+                this.diagnosticsText?.setText(lines.join("\n"));
+            },
+        });
+    }
+
+    private destroyNetworkDiagnosticsUI() {
+        if (this.diagnosticsEvent) {
+            this.diagnosticsEvent.remove(false);
+            this.diagnosticsEvent = null;
+        }
+        if (this.diagnosticsText) {
+            this.diagnosticsText.destroy();
+            this.diagnosticsText = null;
+        }
     }
 
     private applySkillVisuals(activatorId: string, visualConfig: any) {
