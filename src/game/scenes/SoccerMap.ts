@@ -92,6 +92,10 @@ export class SoccerMap extends BaseGameScene {
     private localServerDribblingStat: number = 0;
     private lastKickRejectReason: string = "none";
     private lastKickRejectAtMs: number = 0;
+    private lastKickRejectDistance: number = 0;
+    private lastKickRejectCurrentDistance: number = 0;
+    private lastKickRejectRewoundDistance: number = 0;
+    private lastKickRejectMaxDistance: number = 0;
 
     private activeSkillPlayerId: string | null = null;
     private activeSkillId: string | null = null;
@@ -284,6 +288,20 @@ export class SoccerMap extends BaseGameScene {
             this.ball.acknowledgeKick(data?.localKickId);
             this.lastKickRejectReason = data?.reason || "unknown";
             this.lastKickRejectAtMs = Date.now();
+            this.lastKickRejectDistance =
+                typeof data?.distance === "number" ? data.distance : 0;
+            this.lastKickRejectCurrentDistance =
+                typeof data?.currentDistance === "number"
+                    ? data.currentDistance
+                    : 0;
+            this.lastKickRejectRewoundDistance =
+                typeof data?.rewoundDistance === "number"
+                    ? data.rewoundDistance
+                    : 0;
+            this.lastKickRejectMaxDistance =
+                typeof data?.maxKickDistance === "number"
+                    ? data.maxKickDistance
+                    : 0;
             this.ball.onServerUpdate({
                 x: data?.x ?? this.ball.x,
                 y: data?.y ?? this.ball.y,
@@ -981,6 +999,7 @@ export class SoccerMap extends BaseGameScene {
                     `Ball Tick Drift: ${(ballTelemetry?.tick || 0) - (ballTelemetry?.serverTick || 0)}`,
                     `Ball Pending: ${ballTelemetry?.pendingKicks || 0} (${(ballTelemetry?.pendingKickIds || []).join(",") || "-"})`,
                     `Ball KickReject: ${this.lastKickRejectReason}${lastKickRejectAgoMs >= 0 ? ` (${Math.round(lastKickRejectAgoMs)}ms ago)` : ""}`,
+                    `Ball Reject Dist E/C/R/M: ${this.lastKickRejectDistance.toFixed(0)}/${this.lastKickRejectCurrentDistance.toFixed(0)}/${this.lastKickRejectRewoundDistance.toFixed(0)}/${this.lastKickRejectMaxDistance.toFixed(0)}`,
                 ];
 
                 const diagnosticsValue = lines.join("\n");
