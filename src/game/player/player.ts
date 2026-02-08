@@ -776,7 +776,15 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             const dxToTarget = predictedState.x - this.physicsState.x;
             const dyToTarget = predictedState.y - this.physicsState.y;
             const maxStep =
-                errorDist > 140 ? 2.4 : errorDist > 80 ? 1.6 : 1.0;
+                errorDist > 220
+                    ? 7.5
+                    : errorDist > 160
+                      ? 5.0
+                      : errorDist > 110
+                        ? 3.2
+                        : errorDist > 70
+                          ? 2.0
+                          : 1.2;
             this.physicsState.x += Phaser.Math.Clamp(
                 dxToTarget,
                 -maxStep,
@@ -803,7 +811,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             isMovingInput &&
             motionMag > 0 &&
             correctionAlongMotion < -0.5 &&
-            errorDist < PHYSICS_CONSTANTS.POSITION_SNAP_THRESHOLD
+            errorDist <= 72
         ) {
             // Do not pull backwards while player is continuously moving.
             // This is the primary source of perceived rubberbanding on held WASD.
