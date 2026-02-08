@@ -50,6 +50,7 @@ export class Ball extends Phaser.GameObjects.Sprite {
     private lastServerSequence: number = 0;
     private lastServerTick: number = 0;
     private lastServerTimestamp: number = 0;
+    private lastAuthoritativeState: ServerBallState | null = null;
 
     // === Pending Kicks (client predictions awaiting server confirmation) ===
     private pendingKicks: PendingKick[] = [];
@@ -63,6 +64,8 @@ export class Ball extends Phaser.GameObjects.Sprite {
     private readonly CORRECT_THRESHOLD =
         PHYSICS_CONSTANTS.POSITION_CORRECT_THRESHOLD;
     private readonly PENDING_KICK_TIMEOUT = 700; // ms - avoids long-lived divergent kick prediction
+    private readonly KICK_REJECT_FALLBACK_MS = 320;
+    private readonly KICK_REJECT_HARD_SNAP_DIST = 90;
     private readonly DEBUG_LOGS = false;
 
     constructor(
@@ -148,6 +151,7 @@ export class Ball extends Phaser.GameObjects.Sprite {
 
         // 3. Clean up stale pending kicks
         this.cleanupStalePendingKicks();
+        this.resolveRejectedPendingKick();
 
         // 4. Update visual representation (smooth interpolation)
         this.updateVisuals();
@@ -178,6 +182,39 @@ export class Ball extends Phaser.GameObjects.Sprite {
         }
     }
 
+    /**
+     * If a predicted kick is still pending and the server never advanced the
+     * kick sequence, treat it as rejected and converge quickly.
+     */
+    private resolveRejectedPendingKick(): void {
+        if (!this.lastAuthoritativeState) return;
+        if (this.pendingKicks.length === 0) return;
+
+        const oldestPending = this.pendingKicks[0];
+        if (!oldestPending) return;
+
+        const ageMs = Date.now() - oldestPending.predictedAt;
+        const serverDidNotAdvance =
+            this.lastServerSequence <= oldestPending.sequenceBefore;
+        if (ageMs < this.KICK_REJECT_FALLBACK_MS || !serverDidNotAdvance) {
+            return;
+        }
+
+        this.pendingKicks.shift();
+        const dx = this.simState.x - this.lastAuthoritativeState.x;
+        const dy = this.simState.y - this.lastAuthoritativeState.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist > this.KICK_REJECT_HARD_SNAP_DIST) {
+            this.hardSnapToServer(this.lastAuthoritativeState);
+        } else {
+            this.correctToServer(this.lastAuthoritativeState);
+        }
+
+        this.debugWarn(
+            `[Ball] Kick #${oldestPending.localId} rolled back after ${ageMs.toFixed(0)}ms (no server ack)`,
+        );
+    }
+
     // === Server Reconciliation ===
 
     /**
@@ -194,6 +231,7 @@ export class Ball extends Phaser.GameObjects.Sprite {
         this.lastServerSequence = packet.sequence;
         this.lastServerTick = packet.tick;
         this.lastServerTimestamp = packet.timestamp;
+        this.lastAuthoritativeState = { ...packet };
 
         // Calculate prediction error
         const errorX = this.simState.x - packet.x;

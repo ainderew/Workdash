@@ -90,6 +90,8 @@ export class SoccerMap extends BaseGameScene {
     private localServerSpeedStat: number = 0;
     private localServerKickPowerStat: number = 0;
     private localServerDribblingStat: number = 0;
+    private lastKickRejectReason: string = "none";
+    private lastKickRejectAtMs: number = 0;
 
     private activeSkillPlayerId: string | null = null;
     private activeSkillId: string | null = null;
@@ -280,6 +282,8 @@ export class SoccerMap extends BaseGameScene {
         socket.on("ball:kickRejected", (data: any) => {
             // Fast rollback for predicted local kicks rejected by server authority.
             this.ball.acknowledgeKick(data?.localKickId);
+            this.lastKickRejectReason = data?.reason || "unknown";
+            this.lastKickRejectAtMs = Date.now();
             this.ball.onServerUpdate({
                 x: data?.x ?? this.ball.x,
                 y: data?.y ?? this.ball.y,
@@ -950,6 +954,9 @@ export class SoccerMap extends BaseGameScene {
                           pendingKickIds?: number[];
                       }
                     | undefined;
+                const lastKickRejectAgoMs = this.lastKickRejectAtMs
+                    ? Date.now() - this.lastKickRejectAtMs
+                    : -1;
 
                 const lines = [
                     `Ping: ${ping}ms`,
@@ -973,6 +980,7 @@ export class SoccerMap extends BaseGameScene {
                     `Ball Tick L/S: ${ballTelemetry?.tick || 0}/${ballTelemetry?.serverTick || 0}`,
                     `Ball Tick Drift: ${(ballTelemetry?.tick || 0) - (ballTelemetry?.serverTick || 0)}`,
                     `Ball Pending: ${ballTelemetry?.pendingKicks || 0} (${(ballTelemetry?.pendingKickIds || []).join(",") || "-"})`,
+                    `Ball KickReject: ${this.lastKickRejectReason}${lastKickRejectAgoMs >= 0 ? ` (${Math.round(lastKickRejectAgoMs)}ms ago)` : ""}`,
                 ];
 
                 const diagnosticsValue = lines.join("\n");
