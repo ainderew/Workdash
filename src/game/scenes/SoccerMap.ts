@@ -277,6 +277,21 @@ export class SoccerMap extends BaseGameScene {
             if (kicker) this.addKickGlow(kicker);
         });
 
+        socket.on("ball:kickRejected", (data: any) => {
+            // Fast rollback for predicted local kicks rejected by server authority.
+            this.ball.acknowledgeKick(data?.localKickId);
+            this.ball.onServerUpdate({
+                x: data?.x ?? this.ball.x,
+                y: data?.y ?? this.ball.y,
+                vx: data?.vx ?? 0,
+                vy: data?.vy ?? 0,
+                sequence: data?.sequence ?? 0,
+                tick: data?.tick ?? this.localServerTick,
+                timestamp: data?.timestamp ?? Date.now(),
+                lastTouchId: data?.lastTouchId ?? null,
+            });
+        });
+
         socket.on("goal:scored", (data: any) => {
             console.log(`GOAL! ${data.scoringTeam} scored!`);
             this.sound.play("soccer_cheer", { volume: 0.2 });
@@ -926,6 +941,15 @@ export class SoccerMap extends BaseGameScene {
                 const predictionTelemetry = localPlayer?.isLocal
                     ? localPlayer.getPredictionTelemetry()
                     : null;
+                const ballTelemetry = this.ball?.getDebugInfo() as
+                    | {
+                          tick?: number;
+                          serverTick?: number;
+                          serverSequence?: number;
+                          pendingKicks?: number;
+                          pendingKickIds?: number[];
+                      }
+                    | undefined;
 
                 const lines = [
                     `Ping: ${ping}ms`,
@@ -945,6 +969,10 @@ export class SoccerMap extends BaseGameScene {
                     `SpeedMul L/S: ${(predictionTelemetry?.effectiveSpeedMultiplier || 1).toFixed(2)}/${this.localServerSpeedMultiplier.toFixed(2)}`,
                     `DragMul L/S: ${(predictionTelemetry?.effectiveDragMultiplier || 1).toFixed(2)}/${this.localServerDragMultiplier.toFixed(2)}`,
                     `SpeedMul Src: ${predictionTelemetry?.authoritativeSpeedMultiplier != null ? "server" : "local"}`,
+                    `Ball Seq: ${ballTelemetry?.serverSequence || 0}`,
+                    `Ball Tick L/S: ${ballTelemetry?.tick || 0}/${ballTelemetry?.serverTick || 0}`,
+                    `Ball Tick Drift: ${(ballTelemetry?.tick || 0) - (ballTelemetry?.serverTick || 0)}`,
+                    `Ball Pending: ${ballTelemetry?.pendingKicks || 0} (${(ballTelemetry?.pendingKickIds || []).join(",") || "-"})`,
                 ];
 
                 const diagnosticsValue = lines.join("\n");
