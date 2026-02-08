@@ -407,6 +407,7 @@ export class SoccerMap extends BaseGameScene {
                         update.vy,
                         update.lastSequence || 0,
                         tick,
+                        update.serverInputSequence || 0,
                     );
                 } else {
                     player.pushSnapshot({

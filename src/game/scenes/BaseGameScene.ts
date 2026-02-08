@@ -72,7 +72,9 @@ export abstract class BaseGameScene extends Scene {
         this.createAnimatedObjects(map);
         this.createDoors(map);
 
-        this.playersLayer = this.physics.add.group({ runChildUpdate: true });
+        // Player updates are driven manually in BaseGameScene.update().
+        // Keep child auto-update disabled to avoid double simulation.
+        this.playersLayer = this.physics.add.group({ runChildUpdate: false });
 
         this.setupCollisions(layers);
         this.setupTeleports(map);

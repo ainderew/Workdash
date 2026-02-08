@@ -616,15 +616,26 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         serverVY: number,
         lastServerSequence: number,
         serverTick?: number,
+        serverInputSequence?: number,
     ) {
         if (!this.isLocal) return;
         if (serverTick !== undefined) {
             this.lastServerTick = serverTick;
         }
 
+        const normalizedServerInputSequence =
+            typeof serverInputSequence === "number" &&
+            Number.isFinite(serverInputSequence)
+                ? Math.max(0, Math.floor(serverInputSequence))
+                : lastServerSequence;
+        const effectiveServerSequence = Math.max(
+            lastServerSequence,
+            Math.min(this.currentSequence, normalizedServerInputSequence),
+        );
+
         // 1. Remove acknowledged inputs from history
         this.inputHistory = this.inputHistory.filter(
-            (input) => input.sequence > lastServerSequence,
+            (input) => input.sequence > effectiveServerSequence,
         );
 
         // 2. Re-simulate from server state with remaining unacknowledged inputs
@@ -663,20 +674,20 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         const errorDist = Math.sqrt(errorX * errorX + errorY * errorY);
         const serverLagSequences = Math.max(
             0,
-            this.currentSequence - lastServerSequence,
+            this.currentSequence - effectiveServerSequence,
         );
         const oldestUnackedSequence = this.inputHistory[0]?.sequence;
         let correctionAlongMotion = 0;
         const ackOutOfReplayWindow =
             oldestUnackedSequence !== undefined &&
-            lastServerSequence < oldestUnackedSequence - 1;
+            effectiveServerSequence < oldestUnackedSequence - 1;
         const setReconcileTelemetry = (action: string) => {
             this.reconcileTelemetry = {
                 timestamp: Date.now(),
                 action,
                 errorDist,
                 serverLagSequences,
-                lastServerSequence,
+                lastServerSequence: effectiveServerSequence,
                 currentSequence: this.currentSequence,
                 inputHistoryLength: this.inputHistory.length,
                 ackOutOfReplayWindow,
