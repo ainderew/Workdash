@@ -79,6 +79,7 @@ export class SoccerMap extends BaseGameScene {
     private activeSpeedSkillId: string | null = null;
     private serverTickOffsetMs: number | null = null;
     private diagnosticsText: Phaser.GameObjects.Text | null = null;
+    private diagnosticsOverlay: HTMLPreElement | null = null;
     private diagnosticsEvent: Phaser.Time.TimerEvent | null = null;
     private localServerAckSequence: number = 0;
     private localServerQueueDepth: number = 0;
@@ -821,15 +822,50 @@ export class SoccerMap extends BaseGameScene {
         if (!this.isMultiplayerMode) return;
         this.destroyNetworkDiagnosticsUI();
 
-        this.diagnosticsText = this.add
-            .text(10, 50, "", {
-                fontSize: "13px",
-                color: "#00ff00",
-                backgroundColor: "#000000cc",
-                padding: { x: 6, y: 6 },
-            })
-            .setScrollFactor(0)
-            .setDepth(10000);
+        const canvasParent = this.game.canvas?.parentElement;
+        if (canvasParent) {
+            if (window.getComputedStyle(canvasParent).position === "static") {
+                canvasParent.style.position = "relative";
+            }
+
+            const overlay = document.createElement("pre");
+            overlay.style.position = "absolute";
+            overlay.style.top = "12px";
+            overlay.style.left = "12px";
+            overlay.style.margin = "0";
+            overlay.style.padding = "10px 12px";
+            overlay.style.color = "#65ff65";
+            overlay.style.background = "rgba(0, 0, 0, 0.78)";
+            overlay.style.border = "1px solid rgba(101, 255, 101, 0.35)";
+            overlay.style.borderRadius = "8px";
+            overlay.style.fontFamily =
+                'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace';
+            overlay.style.fontSize = "14px";
+            overlay.style.fontWeight = "600";
+            overlay.style.lineHeight = "1.35";
+            overlay.style.letterSpacing = "0.1px";
+            overlay.style.whiteSpace = "pre";
+            overlay.style.pointerEvents = "none";
+            overlay.style.zIndex = "10000";
+            overlay.style.maxWidth = "420px";
+            overlay.style.textShadow = "0 1px 1px rgba(0, 0, 0, 0.7)";
+            overlay.style.boxShadow = "0 6px 20px rgba(0, 0, 0, 0.32)";
+            canvasParent.appendChild(overlay);
+            this.diagnosticsOverlay = overlay;
+        } else {
+            this.diagnosticsText = this.add
+                .text(10, 50, "", {
+                    fontFamily:
+                        'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace',
+                    fontSize: "18px",
+                    color: "#65ff65",
+                    backgroundColor: "#000000dd",
+                    padding: { x: 10, y: 10 },
+                })
+                .setScrollFactor(0)
+                .setDepth(10000);
+            this.diagnosticsText.setResolution(Math.min(3, window.devicePixelRatio || 1));
+        }
 
         this.diagnosticsEvent = this.time.addEvent({
             delay: 200,
@@ -862,7 +898,11 @@ export class SoccerMap extends BaseGameScene {
                     `Rec StaleAck: ${telemetry?.ackOutOfReplayWindow ? "yes" : "no"}`,
                 ];
 
-                this.diagnosticsText?.setText(lines.join("\n"));
+                const diagnosticsValue = lines.join("\n");
+                if (this.diagnosticsOverlay) {
+                    this.diagnosticsOverlay.textContent = diagnosticsValue;
+                }
+                this.diagnosticsText?.setText(diagnosticsValue);
             },
         });
     }
@@ -875,6 +915,10 @@ export class SoccerMap extends BaseGameScene {
         if (this.diagnosticsText) {
             this.diagnosticsText.destroy();
             this.diagnosticsText = null;
+        }
+        if (this.diagnosticsOverlay) {
+            this.diagnosticsOverlay.remove();
+            this.diagnosticsOverlay = null;
         }
     }
 
