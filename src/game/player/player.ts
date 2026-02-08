@@ -665,30 +665,46 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             return;
         }
 
-        const isMovingInput =
+        const latestBufferedInput = this.inputHistory[this.inputHistory.length - 1];
+        const isMovingInput = Boolean(
             this.currentInput.up ||
-            this.currentInput.down ||
-            this.currentInput.left ||
-            this.currentInput.right;
-        const softCorrectWhileMovingThreshold =
-            90 + Math.min(60, serverLagSequences);
-        if (isMovingInput && errorDist <= softCorrectWhileMovingThreshold) {
-            // Preserve immediate movement feel by gently converging during active WASD.
-            // Hard snaps while moving are perceived as rubberbanding.
-            const blend =
-                errorDist > 90 ? 0.2 : errorDist > 45 ? 0.15 : 0.1;
-            this.physicsState.x = Phaser.Math.Linear(
-                this.physicsState.x,
-                predictedState.x,
-                blend,
+                this.currentInput.down ||
+                this.currentInput.left ||
+                this.currentInput.right ||
+                latestBufferedInput?.up ||
+                latestBufferedInput?.down ||
+                latestBufferedInput?.left ||
+                latestBufferedInput?.right,
+        );
+        const applyCappedMovingCorrection = () => {
+            const dxToTarget = predictedState.x - this.physicsState.x;
+            const dyToTarget = predictedState.y - this.physicsState.y;
+            const maxStep =
+                errorDist > 140 ? 2.4 : errorDist > 80 ? 1.6 : 1.0;
+            this.physicsState.x += Phaser.Math.Clamp(
+                dxToTarget,
+                -maxStep,
+                maxStep,
             );
-            this.physicsState.y = Phaser.Math.Linear(
-                this.physicsState.y,
-                predictedState.y,
-                blend,
+            this.physicsState.y += Phaser.Math.Clamp(
+                dyToTarget,
+                -maxStep,
+                maxStep,
             );
             this.physicsState.vx = predictedState.vx;
             this.physicsState.vy = predictedState.vy;
+        };
+        const softCorrectWhileMovingThreshold =
+            90 + Math.min(60, serverLagSequences);
+        if (isMovingInput && serverLagSequences > 20) {
+            // When server ack is meaningfully behind, avoid stale position pulls.
+            this.physicsState.vx = predictedState.vx;
+            this.physicsState.vy = predictedState.vy;
+            return;
+        }
+        if (isMovingInput && errorDist <= softCorrectWhileMovingThreshold) {
+            // Preserve LAN-like feel: converge using tiny capped steps.
+            applyCappedMovingCorrection();
             return;
         }
 
@@ -707,27 +723,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         }
 
         if (isMovingInput) {
-            // Avoid medium-range hard snaps while actively moving.
-            // Keep server authority but converge continuously to preserve LAN-like feel.
-            const lagDamping = Phaser.Math.Clamp(
-                serverLagSequences / 40,
-                0,
-                1,
-            );
-            const baseBlend = errorDist > 120 ? 0.22 : 0.16;
-            const blend = baseBlend * (1 - lagDamping * 0.45);
-            this.physicsState.x = Phaser.Math.Linear(
-                this.physicsState.x,
-                predictedState.x,
-                blend,
-            );
-            this.physicsState.y = Phaser.Math.Linear(
-                this.physicsState.y,
-                predictedState.y,
-                blend,
-            );
-            this.physicsState.vx = predictedState.vx;
-            this.physicsState.vy = predictedState.vy;
+            // Even for larger non-snap errors while moving, avoid sudden pulls.
+            applyCappedMovingCorrection();
             return;
         }
 
