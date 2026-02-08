@@ -64,6 +64,7 @@ export class Ball extends Phaser.GameObjects.Sprite {
     private readonly CORRECT_THRESHOLD =
         PHYSICS_CONSTANTS.POSITION_CORRECT_THRESHOLD;
     private readonly PENDING_KICK_TIMEOUT = 700; // ms - avoids long-lived divergent kick prediction
+    private readonly KICK_REJECT_INFER_MS = 220;
     private readonly KICK_REJECT_FALLBACK_MS = 320;
     private readonly KICK_REJECT_HARD_SNAP_DIST = 90;
     private readonly DEBUG_LOGS = false;
@@ -261,6 +262,33 @@ export class Ball extends Phaser.GameObjects.Sprite {
         if (this.pendingKicks.length > 0) {
             // We have unacknowledged kicks - be careful about corrections
             // The server hasn't seen our kick yet, so of course positions differ
+            const oldestPending = this.pendingKicks[0];
+            const pendingAgeMs = oldestPending
+                ? Date.now() - oldestPending.predictedAt
+                : 0;
+            const serverKickUnchanged = oldestPending
+                ? packet.sequence <= oldestPending.sequenceBefore
+                : false;
+            const serverSpeed = Math.sqrt(packet.vx * packet.vx + packet.vy * packet.vy);
+
+            if (
+                oldestPending &&
+                pendingAgeMs >= this.KICK_REJECT_INFER_MS &&
+                serverKickUnchanged &&
+                serverSpeed < PHYSICS_CONSTANTS.VELOCITY_STOP_THRESHOLD
+            ) {
+                // Kick likely rejected by authority (too far/cooldown/etc).
+                this.pendingKicks.shift();
+                if (positionError > this.KICK_REJECT_HARD_SNAP_DIST) {
+                    this.hardSnapToServer(packet);
+                } else {
+                    this.correctToServer(packet);
+                }
+                this.debugWarn(
+                    `[Ball] Inferred reject for kick #${oldestPending.localId} after ${pendingAgeMs.toFixed(0)}ms`,
+                );
+                return;
+            }
 
             if (positionError > this.SNAP_THRESHOLD) {
                 // Massive error even with pending kicks - something is very wrong
