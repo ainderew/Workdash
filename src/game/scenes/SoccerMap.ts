@@ -90,6 +90,8 @@ export class SoccerMap extends BaseGameScene {
     private localServerSpeedStat: number = 0;
     private localServerKickPowerStat: number = 0;
     private localServerDribblingStat: number = 0;
+    private localServerPlayerX: number = 0;
+    private localServerPlayerY: number = 0;
     private lastKickRejectReason: string = "none";
     private lastKickRejectAtMs: number = 0;
     private lastKickRejectDistance: number = 0;
@@ -285,7 +287,6 @@ export class SoccerMap extends BaseGameScene {
 
         socket.on("ball:kickRejected", (data: any) => {
             // Fast rollback for predicted local kicks rejected by server authority.
-            this.ball.acknowledgeKick(data?.localKickId);
             this.lastKickRejectReason = data?.reason || "unknown";
             this.lastKickRejectAtMs = Date.now();
             this.lastKickRejectDistance =
@@ -302,7 +303,8 @@ export class SoccerMap extends BaseGameScene {
                 typeof data?.maxKickDistance === "number"
                     ? data.maxKickDistance
                     : 0;
-            this.ball.onServerUpdate({
+
+            const authoritativeState = {
                 x: data?.x ?? this.ball.x,
                 y: data?.y ?? this.ball.y,
                 vx: data?.vx ?? 0,
@@ -311,7 +313,8 @@ export class SoccerMap extends BaseGameScene {
                 tick: data?.tick ?? this.localServerTick,
                 timestamp: data?.timestamp ?? Date.now(),
                 lastTouchId: data?.lastTouchId ?? null,
-            });
+            };
+            this.ball.rejectKick(data?.localKickId, authoritativeState);
         });
 
         socket.on("goal:scored", (data: any) => {
@@ -352,6 +355,8 @@ export class SoccerMap extends BaseGameScene {
                 }
 
                 if (player.isLocal) {
+                    this.localServerPlayerX = update.x || 0;
+                    this.localServerPlayerY = update.y || 0;
                     this.localServerAckSequence = update.lastSequence || 0;
                     this.localServerQueueDepth = update.inputQueueDepth || 0;
                     this.localServerInputSequence = update.serverInputSequence || 0;
@@ -970,11 +975,22 @@ export class SoccerMap extends BaseGameScene {
                           serverSequence?: number;
                           pendingKicks?: number;
                           pendingKickIds?: number[];
+                          server?: { x: number; y: number } | null;
                       }
                     | undefined;
                 const lastKickRejectAgoMs = this.lastKickRejectAtMs
                     ? Date.now() - this.lastKickRejectAtMs
                     : -1;
+                const localPlayerX = localPlayer?.x ?? 0;
+                const localPlayerY = localPlayer?.y ?? 0;
+                const serverBallX = ballTelemetry?.server?.x ?? 0;
+                const serverBallY = ballTelemetry?.server?.y ?? 0;
+                const serverPlayerBallDistance = Math.sqrt(
+                    (serverBallX - this.localServerPlayerX) *
+                        (serverBallX - this.localServerPlayerX) +
+                        (serverBallY - this.localServerPlayerY) *
+                            (serverBallY - this.localServerPlayerY),
+                );
 
                 const lines = [
                     `Ping: ${ping}ms`,
@@ -1000,6 +1016,8 @@ export class SoccerMap extends BaseGameScene {
                     `Ball Pending: ${ballTelemetry?.pendingKicks || 0} (${(ballTelemetry?.pendingKickIds || []).join(",") || "-"})`,
                     `Ball KickReject: ${this.lastKickRejectReason}${lastKickRejectAgoMs >= 0 ? ` (${Math.round(lastKickRejectAgoMs)}ms ago)` : ""}`,
                     `Ball Reject Dist E/C/R/M: ${this.lastKickRejectDistance.toFixed(0)}/${this.lastKickRejectCurrentDistance.toFixed(0)}/${this.lastKickRejectRewoundDistance.toFixed(0)}/${this.lastKickRejectMaxDistance.toFixed(0)}`,
+                    `Pos L/S: ${localPlayerX.toFixed(0)},${localPlayerY.toFixed(0)} / ${this.localServerPlayerX.toFixed(0)},${this.localServerPlayerY.toFixed(0)}`,
+                    `Server P-B Dist: ${serverPlayerBallDistance.toFixed(0)}`,
                 ];
 
                 const diagnosticsValue = lines.join("\n");

@@ -499,6 +499,15 @@ export class Ball extends Phaser.GameObjects.Sprite {
         return {
             sim: { ...this.simState },
             render: { x: this.renderX, y: this.renderY },
+            server: this.lastAuthoritativeState
+                ? {
+                      x: this.lastAuthoritativeState.x,
+                      y: this.lastAuthoritativeState.y,
+                      vx: this.lastAuthoritativeState.vx,
+                      vy: this.lastAuthoritativeState.vy,
+                      tick: this.lastAuthoritativeState.tick,
+                  }
+                : null,
             tick: this.currentTick,
             serverTick: this.lastServerTick,
             serverSequence: this.lastServerSequence,
@@ -526,6 +535,29 @@ export class Ball extends Phaser.GameObjects.Sprite {
 
         // Fallback: if server didn't echo local ID, drop oldest pending kick.
         this.pendingKicks.shift();
+    }
+
+    /**
+     * Hard reject a local predicted kick using authoritative state from server.
+     * This prevents repeated "ghost kick" loops when authority rejects input.
+     */
+    public rejectKick(localKickId: number | undefined, state: ServerBallState): void {
+        if (typeof localKickId === "number") {
+            const index = this.pendingKicks.findIndex(
+                (kick) => kick.localId === localKickId,
+            );
+            if (index !== -1) {
+                this.pendingKicks.splice(index, 1);
+            } else if (this.pendingKicks.length > 0) {
+                this.pendingKicks.shift();
+            }
+        } else if (this.pendingKicks.length > 0) {
+            this.pendingKicks.shift();
+        }
+
+        // Rejected local prediction should not keep any in-flight kick state.
+        this.pendingKicks = [];
+        this.hardSnapToServer(state);
     }
 
     private debugLog(message?: unknown, ...optionalParams: unknown[]) {
