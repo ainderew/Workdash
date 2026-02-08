@@ -92,8 +92,10 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     private previousInput: PlayerPhysicsInput | null = null;
     private movementStartSequence: number = 0;
     private externalSpeedMultiplier: number = 1.0;
+    private authoritativeSpeedMultiplier: number | null = null;
+    private authoritativeDragMultiplier: number | null = null;
     // Keep local movement aligned with server-side collision/knockback authority.
-    private readonly ENABLE_LOCAL_COLLISION_PREDICTION: boolean = true;
+    private readonly ENABLE_LOCAL_COLLISION_PREDICTION: boolean = false;
     private wasPredictivelyTouchingBall: boolean = false;
     private reconcileTelemetry: ReconcileTelemetry = {
         timestamp: 0,
@@ -445,10 +447,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             // Record input for this tick
             let speedMultiplier: number | undefined;
             if (this.scene.scene.key === "SoccerMap") {
-                const speedStat = this.soccerStats?.speed ?? 0;
-                speedMultiplier =
-                    calculateSpeedMultiplier(speedStat) *
-                    this.externalSpeedMultiplier;
+                speedMultiplier = this.getEffectiveMovementMultipliers().speedMultiplier;
             }
             this.inputHistory.push({
                 ...networkInput,
@@ -517,13 +516,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         const isSoccerMap = this.scene.scene.key === "SoccerMap";
 
         if (isSoccerMap) {
-            // Calculate stat multipliers
-            const speedStat = this.soccerStats?.speed ?? 0;
-            const dribblingStat = this.soccerStats?.dribbling ?? 0;
-            const speedMultiplier =
-                calculateSpeedMultiplier(speedStat) *
-                this.externalSpeedMultiplier;
-            const dragMultiplier = calculateDragMultiplier(dribblingStat);
+            const { speedMultiplier, dragMultiplier } =
+                this.getEffectiveMovementMultipliers();
 
             // Run deterministic physics (MUST match server exactly)
             integratePlayer(
@@ -587,6 +581,26 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         return this.reconcileTelemetry;
     }
 
+    public getPredictionTelemetry() {
+        const speedStat = this.soccerStats?.speed ?? 0;
+        const dribblingStat = this.soccerStats?.dribbling ?? 0;
+        const baseSpeedMultiplier = calculateSpeedMultiplier(speedStat);
+        const baseDragMultiplier = calculateDragMultiplier(dribblingStat);
+        const { speedMultiplier, dragMultiplier } =
+            this.getEffectiveMovementMultipliers();
+        return {
+            speedStat,
+            dribblingStat,
+            baseSpeedMultiplier,
+            baseDragMultiplier,
+            externalSpeedMultiplier: this.externalSpeedMultiplier,
+            authoritativeSpeedMultiplier: this.authoritativeSpeedMultiplier,
+            authoritativeDragMultiplier: this.authoritativeDragMultiplier,
+            effectiveSpeedMultiplier: speedMultiplier,
+            effectiveDragMultiplier: dragMultiplier,
+        };
+    }
+
     // ============================================================================
     // SERVER RECONCILIATION
     // ============================================================================
@@ -621,15 +635,13 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             vy: serverVY,
         };
 
-        const speedStat = this.soccerStats?.speed ?? 0;
-        const dribblingStat = this.soccerStats?.dribbling ?? 0;
-        const dragMultiplier = calculateDragMultiplier(dribblingStat);
+        const { speedMultiplier: effectiveSpeedMultiplier, dragMultiplier } =
+            this.getEffectiveMovementMultipliers();
 
         for (const input of this.inputHistory) {
             const speedMultiplier =
                 input.speedMultiplier ??
-                calculateSpeedMultiplier(speedStat) *
-                    this.externalSpeedMultiplier;
+                effectiveSpeedMultiplier;
             integratePlayer(
                 predictedState,
                 input,
@@ -1442,6 +1454,37 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     public setExternalSpeedMultiplier(multiplier: number) {
         this.externalSpeedMultiplier = multiplier;
+    }
+
+    public setAuthoritativeMovementMultipliers(
+        speedMultiplier?: number,
+        dragMultiplier?: number,
+    ) {
+        this.authoritativeSpeedMultiplier =
+            typeof speedMultiplier === "number" &&
+            Number.isFinite(speedMultiplier) &&
+            speedMultiplier > 0
+                ? speedMultiplier
+                : null;
+        this.authoritativeDragMultiplier =
+            typeof dragMultiplier === "number" &&
+            Number.isFinite(dragMultiplier) &&
+            dragMultiplier > 0
+                ? dragMultiplier
+                : null;
+    }
+
+    private getEffectiveMovementMultipliers() {
+        const speedStat = this.soccerStats?.speed ?? 0;
+        const dribblingStat = this.soccerStats?.dribbling ?? 0;
+        const baseSpeedMultiplier = calculateSpeedMultiplier(speedStat);
+        const baseDragMultiplier = calculateDragMultiplier(dribblingStat);
+        return {
+            speedMultiplier:
+                this.authoritativeSpeedMultiplier ??
+                baseSpeedMultiplier * this.externalSpeedMultiplier,
+            dragMultiplier: this.authoritativeDragMultiplier ?? baseDragMultiplier,
+        };
     }
 
     private applySoccerPredictionCollisions(state: PhysicsState) {

@@ -85,6 +85,11 @@ export class SoccerMap extends BaseGameScene {
     private localServerQueueDepth: number = 0;
     private localServerInputSequence: number = 0;
     private localServerTick: number = 0;
+    private localServerSpeedMultiplier: number = 1;
+    private localServerDragMultiplier: number = 1;
+    private localServerSpeedStat: number = 0;
+    private localServerKickPowerStat: number = 0;
+    private localServerDribblingStat: number = 0;
 
     private activeSkillPlayerId: string | null = null;
     private activeSkillId: string | null = null;
@@ -313,6 +318,43 @@ export class SoccerMap extends BaseGameScene {
                     this.localServerAckSequence = update.lastSequence || 0;
                     this.localServerQueueDepth = update.inputQueueDepth || 0;
                     this.localServerInputSequence = update.serverInputSequence || 0;
+                    this.localServerSpeedMultiplier =
+                        typeof update.serverSpeedMultiplier === "number"
+                            ? update.serverSpeedMultiplier
+                            : 1;
+                    this.localServerDragMultiplier =
+                        typeof update.serverDragMultiplier === "number"
+                            ? update.serverDragMultiplier
+                            : 1;
+                    this.localServerSpeedStat =
+                        typeof update.serverSpeedStat === "number"
+                            ? update.serverSpeedStat
+                            : 0;
+                    this.localServerKickPowerStat =
+                        typeof update.serverKickPowerStat === "number"
+                            ? update.serverKickPowerStat
+                            : 0;
+                    this.localServerDribblingStat =
+                        typeof update.serverDribblingStat === "number"
+                            ? update.serverDribblingStat
+                            : 0;
+                    player.setAuthoritativeMovementMultipliers(
+                        update.serverSpeedMultiplier,
+                        update.serverDragMultiplier,
+                    );
+                    if (
+                        typeof update.serverSpeedStat === "number" &&
+                        typeof update.serverKickPowerStat === "number" &&
+                        typeof update.serverDribblingStat === "number"
+                    ) {
+                        const serverStats = {
+                            speed: update.serverSpeedStat,
+                            kickPower: update.serverKickPowerStat,
+                            dribbling: update.serverDribblingStat,
+                        };
+                        player.soccerStats = serverStats;
+                        this.soccerStats = serverStats;
+                    }
                     if (typeof tick === "number") {
                         this.localServerTick = tick;
                     }
@@ -881,6 +923,9 @@ export class SoccerMap extends BaseGameScene {
                 const telemetry = localPlayer?.isLocal
                     ? localPlayer.getReconcileTelemetry()
                     : null;
+                const predictionTelemetry = localPlayer?.isLocal
+                    ? localPlayer.getPredictionTelemetry()
+                    : null;
 
                 const lines = [
                     `Ping: ${ping}ms`,
@@ -896,6 +941,10 @@ export class SoccerMap extends BaseGameScene {
                     `Rec Along: ${(telemetry?.correctionAlongMotion || 0).toFixed(2)}`,
                     `Rec Hist: ${telemetry?.inputHistoryLength || 0}`,
                     `Rec StaleAck: ${telemetry?.ackOutOfReplayWindow ? "yes" : "no"}`,
+                    `Stats L/S/K/D: ${predictionTelemetry?.speedStat || 0}/${this.localServerSpeedStat}/${this.localServerKickPowerStat}/${this.localServerDribblingStat}`,
+                    `SpeedMul L/S: ${(predictionTelemetry?.effectiveSpeedMultiplier || 1).toFixed(2)}/${this.localServerSpeedMultiplier.toFixed(2)}`,
+                    `DragMul L/S: ${(predictionTelemetry?.effectiveDragMultiplier || 1).toFixed(2)}/${this.localServerDragMultiplier.toFixed(2)}`,
+                    `SpeedMul Src: ${predictionTelemetry?.authoritativeSpeedMultiplier != null ? "server" : "local"}`,
                 ];
 
                 const diagnosticsValue = lines.join("\n");
