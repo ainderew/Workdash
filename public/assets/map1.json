@@ -1406,8 +1406,17 @@
          "tilewidth":32
         }, 
         {
+         "columns":16,
          "firstgid":103293,
-         "source":"..\/..\/..\/..\/Interior_Tile_7.tsx"
+         "image":"tile-sets\/Interiors_32x32_part_7.png",
+         "imageheight":4096,
+         "imagewidth":512,
+         "margin":0,
+         "name":"Interior_Tile_7",
+         "spacing":0,
+         "tilecount":2048,
+         "tileheight":32,
+         "tilewidth":32
         }, 
         {
          "columns":16,

@@ -57,6 +57,7 @@ export class SoccerMap extends BaseGameScene {
     private inputFlushTimer: ReturnType<typeof setInterval> | null = null;
     private readonly INPUT_FLUSH_INTERVAL_MS: number = 8;
     private readonly MAX_INPUT_BATCH_SIZE: number = 32;
+    private kickPointerRequested: boolean = false;
     
     // Skill State
     private skillCooldown: number = 0;
@@ -78,26 +79,6 @@ export class SoccerMap extends BaseGameScene {
     private localSpeedMultiplier: number = 1.0;
     private activeSpeedSkillId: string | null = null;
     private serverTickOffsetMs: number | null = null;
-    private diagnosticsText: Phaser.GameObjects.Text | null = null;
-    private diagnosticsOverlay: HTMLPreElement | null = null;
-    private diagnosticsEvent: Phaser.Time.TimerEvent | null = null;
-    private localServerAckSequence: number = 0;
-    private localServerQueueDepth: number = 0;
-    private localServerInputSequence: number = 0;
-    private localServerTick: number = 0;
-    private localServerSpeedMultiplier: number = 1;
-    private localServerDragMultiplier: number = 1;
-    private localServerSpeedStat: number = 0;
-    private localServerKickPowerStat: number = 0;
-    private localServerDribblingStat: number = 0;
-    private localServerPlayerX: number = 0;
-    private localServerPlayerY: number = 0;
-    private lastKickRejectReason: string = "none";
-    private lastKickRejectAtMs: number = 0;
-    private lastKickRejectDistance: number = 0;
-    private lastKickRejectCurrentDistance: number = 0;
-    private lastKickRejectRewoundDistance: number = 0;
-    private lastKickRejectMaxDistance: number = 0;
 
     private activeSkillPlayerId: string | null = null;
     private activeSkillId: string | null = null;
@@ -150,7 +131,6 @@ export class SoccerMap extends BaseGameScene {
         useUiStore.getState().setCurrentScene("SoccerMap");
         this.checkSoccerStats();
         useUiStore.getState().openSoccerGameControlModal();
-        this.createNetworkDiagnosticsUI();
 
         this.centerCamera();
         this.createBall();
@@ -162,6 +142,25 @@ export class SoccerMap extends BaseGameScene {
         this.ninjaStepKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.T) || null;
         this.lurkingKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.F) || null;
         this.powerShotKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.G) || null;
+        this.input.on(
+            Phaser.Input.Events.POINTER_DOWN,
+            this.handlePointerKickDown,
+            this,
+        );
+        this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+            this.input.off(
+                Phaser.Input.Events.POINTER_DOWN,
+                this.handlePointerKickDown,
+                this,
+            );
+        });
+        this.events.once(Phaser.Scenes.Events.DESTROY, () => {
+            this.input.off(
+                Phaser.Input.Events.POINTER_DOWN,
+                this.handlePointerKickDown,
+                this,
+            );
+        });
 
         this.metaVisionGraphics = this.add.graphics();
         this.metaVisionGraphics.setDepth(1000);
@@ -179,11 +178,9 @@ export class SoccerMap extends BaseGameScene {
             this.startInputFlushLoop();
             this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
                 this.stopInputFlushLoop();
-                this.destroyNetworkDiagnosticsUI();
             });
             this.events.once(Phaser.Scenes.Events.DESTROY, () => {
                 this.stopInputFlushLoop();
-                this.destroyNetworkDiagnosticsUI();
             });
         } else {
             this.setupLocalPhysics();
@@ -198,6 +195,9 @@ export class SoccerMap extends BaseGameScene {
         }
 
         const isSelectionPhaseActive = useSoccerStore.getState().isSelectionPhaseActive;
+        if (isSelectionPhaseActive) {
+            this.kickPointerRequested = false;
+        }
         this.processPendingTeams();
         this.updateSkillCooldownUI();
 
@@ -287,30 +287,13 @@ export class SoccerMap extends BaseGameScene {
 
         socket.on("ball:kickRejected", (data: any) => {
             // Fast rollback for predicted local kicks rejected by server authority.
-            this.lastKickRejectReason = data?.reason || "unknown";
-            this.lastKickRejectAtMs = Date.now();
-            this.lastKickRejectDistance =
-                typeof data?.distance === "number" ? data.distance : 0;
-            this.lastKickRejectCurrentDistance =
-                typeof data?.currentDistance === "number"
-                    ? data.currentDistance
-                    : 0;
-            this.lastKickRejectRewoundDistance =
-                typeof data?.rewoundDistance === "number"
-                    ? data.rewoundDistance
-                    : 0;
-            this.lastKickRejectMaxDistance =
-                typeof data?.maxKickDistance === "number"
-                    ? data.maxKickDistance
-                    : 0;
-
             const authoritativeState = {
                 x: data?.x ?? this.ball.x,
                 y: data?.y ?? this.ball.y,
                 vx: data?.vx ?? 0,
                 vy: data?.vy ?? 0,
                 sequence: data?.sequence ?? 0,
-                tick: data?.tick ?? this.localServerTick,
+                tick: data?.tick ?? 0,
                 timestamp: data?.timestamp ?? Date.now(),
                 lastTouchId: data?.lastTouchId ?? null,
             };
@@ -355,31 +338,6 @@ export class SoccerMap extends BaseGameScene {
                 }
 
                 if (player.isLocal) {
-                    this.localServerPlayerX = update.x || 0;
-                    this.localServerPlayerY = update.y || 0;
-                    this.localServerAckSequence = update.lastSequence || 0;
-                    this.localServerQueueDepth = update.inputQueueDepth || 0;
-                    this.localServerInputSequence = update.serverInputSequence || 0;
-                    this.localServerSpeedMultiplier =
-                        typeof update.serverSpeedMultiplier === "number"
-                            ? update.serverSpeedMultiplier
-                            : 1;
-                    this.localServerDragMultiplier =
-                        typeof update.serverDragMultiplier === "number"
-                            ? update.serverDragMultiplier
-                            : 1;
-                    this.localServerSpeedStat =
-                        typeof update.serverSpeedStat === "number"
-                            ? update.serverSpeedStat
-                            : 0;
-                    this.localServerKickPowerStat =
-                        typeof update.serverKickPowerStat === "number"
-                            ? update.serverKickPowerStat
-                            : 0;
-                    this.localServerDribblingStat =
-                        typeof update.serverDribblingStat === "number"
-                            ? update.serverDribblingStat
-                            : 0;
                     player.setAuthoritativeMovementMultipliers(
                         update.serverSpeedMultiplier,
                         update.serverDragMultiplier,
@@ -396,9 +354,6 @@ export class SoccerMap extends BaseGameScene {
                         };
                         player.soccerStats = serverStats;
                         this.soccerStats = serverStats;
-                    }
-                    if (typeof tick === "number") {
-                        this.localServerTick = tick;
                     }
                     player.reconcile(
                         update.x,
@@ -567,6 +522,9 @@ export class SoccerMap extends BaseGameScene {
             this.removeSkillVisuals();
             this.isMetaVisionActive = false;
             this.metaVisionGraphics?.clear();
+            if (data.skillId === "metavision") {
+                this.kickRangeGraphics?.clear();
+            }
         });
 
         socket.on("soccer:skillTriggered", (data: any) => {
@@ -651,8 +609,17 @@ export class SoccerMap extends BaseGameScene {
         }
     }
 
+    private handlePointerKickDown(pointer: Phaser.Input.Pointer) {
+        if (pointer.button !== 0) return;
+        this.kickPointerRequested = true;
+    }
+
     private handleMultiplayerKickInput() {
-        if (!this.kickKey || !Phaser.Input.Keyboard.JustDown(this.kickKey)) return;
+        const requestedByKey =
+            !!this.kickKey && Phaser.Input.Keyboard.JustDown(this.kickKey);
+        const requestedByPointer = this.kickPointerRequested;
+        this.kickPointerRequested = false;
+        if (!requestedByKey && !requestedByPointer) return;
 
         const localPlayer = this.players.get(this.localPlayerId);
         if (!localPlayer) return;
@@ -680,7 +647,12 @@ export class SoccerMap extends BaseGameScene {
     }
 
     private handleKick() {
-        if (!this.kickKey || !Phaser.Input.Keyboard.JustDown(this.kickKey)) return;
+        const requestedByKey =
+            !!this.kickKey && Phaser.Input.Keyboard.JustDown(this.kickKey);
+        const requestedByPointer = this.kickPointerRequested;
+        this.kickPointerRequested = false;
+        if (!requestedByKey && !requestedByPointer) return;
+
         const localPlayer = this.players.get(this.localPlayerId);
         if (!localPlayer) return;
         const distance = Phaser.Math.Distance.Between(localPlayer.x, localPlayer.y, this.ball.x, this.ball.y);
@@ -861,7 +833,11 @@ export class SoccerMap extends BaseGameScene {
     }
 
     private drawKickRange() {
-        if (!this.kickRangeGraphics || !this.isMetaVisionActive) return;
+        if (!this.kickRangeGraphics) return;
+        if (!this.isMetaVisionActive) {
+            this.kickRangeGraphics.clear();
+            return;
+        }
         this.kickRangeGraphics.clear();
         const time = this.time.now;
         const stdRange = 140, mvRange = 200, pulse = (Math.sin(time / 150) + 1) / 2;
@@ -900,148 +876,6 @@ export class SoccerMap extends BaseGameScene {
             this.skillCooldownText.setText("Q: READY").setColor("#00ff00");
         } else {
             this.skillCooldownText.setText(`Q: ${Math.ceil((config.cooldownMs - diff) / 1000)}s`).setColor("#ff0000");
-        }
-    }
-
-    private createNetworkDiagnosticsUI() {
-        if (!this.isMultiplayerMode) return;
-        this.destroyNetworkDiagnosticsUI();
-
-        const canvasParent = this.game.canvas?.parentElement;
-        if (canvasParent) {
-            if (window.getComputedStyle(canvasParent).position === "static") {
-                canvasParent.style.position = "relative";
-            }
-
-            const overlay = document.createElement("pre");
-            overlay.style.position = "absolute";
-            overlay.style.top = "12px";
-            overlay.style.left = "12px";
-            overlay.style.margin = "0";
-            overlay.style.padding = "10px 12px";
-            overlay.style.color = "#65ff65";
-            overlay.style.background = "rgba(0, 0, 0, 0.78)";
-            overlay.style.border = "1px solid rgba(101, 255, 101, 0.35)";
-            overlay.style.borderRadius = "8px";
-            overlay.style.fontFamily =
-                'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace';
-            overlay.style.fontSize = "14px";
-            overlay.style.fontWeight = "600";
-            overlay.style.lineHeight = "1.35";
-            overlay.style.letterSpacing = "0.1px";
-            overlay.style.whiteSpace = "pre";
-            overlay.style.pointerEvents = "none";
-            overlay.style.zIndex = "10000";
-            overlay.style.maxWidth = "420px";
-            overlay.style.textShadow = "0 1px 1px rgba(0, 0, 0, 0.7)";
-            overlay.style.boxShadow = "0 6px 20px rgba(0, 0, 0, 0.32)";
-            canvasParent.appendChild(overlay);
-            this.diagnosticsOverlay = overlay;
-        } else {
-            this.diagnosticsText = this.add
-                .text(10, 50, "", {
-                    fontFamily:
-                        'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace',
-                    fontSize: "18px",
-                    color: "#65ff65",
-                    backgroundColor: "#000000dd",
-                    padding: { x: 10, y: 10 },
-                })
-                .setScrollFactor(0)
-                .setDepth(10000);
-            this.diagnosticsText.setResolution(Math.min(3, window.devicePixelRatio || 1));
-        }
-
-        this.diagnosticsEvent = this.time.addEvent({
-            delay: 200,
-            loop: true,
-            callback: () => {
-                const ping = useUiStore.getState().ping || 0;
-                const localPlayer = this.players.get(this.localPlayerId);
-                const localSequence = localPlayer?.currentSequence || 0;
-                const ackLag = Math.max(
-                    0,
-                    localSequence - this.localServerAckSequence,
-                );
-                const telemetry = localPlayer?.isLocal
-                    ? localPlayer.getReconcileTelemetry()
-                    : null;
-                const predictionTelemetry = localPlayer?.isLocal
-                    ? localPlayer.getPredictionTelemetry()
-                    : null;
-                const ballTelemetry = this.ball?.getDebugInfo() as
-                    | {
-                          tick?: number;
-                          serverTick?: number;
-                          serverSequence?: number;
-                          pendingKicks?: number;
-                          pendingKickIds?: number[];
-                          server?: { x: number; y: number } | null;
-                      }
-                    | undefined;
-                const lastKickRejectAgoMs = this.lastKickRejectAtMs
-                    ? Date.now() - this.lastKickRejectAtMs
-                    : -1;
-                const localPlayerX = localPlayer?.x ?? 0;
-                const localPlayerY = localPlayer?.y ?? 0;
-                const serverBallX = ballTelemetry?.server?.x ?? 0;
-                const serverBallY = ballTelemetry?.server?.y ?? 0;
-                const serverPlayerBallDistance = Math.sqrt(
-                    (serverBallX - this.localServerPlayerX) *
-                        (serverBallX - this.localServerPlayerX) +
-                        (serverBallY - this.localServerPlayerY) *
-                            (serverBallY - this.localServerPlayerY),
-                );
-
-                const lines = [
-                    `Ping: ${ping}ms`,
-                    `Server Tick: ${this.localServerTick}`,
-                    `Client Seq: ${localSequence}`,
-                    `Ack Seq: ${this.localServerAckSequence}`,
-                    `Ack Lag Seq: ${ackLag}`,
-                    `Srv Input Seq: ${this.localServerInputSequence}`,
-                    `Srv Queue Depth: ${this.localServerQueueDepth}`,
-                    `Rec Action: ${telemetry?.action || "n/a"}`,
-                    `Rec Error: ${(telemetry?.errorDist || 0).toFixed(2)}`,
-                    `Rec Lag Seq: ${telemetry?.serverLagSequences || 0}`,
-                    `Rec Along: ${(telemetry?.correctionAlongMotion || 0).toFixed(2)}`,
-                    `Rec Hist: ${telemetry?.inputHistoryLength || 0}`,
-                    `Rec StaleAck: ${telemetry?.ackOutOfReplayWindow ? "yes" : "no"}`,
-                    `Stats L/S/K/D: ${predictionTelemetry?.speedStat || 0}/${this.localServerSpeedStat}/${this.localServerKickPowerStat}/${this.localServerDribblingStat}`,
-                    `SpeedMul L/S: ${(predictionTelemetry?.effectiveSpeedMultiplier || 1).toFixed(2)}/${this.localServerSpeedMultiplier.toFixed(2)}`,
-                    `DragMul L/S: ${(predictionTelemetry?.effectiveDragMultiplier || 1).toFixed(2)}/${this.localServerDragMultiplier.toFixed(2)}`,
-                    `SpeedMul Src: ${predictionTelemetry?.authoritativeSpeedMultiplier != null ? "server" : "local"}`,
-                    `Ball Seq: ${ballTelemetry?.serverSequence || 0}`,
-                    `Ball Tick L/S: ${ballTelemetry?.tick || 0}/${ballTelemetry?.serverTick || 0}`,
-                    `Ball Tick Drift: ${(ballTelemetry?.tick || 0) - (ballTelemetry?.serverTick || 0)}`,
-                    `Ball Pending: ${ballTelemetry?.pendingKicks || 0} (${(ballTelemetry?.pendingKickIds || []).join(",") || "-"})`,
-                    `Ball KickReject: ${this.lastKickRejectReason}${lastKickRejectAgoMs >= 0 ? ` (${Math.round(lastKickRejectAgoMs)}ms ago)` : ""}`,
-                    `Ball Reject Dist E/C/R/M: ${this.lastKickRejectDistance.toFixed(0)}/${this.lastKickRejectCurrentDistance.toFixed(0)}/${this.lastKickRejectRewoundDistance.toFixed(0)}/${this.lastKickRejectMaxDistance.toFixed(0)}`,
-                    `Pos L/S: ${localPlayerX.toFixed(0)},${localPlayerY.toFixed(0)} / ${this.localServerPlayerX.toFixed(0)},${this.localServerPlayerY.toFixed(0)}`,
-                    `Server P-B Dist: ${serverPlayerBallDistance.toFixed(0)}`,
-                ];
-
-                const diagnosticsValue = lines.join("\n");
-                if (this.diagnosticsOverlay) {
-                    this.diagnosticsOverlay.textContent = diagnosticsValue;
-                }
-                this.diagnosticsText?.setText(diagnosticsValue);
-            },
-        });
-    }
-
-    private destroyNetworkDiagnosticsUI() {
-        if (this.diagnosticsEvent) {
-            this.diagnosticsEvent.remove(false);
-            this.diagnosticsEvent = null;
-        }
-        if (this.diagnosticsText) {
-            this.diagnosticsText.destroy();
-            this.diagnosticsText = null;
-        }
-        if (this.diagnosticsOverlay) {
-            this.diagnosticsOverlay.remove();
-            this.diagnosticsOverlay = null;
         }
     }
 
@@ -1215,15 +1049,19 @@ export class SoccerMap extends BaseGameScene {
     protected setupLocalPlayer(p: Player): void {
         this.localPlayerId = p.id;
         usePlayersStore.getState().setLocalPlayerId(p.id);
+        p.isKartMode = false;
         p.setPosition(this.spawnX, this.spawnY).setScale(2).setSize(40, 40).setOffset(0, 20);
         p.moveSpeed *= 0.5;
         p.setExternalSpeedMultiplier(this.localSpeedMultiplier);
+        p.idleAnimation();
     }
 
     protected setupRemotePlayer(p: Player): void {
+        p.isKartMode = false;
         p.setScale(2).destroyNameTag();
         p.moveSpeed *= 1.5;
         p.setSize(40, 40).setOffset(0, 20);
+        p.idleAnimation();
     }
 
     private centerCamera() {

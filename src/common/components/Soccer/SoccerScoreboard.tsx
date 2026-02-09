@@ -164,29 +164,27 @@ export default function SoccerScoreboard() {
 
             let localRankedUp = false;
 
-            if (data.mmrUpdates) {
-                setMmrUpdates(data.mmrUpdates);
+            const incomingMmrUpdates = data.mmrUpdates ?? [];
+            setMmrUpdates(incomingMmrUpdates);
 
-                // Detect local player rank up
-                const localPlayerUpdate = data.mmrUpdates.find(
-                    (u) => u.playerId === socket.id,
-                );
-                if (localPlayerUpdate) {
-                    const oldMmrValue = localPlayerUpdate.newMmr - localPlayerUpdate.delta;
-                    const oldRank = getRankName(oldMmrValue);
-                    const newRank = getRankName(localPlayerUpdate.newMmr);
-                    if (oldRank !== newRank && localPlayerUpdate.delta > 0) {
-                        localRankedUp = true;
-                        setRankUpData({
-                            name: localPlayerUpdate.name,
-                            oldRank,
-                            newRank,
-                            badgePath: getRankBadgePath(
-                                localPlayerUpdate.newMmr,
-                            ),
-                            oldBadgePath: getRankBadgePath(oldMmrValue),
-                        });
-                    }
+            // Detect local player rank up
+            const localPlayerUpdate = incomingMmrUpdates.find(
+                (u) => u.playerId === socket.id,
+            );
+            if (localPlayerUpdate) {
+                const oldMmrValue =
+                    localPlayerUpdate.newMmr - localPlayerUpdate.delta;
+                const oldRank = getRankName(oldMmrValue);
+                const newRank = getRankName(localPlayerUpdate.newMmr);
+                if (oldRank !== newRank && localPlayerUpdate.delta > 0) {
+                    localRankedUp = true;
+                    setRankUpData({
+                        name: localPlayerUpdate.name,
+                        oldRank,
+                        newRank,
+                        badgePath: getRankBadgePath(localPlayerUpdate.newMmr),
+                        oldBadgePath: getRankBadgePath(oldMmrValue),
+                    });
                 }
             }
 
@@ -281,6 +279,11 @@ export default function SoccerScoreboard() {
         const secs = seconds % 60;
         return `${mins}:${secs.toString().padStart(2, "0")}`;
     };
+    const localMmrUpdates = mmrUpdates.filter(
+        (u) => u.playerId === localPlayerId,
+    );
+    const displayedMmrUpdates =
+        localMmrUpdates.length > 0 ? localMmrUpdates : mmrUpdates;
 
     if (currentScene !== "SoccerMap") return null;
 
@@ -730,7 +733,7 @@ export default function SoccerScoreboard() {
 
             {/* MMR Progression Screen */}
             <AnimatePresence>
-                {showMmrScreen && mmrUpdates.length > 0 && (
+                {showMmrScreen && (
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -750,15 +753,23 @@ export default function SoccerScoreboard() {
                             </div>
 
                             <div className="grid grid-cols-1 gap-6">
-                                {mmrUpdates
-                                    .filter((u) => u.playerId === localPlayerId)
-                                    .map((update, idx) => (
+                                {displayedMmrUpdates.map((update, idx) => (
                                         <MmrRow
                                             key={update.playerId}
                                             update={update}
                                             delay={idx * 0.2}
                                         />
                                     ))}
+                                {displayedMmrUpdates.length === 0 && (
+                                    <div className="rounded-xl border border-white/15 bg-white/5 px-6 py-8 text-center">
+                                        <p className="text-white text-lg font-bold uppercase tracking-wide">
+                                            Match completed
+                                        </p>
+                                        <p className="mt-2 text-neutral-300 text-sm">
+                                            MMR update is unavailable for this round.
+                                        </p>
+                                    </div>
+                                )}
                             </div>
                         </motion.div>
                     </motion.div>

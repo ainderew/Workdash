@@ -51,18 +51,6 @@ interface SoccerPredictionScene {
     ball?: { targetPos: { x: number; y: number; vx: number; vy: number } };
 }
 
-export interface ReconcileTelemetry {
-    timestamp: number;
-    action: string;
-    errorDist: number;
-    serverLagSequences: number;
-    lastServerSequence: number;
-    currentSequence: number;
-    inputHistoryLength: number;
-    ackOutOfReplayWindow: boolean;
-    correctionAlongMotion: number;
-}
-
 export class Player extends Phaser.Physics.Arcade.Sprite {
     public id: string;
     public name: string;
@@ -97,17 +85,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     // Keep local movement aligned with server-side collision/knockback authority.
     private readonly ENABLE_LOCAL_COLLISION_PREDICTION: boolean = false;
     private wasPredictivelyTouchingBall: boolean = false;
-    private reconcileTelemetry: ReconcileTelemetry = {
-        timestamp: 0,
-        action: "init",
-        errorDist: 0,
-        serverLagSequences: 0,
-        lastServerSequence: 0,
-        currentSequence: 0,
-        inputHistoryLength: 0,
-        ackOutOfReplayWindow: false,
-        correctionAlongMotion: 0,
-    };
 
     // === Remote Player Interpolation ===
     private snapshotBuffer: RemoteSnapshot[] = [];
@@ -406,11 +383,20 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     // ============================================================================
 
     private updateLocalPlayer(delta: number) {
+        const isSoccerMap = this.scene.scene.key === "SoccerMap";
+
+        if (isSoccerMap && this.isKartMode) {
+            this.isKartMode = false;
+            this.moveSpeed = this.baseMoveSpeed;
+            this.idleAnimation();
+        }
+
         // 1. Sample input
         this.sampleInput();
 
         // 2. Handle Kart Mode Toggle
         if (
+            !isSoccerMap &&
             this.isLocal &&
             this.kartKey &&
             Phaser.Input.Keyboard.JustDown(this.kartKey)
@@ -577,30 +563,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         return drained;
     }
 
-    public getReconcileTelemetry(): ReconcileTelemetry {
-        return this.reconcileTelemetry;
-    }
-
-    public getPredictionTelemetry() {
-        const speedStat = this.soccerStats?.speed ?? 0;
-        const dribblingStat = this.soccerStats?.dribbling ?? 0;
-        const baseSpeedMultiplier = calculateSpeedMultiplier(speedStat);
-        const baseDragMultiplier = calculateDragMultiplier(dribblingStat);
-        const { speedMultiplier, dragMultiplier } =
-            this.getEffectiveMovementMultipliers();
-        return {
-            speedStat,
-            dribblingStat,
-            baseSpeedMultiplier,
-            baseDragMultiplier,
-            externalSpeedMultiplier: this.externalSpeedMultiplier,
-            authoritativeSpeedMultiplier: this.authoritativeSpeedMultiplier,
-            authoritativeDragMultiplier: this.authoritativeDragMultiplier,
-            effectiveSpeedMultiplier: speedMultiplier,
-            effectiveDragMultiplier: dragMultiplier,
-        };
-    }
-
     // ============================================================================
     // SERVER RECONCILIATION
     // ============================================================================
@@ -681,26 +643,12 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         const ackOutOfReplayWindow =
             oldestUnackedSequence !== undefined &&
             effectiveServerSequence < oldestUnackedSequence - 1;
-        const setReconcileTelemetry = (action: string) => {
-            this.reconcileTelemetry = {
-                timestamp: Date.now(),
-                action,
-                errorDist,
-                serverLagSequences,
-                lastServerSequence: effectiveServerSequence,
-                currentSequence: this.currentSequence,
-                inputHistoryLength: this.inputHistory.length,
-                ackOutOfReplayWindow,
-                correctionAlongMotion,
-            };
-        };
 
         if (ackOutOfReplayWindow) {
             // Server ack is older than our replay window, so positional correction
             // would pull toward stale authority. Keep velocity synced and wait.
             this.physicsState.vx = predictedState.vx;
             this.physicsState.vy = predictedState.vy;
-            setReconcileTelemetry("hold_stale_ack");
             return;
         }
 
@@ -713,7 +661,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             // Just sync velocity to prevent drift
             this.physicsState.vx = predictedState.vx;
             this.physicsState.vy = predictedState.vy;
-            setReconcileTelemetry("ignore_small");
             return;
         }
 
@@ -727,8 +674,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             // Also snap visual to prevent lerping across map
             this.visualOffsetX = 0;
             this.visualOffsetY = 0;
-
-            setReconcileTelemetry("hard_snap");
             return;
         }
 
@@ -815,7 +760,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             // When server ack is meaningfully behind, avoid stale position pulls.
             this.physicsState.vx = predictedState.vx;
             this.physicsState.vy = predictedState.vy;
-            setReconcileTelemetry("hold_ack_lag");
             return;
         }
         if (
@@ -828,13 +772,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             // This is the primary source of perceived rubberbanding on held WASD.
             this.physicsState.vx = predictedState.vx;
             this.physicsState.vy = predictedState.vy;
-            setReconcileTelemetry("hold_backward_pull");
             return;
         }
         if (isMovingInput && errorDist <= softCorrectWhileMovingThreshold) {
             // Preserve LAN-like feel: converge using tiny capped steps.
             applyCappedMovingCorrection();
-            setReconcileTelemetry("capped_small");
             return;
         }
 
@@ -849,14 +791,12 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             // Only sync velocity, don't touch position during startup
             this.physicsState.vx = predictedState.vx;
             this.physicsState.vy = predictedState.vy;
-            setReconcileTelemetry("startup_grace");
             return;
         }
 
         if (isMovingInput) {
             // Even for larger non-snap errors while moving, avoid sudden pulls.
             applyCappedMovingCorrection();
-            setReconcileTelemetry("capped_large");
             return;
         }
 
@@ -874,7 +814,6 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         // Calculate visual offset (where sprite WAS relative to where it SHOULD BE)
         this.visualOffsetX = oldVisualX - this.physicsState.x;
         this.visualOffsetY = oldVisualY - this.physicsState.y;
-        setReconcileTelemetry("snap_medium");
     }
 
     // ============================================================================

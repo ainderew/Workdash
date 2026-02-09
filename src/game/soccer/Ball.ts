@@ -493,29 +493,6 @@ export class Ball extends Phaser.GameObjects.Sprite {
         }
     }
 
-    // === Debug Helpers ===
-
-    public getDebugInfo(): object {
-        return {
-            sim: { ...this.simState },
-            render: { x: this.renderX, y: this.renderY },
-            server: this.lastAuthoritativeState
-                ? {
-                      x: this.lastAuthoritativeState.x,
-                      y: this.lastAuthoritativeState.y,
-                      vx: this.lastAuthoritativeState.vx,
-                      vy: this.lastAuthoritativeState.vy,
-                      tick: this.lastAuthoritativeState.tick,
-                  }
-                : null,
-            tick: this.currentTick,
-            serverTick: this.lastServerTick,
-            serverSequence: this.lastServerSequence,
-            pendingKicks: this.pendingKicks.length,
-            pendingKickIds: this.pendingKicks.map((k) => k.localId),
-        };
-    }
-
     /**
      * Acknowledge a predicted kick when the authoritative "ball:kicked" event arrives.
      * This avoids false acks from global ball sequence increments created by other players' kicks.
