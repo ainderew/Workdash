@@ -3,8 +3,9 @@ import useUiStore from "@/common/store/uiStore";
 
 export default function PingDisplay() {
     const ping = useUiStore((state) => state.ping);
+    const interactionMode = useUiStore((state) => state.interactionMode);
 
-    if (ping === null) return null;
+    if (ping === null || interactionMode === "desk") return null;
 
     const getPingColor = (p: number) => {
         if (p < 100) return "text-green-400";

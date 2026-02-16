@@ -12,6 +12,8 @@ body {
     padding: 0;
 
     font-family: sans-serif;
+    background-color: var(--wd-surface-base);
+    color: var(--wd-text-primary);
 }
 
 /* .spritePosition { */
@@ -90,6 +92,25 @@ body {
     --sidebar-accent-foreground: oklch(0.985 0 0);
     --sidebar-border: oklch(1 0 0 / 10%);
     --sidebar-ring: oklch(0.556 0 0);
+
+    /* Workdash semantic design tokens */
+    --wd-surface-base: #0f1115;
+    --wd-surface-panel: #0f1115;
+    --wd-surface-panel-2: #161a22;
+    --wd-surface-elevated: #1f2530;
+    --wd-surface-overlay: rgba(10, 12, 17, 0.96);
+    --wd-border-subtle: #2b3240;
+    --wd-border-strong: #3d4759;
+    --wd-text-primary: #f2f3f5;
+    --wd-text-secondary: #c0c5cd;
+    --wd-text-muted: #9099ab;
+    --wd-accent: #5865f2;
+    --wd-accent-hover: #4752c4;
+    --wd-accent-soft: rgba(88, 101, 242, 0.16);
+    --wd-success: #3ba55d;
+    --wd-danger: #ed4245;
+    --wd-warning: #f0b232;
+    --wd-info: #00a8fc;
 }
 
 .dark {
@@ -125,6 +146,25 @@ body {
     --sidebar-accent-foreground: oklch(0.205 0 0);
     --sidebar-border: oklch(0.922 0 0);
     --sidebar-ring: oklch(0.708 0 0);
+
+    /* Keep semantic tokens consistent in dark mode (primary application mode) */
+    --wd-surface-base: #0f1115;
+    --wd-surface-panel: #0f1115;
+    --wd-surface-panel-2: #161a22;
+    --wd-surface-elevated: #1f2530;
+    --wd-surface-overlay: rgba(10, 12, 17, 0.96);
+    --wd-border-subtle: #2b3240;
+    --wd-border-strong: #3d4759;
+    --wd-text-primary: #f2f3f5;
+    --wd-text-secondary: #c0c5cd;
+    --wd-text-muted: #9099ab;
+    --wd-accent: #5865f2;
+    --wd-accent-hover: #4752c4;
+    --wd-accent-soft: rgba(88, 101, 242, 0.16);
+    --wd-success: #3ba55d;
+    --wd-danger: #ed4245;
+    --wd-warning: #f0b232;
+    --wd-info: #00a8fc;
 }
 
 /* @layer base { */
@@ -183,11 +223,170 @@ body {
 }
 
 @layer utilities {
+    .wd-bg-app {
+        background-color: var(--wd-surface-base);
+    }
+
+    .wd-bg-panel {
+        background-color: var(--wd-surface-panel);
+    }
+
+    .wd-bg-panel-2 {
+        background-color: var(--wd-surface-panel-2);
+    }
+
+    .wd-bg-elevated {
+        background-color: var(--wd-surface-elevated);
+    }
+
+    .wd-bg-overlay {
+        background-color: var(--wd-surface-overlay);
+    }
+
+    .wd-bg-accent-soft {
+        background-color: var(--wd-accent-soft);
+    }
+
+    .wd-bg-warning-soft {
+        background-color: color-mix(
+            in srgb,
+            var(--wd-warning) 12%,
+            transparent
+        );
+    }
+
+    .wd-border-subtle {
+        border-color: var(--wd-border-subtle);
+    }
+
+    .wd-border-strong {
+        border-color: var(--wd-border-strong);
+    }
+
+    .wd-text-primary {
+        color: var(--wd-text-primary);
+    }
+
+    .wd-text-secondary {
+        color: var(--wd-text-secondary);
+    }
+
+    .wd-text-muted {
+        color: var(--wd-text-muted);
+    }
+
+    .wd-text-accent {
+        color: var(--wd-accent);
+    }
+
+    .wd-text-success {
+        color: var(--wd-success);
+    }
+
+    .wd-text-danger {
+        color: var(--wd-danger);
+    }
+
+    .wd-text-warning {
+        color: var(--wd-warning);
+    }
+
+    .wd-ring-focus {
+        @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0;
+        --tw-ring-color: var(--wd-accent);
+    }
+
     .clip-path-polygon {
         clip-path: polygon(92% 0, 100% 25%, 100% 100%, 8% 100%, 0% 75%, 0 0);
     }
     .clip-path-polygon-sm {
         clip-path: polygon(90% 0, 100% 30%, 100% 100%, 10% 100%, 0% 70%, 0 0);
+    }
+}
+
+@layer components {
+    .wd-card {
+        background-color: var(--wd-surface-panel);
+        border: 1px solid var(--wd-border-subtle);
+        color: var(--wd-text-primary);
+        border-radius: 0.75rem;
+    }
+
+    .wd-input {
+        height: 2.75rem;
+        width: 100%;
+        border-radius: 0.375rem;
+        border: 1px solid var(--wd-border-subtle);
+        background-color: var(--wd-surface-base);
+        color: var(--wd-text-primary);
+        padding: 0 0.75rem;
+        font-size: 0.875rem;
+        outline: none;
+        transition: border-color 0.15s ease;
+    }
+
+    .wd-input::placeholder {
+        color: var(--wd-text-muted);
+    }
+
+    .wd-input:focus {
+        border-color: var(--wd-accent);
+    }
+
+    .wd-btn-primary {
+        background-color: var(--wd-accent);
+        color: #fff;
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+        padding: 0 1rem;
+        height: 2.25rem;
+        transition: background-color 0.15s ease;
+    }
+
+    .wd-btn-primary:hover {
+        background-color: var(--wd-accent-hover);
+    }
+
+    .wd-btn-primary:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    .wd-btn-ghost {
+        color: var(--wd-text-secondary);
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        padding: 0 1rem;
+        height: 2.25rem;
+        transition:
+            background-color 0.15s ease,
+            color 0.15s ease;
+    }
+
+    .wd-btn-ghost:hover {
+        background-color: var(--wd-surface-elevated);
+        color: var(--wd-text-primary);
+    }
+
+    .wd-btn-ghost:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    .wd-btn-danger {
+        background-color: color-mix(in srgb, var(--wd-danger) 18%, transparent);
+        color: var(--wd-danger);
+        border-radius: 0.375rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        padding: 0.25rem 0.5rem;
+        transition: background-color 0.15s ease;
+    }
+
+    .wd-btn-danger:hover {
+        background-color: color-mix(in srgb, var(--wd-danger) 30%, transparent);
     }
 }
 

@@ -11,6 +11,8 @@ import {
     CalendarFold,
     ChevronUp,
     Check,
+    Map,
+    Monitor,
 } from "lucide-react";
 import useUiControls from "./hooks/useUiControls";
 import ChatWindow from "../TextChat/ChatWindow";
@@ -30,7 +32,11 @@ import { SoccerStatsModal } from "./modal/SoccerStatsModal";
 import { SoccerGameControlModal } from "./modal/SoccerGameControlModal";
 import { MatchHistoryModal } from "./modal/MatchHistoryModal";
 
-function UiControls() {
+interface UiControlsProps {
+    isVisible?: boolean;
+}
+
+function UiControls({ isVisible = true }: UiControlsProps) {
     const {
         micControls,
         microphoneSelector,
@@ -66,6 +72,8 @@ function UiControls() {
 
     const isMatchHistoryModalOpen = useUiStore((state) => state.isMatchHistoryModalOpen);
     const closeMatchHistoryModal = useUiStore((state) => state.closeMatchHistoryModal);
+    const interactionMode = useUiStore((state) => state.interactionMode);
+    const toggleInteractionMode = useUiStore((state) => state.toggleInteractionMode);
 
     
     const micSelectorRef = useRef<HTMLDivElement>(null);
@@ -129,133 +137,147 @@ function UiControls() {
     };
 
     return (
-        <div className="h-[var(--ui-controls-height)] w-fit fixed rounded-xl bottom-4 flex gap-4 justify-between items-center bg-primary/80 px-5">
-            <div className="controller-container flex gap-4 items-center pr-30">
-                <CharacterButton />
+        <>
+            <div
+                className={`h-[var(--ui-controls-height)] w-fit fixed rounded-xl bottom-4 flex gap-4 justify-between items-center bg-primary/80 px-5 z-40 transition-all duration-200 ease-out ${
+                    isVisible
+                        ? "translate-y-0 opacity-100 pointer-events-auto"
+                        : "translate-y-8 opacity-0 pointer-events-none"
+                }`}
+            >
+                <div className="controller-container flex gap-4 items-center pr-30">
+                    <CharacterButton />
 
-                <UiControlsButton
-                    icon={PhoneMissed}
-                    label={"Leave Call"}
-                    round={true}
-                    size={ButtonSizeEnum.large}
-                />
+                    <UiControlsButton
+                        icon={PhoneMissed}
+                        label={"Leave Call"}
+                        round={true}
+                        size={ButtonSizeEnum.large}
+                    />
 
-                <UiControlsButton
-                    onClick={handleShareVideoCam}
-                    icon={isVideoOff ? VideoOff : VideoIcon}
-                    label={"Share Video"}
-                    size={ButtonSizeEnum.regular}
-                    color={isVideoOff ? ColorEnum.darkRed : ColorEnum.darkGreen}
-                    textColor={isVideoOff ? ColorEnum.red : ColorEnum.green}
-                />
+                    <UiControlsButton
+                        onClick={handleShareVideoCam}
+                        icon={isVideoOff ? VideoOff : VideoIcon}
+                        label={"Share Video"}
+                        size={ButtonSizeEnum.regular}
+                        color={isVideoOff ? ColorEnum.darkRed : ColorEnum.darkGreen}
+                        textColor={isVideoOff ? ColorEnum.red : ColorEnum.green}
+                    />
 
-                <div className="relative" ref={micSelectorRef}>
-                    <button
-                        className={`flex items-center gap-1 px-3 py-2 rounded-lg transition-colors ${
-                            isMuted ? "bg-red-950" : "bg-green-950"
-                        }`}
-                    >
-                        <div
-                            onClick={toggleMic}
-                            className="flex items-center gap-2 cursor-pointer"
+                    <div className="relative" ref={micSelectorRef}>
+                        <button
+                            className={`flex items-center gap-1 px-3 py-2 rounded-lg transition-colors ${
+                                isMuted ? "bg-red-950" : "bg-green-950"
+                            }`}
                         >
-                            {isMuted ? (
-                                <MicOff size={20} className="text-red-600" />
-                            ) : (
-                                <Mic size={20} className="text-green-600" />
-                            )}
-                        </div>
-
-                        <div
-                            className={`w-px h-5 mx-1 ${isMuted ? "bg-red-400/30" : "bg-green-400/30"}`}
-                        />
-
-                        <div
-                            onClick={toggleMicSelector}
-                            className="cursor-pointer p-1 rounded hover:bg-white/10 transition-colors"
-                            aria-label="Select microphone"
-                        >
-                            <ChevronUp
-                                size={14}
-                                className={`transition-transform ${isMuted ? "text-red-400/70" : "text-green-400/70"} ${
-                                    isMicSelectorOpen ? "rotate-180" : ""
-                                }`}
-                            />
-                        </div>
-                    </button>
-
-                    {isMicSelectorOpen && (
-                        <div className="absolute bottom-full left-0 mb-2 w-64 bg-gray-800 rounded-lg shadow-lg border border-gray-700 overflow-hidden z-50">
-                            <div className="px-3 py-2 border-b border-gray-700">
-                                <span className="text-xs text-gray-400 uppercase tracking-wide">
-                                    Select Microphone
-                                </span>
-                            </div>
-
-                            <div className="max-h-48 overflow-y-auto">
-                                {availableMicrophones.length === 0 ? (
-                                    <div className="px-3 py-2 text-sm text-gray-400">
-                                        No microphones found
-                                    </div>
+                            <div
+                                onClick={toggleMic}
+                                className="flex items-center gap-2 cursor-pointer"
+                            >
+                                {isMuted ? (
+                                    <MicOff size={20} className="text-red-600" />
                                 ) : (
-                                    availableMicrophones.map((mic) => (
-                                        <button
-                                            key={mic.deviceId}
-                                            onClick={() =>
-                                                selectMicrophone(mic.deviceId)
-                                            }
-                                            className={`w-full px-3 py-2 text-left text-sm flex items-center justify-between hover:bg-gray-700 transition-colors ${
-                                                selectedMicrophoneId ===
-                                                mic.deviceId
-                                                    ? "bg-gray-700/50"
-                                                    : ""
-                                            }`}
-                                        >
-                                            <span className="text-white truncate pr-2">
-                                                {mic.label ||
-                                                    `Microphone ${mic.deviceId.slice(0, 8)}`}
-                                            </span>
-
-                                            {selectedMicrophoneId ===
-                                                mic.deviceId && (
-                                                <Check
-                                                    size={16}
-                                                    className="text-green-400 flex-shrink-0"
-                                                />
-                                            )}
-                                        </button>
-                                    ))
+                                    <Mic size={20} className="text-green-600" />
                                 )}
                             </div>
-                        </div>
-                    )}
+
+                            <div
+                                className={`w-px h-5 mx-1 ${isMuted ? "bg-red-400/30" : "bg-green-400/30"}`}
+                            />
+
+                            <div
+                                onClick={toggleMicSelector}
+                                className="cursor-pointer p-1 rounded hover:bg-white/10 transition-colors"
+                                aria-label="Select microphone"
+                            >
+                                <ChevronUp
+                                    size={14}
+                                    className={`transition-transform ${isMuted ? "text-red-400/70" : "text-green-400/70"} ${
+                                        isMicSelectorOpen ? "rotate-180" : ""
+                                    }`}
+                                />
+                            </div>
+                        </button>
+
+                        {isMicSelectorOpen && (
+                            <div className="absolute bottom-full left-0 mb-2 w-64 bg-gray-800 rounded-lg shadow-lg border border-gray-700 overflow-hidden z-50">
+                                <div className="px-3 py-2 border-b border-gray-700">
+                                    <span className="text-xs text-gray-400 uppercase tracking-wide">
+                                        Select Microphone
+                                    </span>
+                                </div>
+
+                                <div className="max-h-48 overflow-y-auto">
+                                    {availableMicrophones.length === 0 ? (
+                                        <div className="px-3 py-2 text-sm text-gray-400">
+                                            No microphones found
+                                        </div>
+                                    ) : (
+                                        availableMicrophones.map((mic) => (
+                                            <button
+                                                key={mic.deviceId}
+                                                onClick={() =>
+                                                    selectMicrophone(mic.deviceId)
+                                                }
+                                                className={`w-full px-3 py-2 text-left text-sm flex items-center justify-between hover:bg-gray-700 transition-colors ${
+                                                    selectedMicrophoneId ===
+                                                    mic.deviceId
+                                                        ? "bg-gray-700/50"
+                                                        : ""
+                                                }`}
+                                            >
+                                                <span className="text-white truncate pr-2">
+                                                    {mic.label ||
+                                                        `Microphone ${mic.deviceId.slice(0, 8)}`}
+                                                </span>
+
+                                                {selectedMicrophoneId ===
+                                                    mic.deviceId && (
+                                                    <Check
+                                                        size={16}
+                                                        className="text-green-400 flex-shrink-0"
+                                                    />
+                                                )}
+                                            </button>
+                                        ))
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    <UiControlsButton
+                        onClick={handleScreenShare}
+                        icon={ScreenShareIcon}
+                        label={"Share Screen"}
+                        size={ButtonSizeEnum.regular}
+                    />
+
+                    <ReactionButton />
                 </div>
 
-                <UiControlsButton
-                    onClick={handleScreenShare}
-                    icon={ScreenShareIcon}
-                    label={"Share Screen"}
-                    size={ButtonSizeEnum.regular}
-                />
+                <div className="chat-buttons-container items-center flex gap-4">
+                    <UiControlsButton
+                        onClick={toggleInteractionMode}
+                        icon={interactionMode === "world" ? Monitor : Map}
+                        label={interactionMode === "world" ? "Desk Mode" : "2D Mode"}
+                    />
 
-                <ReactionButton />
-            </div>
+                    <UiControlsButton
+                        onClick={toggleCalendarMenu}
+                        icon={CalendarFold}
+                        label={"Calendar"}
+                    />
 
-            <div className="chat-buttons-container items-center flex gap-4">
-                <UiControlsButton
-                    onClick={toggleCalendarMenu}
-                    icon={CalendarFold}
-                    label={"Calendar"}
-                />
+                    <UiControlsButton
+                        onClick={toggleChatWindow}
+                        icon={MessageCircle}
+                        label={"Chat"}
+                        badgeCount={unreadCount}
+                    />
 
-                <UiControlsButton
-                    onClick={toggleChatWindow}
-                    icon={MessageCircle}
-                    label={"Chat"}
-                    badgeCount={unreadCount}
-                />
-
-                <UiOnlineButton onClick={toggleMembersUi} />
+                    <UiOnlineButton onClick={toggleMembersUi} />
+                </div>
             </div>
 
             <CalendarMenu
@@ -284,7 +306,7 @@ function UiControls() {
                 isOpen={isMatchHistoryModalOpen}
                 onClose={closeMatchHistoryModal}
             />
-        </div>
+        </>
     );
 }
 

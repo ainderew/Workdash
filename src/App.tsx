@@ -24,6 +24,8 @@ import SkillsHud from "./common/components/Soccer/SkillsHud";
 import SkillSelectionOverlay from "./common/components/Soccer/SkillSelectionOverlay";
 import { SoccerGameControlButton } from "./common/components/SoccerGameControl/SoccerGameControlButton";
 import PingDisplay from "./common/components/PingDisplay/PingDisplay";
+import useUiStore, { InteractionMode } from "./common/store/uiStore";
+import DeskLayout from "./common/components/DeskMode/DeskLayout";
 
 
 
@@ -31,6 +33,8 @@ import PingDisplay from "./common/components/PingDisplay/PingDisplay";
 
 
 function App() {
+    const interactionMode = useUiStore((state) => state.interactionMode);
+    const setInteractionMode = useUiStore((state) => state.setInteractionMode);
     const [isInitialized, setIsInitialized] = useState(false);
     const [isGameReady, setIsGameReady] = useState(false);
     const { data: session, status } = useSession();
@@ -100,12 +104,50 @@ function App() {
 
     const user = useUserStore((state: UserStore) => state.user);
 
+    useEffect(() => {
+        const resolveModeFromStorage = (): InteractionMode | null => {
+            const params = new URLSearchParams(window.location.search);
+            const urlMode = params.get("mode");
+            if (urlMode === "desk" || urlMode === "world") return urlMode;
+
+            const storedMode = localStorage.getItem("workdash:interactionMode");
+            if (storedMode === "desk" || storedMode === "world") return storedMode;
+
+            return null;
+        };
+
+        const resolvedMode = resolveModeFromStorage();
+        if (resolvedMode) {
+            setInteractionMode(resolvedMode);
+        }
+    }, [setInteractionMode]);
+
+    useEffect(() => {
+        localStorage.setItem("workdash:interactionMode", interactionMode);
+
+        const currentUrl = new URL(window.location.href);
+        currentUrl.searchParams.set("mode", interactionMode);
+        window.history.replaceState({}, "", currentUrl.toString());
+    }, [interactionMode]);
+
+    useEffect(() => {
+        const game = phaserRef.current?.game;
+        if (!game?.loop) return;
+
+        if (interactionMode === "desk") {
+            game.loop.sleep();
+            return;
+        }
+
+        game.loop.wake();
+    }, [interactionMode, isGameReady]);
+
     
 
     
     if (status === "loading") {
         return (
-            <div className="w-full h-full flex items-center justify-center bg-black text-white">
+            <div className="w-full h-full flex items-center justify-center wd-bg-app wd-text-primary">
                 Loading session...
             </div>
         );
@@ -114,7 +156,7 @@ function App() {
     
     if (status === "unauthenticated") {
         return (
-            <div className="w-full h-full flex items-center justify-center bg-black text-white">
+            <div className="w-full h-full flex items-center justify-center wd-bg-app wd-text-primary">
                 Please log in to continue
             </div>
         );
@@ -122,12 +164,12 @@ function App() {
 
     if (!isInitialized) {
         return (
-            <div className="w-full h-full flex items-center justify-center bg-black text-white">
+            <div className="w-full h-full flex items-center justify-center wd-bg-app wd-text-primary">
                 <div className="text-center">
-                    <div className="text-cyan-400 font-mono text-sm mb-2">
+                    <div className="wd-text-accent font-mono text-sm mb-2">
                         Initializing services...
                     </div>
-                    <div className="text-slate-500 text-xs">
+                    <div className="wd-text-muted text-xs">
                         Check console for details
                     </div>
                 </div>
@@ -138,7 +180,7 @@ function App() {
     return (
         <div
             id="app"
-            className="w-full h-full grow flex flex-col items-center justify-end bg-black relative"
+            className="w-full h-full grow flex flex-col items-center justify-end wd-bg-app relative"
         >
             <PhaserGame
                 ref={phaserRef}
@@ -146,8 +188,9 @@ function App() {
                 user={user}
                 onGameReady={handleGameReady}
             />
+            {interactionMode === "desk" && <DeskLayout />}
             <AudioElement />
-            <UiControls />
+            {interactionMode === "world" && <UiControls />}
 
             {}
             <ScreenShareUi isGameReady={isGameReady} />

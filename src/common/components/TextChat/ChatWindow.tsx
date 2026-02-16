@@ -88,12 +88,7 @@ function ChatWindow({ isOpen, onClose }: ChatWindowProps) {
             return;
         }
 
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            const imageUrl = event.target?.result as string;
-            textChatService.sendImage(imageUrl);
-        };
-        reader.readAsDataURL(file);
+        void textChatService.sendImage(file);
 
         if (fileInputRef.current) {
             fileInputRef.current.value = "";

@@ -50,6 +50,13 @@ export class MediaTransportService {
         });
     }
 
+    public setAuthToken(jwtToken: string) {
+        const token = jwtToken.trim();
+        const auth = (this.socket.auth ?? {}) as { token?: string };
+        auth.token = token;
+        this.socket.auth = auth;
+    }
+
     public connect() {
         return new Promise<void>((resolve, reject) => {
             if (this.socket.connected) {
@@ -76,8 +83,12 @@ export class MediaTransportService {
     }
 
     public static getInstance(jwtToken?: string) {
-        if (MediaTransportService.instance)
+        if (MediaTransportService.instance) {
+            if (jwtToken) {
+                MediaTransportService.instance.setAuthToken(jwtToken);
+            }
             return MediaTransportService.instance;
+        }
 
         MediaTransportService.instance = new MediaTransportService(jwtToken);
         return MediaTransportService.instance;

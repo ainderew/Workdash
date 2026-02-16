@@ -32,7 +32,7 @@ const textColorMap: Record<ColorEnum, string> = {
     darkGreen: "text-red-900",
     red: "text-red-600",
     green: "text-green-600",
-    normal: "text-white",
+    normal: "wd-text-primary",
 };
 
 const buttonColorMap: Record<ColorEnum, string> = {
@@ -40,7 +40,7 @@ const buttonColorMap: Record<ColorEnum, string> = {
     darkGreen: "bg-green-950",
     red: "bg-red-600",
     green: "bg-green-600",
-    normal: "bg-neutral-700",
+    normal: "wd-bg-elevated",
 };
 
 function UiControlsButton({
@@ -60,7 +60,7 @@ function UiControlsButton({
                     onClick={onClick}
                     variant="default"
                     size="icon"
-                    className={`cursor-pointer dark bg-neutral-700 hover:bg-neutral-100 hover:text-neutral-900
+                    className={`cursor-pointer dark wd-bg-elevated hover:bg-[var(--wd-surface-base)] hover:text-[var(--wd-text-primary)]
                         ${buttonColorMap[color as ColorEnum]}
                         ${sizeMap[size as ButtonSizeEnum]}
                         ${textColorMap[textColor as ColorEnum]}
@@ -70,7 +70,7 @@ function UiControlsButton({
                     {<Icon />}
                 </Button>
                 {badgeCount !== undefined && badgeCount > 0 && (
-                    <span className="absolute -top-1 -right-1 h-5 min-w-5 flex items-center justify-center bg-red-600 text-white text-xs font-bold rounded-full px-1">
+                    <span className="absolute -top-1 -right-1 h-5 min-w-5 flex items-center justify-center bg-[var(--wd-danger)] text-white text-xs font-bold rounded-full px-1">
                         {badgeCount > 99 ? "99+" : badgeCount}
                     </span>
                 )}

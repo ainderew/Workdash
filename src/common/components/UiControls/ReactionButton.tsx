@@ -19,12 +19,12 @@ function ReactionButton() {
 
     return (
         <div
-            className={`relative flex cursor-pointer dark bg-neutral-700 h-9 text-white gap-4 rounded-md transition-all duration-200
+            className={`relative flex cursor-pointer dark wd-bg-elevated h-9 wd-text-primary gap-4 rounded-md transition-all duration-200
                         ${isExpanded ? "overflow-auto w-105" : "overflow-hidden w-9"}`}
         >
             <div
                 onClick={expnadEmojiContainer}
-                className={`w-9 h-9 flex items-center absolute justify-center  hover:bg-neutral-100 hover:text-neutral-900 z-20`}
+                className={`w-9 h-9 flex items-center absolute justify-center hover:bg-[var(--wd-surface-base)] hover:text-[var(--wd-text-primary)] z-20`}
             >
                 <SmilePlus size={18} />
             </div>
@@ -38,35 +38,35 @@ function ReactionButton() {
             >
                 <Button
                     onClick={() => handleReact("👍")}
-                    className="text-lg bg-neutral-700 hover:bg-neutral-100 hover:text-neutral-900  h-9"
+                    className="text-lg wd-bg-elevated hover:bg-[var(--wd-surface-base)] hover:text-[var(--wd-text-primary)] h-9"
                     variant="default"
                 >
                     👍
                 </Button>
                 <Button
                     onClick={() => handleReact("😂")}
-                    className="text-lg bg-neutral-700 hover:bg-neutral-100 hover:text-neutral-900  h-9"
+                    className="text-lg wd-bg-elevated hover:bg-[var(--wd-surface-base)] hover:text-[var(--wd-text-primary)] h-9"
                     variant="default"
                 >
                     😂
                 </Button>
                 <Button
                     onClick={() => handleReact("❤️")}
-                    className="text-lg bg-neutral-700 hover:bg-neutral-100 hover:text-neutral-900  h-9"
+                    className="text-lg wd-bg-elevated hover:bg-[var(--wd-surface-base)] hover:text-[var(--wd-text-primary)] h-9"
                     variant="default"
                 >
                     ❤️
                 </Button>
                 <Button
                     onClick={() => handleReact("🔥")}
-                    className="text-lg bg-neutral-700 hover:bg-neutral-100 hover:text-neutral-900  h-9"
+                    className="text-lg wd-bg-elevated hover:bg-[var(--wd-surface-base)] hover:text-[var(--wd-text-primary)] h-9"
                     variant="default"
                 >
                     🔥
                 </Button>
                 <Button
                     onClick={() => handleReact("🥷")}
-                    className="text-xl bg-neutral-700 hover:bg-neutral-100 hover:text-neutral-900  h-9"
+                    className="text-xl wd-bg-elevated hover:bg-[var(--wd-surface-base)] hover:text-[var(--wd-text-primary)] h-9"
                     variant="default"
                 >
                     🥷
@@ -76,7 +76,7 @@ function ReactionButton() {
                     <TooltipTrigger asChild>
                         <Button
                             onClick={() => toggleRaiseHand()}
-                            className="text-lg bg-neutral-700 hover:bg-neutral-100 hover:text-neutral-900  h-9"
+                            className="text-lg wd-bg-elevated hover:bg-[var(--wd-surface-base)] hover:text-[var(--wd-text-primary)] h-9"
                             variant="default"
                         >
                             🤚

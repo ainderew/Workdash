@@ -188,12 +188,12 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         if (this.isLocal) {
             this.cursors = scene.input.keyboard!.createCursorKeys();
             this.wasd = {
-                up: scene.input.keyboard!.addKey("W"),
-                left: scene.input.keyboard!.addKey("A"),
-                down: scene.input.keyboard!.addKey("S"),
-                right: scene.input.keyboard!.addKey("D"),
+                up: scene.input.keyboard!.addKey("W", false),
+                left: scene.input.keyboard!.addKey("A", false),
+                down: scene.input.keyboard!.addKey("S", false),
+                right: scene.input.keyboard!.addKey("D", false),
             };
-            this.kartKey = scene.input.keyboard!.addKey("K");
+            this.kartKey = scene.input.keyboard!.addKey("K", false);
         }
 
         this.initializeNameTag();
@@ -456,24 +456,46 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         }
     }
 
+    private setInputIdleState() {
+        this.currentInput = {
+            up: false,
+            down: false,
+            left: false,
+            right: false,
+        };
+        this.previousInput = { ...this.currentInput };
+    }
+
+    private isTextEntryFocused() {
+        const activeElement = document.activeElement as HTMLElement | null;
+        if (!activeElement) return false;
+
+        const tagName = activeElement.tagName.toLowerCase();
+        return (
+            tagName === "input" ||
+            tagName === "textarea" ||
+            tagName === "select" ||
+            activeElement.isContentEditable
+        );
+    }
+
     private sampleInput() {
-        const isCommandPaletteOpen = useUiStore.getState().isCommandPaletteOpen;
+        const uiState = useUiStore.getState();
+        const isCommandPaletteOpen = uiState.isCommandPaletteOpen;
+        const isDeskMode = uiState.interactionMode === "desk";
         const isSoccerMap = this.scene.scene.key === "SoccerMap";
         const isSoccerStatsReady = !isSoccerMap || this.soccerStats !== null;
         const canMoveInSoccer = !isSoccerMap || !this.isSpectator;
         if (
+            isDeskMode ||
             isCommandPaletteOpen ||
+            this.isTextEntryFocused() ||
             !this.cursors ||
             !this.wasd ||
             !isSoccerStatsReady ||
             !canMoveInSoccer
         ) {
-            this.currentInput = {
-                up: false,
-                down: false,
-                left: false,
-                right: false,
-            };
+            this.setInputIdleState();
             return;
         }
 

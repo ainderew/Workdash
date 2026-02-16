@@ -5,6 +5,12 @@ import { TextEvents } from "./_enums";
 import type { Message, LinkMetadata } from "./_types";
 import { v4 as uuidv4 } from "uuid";
 import useMessagingStore from "@/common/store/messagingStore";
+import {
+    getSignedAttachmentUrl,
+    initChatUpload,
+    uploadFileToSignedUrl,
+} from "@/communication/chatV2/uploadService";
+import { LEGACY_MAINMAP_ROOM_ID } from "@/communication/chatV2/constants";
 
 export class TextChatService {
     public static instance: TextChatService;
@@ -71,7 +77,28 @@ export class TextChatService {
     }
 
     setupMessageListener() {
-        this.sfuService.socket.on(TextEvents.NEW_MESSAGE, (data: Message) => {
+        this.sfuService.socket.on(TextEvents.NEW_MESSAGE, async (incomingData: Message) => {
+            let data = incomingData;
+
+            if (
+                data.type === "image"
+                && typeof data.imageUrl === "string"
+                && data.imageUrl.startsWith("chat/")
+            ) {
+                try {
+                    const signedUrl = await getSignedAttachmentUrl({
+                        roomId: LEGACY_MAINMAP_ROOM_ID,
+                        objectKey: data.imageUrl,
+                    });
+                    data = {
+                        ...data,
+                        imageUrl: signedUrl,
+                    };
+                } catch (error) {
+                    console.error("Failed to resolve signed image URL:", error);
+                }
+            }
+
             if (!data.linkMetadata && this.pendingMetadata.has(data.content)) {
                 const metadata = this.pendingMetadata.get(data.content);
                 if (metadata && metadata.length > 0) {
@@ -140,8 +167,9 @@ export class TextChatService {
         this.startMessageTimeout(clientId);
     }
 
-    sendImage(imageUrl: string) {
+    async sendImage(file: File) {
         const clientId = uuidv4();
+        const localPreviewUrl = URL.createObjectURL(file);
 
         const messageData = {
             clientId,
@@ -151,15 +179,29 @@ export class TextChatService {
             type: "image" as const,
             senderSocketId: this.sfuService.socket.id,
             senderSpriteSheet: useUserStore.getState().user.spriteSheetDataUrl,
-            imageUrl: imageUrl,
+            imageUrl: localPreviewUrl,
             status: "pending" as const,
             isOptimistic: true,
         };
 
         useMessagingStore.getState().addOptimisticMessage(messageData);
 
-        this.sfuService.socket.emit(TextEvents.SEND_MESSAGE, messageData);
+        try {
+            const uploadInit = await initChatUpload({
+                roomId: LEGACY_MAINMAP_ROOM_ID,
+                file,
+            });
+            await uploadFileToSignedUrl(file, uploadInit);
 
-        this.startMessageTimeout(clientId);
+            this.sfuService.socket.emit(TextEvents.SEND_MESSAGE, {
+                ...messageData,
+                imageUrl: uploadInit.attachment.objectKey,
+            });
+
+            this.startMessageTimeout(clientId);
+        } catch (error) {
+            console.error("Failed to upload image:", error);
+            useMessagingStore.getState().updateMessageStatus(clientId, "failed");
+        }
     }
 }

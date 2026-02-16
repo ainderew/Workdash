@@ -11,14 +11,14 @@ function UiOnlineButton({ onClick }: { onClick: () => void }) {
             onClick={onClick}
             variant="default"
             size="default"
-            className="cursor-pointer bg-neutral-700 hover:bg-neutral-100 hover:text-neutral-900 flex gap-2"
+            className="cursor-pointer wd-bg-elevated hover:bg-[var(--wd-surface-base)] hover:text-[var(--wd-text-primary)] wd-text-primary flex gap-2"
         >
             {<UsersRound />}
             <span className="">
                 {Array.from(Object.keys(playersMap)).length} Online
             </span>
 
-            <div className="circle w-2 h-2 bg-green-400 rounded-full" />
+            <div className="circle w-2 h-2 bg-[var(--wd-success)] rounded-full" />
         </Button>
     );
 }

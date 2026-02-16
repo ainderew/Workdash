@@ -135,13 +135,13 @@ export class SoccerMap extends BaseGameScene {
         this.centerCamera();
         this.createBall();
 
-        this.kickKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.H) || null;
-        this.skillKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.Q) || null;
-        this.blinkKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.E) || null;
-        this.metavisionKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.R) || null;
-        this.ninjaStepKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.T) || null;
-        this.lurkingKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.F) || null;
-        this.powerShotKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.G) || null;
+        this.kickKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.H, false) || null;
+        this.skillKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.Q, false) || null;
+        this.blinkKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.E, false) || null;
+        this.metavisionKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.R, false) || null;
+        this.ninjaStepKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.T, false) || null;
+        this.lurkingKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.F, false) || null;
+        this.powerShotKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.G, false) || null;
         this.input.on(
             Phaser.Input.Events.POINTER_DOWN,
             this.handlePointerKickDown,

@@ -1,5 +1,7 @@
 import { create } from "zustand";
 
+export type InteractionMode = "world" | "desk";
+
 interface UiState {
     
     isChatWindowOpen: boolean;
@@ -41,6 +43,9 @@ interface UiState {
     
     ping: number | null;
     setPing: (ping: number | null) => void;
+    interactionMode: InteractionMode;
+    setInteractionMode: (mode: InteractionMode) => void;
+    toggleInteractionMode: () => void;
 
     
     toggleChatWindow: () => void;
@@ -109,6 +114,7 @@ const useUiStore = create<UiState>((set) => ({
     isMatchHistoryModalOpen: false,
     isSoccerEndgameVisible: false,
     ping: null,
+    interactionMode: "world",
 
     
     toggleChatWindow: () =>
@@ -195,6 +201,11 @@ const useUiStore = create<UiState>((set) => ({
 
     
     setPing: (ping) => set({ ping }),
+    setInteractionMode: (mode) => set({ interactionMode: mode }),
+    toggleInteractionMode: () =>
+        set((state) => ({
+            interactionMode: state.interactionMode === "world" ? "desk" : "world",
+        })),
 }));
 
 export default useUiStore;
