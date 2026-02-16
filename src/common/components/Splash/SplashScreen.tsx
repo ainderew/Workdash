@@ -23,12 +23,12 @@ function SplashScreen() {
     }
 
     function handleCharacterCreation(customization: CharacterCustomization) {
-        // Save character to localStorage
+        
         CharacterPersistence.save(customization);
         updateUser({ name });
         setCharacterCustomization(customization);
 
-        // Save to localStorage (for legacy compatibility)
+        
         localStorage.setItem(
             "user",
             JSON.stringify({ name, characterCustomization: customization }),

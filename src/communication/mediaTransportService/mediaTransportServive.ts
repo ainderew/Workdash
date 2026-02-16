@@ -11,10 +11,7 @@ import {
 } from "mediasoup-client/types";
 import io from "socket.io-client";
 
-/**
- * Don't touch singleton pattern
- * used so we don't create multiple connections when sharing audio and screenshare
- **/
+
 export class MediaTransportService {
     private static instance: MediaTransportService | null = null;
     public socket: SocketIOClient.Socket;

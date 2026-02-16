@@ -52,7 +52,7 @@ export class ScreenShareViewer {
     }
 
     public async loadExistingProducers(): Promise<void> {
-        // Wait for playerMap to be populated (with timeout)
+        
         console.log("⏳ Waiting for players to load before loading producers...");
         await this.waitForPlayers();
 

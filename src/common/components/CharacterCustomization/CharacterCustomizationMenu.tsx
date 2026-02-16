@@ -50,7 +50,7 @@ export function CharacterCustomizationMenu({
                 );
             }
 
-            // Persist to backend database
+            
             const token = session?.backendJwt;
             if (!token) {
                 console.warn("No backend JWT found, skipping server save.");

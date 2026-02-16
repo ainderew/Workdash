@@ -1,13 +1,13 @@
-// URL regex pattern
+
 const URL_REGEX = /(https?:\/\/[^\s]+)/g;
 
-// YouTube URL patterns
+
 const YOUTUBE_REGEX = /(?:youtube\.com\/(?:[^/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?/\s]{11})/;
 
-// Twitter URL patterns
+
 const TWITTER_REGEX = /(?:twitter\.com|x\.com)\/([^/]+)\/status\/(\d+)/;
 
-// GitHub URL patterns
+
 const GITHUB_REPO_REGEX = /github\.com\/([^/]+)\/([^/\s]+)(?:\/)?$/;
 const GITHUB_ISSUE_REGEX = /github\.com\/([^/]+)\/([^/]+)\/(?:issues|pull)\/(\d+)/;
 
@@ -30,14 +30,14 @@ export function parseMessageContent(message: string): ParsedMessage[] {
 
     segments.forEach((segment) => {
         if (segment.match(/^https?:\/\//)) {
-            // This is a URL - check what type
+            
             const youtubeMatch = segment.match(YOUTUBE_REGEX);
             const twitterMatch = segment.match(TWITTER_REGEX);
             const githubIssueMatch = segment.match(GITHUB_ISSUE_REGEX);
             const githubRepoMatch = segment.match(GITHUB_REPO_REGEX);
 
             if (youtubeMatch) {
-                // YouTube link
+                
                 parts.push({
                     type: 'youtube',
                     content: segment,
@@ -45,7 +45,7 @@ export function parseMessageContent(message: string): ParsedMessage[] {
                     youtubeId: youtubeMatch[1],
                 });
             } else if (twitterMatch) {
-                // Twitter/X link
+                
                 parts.push({
                     type: 'twitter',
                     content: segment,
@@ -54,7 +54,7 @@ export function parseMessageContent(message: string): ParsedMessage[] {
                     twitterId: twitterMatch[2],
                 });
             } else if (githubIssueMatch) {
-                // GitHub issue/PR link
+                
                 const type = segment.includes('/pull/') ? 'pull' : 'issue';
                 parts.push({
                     type: 'github',
@@ -66,7 +66,7 @@ export function parseMessageContent(message: string): ParsedMessage[] {
                     githubType: type,
                 });
             } else if (githubRepoMatch) {
-                // GitHub repository link
+                
                 parts.push({
                     type: 'github',
                     content: segment,
@@ -76,7 +76,7 @@ export function parseMessageContent(message: string): ParsedMessage[] {
                     githubType: 'repo',
                 });
             } else {
-                // Regular link
+                
                 parts.push({
                     type: 'link',
                     content: segment,
@@ -84,7 +84,7 @@ export function parseMessageContent(message: string): ParsedMessage[] {
                 });
             }
         } else if (segment.trim()) {
-            // Regular text
+            
             parts.push({
                 type: 'text',
                 content: segment,

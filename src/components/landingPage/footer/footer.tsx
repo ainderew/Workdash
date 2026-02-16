@@ -4,7 +4,7 @@ import { ArrowRightIcon } from "lucide-react";
 export function Footer() {
     return (
         <footer className="bg-slate-100 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800">
-            {/* CTA Section */}
+            {}
             <section className="py-24 px-6">
                 <div className="max-w-4xl mx-auto text-center">
                     <motion.div
@@ -44,7 +44,7 @@ export function Footer() {
                 </div>
             </section>
 
-            {/* Footer Links */}
+            {}
             <div className="border-t border-slate-200 dark:border-slate-800 py-8 px-6">
                 <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
                     <div className="flex flex-col md:flex-row items-center gap-4">

@@ -50,7 +50,7 @@ export default function CalendarTimeline({
         return (minutesFromStart / 60) * 80;
     };
 
-    // Separate all-day and timed events
+    
     const allDayEvents = events.filter(
         (e) => e.start.date && !e.start.dateTime,
     );
@@ -61,7 +61,7 @@ export default function CalendarTimeline({
 
     return (
         <div className="flex flex-col flex-1 overflow-auto">
-            {/* All-Day Events Section */}
+            {}
             {allDayEvents.length > 0 && (
                 <div className="border-b border-gray-700 bg-gray-800/50 p-3">
                     <div className="text-xs text-gray-400 mb-2">All Day</div>
@@ -78,9 +78,9 @@ export default function CalendarTimeline({
                 </div>
             )}
 
-            {/* Timeline */}
+            {}
             <div className="flex flex-1">
-                {/* Time Labels Column */}
+                {}
                 <div className="w-20 flex-shrink-0 border-r border-gray-700">
                     {hours.map((hour) => (
                         <div
@@ -92,9 +92,9 @@ export default function CalendarTimeline({
                     ))}
                 </div>
 
-                {/* Events Column */}
+                {}
                 <div className="flex-1 relative">
-                    {/* Hour Grid Lines */}
+                    {}
                     {hours.map((hour) => (
                         <div
                             key={hour}
@@ -108,7 +108,7 @@ export default function CalendarTimeline({
                         />
                     ))}
 
-                    {/* Current Time Indicator - Only show if selected date is today */}
+                    {}
                     {isSelectedDateToday && (
                         <div
                             className="absolute left-0 right-0 z-20 pointer-events-none"

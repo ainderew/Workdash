@@ -218,7 +218,7 @@ export class Multiplayer {
     ) {
         if (!player) return;
 
-        // Only create players that are in the same scene
+        
         if (player.currentScene && player.currentScene !== this.currentScene) {
             console.log(
                 `Ignoring player ${player.name} - they are in ${player.currentScene}, we are in ${this.currentScene}`,
@@ -264,13 +264,13 @@ export class Multiplayer {
         this.socket.on("playerMoved", (player: MovementPacket) => {
             const targetPlayer = players.get(player.id);
             if (targetPlayer) {
-                targetPlayer.targetPos = {
+                targetPlayer.pushSnapshot({
                     x: player.x,
                     y: player.y,
                     vx: player.vx,
                     vy: player.vy,
-                    t: Date.now(),
-                };
+                    timestamp: Date.now(),
+                });
                 targetPlayer.isAttacking = player.isAttacking;
                 if (player.isKartMode !== undefined) {
                     targetPlayer.isKartMode = player.isKartMode;

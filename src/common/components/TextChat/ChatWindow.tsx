@@ -82,9 +82,7 @@ function ChatWindow({ isOpen, onClose }: ChatWindowProps) {
             return;
         }
 
-        /**
-         * Max file size 5MB
-         */
+        
         if (file.size > 5 * 1024 * 1024) {
             alert("Image size must be less than 5MB");
             return;
@@ -145,7 +143,7 @@ function ChatWindow({ isOpen, onClose }: ChatWindowProps) {
                 </div>
             </SidebarHeader>
 
-            {/* Messages */}
+            {}
             <div className="flex-1 overflow-y-auto px-4 pb-4 z-100">
                 <div className="flex flex-col">
                     {messages.length > 0 ? (

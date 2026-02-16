@@ -55,7 +55,7 @@ function SkillSelectionOverlay() {
 
     return (
         <div className="fixed inset-0 z-[1000] bg-[#0a0a0a]/95 flex flex-col items-center justify-center font-sans text-white overflow-hidden">
-            {/* Header */}
+            {}
             <div className="w-full bg-gradient-to-b from-[#1a1a1a] to-transparent py-8 flex flex-col items-center border-b border-white/5">
                 <h1 className="text-4xl font-black uppercase tracking-[0.2em] text-[#e1d6b5] drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)]">
                     Skill Selection

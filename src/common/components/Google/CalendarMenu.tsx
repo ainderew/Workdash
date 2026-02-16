@@ -38,7 +38,7 @@ function CalendarMenu({ isOpen, onClose }: CalendarMenuProps) {
             <SidebarHeader onClose={onClose} title="Calendar" />
 
             {!session ? (
-                // Not logged in - show connect button
+                
                 <div className="flex flex-col items-center justify-center h-full p-8 text-center">
                     <div className="mb-6">
                         <svg
@@ -64,11 +64,11 @@ function CalendarMenu({ isOpen, onClose }: CalendarMenuProps) {
                     <GoogleCalendarButton />
                 </div>
             ) : (
-                // Logged in - show calendar
+                
                 <div className="flex flex-col h-full pb-20">
-                    {/* Date Navigation */}
+                    {}
                     <div className="p-4 border-b border-gray-700 space-y-3">
-                        {/* Date Display with Actions */}
+                        {}
                         <div className="flex justify-between items-center">
                             <h2 className="text-lg font-semibold">
                                 {format(selectedDate, "EEEE, MMMM d")}
@@ -97,7 +97,7 @@ function CalendarMenu({ isOpen, onClose }: CalendarMenuProps) {
                             </div>
                         </div>
 
-                        {/* Date Navigation Controls */}
+                        {}
                         <div className="flex items-center gap-2">
                             <button
                                 onClick={handlePreviousDay}
@@ -125,7 +125,7 @@ function CalendarMenu({ isOpen, onClose }: CalendarMenuProps) {
                         </div>
                     </div>
 
-                    {/* User Info */}
+                    {}
                     {session.user && (
                         <div className="px-4 py-2 border-b border-gray-700 flex items-center gap-3 bg-gray-800/50">
                             {session.user.image && (
@@ -146,7 +146,7 @@ function CalendarMenu({ isOpen, onClose }: CalendarMenuProps) {
                         </div>
                     )}
 
-                    {/* Loading State */}
+                    {}
                     {loading && calendarEvents.length === 0 ? (
                         <div className="flex items-center justify-center h-full">
                             <div className="text-center">
@@ -157,7 +157,7 @@ function CalendarMenu({ isOpen, onClose }: CalendarMenuProps) {
                             </div>
                         </div>
                     ) : (
-                        // Timeline
+                        
                         <CalendarTimeline
                             events={calendarEvents}
                             selectedDate={selectedDate}

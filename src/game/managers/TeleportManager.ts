@@ -60,7 +60,7 @@ export class TeleportManager {
             const playerInstance = player as Player;
             const zoneSprite = zone as Phaser.Physics.Arcade.Sprite;
 
-            // Only teleport local player
+            
             if (!playerInstance.isLocal) return;
 
             if (this.isTransitioning) return;
@@ -80,7 +80,7 @@ export class TeleportManager {
     ) {
         this.scene.physics.pause();
 
-        // Emit scene change event to server before removing listeners
+        
         if (this.scene.multiplayer) {
             this.scene.multiplayer.emitSceneChange(
                 sceneKey,

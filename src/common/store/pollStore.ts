@@ -2,12 +2,12 @@ import { create } from 'zustand';
 import { Poll, PollResults } from '@/communication/poll/_types';
 
 interface PollState {
-  // State
+  
   polls: Poll[];
   activePollId: string | null;
-  userVotes: Map<string, Set<string>>; // pollId -> Set of optionIds
+  userVotes: Map<string, Set<string>>; 
 
-  // Actions
+  
   addPoll: (poll: Poll) => void;
   updatePollResults: (results: PollResults) => void;
   closePoll: (pollId: string) => void;
@@ -20,16 +20,16 @@ interface PollState {
 }
 
 const usePollStore = create<PollState>((set, get) => ({
-  // Initial state
+  
   polls: [],
   activePollId: null,
   userVotes: new Map(),
 
-  // Actions
+  
   addPoll: (poll) =>
     set((state) => ({
       polls: [...state.polls, poll],
-      // Don't auto-open - let users click notification to view
+      
     })),
 
   updatePollResults: (results) =>

@@ -27,7 +27,7 @@ export enum FacingDirection {
     RIGHT = "RIGHT",
 }
 
-// Input with sequence number for reconciliation
+
 interface RecordedInput extends PlayerPhysicsInput {
     sequence: number;
     speedMultiplier?: number;
@@ -37,7 +37,7 @@ interface NetworkInputPacket extends PlayerPhysicsInput {
     sequence: number;
 }
 
-// Snapshot for remote player interpolation
+
 interface RemoteSnapshot {
     x: number;
     y: number;
@@ -59,15 +59,15 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     private isChangingSprite: boolean = false;
     public lastFacingDirection: FacingDirection = FacingDirection.DOWN;
 
-    // === Physics State (authoritative for local, interpolated for remote) ===
+    
     public physicsState: PhysicsState = { x: 0, y: 0, vx: 0, vy: 0 };
 
-    // === Visual State (smoothed, what we actually render) ===
+    
     public visualSprite: Phaser.GameObjects.Sprite;
     private visualOffsetX: number = 0;
     private visualOffsetY: number = 0;
 
-    // === Input Tracking (for client-side prediction) ===
+    
     private inputHistory: RecordedInput[] = [];
     private pendingNetworkInputs: NetworkInputPacket[] = [];
     public currentSequence: number = 0;
@@ -82,21 +82,21 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     private externalSpeedMultiplier: number = 1.0;
     private authoritativeSpeedMultiplier: number | null = null;
     private authoritativeDragMultiplier: number | null = null;
-    // Keep local movement aligned with server-side collision/knockback authority.
+    
     private readonly ENABLE_LOCAL_COLLISION_PREDICTION: boolean = false;
     private wasPredictivelyTouchingBall: boolean = false;
 
-    // === Remote Player Interpolation ===
+    
     private snapshotBuffer: RemoteSnapshot[] = [];
-    private readonly INTERPOLATION_DELAY_MS = 24; // Lower delay for LAN-like feel
+    private readonly INTERPOLATION_DELAY_MS = 24; 
 
-    // === Fixed Timestep Accumulator ===
+    
     private physicsAccumulator: number = 0;
 
     public availabilityStatus: AvailabilityStatus = AvailabilityStatus.ONLINE;
     private statusCircle!: Phaser.GameObjects.Graphics;
 
-    // The Outline Sprite
+    
     public teamGlow: Phaser.GameObjects.Sprite | null = null;
     public team: "red" | "blue" | "spectator" | null = null;
 
@@ -123,7 +123,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     private kartSpeedMultiplier: number = 1.5;
     isLocal: boolean = true;
 
-    // Keyboard
+    
     cursors?: Phaser.Types.Input.Keyboard.CursorKeys;
     wasd?: {
         up: Phaser.Input.Keyboard.Key;
@@ -158,17 +158,17 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         this.sprite = sprite;
         this.scene = scene;
 
-        // Initialize physics state
+        
         this.physicsState = { x, y, vx: 0, vy: 0 };
 
-        // Make physics sprite invisible - we render visualSprite instead
+        
         this.setAlpha(0);
 
-        // Create visible sprite
+        
         this.visualSprite = scene.add.sprite(x, y, sprite);
         this.visualSprite.setDepth(10);
 
-        // Add to physics
+        
         scene.add.existing(this);
         scene.physics.add.existing(this);
 
@@ -180,7 +180,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         if (this.body) {
             this.body.setSize(w, h, true);
             this.body.setOffset(0, this.height - h);
-            this.body.moves = false;
+            (this.body as Phaser.Physics.Arcade.Body).moves = false;
         }
 
         this.moveSpeed = this.baseMoveSpeed;
@@ -208,9 +208,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         this.setupUiEventListener();
     }
 
-    // ============================================================================
-    // MAIN UPDATE - Called every frame
-    // ============================================================================
+    
+    
+    
 
     public update(time: number, delta: number) {
         if (this.isLocal) {
@@ -219,14 +219,14 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             this.updateRemotePlayer();
         }
 
-        // Visual smoothing - decay offset over time
+        
         this.decayVisualOffset();
 
-        // Update visual sprite position
+        
         this.visualSprite.x = this.physicsState.x + this.visualOffsetX;
         this.visualSprite.y = this.physicsState.y + this.visualOffsetY;
 
-        // Sync Phaser physics body (for collisions and internal systems)
+        
         super.setPosition(this.physicsState.x, this.physicsState.y);
         if (this.body) {
             (this.body as Phaser.Physics.Arcade.Body).setVelocity(
@@ -235,7 +235,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             );
         }
 
-        // Update UI
+        
         if (this.uiContainer) {
             this.uiContainer.setPosition(
                 this.visualSprite.x,
@@ -243,15 +243,15 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             );
         }
 
-        // Handle visual effects (Ghost, Team Glow)
+        
         this.handleVisualEffects();
 
-        // Animation logic
+        
         this.handleAnimations();
     }
 
     private handleVisualEffects() {
-        // --- GHOST EFFECT ---
+        
         if (this.isGhosted || this.isSpectator) {
             this.visualSprite.setAlpha(this.isGhosted ? 0.4 : 0.5);
             if (this.isGhosted) {
@@ -264,7 +264,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             this.visualSprite.clearTint();
         }
 
-        // --- GLOW UPDATE LOOP ---
+        
         if (this.teamGlow && this.team) {
             this.teamGlow.setPosition(this.visualSprite.x, this.visualSprite.y);
             this.teamGlow.setFrame(this.visualSprite.frame.name);
@@ -280,7 +280,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     private handleAnimations() {
         const isSoccerMap = this.scene.scene.key === "SoccerMap";
 
-        // Don't override attack animations
+        
         const attackAnimKey = AttackAnimationKeys[this.sprite];
         const isAnimateAttacking =
             this.visualSprite.anims.currentAnim?.key === attackAnimKey;
@@ -293,7 +293,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             this.isAttacking = false;
         }
 
-        // Input-based animation (Local)
+        
         if (this.isLocal) {
             const { up, down, left, right } = this.currentInput;
             const space = this.cursors?.space.isDown;

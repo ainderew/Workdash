@@ -3,7 +3,7 @@ import { useState } from "react";
 import { X, Plus, Trash2 } from "lucide-react";
 import { PollService } from "@/communication/poll/poll";
 import useUiStore from "@/common/store/uiStore";
-// import type { CommandFormProps } from "../types";
+
 
 export function PollForm() {
     const [question, setQuestion] = useState("");
@@ -95,7 +95,7 @@ export function PollForm() {
             )}
 
             <div className="space-y-4">
-                {/* Question input */}
+                {}
                 <div>
                     <label
                         htmlFor="poll-question"
@@ -115,7 +115,7 @@ export function PollForm() {
                     />
                 </div>
 
-                {/* Options */}
+                {}
                 <div>
                     <label className="block text-sm font-medium text-neutral-300 mb-2">
                         Options

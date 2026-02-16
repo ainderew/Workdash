@@ -15,13 +15,13 @@ export function BackgroundMusicOptInModal({
     const settingsService = AudioSettingsService.getInstance();
 
     const handleChoice = async (enabled: boolean) => {
-        // Save the choice
+        
         await settingsService.setBackgroundMusicEnabled(enabled);
 
-        // Emit event to toggle music
+        
         EventBus.emit("background-music-toggle", enabled);
 
-        // Close modal
+        
         onClose();
     };
 

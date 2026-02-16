@@ -18,7 +18,7 @@ export default function AuthPage() {
     const { status } = useSession();
     const router = useRouter();
 
-    // Reusing your mouse tracking logic for the background parallax
+    
     useEffect(() => {
         const handleMouseMove = (e: MouseEvent) => {
             setMousePosition({
@@ -30,7 +30,7 @@ export default function AuthPage() {
         return () => window.removeEventListener("mousemove", handleMouseMove);
     }, []);
 
-    // Show loading state while checking authentication
+    
     if (status === "loading") {
         return (
             <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
@@ -41,7 +41,7 @@ export default function AuthPage() {
         );
     }
 
-    // Show authenticated state with options
+    
     if (status === "authenticated") {
         return (
             <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
@@ -78,12 +78,12 @@ export default function AuthPage() {
 
     return (
         <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-slate-50 dark:bg-slate-950 py-20">
-            {/* --- BACKGROUND LAYERS (Copied from Hero) --- */}
+            {}
             <div className="absolute inset-0 bg-grid-pattern opacity-20" />
             <div className="absolute inset-0 bg-gradient-to-b from-slate-50/50 dark:from-slate-950/50 via-transparent to-slate-50 dark:to-slate-950 pointer-events-none" />
             <div className="scanlines absolute inset-0 opacity-30 pointer-events-none z-20" />
 
-            {/* Glowing Orbs */}
+            {}
             <motion.div
                 style={{ x: mousePosition.x * 10, y: mousePosition.y * 10 }}
                 className="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-500/20 dark:bg-cyan-500/30 rounded-full blur-[120px]"
@@ -93,7 +93,7 @@ export default function AuthPage() {
                 className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/20 dark:bg-purple-500/30 rounded-full blur-[120px]"
             />
 
-            {/* --- HUD ELEMENTS (Corner Stats) --- */}
+            {}
             <div className="absolute top-8 left-6 md:left-12 flex flex-col gap-2 opacity-50 pointer-events-none z-30">
                 <div className="flex items-center gap-2 text-xs font-mono text-cyan-600 dark:text-cyan-400">
                     <WifiIcon className="w-3 h-3" />
@@ -115,7 +115,7 @@ export default function AuthPage() {
                 </div>
             </div>
 
-            {/* --- MAIN AUTH CONTAINER --- */}
+            {}
             <div className="relative z-40 w-full max-w-md px-4">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
@@ -123,7 +123,7 @@ export default function AuthPage() {
                     transition={{ duration: 0.5 }}
                     className="relative bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200 dark:border-slate-800 p-8 rounded-2xl shadow-2xl overflow-hidden"
                 >
-                    {/* Decoratiive Top Bar */}
+                    {}
                     <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-500 via-purple-500 to-cyan-500" />
 
                     <div className="text-center mb-8">
@@ -141,7 +141,7 @@ export default function AuthPage() {
                     </div>
 
                     <div className="space-y-4">
-                        {/* Google Button */}
+                        {}
                         <button
                             onClick={() => signIn("google")}
                             className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:border-cyan-500 dark:hover:border-cyan-500 transition-colors group"
@@ -180,7 +180,7 @@ export default function AuthPage() {
                             </div>
                         </div>
 
-                        {/* Forms */}
+                        {}
                         <form
                             className="space-y-4"
                             onSubmit={(e) => e.preventDefault()}
@@ -254,7 +254,7 @@ export default function AuthPage() {
                         </form>
                     </div>
 
-                    {/* Footer / Toggle */}
+                    {}
                     <div className="mt-8 text-center">
                         <p className="text-sm text-slate-500 dark:text-slate-400">
                             {isLogin
@@ -270,7 +270,7 @@ export default function AuthPage() {
                     </div>
                 </motion.div>
 
-                {/* Bottom decorative text */}
+                {}
                 <div className="mt-8 text-center opacity-40">
                     <p className="text-[10px] font-mono text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em]">
                         Secure Connection • 256-bit Encryption • v.2.4.0

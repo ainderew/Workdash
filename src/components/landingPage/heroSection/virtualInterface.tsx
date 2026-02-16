@@ -6,9 +6,9 @@ interface VirtualInterfaceProps {
     y2: MotionValue<number>;
 }
 
-// Virtual office component using actual app screenshot as background
+
 export default function VirtualInterface({ y1, y2 }: VirtualInterfaceProps) {
-    // Create variable speeds for video bubbles - same direction, different speeds
+    
     const videoBubble1Y = useTransform(y2, (value) => value * 1);
     const videoBubble2Y = useTransform(y2, (value) => value * 0.6);
 
@@ -17,9 +17,9 @@ export default function VirtualInterface({ y1, y2 }: VirtualInterfaceProps) {
             style={{ y: y1 }}
             className="relative hidden lg:block h-[600px] w-full"
         >
-            {/* Main Container */}
+            {}
             <div className="absolute inset-0 rounded-2xl overflow-hidden shadow-2xl border-4 border-slate-300 dark:border-slate-700">
-                {/* Background Image - The actual app screenshot */}
+                {}
                 <div
                     className="absolute inset-0 bg-cover bg-center bg-no-repeat"
                     style={{
@@ -27,10 +27,10 @@ export default function VirtualInterface({ y1, y2 }: VirtualInterfaceProps) {
                     }}
                 />
 
-                {/* Overlay for slight darkening/contrast if needed */}
+                {}
                 <div className="absolute inset-0 bg-white/10 dark:bg-black/10" />
 
-                {/* Character 1 - You (positioned in the meeting room area) */}
+                {}
                 <motion.div
                     animate={{ y: [0, -6, 0] }}
                     transition={{
@@ -53,7 +53,7 @@ export default function VirtualInterface({ y1, y2 }: VirtualInterfaceProps) {
                     </div>
                 </motion.div>
 
-                {/*Girlie pop */}
+                {}
                 <motion.div
                     animate={{ y: [0, -5, 0] }}
                     transition={{
@@ -77,7 +77,7 @@ export default function VirtualInterface({ y1, y2 }: VirtualInterfaceProps) {
                     </div>
                 </motion.div>
 
-                {/* Video call bubbles */}
+                {}
                 <div className="absolute top-10 left-1/2 -translate-x-1/2 flex gap-2">
                     <motion.div
                         style={{ y: videoBubble1Y }}
@@ -121,9 +121,9 @@ export default function VirtualInterface({ y1, y2 }: VirtualInterfaceProps) {
                     </motion.div>
                 </div>
 
-                {/* Bottom Control Bar */}
+                {}
                 <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm rounded-lg px-4 py-2 border border-slate-300 dark:border-slate-600 shadow-xl">
-                    {/* User avatar */}
+                    {}
                     <div className="flex items-center gap-2 pr-3 border-r border-slate-300 dark:border-slate-600">
                         <div className="w-7 h-7 rounded-full bg-green-600 flex items-center justify-center text-[10px] font-bold text-white">
                             A
@@ -136,7 +136,7 @@ export default function VirtualInterface({ y1, y2 }: VirtualInterfaceProps) {
                         </div>
                     </div>
 
-                    {/* Control buttons */}
+                    {}
                     <div className="flex items-center gap-1.5">
                         <button className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 flex items-center justify-center text-slate-700 dark:text-slate-300 transition-colors">
                             <svg
@@ -185,7 +185,7 @@ export default function VirtualInterface({ y1, y2 }: VirtualInterfaceProps) {
                         </button>
                     </div>
 
-                    {/* Online status */}
+                    {}
                     <div className="flex items-center gap-1.5 pl-3 border-l border-slate-300 dark:border-slate-600">
                         <svg
                             className="w-4 h-4 text-slate-600 dark:text-slate-400"
@@ -202,7 +202,7 @@ export default function VirtualInterface({ y1, y2 }: VirtualInterfaceProps) {
                 </div>
             </div>
 
-            {/* Floating Status Card */}
+            {}
             <motion.div
                 style={{ y: y2 }}
                 className="absolute -right-12 top-20 w-48 p-4 bg-white/90 dark:bg-slate-800/90 backdrop-blur border border-slate-300 dark:border-slate-600 rounded-lg shadow-xl z-20"
@@ -225,7 +225,7 @@ export default function VirtualInterface({ y1, y2 }: VirtualInterfaceProps) {
                 </div>
             </motion.div>
 
-            {/* Chat bubble animation */}
+            {}
             <motion.div
                 initial={{ scale: 0, opacity: 0 }}
                 animate={{ scale: [0, 1, 1, 0], opacity: [0, 1, 1, 0] }}

@@ -7,7 +7,7 @@ export function SoccerGameControlButton() {
   const openModal = useUiStore((state) => state.openSoccerGameControlModal);
   const openHistory = useUiStore((state) => state.openMatchHistoryModal);
 
-  // Only show in SoccerMap
+  
   if (currentScene !== "SoccerMap") return null;
 
   return (

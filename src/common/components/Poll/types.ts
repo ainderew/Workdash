@@ -1,4 +1,4 @@
-// Re-export poll types from communication layer
+
 export type {
   Poll,
   PollOption,

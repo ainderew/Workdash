@@ -19,11 +19,7 @@ export class CharacterEventBus {
         );
     }
 
-    /**
-     * Listen for character update events
-     * Called from Phaser to respond to React changes
-     * @returns Cleanup function to remove listener
-     */
+    
     static onCharacterUpdate(
         callback: (customization: CharacterCustomization) => void,
     ): () => void {

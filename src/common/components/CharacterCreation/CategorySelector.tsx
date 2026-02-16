@@ -2,36 +2,36 @@ import React from "react";
 import { CharacterCustomization, CharacterType } from "@/game/character/_types";
 import { SpriteFramePreview } from "./SpriteFramePreview";
 import {
-    // Constants
+    
     BASE_PATH,
     BODY_COUNTS,
     EYES_COUNTS,
-    // Accessory
+    
     ACCESSORY_TYPES,
     encodeAccessoryId,
     getAccessoryPath,
-    // Hairstyle
+    
     ADULT_HAIRSTYLE_TYPES,
     getTotalAdultHairstyleCount,
     KID_HAIRSTYLE_CONFIG,
     encodeAdultHairstyleId,
     getAdultHairstylePath,
     getKidHairstylePath,
-    // Outfit
+    
     ADULT_OUTFIT_TYPES,
     KID_OUTFIT_CONFIG,
     encodeAdultOutfitId,
     getAdultOutfitPath,
     getKidOutfitPath,
-    // Body & Eyes
+    
     getAdultBodyPath,
     getKidBodyPath,
     getAdultEyesPath,
     getKidEyesPath,
-    // Items
-    // ITEM_TYPES,
-    // encodeItemId,
-    // getItemPath,
+    
+    
+    
+    
 } from "./AssetConfig";
 
 type Category =
@@ -447,77 +447,77 @@ export function CategorySelector({
     //                     })
     //                 }
     //                 className={`p-3 rounded-lg border-2 transition-all ${
-    //                     !customization.itemId
-    //                         ? "border-cyan-500 bg-cyan-500/20"
-    //                         : "border-slate-600 bg-slate-800 hover:border-slate-500"
-    //                 }`}
-    //             >
-    //                 <div className="w-full aspect-square flex items-center justify-center text-4xl">
-    //                     ∅
-    //                 </div>
-    //                 <div className="text-xs text-center mt-1">None</div>
-    //             </button>
-    //
-    //             {/* Item types with variants */}
-    //             {ITEM_TYPES.map((item) => (
-    //                 <div key={item.id}>
-    //                     <h3 className="text-sm font-semibold mb-3">
-    //                         {item.displayName}s
-    //                     </h3>
-    //                     <div className="grid grid-cols-6 gap-3">
-    //                         {Array.from(
-    //                             { length: item.variants },
-    //                             (_, variantIdx) => {
-    //                                 const combinedId = encodeItemId(
-    //                                     item.id,
-    //                                     variantIdx + 1,
-    //                                 );
-    //                                 const isSelected =
-    //                                     customization.itemId === combinedId;
-    //                                 const imagePath = getItemPath(
-    //                                     combinedId,
-    //                                     BASE_PATH,
-    //                                 );
-    //
-    //                                 if (!imagePath) return null;
-    //
-    //                                 return (
-    //                                     <button
-    //                                         key={variantIdx}
-    //                                         onClick={() =>
-    //                                             onSelect({
-    //                                                 itemId: combinedId,
-    //                                                 itemType:
-    //                                                     item.name.toLowerCase(),
-    //                                             })
-    //                                         }
-    //                                         className={`p-3 rounded-lg border-2 transition-all ${
-    //                                             isSelected
-    //                                                 ? "border-cyan-500 bg-cyan-500/20"
-    //                                                 : "border-slate-600 bg-slate-800 hover:border-slate-500"
-    //                                         }`}
-    //                                     >
-    //                                         <SpriteFramePreview
-    //                                             src={imagePath}
-    //                                             row={9}
-    //                                             col={0}
-    //                                             alt={`${item.displayName} ${variantIdx + 1}`}
-    //                                             className="w-full h-auto mx-auto"
-    //                                         />
-    //                                         <div className="text-xs text-center mt-1">
-    //                                             {variantIdx + 1}
-    //                                         </div>
-    //                                     </button>
-    //                                 );
-    //                             },
-    //                         )}
-    //                     </div>
-    //                 </div>
-    //             ))}
-    //         </div>
-    //     );
-    // };
-    //
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     const renderContent = () => {
         switch (category) {
             case "type":
@@ -532,8 +532,8 @@ export function CategorySelector({
                 return renderOutfitSelector();
             case "accessory":
                 return renderAccessorySelector();
-            // case "item":
-            //     return renderItemSelector();
+            
+            
             default:
                 return null;
         }

@@ -22,7 +22,7 @@ export function SettingsSelectionModal({
 
     useEffect(() => {
         if (isOpen) {
-            // Load current settings when modal opens
+            
             settingsService.getSettings().then((settings) => {
                 setBackgroundMusicEnabled(settings.backgroundMusicEnabled ?? false);
                 setVolume(settings.volume);
@@ -34,10 +34,10 @@ export function SettingsSelectionModal({
         const newValue = !backgroundMusicEnabled;
         setBackgroundMusicEnabled(newValue);
 
-        // Save setting
+        
         await settingsService.setBackgroundMusicEnabled(newValue);
 
-        // Emit event to toggle music
+        
         EventBus.emit("background-music-toggle", newValue);
     };
 
@@ -45,7 +45,7 @@ export function SettingsSelectionModal({
         const newVolume = parseFloat(e.target.value);
         setVolume(newVolume);
 
-        // Emit event to change volume in real-time
+        
         EventBus.emit("background-music-volume", newVolume);
     };
 
@@ -71,7 +71,7 @@ export function SettingsSelectionModal({
                 </p>
 
                 <div className="space-y-3">
-                    {/* Edit Name Option */}
+                    {}
                     <button
                         onClick={onSelectName}
                         className="w-full p-4 bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 hover:border-amber-500/50 rounded-lg transition-all group flex items-center gap-4"
@@ -106,9 +106,9 @@ export function SettingsSelectionModal({
                         </div>
                     </button>
 
-                    {/* Background Music Settings - Combined */}
+                    {}
                     <div className="w-full p-4 bg-neutral-800 border border-neutral-700 hover:border-purple-500/50 rounded-lg transition-all">
-                        {/* Toggle */}
+                        {}
                         <button
                             onClick={handleMusicToggle}
                             className="w-full flex items-center gap-4 group"

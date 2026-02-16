@@ -23,7 +23,7 @@ export function Navbar() {
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [scrolled, setScrolled] = useState(false);
 
-    // Handle scroll effect for glassmorphism bg
+    
     useEffect(() => {
         const handleScroll = () => setScrolled(window.scrollY > 50);
         window.addEventListener("scroll", handleScroll);
@@ -55,7 +55,7 @@ export function Navbar() {
         e.preventDefault();
         const element = document.querySelector(href);
         if (element) {
-            const offset = 80; // Account for navbar height
+            const offset = 80; 
             const bodyRect = document.body.getBoundingClientRect().top;
             const elementRect = element.getBoundingClientRect().top;
             const elementPosition = elementRect - bodyRect;

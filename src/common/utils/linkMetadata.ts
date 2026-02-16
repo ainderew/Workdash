@@ -1,20 +1,16 @@
 import type { LinkMetadata } from "@/communication/textChat/_types";
 
-// YouTube URL patterns
+
 const YOUTUBE_REGEX =
     /(?:youtube\.com\/(?:[^/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?/\s]{11})/;
 
-/**
- * Extract YouTube video ID from URL
- */
+
 function extractYouTubeId(url: string): string | null {
     const match = url.match(YOUTUBE_REGEX);
     return match ? match[1] : null;
 }
 
-/**
- * Fetch YouTube video metadata using oEmbed API
- */
+
 async function fetchYouTubeMetadata(url: string): Promise<LinkMetadata | null> {
     try {
         const videoId = extractYouTubeId(url);

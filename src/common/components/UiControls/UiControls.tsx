@@ -67,7 +67,7 @@ function UiControls() {
     const isMatchHistoryModalOpen = useUiStore((state) => state.isMatchHistoryModalOpen);
     const closeMatchHistoryModal = useUiStore((state) => state.closeMatchHistoryModal);
 
-    // Ref for click outside detection
+    
     const micSelectorRef = useRef<HTMLDivElement>(null);
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {

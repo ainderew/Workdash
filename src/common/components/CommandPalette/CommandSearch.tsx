@@ -17,16 +17,16 @@ export default function CommandSearch() {
     );
     const setCommandForm = useUiStore((state) => state.setCommandForm);
 
-    // Auto-focus input on mount
+    
     useEffect(() => {
         inputRef.current?.focus();
     }, []);
 
-    // Update filtered commands when query changes
+    
     useEffect(() => {
         const results = searchCommands(query);
         setFilteredCommands(results);
-        setSelectedIndex(0); // Reset selection when results change
+        setSelectedIndex(0); 
     }, [query]);
 
     const handleKeyDown = (e: React.KeyboardEvent) => {

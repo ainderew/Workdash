@@ -42,7 +42,7 @@ export class SoccerMap extends BaseGameScene {
     private circleLayer: Phaser.Tilemaps.TilemapLayer | null = null;
     private floorMarkings2Layer: Phaser.Tilemaps.TilemapLayer | null = null;
     
-    // Keys
+    
     private kickKey: Phaser.Input.Keyboard.Key | null = null;
     private skillKey: Phaser.Input.Keyboard.Key | null = null;
     private blinkKey: Phaser.Input.Keyboard.Key | null = null;
@@ -53,13 +53,13 @@ export class SoccerMap extends BaseGameScene {
     
     private isMultiplayerMode: boolean = false;
     
-    // Network/Input State
+    
     private inputFlushTimer: ReturnType<typeof setInterval> | null = null;
     private readonly INPUT_FLUSH_INTERVAL_MS: number = 8;
     private readonly MAX_INPUT_BATCH_SIZE: number = 32;
     private kickPointerRequested: boolean = false;
     
-    // Skill State
+    
     private skillCooldown: number = 0;
     private blinkCooldown: number = 0;
     private metavisionCooldown: number = 0;
@@ -286,7 +286,7 @@ export class SoccerMap extends BaseGameScene {
         });
 
         socket.on("ball:kickRejected", (data: any) => {
-            // Fast rollback for predicted local kicks rejected by server authority.
+            
             const authoritativeState = {
                 x: data?.x ?? this.ball.x,
                 y: data?.y ?? this.ball.y,

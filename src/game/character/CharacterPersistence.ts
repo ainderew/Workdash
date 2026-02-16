@@ -1,14 +1,10 @@
 import { CharacterCustomization, CharacterType } from "./_types";
 
-/**
- * Handles character customization persistence to localStorage
- */
+
 export class CharacterPersistence {
     private static readonly STORAGE_KEY = "workdash_character";
 
-    /**
-     * Save character customization to localStorage
-     */
+    
     static save(customization: CharacterCustomization): void {
         try {
             localStorage.setItem(
@@ -20,9 +16,7 @@ export class CharacterPersistence {
         }
     }
 
-    /**
-     * Load character customization from localStorage
-     */
+    
     static load(): CharacterCustomization | null {
         try {
             const data = localStorage.getItem(this.STORAGE_KEY);
@@ -35,9 +29,7 @@ export class CharacterPersistence {
         return null;
     }
 
-    /**
-     * Get default character customization
-     */
+    
     static getDefault(): CharacterCustomization {
         return {
             type: CharacterType.ADULT,
@@ -48,9 +40,7 @@ export class CharacterPersistence {
         };
     }
 
-    /**
-     * Clear character customization from localStorage
-     */
+    
     static clear(): void {
         try {
             localStorage.removeItem(this.STORAGE_KEY);

@@ -27,12 +27,12 @@ export function SoccerGameControlModal({
     const multiplayer = window.__MULTIPLAYER__;
     if (!multiplayer) return;
 
-    // Fetch current players
+    
     multiplayer.socket.emit("soccer:getPlayers", (playerList: Player[]) => {
       setPlayers(playerList);
     });
 
-    // Listen for team assignments
+    
     const handleTeamAssigned = (data: {
       playerId: string;
       team: "red" | "blue" | "spectator" | null;
@@ -69,10 +69,10 @@ export function SoccerGameControlModal({
     const multiplayer = window.__MULTIPLAYER__;
     if (!multiplayer) return;
 
-    // Trigger selection phase and subsequent game start
+    
     multiplayer.socket.emit("soccer:startGame");
 
-    // Close the modal
+    
     onClose();
   };
 
@@ -88,7 +88,7 @@ export function SoccerGameControlModal({
   };
 
   const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault(); // Required to allow drop
+    e.preventDefault(); 
   };
 
   const handleDrop = (team: "red" | "blue" | "spectator" | null) => {
@@ -102,7 +102,7 @@ export function SoccerGameControlModal({
 
   const redTeam = players.filter((p) => p.team === "red");
   const blueTeam = players.filter((p) => p.team === "blue");
-  // Merge null and spectator into one group
+  
   const spectators = players.filter((p) => !p.team || p.team === "spectator");
 
   return (
@@ -131,7 +131,7 @@ export function SoccerGameControlModal({
           </div>
         </div>
 
-        {/* Game Controls */}
+        {}
         <div className="flex items-center justify-center gap-3 mb-6">
           <button
             onClick={startGame}
@@ -156,9 +156,9 @@ export function SoccerGameControlModal({
           </button>
         </div>
 
-        {/* Team Assignment */}
+        {}
         <div className="grid grid-cols-3 gap-6">
-          {/* Red Team */}
+          {}
           <div
             className="bg-neutral-800/50 border border-neutral-700 rounded-lg p-4 flex flex-col"
             onDragOver={handleDragOver}
@@ -193,7 +193,7 @@ export function SoccerGameControlModal({
             </div>
           </div>
 
-          {/* Blue Team */}
+          {}
           <div
             className="bg-neutral-800/50 border border-neutral-700 rounded-lg p-4 flex flex-col"
             onDragOver={handleDragOver}
@@ -228,7 +228,7 @@ export function SoccerGameControlModal({
             </div>
           </div>
 
-          {/* Spectators (Unified) */}
+          {}
           <div
             className="bg-neutral-800/50 border border-neutral-700 rounded-lg p-4 flex flex-col"
             onDragOver={handleDragOver}

@@ -18,7 +18,7 @@ export function EditNameModal({
 }: EditNameModalProps) {
     const { data: session } = useSession();
 
-    // Use the specific update action from your store
+    
     const updateUser = useUserStore((state) => state.updateUser);
 
     const [name, setName] = useState(currentName);

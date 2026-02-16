@@ -27,7 +27,7 @@ export class CharacterCompositor {
         );
         const loadedImages = await this.loadAllLayers(layerPaths);
 
-        // Keep original canvas size
+        
         const CANVAS_WIDTH = 1824;
         const CANVAS_HEIGHT = 1312;
 
@@ -68,7 +68,7 @@ export class CharacterCompositor {
 
         const imageData = canvas.toDataURL("image/png");
 
-        // Only update the global user store for the local player
+        
         if (isLocal) {
             useUserStore.getState().updateUser({
                 spriteSheetDataUrl: imageData,
@@ -82,18 +82,18 @@ export class CharacterCompositor {
                     this.scene.textures.remove(outputKey);
 
                 this.scene.textures.addSpriteSheet(outputKey, img, {
-                    frameWidth: OUTPUT_FRAME_WIDTH, // 32px
-                    frameHeight: OUTPUT_FRAME_HEIGHT, // 64px
+                    frameWidth: OUTPUT_FRAME_WIDTH, 
+                    frameHeight: OUTPUT_FRAME_HEIGHT, 
                 });
                 resolve();
             };
             img.src = imageData;
 
-            // this.createDebugButton(imageData, outputKey);
+            
         });
     }
 
-    // sprite development debug download combined
+    
     private createDebugButton(dataUrl: string, key: string) {
         const existing = document.getElementById("debug-dl");
         if (existing) existing.remove();

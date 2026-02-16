@@ -7,7 +7,7 @@ function useUiControls() {
     const audioService = AudioChat.getInstance();
     const videoCamService = VideoChatService.getInstance();
 
-    // Get state and actions from Zustand store
+    
     const {
         isMuted,
         toggleMic: toggleMicState,
@@ -18,13 +18,13 @@ function useUiControls() {
         setSelectedMicrophoneId,
     } = useUiStore();
 
-    // Load available microphones
+    
     const loadMicrophones = useCallback(async () => {
         try {
             const mics = await audioService.getAvailableMicrophones();
             setAvailableMicrophones(mics);
 
-            // Set default microphone if none selected
+            
             if (mics.length > 0 && !selectedMicrophoneId) {
                 setSelectedMicrophoneId(mics[0].deviceId);
             }
@@ -33,7 +33,7 @@ function useUiControls() {
         }
     }, [audioService, selectedMicrophoneId, setAvailableMicrophones, setSelectedMicrophoneId]);
 
-    // Listen for device changes
+    
     useEffect(() => {
         loadMicrophones();
 
@@ -54,7 +54,7 @@ function useUiControls() {
         };
     }, [loadMicrophones]);
 
-    // Initialize muted state from audio service
+    
     useEffect(() => {
         setIsMuted(audioService.isMuted);
     }, [audioService.isMuted, setIsMuted]);
@@ -118,7 +118,7 @@ function useUiControls() {
         };
     }
 
-    // Get panel state and actions from store
+    
     const {
         toggleChatWindow,
         isChatWindowOpen,

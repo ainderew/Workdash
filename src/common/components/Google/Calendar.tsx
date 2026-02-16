@@ -10,11 +10,11 @@ export default function GameUI() {
             return;
         }
 
-        // Fetch calendar data
+        
         const res = await fetch("/api/calendar");
         const events = await res.json();
         console.log(events);
-        // Display in game overlay
+        
     };
 
     return (

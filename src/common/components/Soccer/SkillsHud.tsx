@@ -44,7 +44,7 @@ function SkillsHud() {
     const assignedSkillId = localPlayerId ? playerPicks[localPlayerId] : null;
 
     useEffect(() => {
-        // Only request skills when in SoccerMap scene
+        
         if (currentScene !== "SoccerMap") {
             return;
         }
@@ -58,12 +58,12 @@ function SkillsHud() {
 
         const socket = multiplayer.socket;
 
-        // Request skill configs
+        
         socket.emit("soccer:requestSkillConfig", (configs: SkillConfig[]) => {
             setSkills(configs);
         });
 
-        // Helper to trigger cooldown update
+        
         const triggerCooldown = (targetSkillId: string) => {
             setCooldowns((prev) => {
                 const skill = skills.find((s) => s.id === targetSkillId);
@@ -77,7 +77,7 @@ function SkillsHud() {
             });
         };
 
-        // Listen for standard skill activation
+        
         const handleSkillActivated = (data: {
             activatorId: string;
             skillId: string;
@@ -90,7 +90,7 @@ function SkillsHud() {
             }
         };
 
-        // Listen for blink specific activation
+        
         const handleBlinkActivated = (data: {
             activatorId: string;
             fromX: number;
@@ -113,23 +113,23 @@ function SkillsHud() {
         };
     }, [currentScene, localPlayerId, skills]);
 
-    // Update current time for cooldown display
+    
     useEffect(() => {
         const interval = setInterval(() => {
             setCurrentTime(Date.now());
-        }, 100); // Update 10 times per second for smooth countdown
+        }, 100); 
 
         return () => clearInterval(interval);
     }, []);
 
-    // Only show when in SoccerMap scene
+    
     if (currentScene !== "SoccerMap" || isSpectator || isSoccerEndgameVisible) {
         return null;
     }
 
-    // Filter skills:
-    // - If no game is active, show all available skills.
-    // - If game is active, show only the assigned skill.
+    
+    
+    
     const visibleSkills = isGameActive
         ? assignedSkillId
             ? skills.filter((s) => s.id === assignedSkillId)
@@ -198,11 +198,11 @@ function SkillIcon({
     cooldownPercent,
     isGameActive,
 }: SkillIconProps) {
-    // Get skill color based on type (from visual config)
+    
     const getSkillColor = () => {
         if (skill.clientVisuals.trailColor !== undefined) {
             const color = skill.clientVisuals.trailColor;
-            // Convert hex to RGB
+            
             const r = (color >> 16) & 0xff;
             const g = (color >> 8) & 0xff;
             const b = color & 0xff;

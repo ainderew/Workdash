@@ -53,11 +53,11 @@ export function SpriteFramePreview({
                 srcY = actualRow * frameHeight;
             }
 
-            // Clear canvas
+            
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.imageSmoothingEnabled = false;
 
-            // Draw the extracted frame scaled to canvas size
+            
             ctx.drawImage(
                 img,
                 srcX,

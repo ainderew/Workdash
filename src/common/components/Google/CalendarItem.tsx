@@ -60,7 +60,7 @@ export default function CalendarItem({ event }: CalendarItemProps) {
     };
     const { top, height } = getEventPosition();
     const startTime = parseISO(event.start.dateTime!);
-    const endTime = parseISO(event.end.dateTime!); // Add this line
+    const endTime = parseISO(event.end.dateTime!); 
 
     const handleClick = () => {
         if (videoLink) {

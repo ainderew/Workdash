@@ -167,7 +167,7 @@ export default function SoccerScoreboard() {
             const incomingMmrUpdates = data.mmrUpdates ?? [];
             setMmrUpdates(incomingMmrUpdates);
 
-            // Detect local player rank up
+            
             const localPlayerUpdate = incomingMmrUpdates.find(
                 (u) => u.playerId === socket.id,
             );
@@ -188,7 +188,7 @@ export default function SoccerScoreboard() {
                 }
             }
 
-            // Sequence: Winner Banner -> MVP -> (Rank Up) -> MMR Progression
+            
             if (data.mvp) {
                 setTimeout(() => {
                     setMvp(data.mvp!);
@@ -210,9 +210,9 @@ export default function SoccerScoreboard() {
                     }, 8500);
                 }
             } else if (localRankedUp) {
-                // If no MVP but rank up (rare in this logic but safe)
+                
                 setTimeout(() => {
-                    // Start rank up
+                    
                 }, 1500);
 
                 setTimeout(() => {
@@ -220,7 +220,7 @@ export default function SoccerScoreboard() {
                     setShowMmrScreen(true);
                 }, 7500);
             } else {
-                // No MVP, no rank up
+                
                 setTimeout(() => {
                     setShowMmrScreen(true);
                 }, 1500);

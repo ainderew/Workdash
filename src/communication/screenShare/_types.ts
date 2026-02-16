@@ -1,9 +1,9 @@
 import { RtpParameters } from "mediasoup-client/types";
 
 export interface Room {
-    participants: Map<string, string>; // Who's in this call?
-    producers: Map<string, string>; // Who's sharing their screen?
-    consumers: Map<string, string>; // Who's watching which screens?
+    participants: Map<string, string>; 
+    producers: Map<string, string>; 
+    consumers: Map<string, string>; 
 
     createdAt: Date;
     settings: {

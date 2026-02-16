@@ -48,11 +48,11 @@ const features: Feature[] = [
         color: "text-yellow-600 dark:text-yellow-400",
     },
 ];
-// Micro-interaction Components
+
 const WalkTalkDemo = () => (
     <div className="relative w-full h-full bg-slate-100/50 dark:bg-slate-900/50 flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 bg-grid-pattern opacity-30" />
-        {/* Avatar 1 (User) */}
+        {}
         <motion.div
             className="absolute"
             animate={{
@@ -69,7 +69,7 @@ const WalkTalkDemo = () => (
                 alt=""
                 className="w-12 h-12 drop-shadow-[0_0_15px_rgba(0,243,255,0.5)] z-10 relative object-cover"
             />
-            {/* <div className="w-12 h-12 rounded-lg flex items-center justify-center text-slate-950 font-bold bg-[url('/assets/landing-female.png')] bg-cover bg-center" /> */}
+            {}
             <motion.div
                 className="absolute -top-10 -right-20 bg-white dark:bg-white text-slate-900 px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap"
                 animate={{
@@ -86,9 +86,9 @@ const WalkTalkDemo = () => (
             </motion.div>
         </motion.div>
 
-        {/* Avatar 2 (Target) */}
+        {}
         <div className="absolute translate-x-10">
-            {/* <div className="w-12 h-12 bg-purple-500 rounded-lg shadow-[0_0_15px_rgba(188,19,254,0.5)]" /> */}
+            {}
             <img
                 src="/assets/landing-female.png"
                 alt=""
@@ -110,7 +110,7 @@ const WalkTalkDemo = () => (
             </motion.div>
         </div>
 
-        {/* Audio Waves */}
+        {}
         <motion.div
             className="absolute w-32 h-32 border-2 border-cyan-500/30 rounded-full"
             animate={{
@@ -127,12 +127,12 @@ const WalkTalkDemo = () => (
 const VideoPodsDemo = () => (
     <div className="relative w-full h-full bg-slate-100/50 dark:bg-slate-900/50 flex flex-col items-center justify-center p-8">
         <div className="absolute inset-0 bg-grid-pattern opacity-30" />
-        {/* Meeting Room Floor */}
+        {}
         <div className="w-48 h-32 border-2 border-slate-400 dark:border-slate-600 rounded-xl relative mb-4 bg-slate-200/50 dark:bg-slate-800/30">
             <div className="absolute inset-0 flex items-center justify-center text-xs text-slate-500 font-mono">
                 MEETING_ROOM_01
             </div>
-            {/* Avatar enters */}
+            {}
 
             <motion.div
                 className="absolute bottom-2 left-2 w-8 h-8 rounded shadow-lg"
@@ -154,7 +154,7 @@ const VideoPodsDemo = () => (
             </motion.div>
         </div>
 
-        {/* Video Popup */}
+        {}
         <motion.div
             className="absolute top-8 right-8 w-32 h-20 bg-slate-100 dark:bg-slate-800 border border-purple-500 rounded-lg shadow-2xl overflow-hidden z-20"
             initial={{
@@ -189,7 +189,7 @@ const ReactionsDemo = () => (
                 alt=""
             />
 
-            {/* Emojis floating up */}
+            {}
             {[1, 2, 3].map((i) => (
                 <motion.div
                     key={i}
@@ -257,7 +257,7 @@ export function Features() {
             id="features"
             className="py-32 bg-slate-50 dark:bg-slate-950 relative overflow-hidden"
         >
-            {/* Section Header */}
+            {}
             <div className="max-w-7xl mx-auto px-6 mb-24 text-center relative z-10">
                 <motion.h2
                     initial={{

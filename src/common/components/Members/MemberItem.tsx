@@ -8,16 +8,16 @@ function MemberItem({ player }: { player: Player }) {
     const localPlayerId = usePlayersStore((state) => state.localPlayerId);
     const isLocalPlayer = player.id === localPlayerId;
 
-    // Get player's sprite sheet path from Phaser texture
+    
     const avatarBackgroundStyles = useMemo((): React.CSSProperties => {
         try {
-            // Access the Phaser texture key
+            
             const textureKey = player.texture?.key;
 
             if (textureKey && player.scene?.textures?.exists(textureKey)) {
-                // Get the texture from Phaser's texture manager
+                
                 const texture = player.scene.textures.get(textureKey);
-                // Get the source image (the actual sprite sheet)
+                
                 const source = texture.getSourceImage() as HTMLImageElement;
 
                 if (source && source.src) {
@@ -57,7 +57,7 @@ function MemberItem({ player }: { player: Player }) {
 
     return (
         <div className="member-item flex flex-col text-white hover:bg-neutral-600 px-4 py-2 rounded-lg">
-            {/* Player info */}
+            {}
             <div className="flex items-center gap-4">
                 <div className="avatar-online-container relative w-8 h-8">
                     <div className="avatar-container overflow-hidden w-8 h-8 bg-center rounded-full aspect-square">

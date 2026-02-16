@@ -21,7 +21,7 @@ export function CharacterCustomizationButton() {
     const [showMusicOptIn, setShowMusicOptIn] = useState(false);
 
     useEffect(() => {
-        // Listen for the prompt event from BackgroundMusicManager
+        
         const handlePrompt = () => {
             setShowMusicOptIn(true);
         };

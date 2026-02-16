@@ -24,11 +24,11 @@ import SkillsHud from "./common/components/Soccer/SkillsHud";
 import SkillSelectionOverlay from "./common/components/Soccer/SkillSelectionOverlay";
 import { SoccerGameControlButton } from "./common/components/SoccerGameControl/SoccerGameControlButton";
 import PingDisplay from "./common/components/PingDisplay/PingDisplay";
-// import { VideoChatService } from "./communication/videoChat/videoChat";
-// import { ScreenShareService } from "./communication/screenShare/screenShare";
-// import SplashScreen from "./common/components/Splash/SplashScreen";
-// import { ScreenShareViewer } from "./communication/screenShare/screenShareViewer";
-// import { VideoChatViewer } from "./communication/videoChat/videoChatViewer";
+
+
+
+
+
 
 function App() {
     const [isInitialized, setIsInitialized] = useState(false);
@@ -49,10 +49,10 @@ function App() {
         const reactionService = ReactionService.getInstance();
         const pollService = PollService.getInstance();
 
-        // const screenShareViewer = ScreenShareViewer.getInstance();
-        // const videoChatViewer = VideoChatViewer.getInstance();
-        // const screenShare = ScreenShareService.getInstance();
-        // const videoChat = VideoChatService.getInstance();
+        
+        
+        
+        
 
         const init = async () => {
             try {
@@ -84,7 +84,7 @@ function App() {
         return false;
     };
 
-    // Callback when game finishes loading and is ready
+    
     const handleGameReady = () => {
         setIsGameReady(true);
     };
@@ -100,9 +100,9 @@ function App() {
 
     const user = useUserStore((state: UserStore) => state.user);
 
-    // if (!user.name) return <SplashScreen />;
+    
 
-    // Wait for session to load before initializing game
+    
     if (status === "loading") {
         return (
             <div className="w-full h-full flex items-center justify-center bg-black text-white">
@@ -111,7 +111,7 @@ function App() {
         );
     }
 
-    // Check if user is authenticated
+    
     if (status === "unauthenticated") {
         return (
             <div className="w-full h-full flex items-center justify-center bg-black text-white">
@@ -149,7 +149,7 @@ function App() {
             <AudioElement />
             <UiControls />
 
-            {/* Pass isGameReady to control when to load producers */}
+            {}
             <ScreenShareUi isGameReady={isGameReady} />
             <VideoChatUi isGameReady={isGameReady} />
 

@@ -31,35 +31,35 @@ function UiControlsMockup() {
 
             <div className="h-8 w-px bg-slate-700/50" />
 
-            {/* Video Button - Off State (Red) */}
+            {}
             <button className="w-8 h-8 rounded-lg bg-red-900/40 border border-red-500/30 hover:border-red-400 transition-all flex items-center justify-center">
                 <VideoOff className="w-5 h-5 text-red-400" />
             </button>
 
-            {/* Mic Button - Muted State (Red) */}
+            {}
             <button className="w-8 h-8 rounded-lg bg-red-900/40 border border-red-500/30 hover:border-red-400 transition-all flex items-center justify-center">
                 <MicOff className="w-5 h-5 text-red-400" />
             </button>
 
-            {/* Screen Share Button */}
+            {}
             <button className="w-8 h-8 rounded-lg bg-slate-800/80 border border-slate-600/50 hover:border-cyan-400/50 hover:bg-cyan-900/20 transition-all flex items-center justify-center group">
                 <MonitorUp className="w-5 h-5 text-slate-300 group-hover:text-cyan-400 transition-colors" />
             </button>
 
-            {/* Reactions Button */}
+            {}
             <button className="w-8 h-8 rounded-lg bg-slate-800/80 border border-slate-600/50 hover:border-cyan-400/50 hover:bg-cyan-900/20 transition-all flex items-center justify-center group">
                 <Smile className="w-5 h-5 text-slate-300 group-hover:text-cyan-400 transition-colors" />
             </button>
 
-            {/* Divider */}
+            {}
             <div className="h-8 w-px bg-slate-700/50" />
 
-            {/* Calendar Button */}
+            {}
             <button className="w-8 h-8 rounded-lg bg-slate-800/80 border border-slate-600/50 hover:border-cyan-400/50 hover:bg-cyan-900/20 transition-all flex items-center justify-center group">
                 <Calendar className="w-5 h-5 text-slate-300 group-hover:text-cyan-400 transition-colors" />
             </button>
 
-            {/* Chat Button */}
+            {}
             <button className="w-8 h-8 rounded-lg bg-slate-800/80 border border-slate-600/50 hover:border-cyan-400/50 hover:bg-cyan-900/20 transition-all flex items-center justify-center group">
                 <MessageCircle className="w-5 h-5 text-slate-300 group-hover:text-cyan-400 transition-colors" />
             </button>

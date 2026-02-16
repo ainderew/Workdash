@@ -1,45 +1,36 @@
-/**
- * shared-physics.ts
- *
- * CRITICAL: This file MUST be byte-for-byte identical on client and server.
- * Any difference will cause desync.
- *
- * Copy this file to:
- * - Server: /server/src/services/shared-physics.ts (or .js)
- * - Client: /client/src/game/soccer/shared-physics.ts
- */
+
 
 export const PHYSICS_CONSTANTS = {
-  // Ball physics
-  BALL_DRAG: 1, // Exponential drag coefficient
-  BALL_BOUNCE: 0.7, // Wall bounce retention
+  
+  BALL_DRAG: 1, 
+  BALL_BOUNCE: 0.7, 
   BALL_RADIUS: 30,
 
-  // Player physics
-  PLAYER_DRAG: 4.5, // Higher = snappier stops
-  PLAYER_ACCEL: 2600, // Base acceleration
-  PLAYER_MAX_SPEED: 600, // Base max speed
+  
+  PLAYER_DRAG: 4.5, 
+  PLAYER_ACCEL: 2600, 
+  PLAYER_MAX_SPEED: 600, 
   PLAYER_RADIUS: 30,
 
-  // World
+  
   WORLD_WIDTH: 3520,
   WORLD_HEIGHT: 1600,
 
-  // Timing - USE INTEGERS to prevent floating point drift
-  FIXED_TIMESTEP_MS: 16, // ~62.5 Hz (close to 60Hz but integer)
-  FIXED_TIMESTEP_SEC: 0.016, // Exactly 16/1000
+  
+  FIXED_TIMESTEP_MS: 16, 
+  FIXED_TIMESTEP_SEC: 0.016, 
 
-  // Network
-  NETWORK_TICK_MS: 16, // ~62.5 Hz broadcast rate
+  
+  NETWORK_TICK_MS: 16, 
 
-  // Thresholds
-  VELOCITY_STOP_THRESHOLD: 10, // Ball considered stopped below this
-  POSITION_SNAP_THRESHOLD: 280, // Teleport if error exceeds this
-  POSITION_CORRECT_THRESHOLD: 14, // Ignore errors below this
-  VELOCITY_CORRECT_THRESHOLD: 60, // Ignore velocity errors below this
+  
+  VELOCITY_STOP_THRESHOLD: 10, 
+  POSITION_SNAP_THRESHOLD: 280, 
+  POSITION_CORRECT_THRESHOLD: 14, 
+  VELOCITY_CORRECT_THRESHOLD: 60, 
 } as const;
 
-// Type definitions
+
 export interface PhysicsState {
   x: number;
   y: number;
@@ -48,7 +39,7 @@ export interface PhysicsState {
 }
 
 export interface BallState extends PhysicsState {
-  sequence: number; // Incremented on every kick/touch (server authoritative)
+  sequence: number; 
   lastTouchId: string | null;
   lastTouchTimestamp: number;
   isMoving: boolean;
@@ -61,62 +52,49 @@ export interface PlayerPhysicsInput {
   right: boolean;
 }
 
-/**
- * Deterministic ball physics integration.
- *
- * @param state - Ball physics state (mutated in place)
- * @param dt - Delta time in SECONDS
- */
+
 export function integrateBall(state: PhysicsState, dt: number): void {
   const { BALL_DRAG, BALL_BOUNCE, BALL_RADIUS, WORLD_WIDTH, WORLD_HEIGHT } =
     PHYSICS_CONSTANTS;
 
-  // 1. Apply exponential drag (frame-rate independent)
-  // v(t) = v0 * e^(-drag * t)
+  
+  
   const dragFactor = Math.exp(-BALL_DRAG * dt);
   state.vx *= dragFactor;
   state.vy *= dragFactor;
 
-  // 2. Integrate position
+  
   state.x += state.vx * dt;
   state.y += state.vy * dt;
 
-  // 3. Wall collisions (order matters for determinism - always check in same order)
+  
 
-  // Left wall
+  
   if (state.x < BALL_RADIUS) {
     state.x = BALL_RADIUS;
     state.vx = Math.abs(state.vx) * BALL_BOUNCE;
   }
 
-  // Right wall
+  
   if (state.x > WORLD_WIDTH - BALL_RADIUS) {
     state.x = WORLD_WIDTH - BALL_RADIUS;
     state.vx = -Math.abs(state.vx) * BALL_BOUNCE;
   }
 
-  // Top wall
+  
   if (state.y < BALL_RADIUS) {
     state.y = BALL_RADIUS;
     state.vy = Math.abs(state.vy) * BALL_BOUNCE;
   }
 
-  // Bottom wall
+  
   if (state.y > WORLD_HEIGHT - BALL_RADIUS) {
     state.y = WORLD_HEIGHT - BALL_RADIUS;
     state.vy = -Math.abs(state.vy) * BALL_BOUNCE;
   }
 }
 
-/**
- * Deterministic player physics integration.
- *
- * @param state - Player physics state (mutated in place)
- * @param input - Current input state
- * @param dt - Delta time in SECONDS
- * @param dragMultiplier - From dribbling stat (1.0 = normal, 0.5 = half drag)
- * @param speedMultiplier - From speed stat (1.0 = normal, 2.0 = double)
- */
+
 export function integratePlayer(
   state: PhysicsState,
   input: PlayerPhysicsInput,
@@ -136,19 +114,19 @@ export function integratePlayer(
   const accel = PLAYER_ACCEL * speedMultiplier;
   const maxSpeed = PLAYER_MAX_SPEED * speedMultiplier;
 
-  // 1. Apply acceleration from input
+  
   if (input.up) state.vy -= accel * dt;
   if (input.down) state.vy += accel * dt;
   if (input.left) state.vx -= accel * dt;
   if (input.right) state.vx += accel * dt;
 
-  // 2. Apply exponential drag
+  
   const effectiveDrag = PLAYER_DRAG * dragMultiplier;
   const dragFactor = Math.exp(-effectiveDrag * dt);
   state.vx *= dragFactor;
   state.vy *= dragFactor;
 
-  // 3. Clamp to max speed
+  
   const speed = Math.sqrt(state.vx * state.vx + state.vy * state.vy);
   if (speed > maxSpeed) {
     const scale = maxSpeed / speed;
@@ -156,11 +134,11 @@ export function integratePlayer(
     state.vy *= scale;
   }
 
-  // 4. Integrate position
+  
   state.x += state.vx * dt;
   state.y += state.vy * dt;
 
-  // 5. World boundary clamping
+  
   if (state.x < PLAYER_RADIUS) {
     state.x = PLAYER_RADIUS;
     state.vx = 0;
@@ -179,10 +157,7 @@ export function integratePlayer(
   }
 }
 
-/**
- * Calculate stat multipliers consistently.
- * Use this on BOTH client and server to ensure same calculation.
- */
+
 export function calculateSpeedMultiplier(speedStat: number): number {
   return 1.0 + speedStat * 0.1;
 }
@@ -192,14 +167,11 @@ export function calculateKickPowerMultiplier(kickPowerStat: number): number {
 }
 
 export function calculateDragMultiplier(dribblingStat: number): number {
-  // Higher dribbling = lower drag = faster direction changes
+  
   return Math.max(0.5, 1.0 - dribblingStat * 0.05);
 }
 
-/**
- * Calculate final kick velocity.
- * IMPORTANT: Use this on both client (for prediction) and server (for authority).
- */
+
 export function calculateKickVelocity(
   angle: number,
   basePower: number,

@@ -5,11 +5,7 @@ import { Session } from "next-auth";
 import { CONFIG } from "@/common/utils/config";
 import { ExtendedAccount } from "@/types/auth";
 
-/**
- * Takes a token, and returns a new token with updated
- * `accessToken` and `accessTokenExpires`. If an error occurs,
- * returns the old token and an error property
- */
+
 async function refreshAccessToken(token: JWT) {
     try {
         const url =

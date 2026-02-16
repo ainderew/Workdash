@@ -105,7 +105,7 @@ export default function PollDisplay() {
             aria-labelledby="poll-title"
         >
             <div className="bg-neutral-900 rounded-lg shadow-2xl border border-neutral-700 w-full max-w-lg">
-                {/* Header */}
+                {}
                 <div className="flex items-start justify-between p-6 border-b border-neutral-700">
                     <div className="flex-1">
                         <h2
@@ -137,7 +137,7 @@ export default function PollDisplay() {
                     </button>
                 </div>
 
-                {/* Poll Options/Results */}
+                {}
                 <div className="p-6">
                     {showResults ? (
                         <PollResults
@@ -171,7 +171,7 @@ export default function PollDisplay() {
                     )}
                 </div>
 
-                {/* Actions */}
+                {}
                 <div className="flex gap-3 p-6 border-t border-neutral-700">
                     {!showResults && (
                         <button

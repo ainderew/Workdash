@@ -7,7 +7,7 @@ interface SoccerState {
     currentPickerId: string | null;
     availableSkillIds: string[];
     selectionTurnEndTime: number;
-    playerPicks: Record<string, string>; // playerId -> skillId
+    playerPicks: Record<string, string>; 
     
     setGameActive: (active: boolean) => void;
     setSelectionPhaseActive: (active: boolean) => void;

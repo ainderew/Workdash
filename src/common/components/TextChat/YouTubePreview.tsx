@@ -19,12 +19,12 @@ export function YouTubePreview({
 
     return (
         <div className="mt-2">
-            {/* URL Headline */}
+            {}
             <div className="mb-1 px-1">
                 <p className="text-xs text-neutral-400 truncate">{url}</p>
             </div>
 
-            {/* Preview Card */}
+            {}
             <a
                 href={url}
                 target="_blank"
@@ -37,7 +37,7 @@ export function YouTubePreview({
                         alt="YouTube video thumbnail"
                         className="w-full h-auto object-cover"
                         onError={(e) => {
-                            // Fallback if thumbnail fails to load
+                            
                             e.currentTarget.style.display = "none";
                         }}
                     />

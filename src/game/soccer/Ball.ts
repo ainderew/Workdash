@@ -1,12 +1,4 @@
-/**
- * Ball.ts - Client-side ball with proper prediction and reconciliation
- *
- * Architecture:
- * 1. Client predicts kicks immediately for responsiveness
- * 2. Client runs local physics simulation
- * 3. Server sends authoritative state at 20Hz
- * 4. Client reconciles: if no pending kicks, snap to server; if pending, wait
- */
+
 
 import { Scene } from "phaser";
 import {
@@ -15,55 +7,55 @@ import {
     PhysicsState,
 } from "./shared-physics";
 
-// What the server sends us
+
 interface ServerBallState {
     x: number;
     y: number;
     vx: number;
     vy: number;
-    sequence: number; // Authoritative kick counter
-    tick: number; // Server's physics tick
-    timestamp: number; // Server wall clock (for latency estimation)
+    sequence: number; 
+    tick: number; 
+    timestamp: number; 
     lastTouchId: string | null;
 }
 
-// A kick we've predicted but server hasn't acknowledged
+
 interface PendingKick {
-    localId: number; // Client-generated ID for tracking
+    localId: number; 
     vx: number;
     vy: number;
-    predictedAt: number; // Timestamp when we predicted this
-    sequenceBefore: number; // Server sequence when we sent this kick
+    predictedAt: number; 
+    sequenceBefore: number; 
 }
 
 export class Ball extends Phaser.GameObjects.Sprite {
-    // === Physics State ===
+    
     private simState: PhysicsState = { x: 0, y: 0, vx: 0, vy: 0 };
     private currentTick: number = 0;
     private accumulator: number = 0;
 
-    // === Rendering State (separate from physics for smoothing) ===
+    
     private renderX: number = 0;
     private renderY: number = 0;
 
-    // === Server Reconciliation ===
+    
     private lastServerSequence: number = 0;
     private lastServerTick: number = 0;
     private lastServerTimestamp: number = 0;
     private lastAuthoritativeState: ServerBallState | null = null;
 
-    // === Pending Kicks (client predictions awaiting server confirmation) ===
+    
     private pendingKicks: PendingKick[] = [];
     private nextLocalKickId: number = 1;
 
-    // === Configuration ===
+    
     private isMultiplayer: boolean;
 
-    // Thresholds
+    
     private readonly SNAP_THRESHOLD = PHYSICS_CONSTANTS.POSITION_SNAP_THRESHOLD;
     private readonly CORRECT_THRESHOLD =
         PHYSICS_CONSTANTS.POSITION_CORRECT_THRESHOLD;
-    private readonly PENDING_KICK_TIMEOUT = 700; // ms - avoids long-lived divergent kick prediction
+    private readonly PENDING_KICK_TIMEOUT = 700; 
     private readonly KICK_REJECT_INFER_MS = 220;
     private readonly KICK_REJECT_FALLBACK_MS = 320;
     private readonly KICK_REJECT_HARD_SNAP_DIST = 90;
@@ -75,7 +67,7 @@ export class Ball extends Phaser.GameObjects.Sprite {
         y: number,
         isMultiplayer: boolean = false,
     ) {
-        // Create ball texture procedurally
+        
         const graphics = scene.add.graphics();
         graphics.fillStyle(0xffffff, 1);
         graphics.fillCircle(30, 30, 27);
@@ -88,7 +80,7 @@ export class Ball extends Phaser.GameObjects.Sprite {
 
         this.isMultiplayer = isMultiplayer;
 
-        // Initialize physics state
+        
         this.simState = { x, y, vx: 0, vy: 0 };
         this.renderX = x;
         this.renderY = y;
@@ -99,15 +91,15 @@ export class Ball extends Phaser.GameObjects.Sprite {
         if (this.body) {
             const body = this.body as Phaser.Physics.Arcade.Body;
             body.setCircle(30);
-            // CRITICAL: Disable Phaser's automatic body movement
-            // We handle physics ourselves in fixedUpdate() using shared-physics
+            
+            
             body.moves = false;
         }
     }
 
-    // === Public Accessors ===
+    
 
-    /** Get current simulation state (for trajectory preview, etc.) */
+    
     public get targetPos() {
         return {
             x: this.simState.x,
@@ -118,55 +110,55 @@ export class Ball extends Phaser.GameObjects.Sprite {
         };
     }
 
-    /** Check if ball is currently moving */
+    
     public get isMoving(): boolean {
         const speed = Math.sqrt(this.simState.vx ** 2 + this.simState.vy ** 2);
         return speed > PHYSICS_CONSTANTS.VELOCITY_STOP_THRESHOLD;
     }
 
-    /** Check if we have unacknowledged kicks */
+    
     public get hasPendingKicks(): boolean {
         return this.pendingKicks.length > 0;
     }
 
-    // Phaser compatibility shim
+    
     public setBounce(): void {}
 
-    // === Main Update Loop ===
+    
 
     public update(_time: number, delta: number): void {
-        // 1. Accumulate frame time
+        
         this.accumulator += delta;
 
-        // Safety cap - prevents spiral of death if tab is backgrounded
+        
         const maxAccumulator = PHYSICS_CONSTANTS.FIXED_TIMESTEP_MS * 10;
         if (this.accumulator > maxAccumulator) {
             this.accumulator = maxAccumulator;
         }
 
-        // 2. Run fixed timestep physics
+        
         while (this.accumulator >= PHYSICS_CONSTANTS.FIXED_TIMESTEP_MS) {
             this.fixedUpdate();
             this.accumulator -= PHYSICS_CONSTANTS.FIXED_TIMESTEP_MS;
         }
 
-        // 3. Clean up stale pending kicks
+        
         this.cleanupStalePendingKicks();
         this.resolveRejectedPendingKick();
 
-        // 4. Update visual representation (smooth interpolation)
+        
         this.updateVisuals();
     }
 
-    /** Fixed timestep physics update */
+    
     private fixedUpdate(): void {
         this.currentTick++;
 
-        // Run deterministic physics simulation
+        
         integrateBall(this.simState, PHYSICS_CONSTANTS.FIXED_TIMESTEP_SEC);
     }
 
-    /** Remove pending kicks that have timed out without server acknowledgment */
+    
     private cleanupStalePendingKicks(): void {
         const now = Date.now();
         const beforeCount = this.pendingKicks.length;

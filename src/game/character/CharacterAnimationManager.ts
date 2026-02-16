@@ -18,9 +18,7 @@ export class CharacterAnimationManager {
         this.scene = scene;
     }
 
-    /**
-     * Call this explicitly before destroying the texture
-     */
+    
     removeCharacterAnimations(characterKey: string): void {
         const animKeys = [
             `${characterKey}-idle`,

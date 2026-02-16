@@ -37,9 +37,9 @@ export class VideoChatService {
         });
 
         const videoTrack = stream.getVideoTracks()[0];
-        // Display in a video element
-        // const videoElement = document.getElementById("localVideo");
-        // videoElement!.srcObject = stream;
+        
+        
+        
 
         this.currentStream = stream;
         this.producer = await this.sfuService.sendTransport!.produce({

@@ -6,7 +6,7 @@ function ScreeShareContainer({
     producerId,
     isExpanded,
     handleExpand,
-    // hasMoreThanOneSharing,
+    
 }: {
     producerId: string;
     isExpanded: boolean;
@@ -21,7 +21,7 @@ function ScreeShareContainer({
 
     return (
         <>
-            {/* Backdrop */}
+            {}
             {isExpanded && (
                 <div
                     className="backdrop fixed inset-0 bg-black/85 z-40 backdrop-blur-sm"

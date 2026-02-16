@@ -1,10 +1,4 @@
-/**
- * Character Asset Configuration
- *
- * Single source of truth for all character asset paths and configurations.
- * Used by both React UI components and Phaser game engine.
- *
- */
+
 
 import { CharacterCustomization, CharacterType } from "@/game/character/_types";
 export const BASE_PATH = "/assets/characters/Character_Generator";

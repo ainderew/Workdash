@@ -107,21 +107,7 @@ export const commands: Command[] = [
     },
 ];
 
-/*
- *
- * Rules
- * If rules changes document here
- *
- * Return all commands if no query
- * Ranked in terms of priority
- * 1. Exact name match
- * 2. Name start with query
- * 3. Name contains query
- * 4. Kyword exact match
- * 5. Keyword contains query
- * 6. Fuzzy character matching (in order)
- * 7. Description contains query
- */
+
 function calculateScore(command: Command, query: string): number {
     const lowerQuery = query.toLowerCase().trim();
 
@@ -178,11 +164,7 @@ function calculateScore(command: Command, query: string): number {
     return score;
 }
 
-/**
- * Search and filter commands based on query
- * Returns commands sorted by relevance score
- *  score rules up there quick read
- */
+
 export function searchCommands(query: string): Command[] {
     return commands
         .map((cmd) => ({ command: cmd, score: calculateScore(cmd, query) }))

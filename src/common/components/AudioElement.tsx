@@ -13,9 +13,9 @@ export default function AudioElement() {
             () => setUpdateTrigger((prev) => prev + 1),
         );
         audioChatService.joinVoiceChat();
-        // audioChatService.loadExistingProducers().then(() => {
-        //     audioChatService.watchNewProducers();
-        // });
+        
+        
+        
 
         return () => {
             audioChatService.cleanup();
@@ -23,9 +23,9 @@ export default function AudioElement() {
     }, []);
 
     useEffect(() => {
-        // Note: Audio playback is now handled by Web Audio API (GainNode)
-        // We don't need to play HTMLAudioElements anymore
-        // Just play them muted to keep the stream active
+        
+        
+        
         for (const audioEl of audioElements) {
             if (!audioEl) continue;
             audioEl.muted = true;

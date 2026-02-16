@@ -114,7 +114,7 @@ export function SocialProof() {
                                     className="w-full h-full object-cover"
                                 />
 
-                                {/* Shine effect */}
+                                {}
                                 <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
                             </motion.div>
 

@@ -58,7 +58,7 @@ export abstract class BaseGameScene extends Scene {
     }
 
     create() {
-        // Set current scene name
+        
         this.currentSceneName = this.scene.key;
 
         this.setupCamera();
@@ -72,8 +72,8 @@ export abstract class BaseGameScene extends Scene {
         this.createAnimatedObjects(map);
         this.createDoors(map);
 
-        // Player updates are driven manually in BaseGameScene.update().
-        // Keep child auto-update disabled to avoid double simulation.
+        
+        
         this.playersLayer = this.physics.add.group({ runChildUpdate: false });
 
         this.setupCollisions(layers);
@@ -84,7 +84,7 @@ export abstract class BaseGameScene extends Scene {
 
         EventBus.on("teleport", this.handleTeleportCommand, this);
 
-        // Join game with scene name
+        
         this.multiplayer.joinGame(
             this.spawnX,
             this.spawnY,
@@ -93,7 +93,7 @@ export abstract class BaseGameScene extends Scene {
         this.multiplayer.setCurrentScene(this.currentSceneName);
 
         EventBus.emit("current-scene-ready", this);
-        this.cameras.main.fadeIn(300); // Add this
+        this.cameras.main.fadeIn(300); 
     }
 
     protected setupCamera() {
@@ -120,7 +120,7 @@ export abstract class BaseGameScene extends Scene {
     protected setupMultiplayer() {
         const jwtToken = this.getJwtToken();
 
-        // Reuse existing multiplayer connection if it exists and is connected
+        
         if (window.__MULTIPLAYER__?.socket?.connected) {
             this.multiplayer = window.__MULTIPLAYER__;
             console.log("Reusing existing multiplayer connection");

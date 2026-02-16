@@ -24,7 +24,7 @@ export function DemoSection() {
                     }}
                     className="relative rounded-2xl overflow-hidden border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 shadow-2xl"
                 >
-                    {/* Fake Browser/Game Header */}
+                    {}
                     <div className="h-10 bg-slate-200 dark:bg-slate-800 flex items-center px-4 gap-2 border-b border-slate-300 dark:border-slate-700">
                         <div className="flex gap-1.5">
                             <div className="w-3 h-3 rounded-full bg-red-500" />
@@ -33,7 +33,7 @@ export function DemoSection() {
                         </div>
                         <div className="flex-1 text-center">
                             <div className="inline-block px-4 py-1 bg-slate-100 dark:bg-slate-900 rounded text-[10px] font-mono text-slate-600 dark:text-slate-400">
-                                https://workdash.site/app
+                                https:
                             </div>
                         </div>
                     </div>

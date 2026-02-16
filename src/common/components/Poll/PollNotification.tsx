@@ -16,7 +16,7 @@ function PollNotificationItem({
     onClick,
 }: PollNotificationItemProps) {
     if (hasVoted) {
-        // Mini compact version for voted polls
+        
         return (
             <div
                 onClick={onClick}
@@ -45,7 +45,7 @@ function PollNotificationItem({
         );
     }
 
-    // Full version for unvoted polls
+    
     return (
         <button
             onClick={onClick}
@@ -86,7 +86,7 @@ export default function PollNotification() {
     const polls = usePollStore((state) => state.polls);
     const hasUserVoted = usePollStore((state) => state.hasUserVoted);
     const setActivePoll = usePollStore((state) => state.setActivePoll);
-    const previousPollCountRef = useRef(polls.length); // Initialize with current count
+    const previousPollCountRef = useRef(polls.length); 
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const audioEnabledRef = useRef(false);
     const isInitialMountRef = useRef(true);
@@ -102,7 +102,7 @@ export default function PollNotification() {
 
         const enableAudio = () => {
             if (!audioEnabledRef.current && audioRef.current) {
-                // Play and immediately pause to unlock audio
+                
                 audioRef.current
                     .play()
                     .then(() => {

@@ -4,13 +4,13 @@ import { getCharacterLayerPathsArray, BASE_PATH } from "./AssetConfig";
 
 interface CharacterPreviewProps {
     customization: CharacterCustomization;
-    /** Which row to show. 1 = Idle, 2 = Walk, etc. */
+    
     animationRow?: number;
-    /** Which column to show. Idle typically starts at col 18. */
+    
     frameCol?: number;
 }
 
-// Map logical rows to indices.
+
 export const ANIMATION_ROWS = {
     DOWN: 0,
     IDLE: 1,
@@ -23,13 +23,13 @@ export const ANIMATION_ROWS = {
 export function CharacterPreview({
     customization,
     animationRow = ANIMATION_ROWS.IDLE,
-    // Default to 18 if you want to see the actual Idle pose, or 0 for "Front Static"
+    
     frameCol = 18,
 }: CharacterPreviewProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
-    // FIX 1: Define correct dimensions for LPC characters
-    // Width is 32 (packed), but Height is 64 (Head + Body)
+    
+    
     const SRC_FRAME_WIDTH = 32;
     const SRC_FRAME_HEIGHT = 64;
 
@@ -56,7 +56,7 @@ export function CharacterPreview({
                         img.src = layerPath;
 
                         img.onload = () => {
-                            // FIX 2: Calculate rows based on 64px height
+                            
                             const cols = Math.floor(
                                 img.width / SRC_FRAME_WIDTH,
                             );
@@ -67,24 +67,24 @@ export function CharacterPreview({
                             const safeRow = Math.min(animationRow, rows - 1);
                             const safeCol = Math.min(frameCol, cols - 1);
 
-                            // FIX 3: Capture the full 64px height
+                            
                             const srcX = safeCol * SRC_FRAME_WIDTH;
                             const srcY = safeRow * SRC_FRAME_HEIGHT;
 
-                            // FIX 4: Draw proportional to canvas (Prevent "Fat" stretching)
-                            // Canvas is 256x256. Character is 1:2 ratio.
-                            // We draw it 128x256 (centered).
+                            
+                            
+                            
                             const destWidth = 128;
                             const destHeight = 256;
-                            const destX = (canvas.width - destWidth) / 2; // Center X
-                            const destY = 0; // Top
+                            const destX = (canvas.width - destWidth) / 2; 
+                            const destY = 0; 
 
                             ctx.drawImage(
                                 img,
                                 srcX,
                                 srcY,
-                                SRC_FRAME_WIDTH, // 32
-                                SRC_FRAME_HEIGHT, // 64 (Captures horns!)
+                                SRC_FRAME_WIDTH, 
+                                SRC_FRAME_HEIGHT, 
                                 destX,
                                 destY,
                                 destWidth,

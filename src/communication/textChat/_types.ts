@@ -4,12 +4,12 @@ export type LinkMetadata = {
     title?: string;
     description?: string;
     image?: string;
-    // YouTube specific
+    
     youtubeId?: string;
-    // Twitter specific
+    
     twitterUsername?: string;
     twitterId?: string;
-    // GitHub specific
+    
     githubOwner?: string;
     githubRepo?: string;
     githubType?: 'repo' | 'issue' | 'pull';

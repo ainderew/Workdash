@@ -1,8 +1,8 @@
 export enum AudioMode {
-    ISOLATED = "isolated", // Only hear people in same zone
-    PROXIMITY = "proximity", // Hear based on distance (default outdoor)
-    BROADCAST = "broadcast", // Everyone in zone hears equally (presentations)
-    GLOBAL = "global", // Hear everywhere (admin announcements)
+    ISOLATED = "isolated", 
+    PROXIMITY = "proximity", 
+    BROADCAST = "broadcast", 
+    GLOBAL = "global", 
 }
 
 export interface AudioZone {

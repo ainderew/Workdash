@@ -22,7 +22,7 @@ const useAudioStore = create<AudioState>((set, get) => ({
             return { userVolumes: newVolumes };
         });
 
-        // Apply immediately
+        
         const audioChat = AudioChat.getInstance();
         audioChat.setUserVolume(userName, volume);
     },
@@ -34,12 +34,12 @@ const useAudioStore = create<AudioState>((set, get) => ({
             const savedVolume = newMuted.get(userName);
 
             if (savedVolume !== undefined) {
-                // Unmute: restore volume
+                
                 newMuted.delete(userName);
                 const audioChat = AudioChat.getInstance();
                 audioChat.setUserVolume(userName, savedVolume);
             } else {
-                // Mute: save volume and set to 0
+                
                 newMuted.set(userName, currentVolume);
                 const audioChat = AudioChat.getInstance();
                 audioChat.setUserVolume(userName, 0);

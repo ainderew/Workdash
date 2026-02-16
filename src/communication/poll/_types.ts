@@ -2,7 +2,7 @@ export interface Poll {
   id: string;
   question: string;
   options: PollOption[];
-  creatorId: string; // Backend user ID (from window.__BACKEND_USER__.id)
+  creatorId: string; 
   creatorName: string;
   createdAt: Date;
   expiresAt?: Date;
@@ -11,22 +11,19 @@ export interface Poll {
   totalVotes: number;
 }
 
-/**
- * Raw poll data from backend (before transformation)
- * Fields may be missing or have different types than Poll interface
- */
+
 export interface BackendPollData {
   id: string;
   question: string;
   options: PollOption[];
   creatorId: string;
   creatorName: string;
-  createdAt: string; // ISO string, not Date object
-  expiresAt?: string; // ISO string, not Date object
-  allowMultiple?: boolean; // May be missing
+  createdAt: string; 
+  expiresAt?: string; 
+  allowMultiple?: boolean; 
   isActive: boolean;
-  totalVotes?: number; // May be missing
-  voters?: string[]; // Alternative to totalVotes
+  totalVotes?: number; 
+  voters?: string[]; 
 }
 
 export interface PollOption {
@@ -46,7 +43,7 @@ export interface PollResults {
   pollId: string;
   options: PollOption[];
   totalVotes: number;
-  voters: string[]; // userIds who have voted
+  voters: string[]; 
 }
 
 export interface CreatePollData {

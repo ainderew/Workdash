@@ -82,7 +82,7 @@ export function CharacterCreationScreen({
     return (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
             <div className="bg-slate-900 rounded-lg shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-                {/* Header */}
+                {}
                 <div className="p-6 border-b border-slate-700">
                     <div className="flex items-center justify-between">
                         <h2 className="text-2xl font-bold text-white">
@@ -113,9 +113,9 @@ export function CharacterCreationScreen({
                     </div>
                 </div>
 
-                {/* Content */}
+                {}
                 <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
-                    {/* Left Panel - Preview */}
+                    {}
                     <div className="md:w-1/3 p-6 flex flex-col items-center justify-center bg-slate-800/50">
                         <CharacterPreview customization={customization} />
                         <div className="mt-4 text-center">
@@ -133,9 +133,9 @@ export function CharacterCreationScreen({
                         </div>
                     </div>
 
-                    {/* Right Panel - Customization */}
+                    {}
                     <div className="md:w-2/3 flex flex-col">
-                        {/* Category Tabs */}
+                        {}
                         <div className="border-b border-slate-700 bg-slate-800/30">
                             <div className="flex overflow-x-auto">
                                 {CATEGORIES.map((cat) => (

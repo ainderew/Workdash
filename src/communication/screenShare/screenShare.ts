@@ -26,16 +26,16 @@ export class ScreenShareService {
 
         const stream = await navigator.mediaDevices.getDisplayMedia({
             video: {
-                displaySurface: "monitor", // Hint preference (user can override)
+                displaySurface: "monitor", 
                 width: { max: 1920, ideal: 1920 },
                 height: { max: 1080, ideal: 1080 },
                 frameRate: { max: 30, ideal: 30 },
             },
             audio: {
-                echoCancellation: true, // System audio if supported
+                echoCancellation: true, 
                 noiseSuppression: true,
                 autoGainControl: false,
-                // sampleRate: 44100
+                
             },
         });
 
