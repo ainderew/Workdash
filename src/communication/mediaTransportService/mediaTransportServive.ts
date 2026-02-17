@@ -25,6 +25,7 @@ export class MediaTransportService {
             autoConnect: false,
             auth: {
                 token: jwtToken || "",
+                chatProtocolVersion: 2,
             },
         });
 
@@ -52,8 +53,11 @@ export class MediaTransportService {
 
     public setAuthToken(jwtToken: string) {
         const token = jwtToken.trim();
-        const auth = (this.socket.auth ?? {}) as { token?: string };
+        const auth = (
+            this.socket.auth ?? {}
+        ) as { token?: string; chatProtocolVersion?: number };
         auth.token = token;
+        auth.chatProtocolVersion = 2;
         this.socket.auth = auth;
     }
 

@@ -340,6 +340,45 @@ Done when:
 
 ---
 
+## Packet 14: Desk Message Search
+
+ID: `desk-14-message-search`
+
+Goal:
+- Add right-header search in Desk mode with user/room filters, sortable results, and DB-optimized querying.
+
+Scope:
+- Header search bar on right side (`RoomHeader`).
+- Filters:
+  - `from:<user>`
+  - `in:<room>`
+- Results panel on right side with:
+  - results header,
+  - `(sort icon) Sort` dropdown (`Latest first` / `Oldest first`),
+  - grouped-by-room rendering when only `from` is applied.
+- Debounced search input and stale-request protection.
+- Backend `chat:v2:message:search` + `chat:v2:user:search`.
+- Postgres search index migration (fts/trgm + composite indexes).
+
+Files:
+- `/Users/AndrewPinon/projects/workdash/docs/desk-mode-message-search-plan.md`
+- `/Users/AndrewPinon/projects/workdash/src/common/components/DeskMode/RoomHeader.tsx`
+- `/Users/AndrewPinon/projects/workdash/src/common/components/DeskMode/DeskLayout.tsx`
+- `/Users/AndrewPinon/projects/workdash/src/common/store/chatV2Store.ts`
+- `/Users/AndrewPinon/projects/workdash/src/communication/chatV2/chatV2Service.ts`
+- `/Users/AndrewPinon/projects/workdash/src/communication/chatV2/_types.ts`
+- `/Users/AndrewPinon/projects/workdash-media-server/src/services/chat-v2.gateway.ts`
+- `/Users/AndrewPinon/projects/workdash-media-server/src/services/chat-v2.service.ts`
+- `/Users/AndrewPinon/projects/workdash-media-server/src/repositories/chat/chat-message.repository.ts`
+- `/Users/AndrewPinon/projects/workdash-media-server/prisma/migrations/*`
+
+Done when:
+- Search, filter, sort, and grouped rendering behaviors match product spec.
+- Query path uses DB indexes and keyset pagination.
+- Clicking a result navigates to the right room/message context.
+
+---
+
 ## Suggested session order
 1. `desk-00-contracts`
 2. `desk-01-prisma-schema`
@@ -355,6 +394,7 @@ Done when:
 12. `desk-11-files`
 13. `desk-12-reliability`
 14. `desk-13-migration`
+15. `desk-14-message-search`
 
 ## Session template to avoid context pollution
 - Input to each session:

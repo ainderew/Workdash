@@ -1,4 +1,17 @@
-import type { LinkMetadata } from "@/communication/textChat/_types";
+export type LinkMetadata = {
+    url: string;
+    type: "youtube" | "twitter" | "github" | "generic";
+    title?: string;
+    description?: string;
+    image?: string;
+    youtubeId?: string;
+    twitterUsername?: string;
+    twitterId?: string;
+    githubOwner?: string;
+    githubRepo?: string;
+    githubType?: "repo" | "issue" | "pull";
+    githubIssueNumber?: string;
+};
 
 
 const YOUTUBE_REGEX =

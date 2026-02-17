@@ -22,6 +22,7 @@ type ChatV2State = {
     isCreatingRoom: boolean;
     isCreatingCategory: boolean;
     isArrangingRooms: boolean;
+    isUpdatingRoom: boolean;
     isManagingMembers: boolean;
     error: string | null;
     roomsById: Record<string, ChatV2Room>;
@@ -51,6 +52,9 @@ type ChatV2State = {
         position: number,
     ) => Promise<void>;
     arrangeCategory: (categoryId: string, position: number) => Promise<void>;
+    renameCategory: (categoryId: string, name: string) => Promise<void>;
+    renameRoom: (roomId: string, name: string) => Promise<void>;
+    deleteRoom: (roomId: string) => Promise<void>;
     loadRoomMembers: (roomId: string) => Promise<void>;
     addRoomMember: (
         userId: number,
@@ -181,6 +185,7 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
     isCreatingRoom: false,
     isCreatingCategory: false,
     isArrangingRooms: false,
+    isUpdatingRoom: false,
     isManagingMembers: false,
     error: null,
     roomsById: {},
@@ -460,6 +465,91 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
         }
     },
 
+    renameCategory: async (categoryId, name) => {
+        const trimmedName = name.trim();
+        if (!categoryId || !trimmedName) return;
+
+        set({ isUpdatingRoom: true, error: null });
+
+        try {
+            const chatV2Service = getChatV2Service();
+            await chatV2Service.updateCategory(categoryId, trimmedName);
+            await get().reloadRoomStructure();
+
+            set({ isUpdatingRoom: false });
+        } catch (error) {
+            set({
+                isUpdatingRoom: false,
+                error:
+                    error instanceof Error
+                        ? error.message
+                        : "Failed to rename category",
+            });
+        }
+    },
+
+    renameRoom: async (roomId, name) => {
+        const trimmedName = name.trim();
+        if (!roomId || !trimmedName) return;
+
+        set({ isUpdatingRoom: true, error: null });
+
+        try {
+            const chatV2Service = getChatV2Service();
+            await chatV2Service.updateRoom(roomId, trimmedName);
+            await get().reloadRoomStructure();
+
+            set({ isUpdatingRoom: false });
+        } catch (error) {
+            set({
+                isUpdatingRoom: false,
+                error:
+                    error instanceof Error
+                        ? error.message
+                        : "Failed to rename room",
+            });
+        }
+    },
+
+    deleteRoom: async (roomId) => {
+        if (!roomId) return;
+
+        const previousRoomId = get().currentRoomId;
+        set({ isUpdatingRoom: true, error: null });
+
+        try {
+            const chatV2Service = getChatV2Service();
+            await chatV2Service.deleteRoom(roomId);
+            await get().reloadRoomStructure();
+
+            const nextRoomId = get().currentRoomId;
+            if (nextRoomId && nextRoomId !== previousRoomId) {
+                await get().selectRoom(nextRoomId);
+            }
+
+            set((state) => {
+                const nextMessagesByRoomId = { ...state.messagesByRoomId };
+                const nextMembersByRoomId = { ...state.membersByRoomId };
+                delete nextMessagesByRoomId[roomId];
+                delete nextMembersByRoomId[roomId];
+
+                return {
+                    isUpdatingRoom: false,
+                    messagesByRoomId: nextMessagesByRoomId,
+                    membersByRoomId: nextMembersByRoomId,
+                };
+            });
+        } catch (error) {
+            set({
+                isUpdatingRoom: false,
+                error:
+                    error instanceof Error
+                        ? error.message
+                        : "Failed to delete room",
+            });
+        }
+    },
+
     loadRoomMembers: async (roomId) => {
         if (!roomId) return;
 
@@ -549,6 +639,7 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
             isCreatingRoom: false,
             isCreatingCategory: false,
             isArrangingRooms: false,
+            isUpdatingRoom: false,
             isManagingMembers: false,
             error: null,
             roomsById: {},

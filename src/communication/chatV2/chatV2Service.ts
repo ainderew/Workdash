@@ -2,9 +2,12 @@ import { MediaTransportService } from "@/communication/mediaTransportService/med
 import type {
     ChatV2CreateAttachment,
     ChatV2Message,
+    ChatV2MessageSearchInput,
+    ChatV2MessageSearchSort,
     ChatV2Room,
     ChatV2RoomCategory,
     ChatV2RoomMember,
+    ChatV2SearchUser,
 } from "./_types";
 import { getStandaloneGifUrl } from "./gifUrl";
 
@@ -154,6 +157,49 @@ export class ChatV2Service {
         return response.messages;
     }
 
+    async searchMessages(
+        input: ChatV2MessageSearchInput,
+    ): Promise<{ messages: ChatV2Message[]; totalCount: number }> {
+        const payload: {
+            workspaceId?: string;
+            query?: string;
+            fromUserId?: number;
+            roomId?: string;
+            sort?: ChatV2MessageSearchSort;
+            limit?: number;
+        } = {};
+
+        if (input.workspaceId) payload.workspaceId = input.workspaceId;
+        if (input.query?.trim()) payload.query = input.query.trim();
+        if (input.fromUserId) payload.fromUserId = input.fromUserId;
+        if (input.roomId) payload.roomId = input.roomId;
+        if (input.sort) payload.sort = input.sort;
+        if (input.limit) payload.limit = input.limit;
+
+        const response = await this.emitWithAck<{
+            messages: ChatV2Message[];
+            totalCount: number;
+        }>("chat:v2:message:search", payload);
+
+        return response;
+    }
+
+    async searchUsers(input: {
+        workspaceId?: string;
+        query: string;
+        limit?: number;
+    }): Promise<ChatV2SearchUser[]> {
+        const response = await this.emitWithAck<{ users: ChatV2SearchUser[] }>(
+            "chat:v2:user:search",
+            {
+                workspaceId: input.workspaceId,
+                query: input.query.trim(),
+                limit: input.limit,
+            },
+        );
+        return response.users;
+    }
+
     async createMessage(
         roomId: string,
         content: string,
@@ -206,6 +252,22 @@ export class ChatV2Service {
         return response.room;
     }
 
+    async updateRoom(roomId: string, name: string): Promise<ChatV2Room> {
+        const response = await this.emitWithAck<{ room: ChatV2Room }>(
+            "chat:v2:room:update",
+            { roomId, name },
+        );
+        return response.room;
+    }
+
+    async deleteRoom(roomId: string): Promise<ChatV2Room> {
+        const response = await this.emitWithAck<{ room: ChatV2Room }>(
+            "chat:v2:room:delete",
+            { roomId },
+        );
+        return response.room;
+    }
+
     async createCategory(
         name: string,
         workspaceId?: string,
@@ -214,6 +276,16 @@ export class ChatV2Service {
         const response = await this.emitWithAck<{
             category: ChatV2RoomCategory;
         }>("chat:v2:category:create", payload);
+        return response.category;
+    }
+
+    async updateCategory(
+        categoryId: string,
+        name: string,
+    ): Promise<ChatV2RoomCategory> {
+        const response = await this.emitWithAck<{
+            category: ChatV2RoomCategory;
+        }>("chat:v2:category:update", { categoryId, name });
         return response.category;
     }
 

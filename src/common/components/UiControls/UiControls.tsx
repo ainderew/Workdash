@@ -15,7 +15,6 @@ import {
     Monitor,
 } from "lucide-react";
 import useUiControls from "./hooks/useUiControls";
-import ChatWindow from "../TextChat/ChatWindow";
 import CharacterButton from "./CharacterButton";
 import { ScreenShareService } from "@/communication/screenShare/screenShare";
 import { ButtonSizeEnum, ColorEnum } from "./_enums";
@@ -24,13 +23,11 @@ import MembersUi from "../Members/MembersUi";
 import { VideoChatService } from "@/communication/videoChat/videoChat";
 import CalendarMenu from "../Google/CalendarMenu";
 import ReactionButton from "./ReactionButton";
-import useMessagingStore, {
-    MessagingState,
-} from "@/common/store/messagingStore";
 import useUiStore from "@/common/store/uiStore";
 import { SoccerStatsModal } from "./modal/SoccerStatsModal";
 import { SoccerGameControlModal } from "./modal/SoccerGameControlModal";
 import { MatchHistoryModal } from "./modal/MatchHistoryModal";
+import DeskChatDrawer from "../DeskMode/DeskChatDrawer";
 
 interface UiControlsProps {
     isVisible?: boolean;
@@ -59,10 +56,6 @@ function UiControls({ isVisible = true }: UiControlsProps) {
         toggleMicSelector,
         closeMicSelector,
     } = microphoneSelector();
-
-    const unreadCount = useMessagingStore(
-        (state: MessagingState) => state.unreadCount,
-    );
 
     const isSoccerStatsModalOpen = useUiStore((state) => state.isSoccerStatsModalOpen);
     const closeSoccerStatsModal = useUiStore((state) => state.closeSoccerStatsModal);
@@ -273,7 +266,6 @@ function UiControls({ isVisible = true }: UiControlsProps) {
                         onClick={toggleChatWindow}
                         icon={MessageCircle}
                         label={"Chat"}
-                        badgeCount={unreadCount}
                     />
 
                     <UiOnlineButton onClick={toggleMembersUi} />
@@ -285,7 +277,7 @@ function UiControls({ isVisible = true }: UiControlsProps) {
                 onClose={toggleCalendarMenu}
             />
 
-            <ChatWindow isOpen={isChatWindowOpen} onClose={toggleChatWindow} />
+            <DeskChatDrawer isOpen={isChatWindowOpen} onClose={toggleChatWindow} />
 
             <MembersUi
                 isMembersUiOpen={isMembersUiOpen}

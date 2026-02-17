@@ -10,7 +10,6 @@ import { User, UserStore } from "./common/store/_types";
 import { MediaTransportService } from "./communication/mediaTransportService/mediaTransportServive";
 import ScreenShareUi from "./common/components/ScreenShare/ScreenShareUi";
 import VideoChatUi from "./common/components/VideoChat/VideoChatUi";
-import { TextChatService } from "./communication/textChat/textChat";
 import { ReactionService } from "./communication/reaction/reaction";
 import ReactionToast from "./common/components/RaiseHandToast/RaiseHandToast";
 import { CharacterCustomizationButton } from "./common/components/UiControls/CharacterCustomizationButton";
@@ -49,7 +48,6 @@ function App() {
         const jwtToken = session.backendJwt || window.__BACKEND_JWT__ || "";
 
         const transport = MediaTransportService.getInstance(jwtToken);
-        const textChat = TextChatService.getInstance();
         const reactionService = ReactionService.getInstance();
         const pollService = PollService.getInstance();
 
@@ -63,7 +61,6 @@ function App() {
                 await transport.connect();
                 await transport.initializeSfu();
 
-                textChat.setupMessageListener();
                 reactionService.setupReactionListener();
                 reactionService.uiUpdater = (emojiData) => {
                     reactionService.routeReactionToPlayer(emojiData);

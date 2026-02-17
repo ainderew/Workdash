@@ -15,6 +15,7 @@ export type ChatV2Room = {
         id: string;
         name: string;
     };
+    viewerRole?: "OWNER" | "ADMIN" | "MODERATOR" | "MEMBER" | "READ_ONLY" | null;
     categoryId: string | null;
     position: number;
     name: string;
@@ -81,4 +82,21 @@ export type ChatV2RoomMember = {
         name: string;
         email: string;
     };
+};
+
+export type ChatV2MessageSearchSort = "LATEST" | "OLDEST";
+
+export type ChatV2MessageSearchInput = {
+    workspaceId?: string;
+    query?: string;
+    fromUserId?: number;
+    roomId?: string;
+    sort?: ChatV2MessageSearchSort;
+    limit?: number;
+};
+
+export type ChatV2SearchUser = {
+    id: number;
+    name: string | null;
+    image: string | null;
 };
