@@ -2,8 +2,11 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import type {
     ChatV2Room,
     ChatV2SearchUser,
+    ChatV2UserNotification,
 } from "@/communication/chatV2/_types";
-import { Hash, Search, UserRound, X } from "lucide-react";
+import { Bell, Hash, Search, UserRound, Users, X } from "lucide-react";
+import useChatV2Store from "@/common/store/chatV2Store";
+import UserNotificationsPanel from "./UserNotificationsPanel";
 
 interface RoomHeaderProps {
     room: ChatV2Room | null;
@@ -19,6 +22,9 @@ interface RoomHeaderProps {
     onSearchRoomIdChange: (roomId: string | null) => void;
     onSearchUsers: (query: string) => Promise<ChatV2SearchUser[]>;
     onClearSearch: () => void;
+    onOpenNotification?: (notification: ChatV2UserNotification) => void;
+    isMemberPanelVisible?: boolean;
+    onToggleMemberPanel?: () => void;
 }
 
 function RoomHeader({
@@ -35,13 +41,49 @@ function RoomHeader({
     onSearchRoomIdChange,
     onSearchUsers,
     onClearSearch,
+    onOpenNotification,
+    isMemberPanelVisible = true,
+    onToggleMemberPanel,
 }: RoomHeaderProps) {
+    const friendRequests = useChatV2Store((state) => state.friendRequests);
+    const notifications = useChatV2Store((state) => state.notifications);
+    const isLoadingFriendRequests = useChatV2Store(
+        (state) => state.isLoadingFriendRequests,
+    );
+    const isLoadingNotifications = useChatV2Store(
+        (state) => state.isLoadingNotifications,
+    );
+    const isLoadingFriends = useChatV2Store((state) => state.isLoadingFriends);
+    const reloadFriendRequests = useChatV2Store(
+        (state) => state.reloadFriendRequests,
+    );
+    const reloadNotifications = useChatV2Store(
+        (state) => state.reloadNotifications,
+    );
+    const markNotificationsRead = useChatV2Store(
+        (state) => state.markNotificationsRead,
+    );
+    const respondToFriendRequest = useChatV2Store(
+        (state) => state.respondToFriendRequest,
+    );
+    const incomingFriendRequestCount = useChatV2Store(
+        (state) => state.getIncomingFriendRequestCount(),
+    );
+    const unreadNotificationCount = useChatV2Store(
+        (state) => state.getUnreadNotificationCount(),
+    );
     const [isSearchMenuOpen, setIsSearchMenuOpen] = useState(false);
+    const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+    const [hasUnreadNotificationDot, setHasUnreadNotificationDot] = useState(false);
     const [activeFilter, setActiveFilter] = useState<"from" | "room" | null>(null);
     const [userQuery, setUserQuery] = useState("");
     const [isSearchingUsers, setIsSearchingUsers] = useState(false);
     const [userResults, setUserResults] = useState<ChatV2SearchUser[]>([]);
     const searchContainerRef = useRef<HTMLDivElement | null>(null);
+    const notificationsContainerRef = useRef<HTMLDivElement | null>(null);
+    const previousIncomingCountRef = useRef<number | null>(null);
+    const localBackendUserId =
+        typeof window !== "undefined" ? window.__BACKEND_USER__?.id : undefined;
 
     const selectedRoomName = useMemo(
         () => rooms.find((entry) => entry.id === searchRoomId)?.name || "",
@@ -108,6 +150,64 @@ function RoomHeader({
         };
     }, [isSearchMenuOpen]);
 
+    useEffect(() => {
+        if (!isNotificationsOpen) {
+            return;
+        }
+
+        const closeNotifications = () => {
+            setIsNotificationsOpen(false);
+        };
+
+        const onMouseDown = (event: MouseEvent) => {
+            if (!notificationsContainerRef.current) {
+                return;
+            }
+            if (notificationsContainerRef.current.contains(event.target as Node)) {
+                return;
+            }
+            closeNotifications();
+        };
+
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.key === "Escape") {
+                closeNotifications();
+            }
+        };
+
+        window.addEventListener("mousedown", onMouseDown);
+        window.addEventListener("keydown", onKeyDown);
+        window.addEventListener("scroll", closeNotifications, true);
+        window.addEventListener("resize", closeNotifications);
+        return () => {
+            window.removeEventListener("mousedown", onMouseDown);
+            window.removeEventListener("keydown", onKeyDown);
+            window.removeEventListener("scroll", closeNotifications, true);
+            window.removeEventListener("resize", closeNotifications);
+        };
+    }, [isNotificationsOpen]);
+
+    useEffect(() => {
+        const previousCount = previousIncomingCountRef.current;
+
+        if (unreadNotificationCount > 0 && !isNotificationsOpen) {
+            setHasUnreadNotificationDot(true);
+        } else if (incomingFriendRequestCount === 0) {
+            setHasUnreadNotificationDot(false);
+        } else if (previousCount === null) {
+            setHasUnreadNotificationDot(true);
+        } else if (
+            incomingFriendRequestCount > previousCount
+            && !isNotificationsOpen
+        ) {
+            setHasUnreadNotificationDot(true);
+        } else if (isNotificationsOpen) {
+            setHasUnreadNotificationDot(false);
+        }
+
+        previousIncomingCountRef.current = incomingFriendRequestCount;
+    }, [incomingFriendRequestCount, isNotificationsOpen, unreadNotificationCount]);
+
     return (
         <header className="h-14 border-b wd-border-subtle px-5 flex items-center justify-between gap-4 wd-bg-panel-2 backdrop-blur">
             <div className="min-w-0">
@@ -120,6 +220,88 @@ function RoomHeader({
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
+                <div className="relative shrink-0" ref={notificationsContainerRef}>
+                    <button
+                        type="button"
+                        data-user-notification-trigger="true"
+                        aria-label="Notifications"
+                        title="Notifications"
+                        onClick={() => {
+                            setIsNotificationsOpen((current) => {
+                                const next = !current;
+                                if (next) {
+                                    setIsSearchMenuOpen(false);
+                                    setHasUnreadNotificationDot(false);
+                                    void reloadFriendRequests();
+                                    void reloadNotifications({ limit: 100 });
+                                    void markNotificationsRead({ markAll: true });
+                                }
+                                return next;
+                            });
+                        }}
+                        className="relative h-8 w-8 inline-flex items-center justify-center rounded-md border wd-border-subtle wd-bg-elevated wd-text-secondary transition-colors hover:wd-text-primary hover:bg-[var(--wd-surface-base)]"
+                    >
+                        <Bell size={15} />
+                        {hasUnreadNotificationDot ? (
+                            <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-[var(--wd-danger)]" />
+                        ) : null}
+                    </button>
+
+                    {isNotificationsOpen && (
+                        <UserNotificationsPanel
+                            panelClassName="right-0 top-[calc(100%+10px)] z-[240]"
+                            localUserId={localBackendUserId}
+                            friendRequests={friendRequests}
+                            notifications={notifications}
+                            isLoading={isLoadingFriendRequests}
+                            isLoadingNotifications={isLoadingNotifications}
+                            isMutating={isLoadingFriends}
+                            onRefresh={() => {
+                                void reloadFriendRequests();
+                                void reloadNotifications({ limit: 100 });
+                            }}
+                            onMarkAllRead={() => {
+                                void markNotificationsRead({ markAll: true });
+                                setHasUnreadNotificationDot(false);
+                            }}
+                            onOpenNotification={(notification) => {
+                                void markNotificationsRead({
+                                    notificationIds: [notification.id],
+                                });
+                                setHasUnreadNotificationDot(false);
+                                setIsNotificationsOpen(false);
+                                onOpenNotification?.(notification);
+                            }}
+                            onRespond={(friendshipId, action) => {
+                                void respondToFriendRequest(friendshipId, action);
+                            }}
+                        />
+                    )}
+                </div>
+
+                <button
+                    type="button"
+                    aria-label={
+                        isMemberPanelVisible
+                            ? "Hide members list"
+                            : "Show members list"
+                    }
+                    title={
+                        isMemberPanelVisible
+                            ? "Hide members list"
+                            : "Show members list"
+                    }
+                    aria-pressed={isMemberPanelVisible}
+                    onClick={() => onToggleMemberPanel?.()}
+                    className={`h-8 w-8 inline-flex items-center justify-center rounded-md border wd-border-subtle transition-colors ${
+                        isMemberPanelVisible
+                            ? "wd-bg-elevated wd-text-primary hover:bg-[var(--wd-surface-base)]"
+                            : "wd-bg-panel-2 wd-text-secondary hover:wd-text-primary hover:bg-[var(--wd-surface-base)]"
+                    }`}
+                >
+                    <Users size={15} />
+                </button>
+
                 <div
                     className="flex items-center gap-2 shrink-0 relative"
                     ref={searchContainerRef}
@@ -133,7 +315,10 @@ function RoomHeader({
                             type="text"
                             value={searchQuery}
                             onChange={(event) => onSearchQueryChange(event.target.value)}
-                            onFocus={() => setIsSearchMenuOpen(true)}
+                            onFocus={() => {
+                                setIsNotificationsOpen(false);
+                                setIsSearchMenuOpen(true);
+                            }}
                             placeholder={`Search ${serverName}`}
                             className="h-8 w-[286px] rounded-lg border wd-border-subtle wd-bg-elevated pl-9 pr-8 text-[0.85rem] placeholder:text-[0.8rem] wd-text-primary outline-none focus:border-[var(--wd-border-strong)]"
                         />
@@ -143,6 +328,7 @@ function RoomHeader({
                                 onClick={() => onSearchQueryChange("")}
                                 className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6 inline-flex items-center justify-center rounded wd-text-muted hover:wd-text-primary hover:bg-[var(--wd-surface-base)]"
                                 aria-label="Clear search query"
+                                title="Clear search"
                             >
                                 <X size={14} />
                             </button>
@@ -330,6 +516,7 @@ function RoomHeader({
                         onClick={onClose}
                         className="h-8 w-8 inline-flex items-center justify-center rounded-md border wd-border-subtle wd-bg-elevated wd-text-secondary transition-colors hover:wd-text-primary hover:bg-[var(--wd-surface-base)]"
                         aria-label="Close chat"
+                        title="Close chat"
                     >
                         <X size={16} />
                     </button>

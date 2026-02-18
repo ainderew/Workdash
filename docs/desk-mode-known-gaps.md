@@ -27,6 +27,9 @@ Usage:
 | DMG-015 | P3 | Media Delivery | Desk GIF persistence is URL-only and depends on external GIF CDN availability. | `desk-19-gif-support-and-server-header` | Add optional async mirror-to-storage pipeline if stronger retention/control is required. |
 | DMG-016 | P1 | Desk Search | Header message search (from/in filters, sort, grouped results) is not implemented yet. | `desk-14-message-search` planning | Implement `/docs/desk-mode-message-search-plan.md` packet sequence and validate DB index/query performance. |
 | DMG-017 | P1 | Rollout Risk | Hard frontend cut to chat-v2 for 2D removes legacy fallback path and increases release blast radius. | `desk-36-2d-desk-chat-parity-context` | Execute parity validation matrix (`desk-40`) and monitor socket ack failures/timeouts post-release. |
+| DMG-018 | P1 | DM/Friends Contract | DM/friends UI depends on new chat-v2 socket contracts and DB models not previously shipped. | `desk-41-dm-friends-context-reset` | Complete packets `desk-42` and `desk-43` before enabling DM rail UI in frontend. |
+| DMG-019 | P1 | Unread Correctness | Aggregated unread badge semantics require room-level unread counts from backend read cursor state. | `desk-41-dm-friends-context-reset` | Validate unread-count API + cross-mode read updates in `desk-47`. |
+| DMG-020 | P1 | Reply Threads | Reply-to-message UX and thread data contract are not implemented for Desk/2D parity, including root-only replies and thread panel flow. **Status: in progress via `desk-48` to `desk-53`.** | `desk-48-reply-thread-context-reset` | Implement packet sequence (`desk-49`..`desk-53`) and validate cross-mode/thread-notification correctness before rollout. |
 
 ## Resolved
 

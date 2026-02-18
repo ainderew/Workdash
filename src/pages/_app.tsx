@@ -1,31 +1,9 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 import React from "react";
 import type { AppProps } from "next/app";
 import { SessionProvider } from "next-auth/react";
 import { ThemeProvider } from "next-themes";
 import { Poppins } from "next/font/google";
-import "../styles/globals.css"; 
+import "../styles/globals.css";
 import { Toaster } from "@/components/ui/sonner";
 
 const poppins = Poppins({

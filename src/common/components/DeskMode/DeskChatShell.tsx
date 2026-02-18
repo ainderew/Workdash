@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import useChatV2Store from "@/common/store/chatV2Store";
 import { ChatV2Service } from "@/communication/chatV2/chatV2Service";
 import type {
+    ChatV2DirectRoom,
     ChatV2Message,
     ChatV2MessageSearchSort,
     ChatV2Room,
@@ -11,10 +12,12 @@ import type {
 import ChannelSidebar from "./ChannelSidebar";
 import Composer from "./Composer";
 import DeskSearchResultsPanel from "./DeskSearchResultsPanel";
+import DirectMessageSidebar from "./DirectMessageSidebar";
 import GuildRail from "./GuildRail";
 import MemberPanel from "./MemberPanel";
 import MessageList from "./MessageList";
 import RoomHeader from "./RoomHeader";
+import ThreadPanel from "./ThreadPanel";
 
 export type DeskChatShellMode = "desk" | "drawer";
 
@@ -34,8 +37,14 @@ function DeskChatShell({
     const roomsById = useChatV2Store((state) => state.roomsById);
     const categoriesById = useChatV2Store((state) => state.categoriesById);
     const currentRoomId = useChatV2Store((state) => state.currentRoomId);
+    const railView = useChatV2Store((state) => state.railView);
+    const selectedWorkspaceId = useChatV2Store((state) => state.selectedWorkspaceId);
+    const setRailView = useChatV2Store((state) => state.setRailView);
+    const setSelectedWorkspaceId = useChatV2Store((state) => state.setSelectedWorkspaceId);
     const messagesByRoomId = useChatV2Store((state) => state.messagesByRoomId);
     const isLoadingRooms = useChatV2Store((state) => state.isLoadingRooms);
+    const isLoadingDirectRooms = useChatV2Store((state) => state.isLoadingDirectRooms);
+    const isLoadingFriends = useChatV2Store((state) => state.isLoadingFriends);
     const isLoadingMessages = useChatV2Store((state) => state.isLoadingMessages);
     const isSending = useChatV2Store((state) => state.isSending);
     const isCreatingRoom = useChatV2Store((state) => state.isCreatingRoom);
@@ -56,6 +65,15 @@ function DeskChatShell({
     const membersByRoomId = useChatV2Store((state) => state.membersByRoomId);
     const addRoomMember = useChatV2Store((state) => state.addRoomMember);
     const removeRoomMember = useChatV2Store((state) => state.removeRoomMember);
+    const directRoomOrder = useChatV2Store((state) => state.directRoomOrder);
+    const directRoomsById = useChatV2Store((state) => state.directRoomsById);
+    const friends = useChatV2Store((state) => state.friends);
+    const reloadDirectRooms = useChatV2Store((state) => state.reloadDirectRooms);
+    const reloadFriends = useChatV2Store((state) => state.reloadFriends);
+    const openDirectMessage = useChatV2Store((state) => state.openDirectMessage);
+    const getWorkspaceUnreadTotal = useChatV2Store((state) => state.getWorkspaceUnreadTotal);
+    const getDirectUnreadTotal = useChatV2Store((state) => state.getDirectUnreadTotal);
+
     const [searchQuery, setSearchQuery] = useState("");
     const [searchFromUser, setSearchFromUser] = useState<ChatV2SearchUser | null>(
         null,
@@ -69,38 +87,101 @@ function DeskChatShell({
     const [focusedMessageId, setFocusedMessageId] = useState<string | null>(null);
     const searchRequestIdRef = useRef(0);
     const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+    const [activeThreadRootId, setActiveThreadRootId] = useState<string | null>(null);
+    const [threadRootMessage, setThreadRootMessage] = useState<ChatV2Message | null>(
+        null,
+    );
+    const [threadReplies, setThreadReplies] = useState<ChatV2Message[]>([]);
+    const [isLoadingThread, setIsLoadingThread] = useState(false);
+    const [threadError, setThreadError] = useState<string | null>(null);
+    const [isMemberPanelVisible, setIsMemberPanelVisible] = useState(true);
 
     useEffect(() => {
         void initialize();
     }, [initialize]);
+
+    useEffect(() => {
+        if (railView !== "dm") return;
+        if (directRoomOrder.length > 0 && friends.length > 0) return;
+
+        void reloadDirectRooms();
+        void reloadFriends("ACCEPTED");
+    }, [directRoomOrder.length, friends.length, railView, reloadDirectRooms, reloadFriends]);
 
     const rooms = useMemo<ChatV2Room[]>(
         () => roomOrder.map((roomId) => roomsById[roomId]).filter(Boolean),
         [roomOrder, roomsById],
     );
 
+    const directRooms = useMemo<ChatV2DirectRoom[]>(
+        () => directRoomOrder.map((id) => directRoomsById[id]).filter(Boolean),
+        [directRoomOrder, directRoomsById],
+    );
+
+    const serverRooms = useMemo<ChatV2Room[]>(() => {
+        const nonDirect = rooms.filter((room) => room.type !== "DIRECT");
+        if (!selectedWorkspaceId) return nonDirect;
+        return nonDirect.filter((room) => room.workspaceId === selectedWorkspaceId);
+    }, [rooms, selectedWorkspaceId]);
+
+    const workspaceOptions = useMemo(
+        () =>
+            Array.from(
+                new Map(
+                    rooms
+                        .filter((room) => room.type !== "DIRECT")
+                        .map((room) => [
+                            room.workspaceId,
+                            {
+                                id: room.workspaceId,
+                                name: room.workspace?.name?.trim() || "Workspace",
+                                unreadCount: getWorkspaceUnreadTotal(room.workspaceId),
+                            },
+                        ]),
+                ).values(),
+            ),
+        [getWorkspaceUnreadTotal, rooms],
+    );
+
     const categories = useMemo<ChatV2RoomCategory[]>(
-        () => categoryOrder.map((categoryId) => categoriesById[categoryId]).filter(Boolean),
-        [categoryOrder, categoriesById],
+        () =>
+            categoryOrder
+                .map((categoryId) => categoriesById[categoryId])
+                .filter(Boolean)
+                .filter((category) => {
+                    if (!selectedWorkspaceId) return true;
+                    return category.workspaceId === selectedWorkspaceId;
+                }),
+        [categoryOrder, categoriesById, selectedWorkspaceId],
     );
 
     const currentRoom = currentRoomId ? roomsById[currentRoomId] : null;
     const serverName = useMemo(() => {
+        if (railView === "dm") return "Direct Messages";
+
+        if (selectedWorkspaceId) {
+            const selectedWorkspace = workspaceOptions.find(
+                (entry) => entry.id === selectedWorkspaceId,
+            );
+            if (selectedWorkspace?.name) return selectedWorkspace.name;
+        }
+
         const preferred = currentRoom?.workspace?.name?.trim();
         if (preferred) return preferred;
 
-        for (const room of rooms) {
-            const roomWorkspaceName = room.workspace?.name?.trim();
-            if (roomWorkspaceName) return roomWorkspaceName;
-        }
+        return workspaceOptions[0]?.name || "Workdash Server";
+    }, [currentRoom, railView, selectedWorkspaceId, workspaceOptions]);
 
-        return "Workdash Server";
-    }, [currentRoom, rooms]);
     const roomMessages = currentRoomId
         ? messagesByRoomId[currentRoomId] || []
         : [];
     const roomMembers = currentRoomId ? membersByRoomId[currentRoomId] || [] : [];
-    const activeWorkspaceId = currentRoom?.workspaceId || rooms[0]?.workspaceId;
+
+    const activeRooms = railView === "dm"
+        ? directRooms.map((entry) => entry.room)
+        : serverRooms;
+    const activeWorkspaceId = currentRoom?.workspaceId || activeRooms[0]?.workspaceId;
+
     const hasSearchCriteria =
         debouncedSearchQuery.trim().length >= 2
         || !!searchFromUser
@@ -203,17 +284,104 @@ function DeskChatShell({
         setIsSearching(false);
     }, []);
 
+    const sortByCreatedAtAsc = useCallback((messages: ChatV2Message[]) => {
+        return [...messages].sort((a, b) => {
+            const aTime = new Date(a.createdAt).getTime();
+            const bTime = new Date(b.createdAt).getTime();
+            if (aTime !== bTime) return aTime - bTime;
+            return a.id.localeCompare(b.id);
+        });
+    }, []);
+
+    const loadThread = useCallback(
+        async (rootMessageId: string, roomIdOverride?: string) => {
+            const threadRoomId = roomIdOverride || currentRoomId;
+            if (!threadRoomId) return;
+
+            setIsLoadingThread(true);
+            setThreadError(null);
+            try {
+                const thread = await chatV2Service.getThread(
+                    threadRoomId,
+                    rootMessageId,
+                    {
+                        limit: 200,
+                    },
+                );
+                setThreadRootMessage(thread.rootMessage);
+                setThreadReplies(sortByCreatedAtAsc(thread.replies));
+                setIsLoadingThread(false);
+            } catch (error) {
+                setIsLoadingThread(false);
+                setThreadError(
+                    error instanceof Error
+                        ? error.message
+                        : "Failed to load thread",
+                );
+            }
+        },
+        [chatV2Service, currentRoomId, sortByCreatedAtAsc],
+    );
+
+    const closeThreadPanel = useCallback(() => {
+        setActiveThreadRootId(null);
+        setThreadRootMessage(null);
+        setThreadReplies([]);
+        setThreadError(null);
+        setIsLoadingThread(false);
+    }, []);
+
+    useEffect(() => {
+        closeThreadPanel();
+    }, [closeThreadPanel, currentRoomId]);
+
+    useEffect(() => {
+        if (!activeThreadRootId) {
+            return;
+        }
+
+        const rootFromTimeline = roomMessages.find(
+            (message) =>
+                message.id === activeThreadRootId && !message.replyToMessageId,
+        );
+        if (rootFromTimeline) {
+            setThreadRootMessage(rootFromTimeline);
+        }
+
+        const realtimeReplies = roomMessages.filter(
+            (message) => message.replyToMessageId === activeThreadRootId,
+        );
+        if (realtimeReplies.length === 0) {
+            return;
+        }
+
+        setThreadReplies((previous) => {
+            const byId = new Map<string, ChatV2Message>();
+            for (const reply of previous) {
+                byId.set(reply.id, reply);
+            }
+            for (const reply of realtimeReplies) {
+                byId.set(reply.id, {
+                    ...(byId.get(reply.id) || {}),
+                    ...reply,
+                });
+            }
+            return sortByCreatedAtAsc(Array.from(byId.values()));
+        });
+    }, [activeThreadRootId, roomMessages, sortByCreatedAtAsc]);
+
     const onSelectSearchResult = useCallback(
         async (message: ChatV2Message) => {
             await selectRoom(message.roomId);
             setFocusedMessageId(message.id);
+            closeThreadPanel();
         },
-        [selectRoom],
+        [closeThreadPanel, selectRoom],
     );
 
     const rootContainerClassName = mode === "desk"
-        ? "absolute inset-0 z-30 flex flex-col wd-bg-overlay backdrop-blur-sm"
-        : "h-full w-full flex flex-col wd-bg-overlay";
+        ? "fixed inset-0 z-30 h-[100dvh] w-screen overflow-hidden flex flex-col wd-bg-overlay backdrop-blur-sm"
+        : "h-full w-full overflow-hidden flex flex-col wd-bg-overlay";
 
     return (
         <section className={rootContainerClassName}>
@@ -227,53 +395,97 @@ function DeskChatShell({
             </div>
 
             <div className="flex flex-1 min-h-0">
-                <GuildRail />
+                <GuildRail
+                    workspaces={workspaceOptions}
+                    railView={railView}
+                    selectedWorkspaceId={selectedWorkspaceId}
+                    dmUnreadCount={getDirectUnreadTotal()}
+                    onSelectWorkspace={(workspaceId) => {
+                        setRailView("server");
+                        setSelectedWorkspaceId(workspaceId);
+                        const firstRoom = rooms.find(
+                            (room) => room.type !== "DIRECT" && room.workspaceId === workspaceId,
+                        );
+                        if (firstRoom) {
+                            void selectRoom(firstRoom.id);
+                        }
+                    }}
+                    onSelectDm={() => {
+                        setRailView("dm");
+                        const firstDmRoom = directRooms[0]?.room.id;
+                        if (firstDmRoom) {
+                            void selectRoom(firstDmRoom);
+                        }
+                    }}
+                />
 
                 <div className="flex-1 min-w-0 p-2 pt-2">
-                    <div className="h-full min-h-0 flex rounded-lg overflow-hidden outline outline-1 outline-[color:var(--wd-border-subtle)] shadow-[0_8px_24px_rgba(0,0,0,0.22),0_0_14px_rgba(88,101,242,0.08)]">
-                        <ChannelSidebar
-                            serverName={serverName}
-                            rooms={rooms}
-                            currentRoomId={currentRoomId}
-                            isLoading={isLoadingRooms}
-                            isCreatingRoom={isCreatingRoom}
-                            isCreatingCategory={isCreatingCategory}
-                            isArranging={isArrangingRooms}
-                            isUpdatingRoom={isUpdatingRoom}
-                            categories={categories}
-                            presentation={mode}
-                            onClosePanel={onClose}
-                            onSelectRoom={(roomId) => {
-                                void selectRoom(roomId);
-                            }}
-                            onCreateRoom={(name, categoryId) => {
-                                void createRoom({ name, categoryId });
-                            }}
-                            onCreateCategory={(name) => {
-                                void createCategory(name);
-                            }}
-                            onRenameCategory={(categoryId, name) => {
-                                void renameCategory(categoryId, name);
-                            }}
-                            onArrangeCategory={(categoryId, position) => {
-                                void arrangeCategory(categoryId, position);
-                            }}
-                            onArrangeRoom={(roomId, categoryId, position) => {
-                                void arrangeRoom(roomId, categoryId, position);
-                            }}
-                            onRenameRoom={(roomId, name) => {
-                                void renameRoom(roomId, name);
-                            }}
-                            onDeleteRoom={(roomId) => {
-                                void deleteRoom(roomId);
-                            }}
-                        />
+                    <div className="h-full min-h-0 flex rounded-lg overflow-visible outline outline-1 outline-[color:var(--wd-border-subtle)] shadow-[0_8px_24px_rgba(0,0,0,0.22),0_0_14px_rgba(88,101,242,0.08)]">
+                        {railView === "server" ? (
+                            <ChannelSidebar
+                                serverName={serverName}
+                                rooms={serverRooms}
+                                currentRoomId={currentRoomId}
+                                isLoading={isLoadingRooms}
+                                isCreatingRoom={isCreatingRoom}
+                                isCreatingCategory={isCreatingCategory}
+                                isArranging={isArrangingRooms}
+                                isUpdatingRoom={isUpdatingRoom}
+                                categories={categories}
+                                presentation={mode}
+                                onClosePanel={onClose}
+                                onSelectRoom={(roomId) => {
+                                    void selectRoom(roomId);
+                                }}
+                                onCreateRoom={(name, categoryId) => {
+                                    void createRoom({
+                                        name,
+                                        categoryId,
+                                        visibility: "PUBLIC",
+                                    });
+                                }}
+                                onCreateCategory={(name) => {
+                                    void createCategory(name);
+                                }}
+                                onRenameCategory={(categoryId, name) => {
+                                    void renameCategory(categoryId, name);
+                                }}
+                                onArrangeCategory={(categoryId, position) => {
+                                    void arrangeCategory(categoryId, position);
+                                }}
+                                onArrangeRoom={(roomId, categoryId, position) => {
+                                    void arrangeRoom(roomId, categoryId, position);
+                                }}
+                                onRenameRoom={(roomId, name) => {
+                                    void renameRoom(roomId, name);
+                                }}
+                                onDeleteRoom={(roomId) => {
+                                    void deleteRoom(roomId);
+                                }}
+                            />
+                        ) : (
+                            <DirectMessageSidebar
+                                directRooms={directRooms}
+                                friends={friends}
+                                currentRoomId={currentRoomId}
+                                isLoadingDirectRooms={isLoadingDirectRooms}
+                                isLoadingFriends={isLoadingFriends}
+                                presentation={mode}
+                                onClosePanel={onClose}
+                                onSelectRoom={(roomId) => {
+                                    void selectRoom(roomId);
+                                }}
+                                onOpenDirectMessage={(userId) => {
+                                    void openDirectMessage(userId);
+                                }}
+                            />
+                        )}
 
                         <div className="flex-1 min-w-0 flex flex-col">
                             <RoomHeader
                                 room={currentRoom}
                                 serverName={serverName}
-                                rooms={rooms}
+                                rooms={activeRooms}
                                 searchQuery={searchQuery}
                                 searchFromUser={searchFromUser}
                                 searchRoomId={searchRoomId}
@@ -284,6 +496,25 @@ function DeskChatShell({
                                 onSearchRoomIdChange={setSearchRoomId}
                                 onSearchUsers={handleSearchUsers}
                                 onClearSearch={clearSearchState}
+                                isMemberPanelVisible={isMemberPanelVisible}
+                                onToggleMemberPanel={() => {
+                                    setIsMemberPanelVisible((current) => !current);
+                                }}
+                                onOpenNotification={(notification) => {
+                                    void (async () => {
+                                        if (notification.roomId !== currentRoomId) {
+                                            await selectRoom(notification.roomId);
+                                        }
+
+                                        setThreadRootMessage(null);
+                                        setThreadReplies([]);
+                                        setActiveThreadRootId(notification.rootMessageId);
+                                        await loadThread(
+                                            notification.rootMessageId,
+                                            notification.roomId,
+                                        );
+                                    })();
+                                }}
                             />
 
                             {error && (
@@ -298,6 +529,21 @@ function DeskChatShell({
                                 focusedMessageId={
                                     currentRoomId ? focusedMessageId : null
                                 }
+                                onOpenThread={(rootMessageId) => {
+                                    const rootFromTimeline = roomMessages.find(
+                                        (message) =>
+                                            message.id === rootMessageId
+                                            && !message.replyToMessageId,
+                                    );
+                                    if (rootFromTimeline) {
+                                        setThreadRootMessage(rootFromTimeline);
+                                    } else {
+                                        setThreadRootMessage(null);
+                                    }
+                                    setThreadReplies([]);
+                                    setActiveThreadRootId(rootMessageId);
+                                    void loadThread(rootMessageId);
+                                }}
                             />
 
                             <Composer
@@ -310,7 +556,38 @@ function DeskChatShell({
                             />
                         </div>
 
-                        {isSearchPanelVisible ? (
+                        {activeThreadRootId ? (
+                            <ThreadPanel
+                                roomId={currentRoomId}
+                                rootMessage={threadRootMessage}
+                                replies={threadReplies}
+                                isLoading={isLoadingThread}
+                                isSending={isSending}
+                                error={threadError}
+                                onClose={closeThreadPanel}
+                                onRetry={() => {
+                                    if (!activeThreadRootId) return;
+                                    void loadThread(activeThreadRootId);
+                                }}
+                                onSendReply={async (content, attachments) => {
+                                    if (!activeThreadRootId) return;
+                                    const replyMessage = await sendMessage(
+                                        content,
+                                        attachments,
+                                        { replyToMessageId: activeThreadRootId },
+                                    );
+                                    if (!replyMessage) return;
+                                    setThreadReplies((previous) => {
+                                        const byId = new Map<string, ChatV2Message>();
+                                        for (const reply of previous) {
+                                            byId.set(reply.id, reply);
+                                        }
+                                        byId.set(replyMessage.id, replyMessage);
+                                        return sortByCreatedAtAsc(Array.from(byId.values()));
+                                    });
+                                }}
+                            />
+                        ) : isSearchPanelVisible ? (
                             <DeskSearchResultsPanel
                                 messages={searchResults}
                                 roomsById={roomsById}
@@ -323,7 +600,7 @@ function DeskChatShell({
                                     void onSelectSearchResult(message);
                                 }}
                             />
-                        ) : (
+                        ) : isMemberPanelVisible ? (
                             <MemberPanel
                                 members={roomMembers}
                                 isLoading={isManagingMembers}
@@ -334,7 +611,7 @@ function DeskChatShell({
                                     void removeRoomMember(userId);
                                 }}
                             />
-                        )}
+                        ) : null}
                     </div>
                 </div>
             </div>

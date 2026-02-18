@@ -177,7 +177,7 @@ function App() {
     return (
         <div
             id="app"
-            className="w-full h-full grow flex flex-col items-center justify-end wd-bg-app relative"
+            className="w-screen h-[100dvh] overflow-hidden flex flex-col items-center justify-end wd-bg-app relative"
         >
             <PhaserGame
                 ref={phaserRef}

@@ -16,17 +16,25 @@ export type ChatV2Room = {
         name: string;
     };
     viewerRole?: "OWNER" | "ADMIN" | "MODERATOR" | "MEMBER" | "READ_ONLY" | null;
+    unreadCount?: number;
     categoryId: string | null;
     position: number;
     name: string;
     slug: string;
     topic: string | null;
     visibility: "PUBLIC" | "PRIVATE" | "INVITE_ONLY";
-    type: "TEXT" | "VOICE" | "ANNOUNCEMENT";
+    type: "TEXT" | "VOICE" | "ANNOUNCEMENT" | "DIRECT";
     isArchived: boolean;
     createdAt: string | Date;
     updatedAt: string | Date;
     category?: ChatV2RoomCategory | null;
+    directRoom?: {
+        roomId: string;
+        userLowId: number;
+        userHighId: number;
+        createdByUserId: number;
+        createdAt: string | Date;
+    } | null;
 };
 
 export type ChatV2Attachment = {
@@ -60,6 +68,7 @@ export type ChatV2Message = {
         id: number;
         name: string | null;
         image: string | null;
+        bio?: string | null;
     };
     clientMessageId: string;
     content: string;
@@ -69,6 +78,19 @@ export type ChatV2Message = {
     deletedAt: string | Date | null;
     createdAt: string | Date;
     attachments: ChatV2Attachment[];
+    replyCount?: number;
+    lastReplyAt?: string | Date | null;
+    replyPreviewUsers?: Array<{
+        id: number;
+        name: string | null;
+        image: string | null;
+    }>;
+};
+
+export type ChatV2Thread = {
+    rootMessage: ChatV2Message;
+    replies: ChatV2Message[];
+    totalReplyCount: number;
 };
 
 export type ChatV2RoomMember = {
@@ -99,4 +121,84 @@ export type ChatV2SearchUser = {
     id: number;
     name: string | null;
     image: string | null;
+    bio?: string | null;
+};
+
+export type ChatV2FriendshipStatus = "PENDING" | "ACCEPTED" | "DECLINED" | "BLOCKED";
+
+export type ChatV2Friend = {
+    friendshipId: string;
+    status: ChatV2FriendshipStatus;
+    requestedByUserId: number;
+    acceptedAt: string | Date | null;
+    respondedAt: string | Date | null;
+    createdAt: string | Date;
+    updatedAt: string | Date;
+    peerUser: {
+        id: number;
+        name: string | null;
+        email: string;
+        image: string | null;
+        bio: string | null;
+    };
+};
+
+export type ChatV2DirectRoom = {
+    directRoomId: string;
+    room: ChatV2Room;
+    peerUser: {
+        id: number;
+        name: string | null;
+        email: string;
+        image: string | null;
+        bio: string | null;
+    };
+};
+
+export type ChatV2UserProfile = {
+    user: {
+        id: number;
+        name: string | null;
+        image: string | null;
+        bio: string | null;
+    };
+    isSelf: boolean;
+    friendshipStatus: ChatV2FriendshipStatus | null;
+    canSendDirectMessage: boolean;
+};
+
+export type ChatV2UserNotificationType = "REPLY_TO_MESSAGE";
+
+export type ChatV2UserNotification = {
+    id: string;
+    userId: number;
+    actorUserId: number;
+    type: ChatV2UserNotificationType;
+    roomId: string;
+    rootMessageId: string;
+    replyMessageId: string | null;
+    readAt: string | Date | null;
+    createdAt: string | Date;
+    actorUser: {
+        id: number;
+        name: string | null;
+        image: string | null;
+        bio: string | null;
+    };
+    room: {
+        id: string;
+        name: string;
+    };
+    rootMessage: {
+        id: string;
+        content: string;
+        senderUserId: number;
+        createdAt: string | Date;
+    };
+    replyMessage: {
+        id: string;
+        content: string;
+        senderUserId: number;
+        createdAt: string | Date;
+    } | null;
 };

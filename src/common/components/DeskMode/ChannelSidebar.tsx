@@ -1,10 +1,17 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import type { ChatV2Room, ChatV2RoomCategory } from "@/communication/chatV2/_types";
+import type {
+    ChatV2Room,
+    ChatV2RoomCategory,
+} from "@/communication/chatV2/_types";
 import {
     Bell,
+    Check,
     ChevronDown,
+    Copy,
+    Fingerprint,
     FolderPlus,
     LogOut,
+    MoreHorizontal,
     Plus,
     Settings,
     UserPlus,
@@ -100,46 +107,58 @@ function ChannelSidebar({
 }: ChannelSidebarProps) {
     const setInteractionMode = useUiStore((state) => state.setInteractionMode);
     const user = useUserStore((state) => state.user);
-    const [collapsedByCategoryKey, setCollapsedByCategoryKey] =
-        useState<Record<string, boolean>>({});
+    const [collapsedByCategoryKey, setCollapsedByCategoryKey] = useState<
+        Record<string, boolean>
+    >({});
     const [dragState, setDragState] = useState<DragState | null>(null);
     const [dropTarget, setDropTarget] = useState<DropTarget | null>(null);
-    const [categoryDragState, setCategoryDragState] = useState<CategoryDragState | null>(
+    const [categoryDragState, setCategoryDragState] =
+        useState<CategoryDragState | null>(null);
+    const [categoryDropIndex, setCategoryDropIndex] = useState<number | null>(
         null,
     );
-    const [categoryDropIndex, setCategoryDropIndex] = useState<number | null>(null);
     const [isAvatarLoadFailed, setIsAvatarLoadFailed] = useState(false);
     const [isCreateRoomModalOpen, setIsCreateRoomModalOpen] = useState(false);
-    const [isCreateCategoryModalOpen, setIsCreateCategoryModalOpen] = useState(false);
-    const [roomModalCategoryId, setRoomModalCategoryId] = useState<string | null>(
-        null,
-    );
-    const [roomContextMenu, setRoomContextMenu] = useState<RoomContextMenuState | null>(
-        null,
-    );
+    const [isCreateCategoryModalOpen, setIsCreateCategoryModalOpen] =
+        useState(false);
+    const [roomModalCategoryId, setRoomModalCategoryId] = useState<
+        string | null
+    >(null);
+    const [roomContextMenu, setRoomContextMenu] =
+        useState<RoomContextMenuState | null>(null);
     const [categoryContextMenu, setCategoryContextMenu] =
         useState<CategoryContextMenuState | null>(null);
-    const [isServerActionsMenuOpen, setIsServerActionsMenuOpen] = useState(false);
-    const [renameCategoryId, setRenameCategoryId] = useState<string | null>(null);
+    const [isServerActionsMenuOpen, setIsServerActionsMenuOpen] =
+        useState(false);
+    const [renameCategoryId, setRenameCategoryId] = useState<string | null>(
+        null,
+    );
     const [renameRoomId, setRenameRoomId] = useState<string | null>(null);
     const [deleteRoomId, setDeleteRoomId] = useState<string | null>(null);
-    const roomNodeRefs = useRef<Record<string, Array<HTMLButtonElement | null>>>(
-        {},
-    );
+    const [isUserIdExpanded, setIsUserIdExpanded] = useState(false);
+    const [isUtilityMenuOpen, setIsUtilityMenuOpen] = useState(false);
+    const [userIdCopyState, setUserIdCopyState] = useState<
+        "idle" | "copied" | "failed"
+    >("idle");
+    const roomNodeRefs = useRef<
+        Record<string, Array<HTMLButtonElement | null>>
+    >({});
+    const userIdCopyResetTimeoutRef = useRef<number | null>(null);
 
     const categoryTree = useMemo(() => {
-        const entries: Array<{ key: string; id: string | null; name: string }> = [
-            {
-                key: DEFAULT_CATEGORY_KEY,
-                id: null,
-                name: DEFAULT_CATEGORY_NAME,
-            },
-            ...categories.map((category) => ({
-                key: category.id,
-                id: category.id,
-                name: category.name,
-            })),
-        ];
+        const entries: Array<{ key: string; id: string | null; name: string }> =
+            [
+                {
+                    key: DEFAULT_CATEGORY_KEY,
+                    id: null,
+                    name: DEFAULT_CATEGORY_NAME,
+                },
+                ...categories.map((category) => ({
+                    key: category.id,
+                    id: category.id,
+                    name: category.name,
+                })),
+            ];
 
         const groupedRooms: Record<string, ChatV2Room[]> = {};
         for (const entry of entries) {
@@ -210,6 +229,8 @@ function ChannelSidebar({
 
     const displayName = user.name?.trim() || "You";
     const normalizedServerName = serverName.trim() || "Workdash Server";
+    const localBackendUserId =
+        typeof window !== "undefined" ? window.__BACKEND_USER__?.id : undefined;
     const spriteSheetDataUrl = user.spriteSheetDataUrl?.trim() || "";
     const avatarUrl = user.image?.trim() || "";
     const showAvatarImage = avatarUrl.length > 0 && !isAvatarLoadFailed;
@@ -241,8 +262,23 @@ function ChannelSidebar({
         setIsAvatarLoadFailed(false);
     }, [avatarUrl]);
 
+    useEffect(
+        () => () => {
+            if (userIdCopyResetTimeoutRef.current !== null) {
+                window.clearTimeout(userIdCopyResetTimeoutRef.current);
+            }
+        },
+        [],
+    );
+
     useEffect(() => {
-        if (!roomContextMenu && !categoryContextMenu && !isServerActionsMenuOpen) {
+        if (
+            !roomContextMenu &&
+            !categoryContextMenu &&
+            !isServerActionsMenuOpen &&
+            !isUserIdExpanded &&
+            !isUtilityMenuOpen
+        ) {
             return undefined;
         }
 
@@ -250,6 +286,8 @@ function ChannelSidebar({
             setRoomContextMenu(null);
             setCategoryContextMenu(null);
             setIsServerActionsMenuOpen(false);
+            setIsUserIdExpanded(false);
+            setIsUtilityMenuOpen(false);
         };
         const onMouseDown = (event: MouseEvent) => {
             const target = event.target as HTMLElement | null;
@@ -257,6 +295,10 @@ function ChannelSidebar({
             if (target?.closest("[data-category-context-menu='true']")) return;
             if (target?.closest("[data-server-actions-menu='true']")) return;
             if (target?.closest("[data-server-actions-trigger='true']")) return;
+            if (target?.closest("[data-user-id-panel='true']")) return;
+            if (target?.closest("[data-user-id-trigger='true']")) return;
+            if (target?.closest("[data-user-utility-menu='true']")) return;
+            if (target?.closest("[data-user-utility-trigger='true']")) return;
             closeMenu();
         };
         const onKeyDown = (event: KeyboardEvent) => {
@@ -275,7 +317,13 @@ function ChannelSidebar({
             window.removeEventListener("scroll", closeMenu, true);
             window.removeEventListener("resize", closeMenu);
         };
-    }, [categoryContextMenu, isServerActionsMenuOpen, roomContextMenu]);
+    }, [
+        categoryContextMenu,
+        isUserIdExpanded,
+        isUtilityMenuOpen,
+        isServerActionsMenuOpen,
+        roomContextMenu,
+    ]);
 
     const toggleCollapsed = (categoryKey: string) => {
         setCollapsedByCategoryKey((current) => ({
@@ -309,7 +357,9 @@ function ChannelSidebar({
     const canManageRoom = (room: ChatV2Room) =>
         room.viewerRole === undefined || hasManageRole(room.viewerRole);
 
-    const hasViewerRoleData = rooms.some((room) => room.viewerRole !== undefined);
+    const hasViewerRoleData = rooms.some(
+        (room) => room.viewerRole !== undefined,
+    );
     const canManageCategories = hasViewerRoleData
         ? rooms.some((room) => hasManageRole(room.viewerRole))
         : true;
@@ -323,8 +373,14 @@ function ChannelSidebar({
         }
         event.preventDefault();
 
-        const maxX = Math.max(8, window.innerWidth - ROOM_CONTEXT_MENU_WIDTH - 8);
-        const maxY = Math.max(8, window.innerHeight - ROOM_CONTEXT_MENU_HEIGHT - 8);
+        const maxX = Math.max(
+            8,
+            window.innerWidth - ROOM_CONTEXT_MENU_WIDTH - 8,
+        );
+        const maxY = Math.max(
+            8,
+            window.innerHeight - ROOM_CONTEXT_MENU_HEIGHT - 8,
+        );
         setCategoryContextMenu({
             categoryId,
             x: Math.min(event.clientX, maxX),
@@ -344,8 +400,14 @@ function ChannelSidebar({
         event.preventDefault();
         event.stopPropagation();
 
-        const maxX = Math.max(8, window.innerWidth - ROOM_CONTEXT_MENU_WIDTH - 8);
-        const maxY = Math.max(8, window.innerHeight - ROOM_CONTEXT_MENU_HEIGHT - 8);
+        const maxX = Math.max(
+            8,
+            window.innerWidth - ROOM_CONTEXT_MENU_WIDTH - 8,
+        );
+        const maxY = Math.max(
+            8,
+            window.innerHeight - ROOM_CONTEXT_MENU_HEIGHT - 8,
+        );
         setRoomContextMenu({
             roomId: room.id,
             x: Math.min(event.clientX, maxX),
@@ -358,8 +420,12 @@ function ChannelSidebar({
     const selectedRenameCategory = renameCategoryId
         ? categoryById[renameCategoryId]
         : undefined;
-    const selectedRenameRoom = renameRoomId ? roomById[renameRoomId] : undefined;
-    const selectedDeleteRoom = deleteRoomId ? roomById[deleteRoomId] : undefined;
+    const selectedRenameRoom = renameRoomId
+        ? roomById[renameRoomId]
+        : undefined;
+    const selectedDeleteRoom = deleteRoomId
+        ? roomById[deleteRoomId]
+        : undefined;
 
     const setRoomNodeRef = (
         categoryKey: string,
@@ -391,7 +457,10 @@ function ChannelSidebar({
         return nodeCount;
     };
 
-    const updateDropTargetFromPointer = (categoryKey: string, pointerY: number) => {
+    const updateDropTargetFromPointer = (
+        categoryKey: string,
+        pointerY: number,
+    ) => {
         const index = getNearestDropIndex(categoryKey, pointerY);
         setDropTarget({ categoryKey, index });
         return index;
@@ -407,7 +476,8 @@ function ChannelSidebar({
             categoryKey === DEFAULT_CATEGORY_KEY ? null : categoryKey;
 
         let targetPosition = rawTargetIndex;
-        const sourceCategoryKey = dragState.sourceCategoryId ?? DEFAULT_CATEGORY_KEY;
+        const sourceCategoryKey =
+            dragState.sourceCategoryId ?? DEFAULT_CATEGORY_KEY;
 
         if (
             sourceCategoryKey === categoryKey &&
@@ -441,7 +511,10 @@ function ChannelSidebar({
             targetPosition = rawTargetIndex - 1;
         }
 
-        targetPosition = Math.max(0, Math.min(targetPosition, categories.length - 1));
+        targetPosition = Math.max(
+            0,
+            Math.min(targetPosition, categories.length - 1),
+        );
 
         if (targetPosition === categoryDragState.sourceIndex) {
             clearCategoryDragState();
@@ -459,7 +532,7 @@ function ChannelSidebar({
             dropTarget.index === index;
         return (
             <div
-                className={`h-2 my-1 rounded transition-colors ${
+                className={`h-2 rounded transition-colors ${
                     isActive ? "bg-[var(--wd-accent)]" : "bg-transparent"
                 }`}
             />
@@ -475,6 +548,27 @@ function ChannelSidebar({
                 }`}
             />
         );
+    };
+
+    const handleCopyUserId = async () => {
+        if (typeof localBackendUserId !== "number") {
+            setUserIdCopyState("failed");
+            return;
+        }
+
+        try {
+            await navigator.clipboard.writeText(String(localBackendUserId));
+            setUserIdCopyState("copied");
+        } catch {
+            setUserIdCopyState("failed");
+        }
+
+        if (userIdCopyResetTimeoutRef.current !== null) {
+            window.clearTimeout(userIdCopyResetTimeoutRef.current);
+        }
+        userIdCopyResetTimeoutRef.current = window.setTimeout(() => {
+            setUserIdCopyState("idle");
+        }, 1800);
     };
 
     return (
@@ -536,7 +630,10 @@ function ChannelSidebar({
                                 className="flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm wd-text-primary transition-colors hover:bg-[var(--wd-surface-elevated)]"
                             >
                                 <span>Create Category</span>
-                                <FolderPlus size={17} className="wd-text-secondary" />
+                                <FolderPlus
+                                    size={17}
+                                    className="wd-text-secondary"
+                                />
                             </button>
                             <button
                                 type="button"
@@ -569,12 +666,16 @@ function ChannelSidebar({
 
             <div className="flex-1 min-h-0 overflow-y-auto px-3 py-2">
                 {isLoading ? (
-                    <div className="text-xs wd-text-muted px-2 py-3">Loading channels...</div>
+                    <div className="text-xs wd-text-muted px-2 py-3">
+                        Loading channels...
+                    </div>
                 ) : (
                     categoryTree.map((category) => {
-                        const isCollapsed = !!collapsedByCategoryKey[category.key];
-                        const categoryPosition =
-                            category.id ? categoryIndexById[category.id] : undefined;
+                        const isCollapsed =
+                            !!collapsedByCategoryKey[category.key];
+                        const categoryPosition = category.id
+                            ? categoryIndexById[category.id]
+                            : undefined;
                         const isDraggingCategory =
                             !!category.id &&
                             categoryDragState?.categoryId === category.id;
@@ -582,15 +683,21 @@ function ChannelSidebar({
                         return (
                             <React.Fragment key={category.key}>
                                 {typeof categoryPosition === "number" &&
-                                    renderCategoryInsertionIndicator(categoryPosition)}
+                                    renderCategoryInsertionIndicator(
+                                        categoryPosition,
+                                    )}
                                 <section
                                     className={`mb-2 ${
-                                        isDraggingCategory ? "opacity-40" : "opacity-100"
+                                        isDraggingCategory
+                                            ? "opacity-40"
+                                            : "opacity-100"
                                     }`}
                                 >
                                     <div
                                         draggable={
-                                            !!category.id && !isArranging && !isUpdatingRoom
+                                            !!category.id &&
+                                            !isArranging &&
+                                            !isUpdatingRoom
                                         }
                                         className="flex items-center gap-2 px-1 py-1 text-xs uppercase tracking-wide wd-text-muted hover:text-[var(--wd-text-secondary)] cursor-pointer"
                                         onClick={() => {
@@ -599,7 +706,10 @@ function ChannelSidebar({
                                         }}
                                         onContextMenu={(event) => {
                                             if (category.id) {
-                                                openCategoryContextMenu(event, category.id);
+                                                openCategoryContextMenu(
+                                                    event,
+                                                    category.id,
+                                                );
                                             }
                                         }}
                                         onDragStart={(event) => {
@@ -607,36 +717,44 @@ function ChannelSidebar({
                                                 !category.id ||
                                                 isArranging ||
                                                 isUpdatingRoom ||
-                                                typeof categoryPosition !== "number"
+                                                typeof categoryPosition !==
+                                                    "number"
                                             ) {
                                                 event.preventDefault();
                                                 return;
                                             }
-                                            event.dataTransfer.effectAllowed = "move";
+                                            event.dataTransfer.effectAllowed =
+                                                "move";
                                             setCategoryDragState({
                                                 categoryId: category.id,
                                                 sourceIndex: categoryPosition,
                                             });
-                                            setCategoryDropIndex(categoryPosition);
+                                            setCategoryDropIndex(
+                                                categoryPosition,
+                                            );
                                             clearDragState();
                                         }}
                                         onDragEnd={clearCategoryDragState}
                                         onDragOver={(event) => {
                                             if (
                                                 categoryDragState &&
-                                                typeof categoryPosition === "number"
+                                                typeof categoryPosition ===
+                                                    "number"
                                             ) {
                                                 event.preventDefault();
-                                                const rect = event.currentTarget.getBoundingClientRect();
+                                                const rect =
+                                                    event.currentTarget.getBoundingClientRect();
                                                 const nextIndex =
-                                                    event.clientY < rect.top + rect.height / 2
+                                                    event.clientY <
+                                                    rect.top + rect.height / 2
                                                         ? categoryPosition
                                                         : categoryPosition + 1;
                                                 setCategoryDropIndex(nextIndex);
                                                 return;
                                             }
 
-                                            if (!dragState || isArranging) return;
+                                            if (!dragState || isArranging)
+                                                return;
                                             event.preventDefault();
                                             updateDropTargetFromPointer(
                                                 category.key,
@@ -646,25 +764,33 @@ function ChannelSidebar({
                                         onDrop={(event) => {
                                             if (
                                                 categoryDragState &&
-                                                typeof categoryPosition === "number"
+                                                typeof categoryPosition ===
+                                                    "number"
                                             ) {
                                                 event.preventDefault();
-                                                const rect = event.currentTarget.getBoundingClientRect();
+                                                const rect =
+                                                    event.currentTarget.getBoundingClientRect();
                                                 const nextIndex =
-                                                    event.clientY < rect.top + rect.height / 2
+                                                    event.clientY <
+                                                    rect.top + rect.height / 2
                                                         ? categoryPosition
                                                         : categoryPosition + 1;
                                                 handleCategoryDrop(nextIndex);
                                                 return;
                                             }
 
-                                            if (!dragState || isArranging) return;
+                                            if (!dragState || isArranging)
+                                                return;
                                             event.preventDefault();
-                                            const targetIndex = updateDropTargetFromPointer(
+                                            const targetIndex =
+                                                updateDropTargetFromPointer(
+                                                    category.key,
+                                                    event.clientY,
+                                                );
+                                            handleDrop(
                                                 category.key,
-                                                event.clientY,
+                                                targetIndex,
                                             );
-                                            handleDrop(category.key, targetIndex);
                                         }}
                                     >
                                         <span className="w-3 text-center">
@@ -677,13 +803,15 @@ function ChannelSidebar({
                                         <div
                                             className={`pl-4 pt-1 pb-2 min-h-10 rounded ${
                                                 dragState &&
-                                                dropTarget?.categoryKey === category.key
+                                                dropTarget?.categoryKey ===
+                                                    category.key
                                                     ? "wd-bg-elevated"
                                                     : ""
                                             }`}
                                             onDragOver={(event) => {
                                                 if (categoryDragState) return;
-                                                if (!dragState || isArranging) return;
+                                                if (!dragState || isArranging)
+                                                    return;
                                                 event.preventDefault();
                                                 updateDropTargetFromPointer(
                                                     category.key,
@@ -692,90 +820,151 @@ function ChannelSidebar({
                                             }}
                                             onDrop={(event) => {
                                                 if (categoryDragState) return;
-                                                if (!dragState || isArranging) return;
+                                                if (!dragState || isArranging)
+                                                    return;
                                                 event.preventDefault();
-                                                const targetIndex = updateDropTargetFromPointer(
+                                                const targetIndex =
+                                                    updateDropTargetFromPointer(
+                                                        category.key,
+                                                        event.clientY,
+                                                    );
+                                                handleDrop(
                                                     category.key,
-                                                    event.clientY,
+                                                    targetIndex,
                                                 );
-                                                handleDrop(category.key, targetIndex);
                                             }}
                                         >
-                                            {renderInsertionIndicator(category.key, 0)}
+                                            {renderInsertionIndicator(
+                                                category.key,
+                                                0,
+                                            )}
 
                                             {category.rooms.length === 0 ? (
                                                 <div className="px-2 py-3 text-xs wd-text-muted">
                                                     No rooms.
                                                 </div>
                                             ) : (
-                                                category.rooms.map((room, roomIndex) => {
-                                                    const isDraggingRoom =
-                                                        dragState?.roomId === room.id;
+                                                category.rooms.map(
+                                                    (room, roomIndex) => {
+                                                        const isActiveRoom =
+                                                            currentRoomId ===
+                                                            room.id;
+                                                        const isDraggingRoom =
+                                                            dragState?.roomId ===
+                                                            room.id;
 
-                                                    return (
-                                                        <React.Fragment key={room.id}>
-                                                            <button
-                                                                type="button"
-                                                                draggable={
-                                                                    !isArranging &&
-                                                                    !isUpdatingRoom &&
-                                                                    !categoryDragState
-                                                                }
-                                                                ref={(node) =>
-                                                                    setRoomNodeRef(
-                                                                        category.key,
-                                                                        roomIndex,
-                                                                        node,
-                                                                    )
-                                                                }
-                                                                onDragStart={(event) => {
-                                                                    if (
-                                                                        isArranging ||
-                                                                        categoryDragState
-                                                                    ) {
-                                                                        event.preventDefault();
-                                                                        return;
-                                                                    }
-                                                                    event.dataTransfer.effectAllowed = "move";
-                                                                    setDragState({
-                                                                        roomId: room.id,
-                                                                        sourceCategoryId: room.categoryId,
-                                                                        sourceIndex: roomIndex,
-                                                                    });
-                                                                    setDropTarget({
-                                                                        categoryKey: category.key,
-                                                                        index: roomIndex,
-                                                                    });
-                                                                    clearCategoryDragState();
-                                                                }}
-                                                                onDragEnd={clearDragState}
-                                                                onClick={() => {
-                                                                    setRoomContextMenu(null);
-                                                                    setCategoryContextMenu(null);
-                                                                    onSelectRoom(room.id);
-                                                                }}
-                                                                onContextMenu={(event) => {
-                                                                    openRoomContextMenu(event, room);
-                                                                }}
-                                                                className={`w-full text-left px-2 py-0.5 rounded-md text-sm font-medium transition-colors ${
-                                                                    currentRoomId === room.id
-                                                                        ? "wd-text-accent bg-[var(--wd-surface-elevated)]"
-                                                                        : "wd-text-secondary hover:text-[var(--wd-text-primary)] hover:bg-[var(--wd-surface-elevated)]"
-                                                                } ${
-                                                                    isDraggingRoom
-                                                                        ? "opacity-40"
-                                                                        : "opacity-100"
-                                                                }`}
+                                                        return (
+                                                            <React.Fragment
+                                                                key={room.id}
                                                             >
-                                                                # {room.name}
-                                                            </button>
-                                                            {renderInsertionIndicator(
-                                                                category.key,
-                                                                roomIndex + 1,
-                                                            )}
-                                                        </React.Fragment>
-                                                    );
-                                                })
+                                                                <button
+                                                                    type="button"
+                                                                    draggable={
+                                                                        !isArranging &&
+                                                                        !isUpdatingRoom &&
+                                                                        !categoryDragState
+                                                                    }
+                                                                    ref={(
+                                                                        node,
+                                                                    ) =>
+                                                                        setRoomNodeRef(
+                                                                            category.key,
+                                                                            roomIndex,
+                                                                            node,
+                                                                        )
+                                                                    }
+                                                                    onDragStart={(
+                                                                        event,
+                                                                    ) => {
+                                                                        if (
+                                                                            isArranging ||
+                                                                            categoryDragState
+                                                                        ) {
+                                                                            event.preventDefault();
+                                                                            return;
+                                                                        }
+                                                                        event.dataTransfer.effectAllowed =
+                                                                            "move";
+                                                                        setDragState(
+                                                                            {
+                                                                                roomId: room.id,
+                                                                                sourceCategoryId:
+                                                                                    room.categoryId,
+                                                                                sourceIndex:
+                                                                                    roomIndex,
+                                                                            },
+                                                                        );
+                                                                        setDropTarget(
+                                                                            {
+                                                                                categoryKey:
+                                                                                    category.key,
+                                                                                index: roomIndex,
+                                                                            },
+                                                                        );
+                                                                        clearCategoryDragState();
+                                                                    }}
+                                                                    onDragEnd={
+                                                                        clearDragState
+                                                                    }
+                                                                    onClick={() => {
+                                                                        setRoomContextMenu(
+                                                                            null,
+                                                                        );
+                                                                        setCategoryContextMenu(
+                                                                            null,
+                                                                        );
+                                                                        onSelectRoom(
+                                                                            room.id,
+                                                                        );
+                                                                    }}
+                                                                    onContextMenu={(
+                                                                        event,
+                                                                    ) => {
+                                                                        openRoomContextMenu(
+                                                                            event,
+                                                                            room,
+                                                                        );
+                                                                    }}
+                                                                    className={`w-full text-left px-2 py-2 rounded-md text-sm transition-colors ${
+                                                                        isActiveRoom
+                                                                            ? "wd-text-primary bg-[var(--wd-surface-elevated)]"
+                                                                            : "wd-text-secondary hover:text-[var(--wd-text-primary)] hover:bg-[var(--wd-surface-elevated)]"
+                                                                    } ${
+                                                                        isDraggingRoom
+                                                                            ? "opacity-40"
+                                                                            : "opacity-100"
+                                                                    }`}
+                                                                    style={{
+                                                                        fontWeight:
+                                                                            isActiveRoom
+                                                                                ? 700
+                                                                                : 500,
+                                                                    }}
+                                                                >
+                                                                    #{" "}
+                                                                    {/**idk its not working on tailwind so inline it is**/}
+                                                                    <span
+                                                                        style={{
+                                                                            fontWeight:
+                                                                                isActiveRoom
+                                                                                    ? 700
+                                                                                    : 500,
+                                                                        }}
+                                                                    >
+                                                                        {
+                                                                            room.name
+                                                                        }
+                                                                    </span>
+                                                                </button>
+                                                                {renderInsertionIndicator(
+                                                                    category.key,
+                                                                    roomIndex +
+                                                                        1,
+                                                                )}
+                                                            </React.Fragment>
+                                                        );
+                                                    },
+                                                )
                                             )}
                                         </div>
                                     )}
@@ -831,12 +1020,117 @@ function ChannelSidebar({
                                 {displayName}
                             </p>
                             <p className="text-xs wd-text-muted">
-                                {presentation === "desk" ? "Desk mode" : "2D mode"}
+                                {presentation === "desk"
+                                    ? "Desk mode"
+                                    : "2D mode"}
                             </p>
                         </div>
                     </div>
 
-                    <DeskModeControls compact showMicrophoneSelector={false} />
+                    <div className="relative flex items-center gap-1.5">
+                        <DeskModeControls
+                            compact
+                            showMicrophoneSelector={false}
+                        />
+
+                        <button
+                            type="button"
+                            data-user-utility-trigger="true"
+                            title="More user actions"
+                            aria-label="More user actions"
+                            onClick={() => {
+                                setIsUtilityMenuOpen((current) => {
+                                    const next = !current;
+                                    if (!next) {
+                                        setIsUserIdExpanded(false);
+                                    }
+                                    return next;
+                                });
+                            }}
+                            className="relative h-7 w-7 inline-flex items-center justify-center rounded-md border wd-border-subtle wd-bg-elevated wd-text-secondary transition-colors hover:bg-[var(--wd-surface-base)] hover:wd-text-primary"
+                        >
+                            <MoreHorizontal size={15} />
+                        </button>
+
+                        {isUtilityMenuOpen && (
+                            <div
+                                data-user-utility-menu="true"
+                                className="absolute right-0 bottom-[calc(100%+8px)] z-[260] w-48 rounded-xl border wd-border-strong wd-bg-panel shadow-[0_16px_40px_rgba(0,0,0,0.45)] p-2"
+                            >
+                                <p className="px-1 text-[10px] font-semibold uppercase tracking-wide wd-text-muted">
+                                    User Actions
+                                </p>
+                                <div className="mt-2 space-y-1">
+                                    <button
+                                        type="button"
+                                        data-user-id-trigger="true"
+                                        title="User ID"
+                                        aria-label="User ID"
+                                        onClick={() => {
+                                            setIsUserIdExpanded((current) => {
+                                                return !current;
+                                            });
+                                        }}
+                                        className="w-full h-8 px-2 inline-flex items-center justify-between rounded-md border wd-border-subtle wd-bg-elevated wd-text-secondary transition-colors hover:bg-[var(--wd-surface-base)] hover:wd-text-primary"
+                                    >
+                                        <span className="inline-flex items-center gap-2 text-xs font-medium">
+                                            <Fingerprint size={13} />
+                                            User ID
+                                        </span>
+                                        <span className="text-[11px] wd-text-muted">
+                                            {isUserIdExpanded ? "Open" : ""}
+                                        </span>
+                                    </button>
+                                </div>
+
+                                {isUserIdExpanded && (
+                                    <div
+                                        data-user-id-panel="true"
+                                        className="absolute left-[calc(100%+8px)] bottom-0 z-[280] w-56 rounded-xl border wd-border-strong wd-bg-panel shadow-[0_16px_40px_rgba(0,0,0,0.45)] p-2"
+                                    >
+                                        <p className="px-1 text-[11px] font-semibold uppercase tracking-wide wd-text-muted">
+                                            User ID
+                                        </p>
+                                        <div className="mt-2 flex items-center gap-2">
+                                            <code className="flex-1 h-8 rounded-md border wd-border-subtle wd-bg-panel-2 px-2 inline-flex items-center text-xs wd-text-primary font-mono truncate">
+                                                {typeof localBackendUserId ===
+                                                "number"
+                                                    ? localBackendUserId
+                                                    : "Unavailable"}
+                                            </code>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    void handleCopyUserId();
+                                                }}
+                                                disabled={
+                                                    typeof localBackendUserId !==
+                                                    "number"
+                                                }
+                                                className="h-8 px-2 inline-flex items-center gap-1 rounded-md border wd-border-subtle wd-bg-panel-2 text-xs font-semibold wd-text-secondary transition-colors hover:wd-text-primary hover:bg-[var(--wd-surface-base)] disabled:opacity-60 disabled:cursor-not-allowed"
+                                            >
+                                                {userIdCopyState ===
+                                                "copied" ? (
+                                                    <Check size={13} />
+                                                ) : (
+                                                    <Copy size={13} />
+                                                )}
+                                                <span>
+                                                    {userIdCopyState ===
+                                                    "copied"
+                                                        ? "Copied"
+                                                        : userIdCopyState ===
+                                                            "failed"
+                                                          ? "Retry"
+                                                          : "Copy"}
+                                                </span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 {presentation === "desk" ? (

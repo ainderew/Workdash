@@ -1,6 +1,9 @@
 import { MediaTransportService } from "@/communication/mediaTransportService/mediaTransportServive";
 import type {
     ChatV2CreateAttachment,
+    ChatV2DirectRoom,
+    ChatV2Friend,
+    ChatV2FriendshipStatus,
     ChatV2Message,
     ChatV2MessageSearchInput,
     ChatV2MessageSearchSort,
@@ -8,6 +11,9 @@ import type {
     ChatV2RoomCategory,
     ChatV2RoomMember,
     ChatV2SearchUser,
+    ChatV2Thread,
+    ChatV2UserNotification,
+    ChatV2UserProfile,
 } from "./_types";
 import { getStandaloneGifUrl } from "./gifUrl";
 
@@ -23,6 +29,7 @@ type RealtimeHandlers = {
         messageId: string;
         deletedAt: string | Date | null;
     }) => void;
+    onNotificationNew?: (notification: ChatV2UserNotification) => void;
 };
 
 export class ChatV2Service {
@@ -112,14 +119,24 @@ export class ChatV2Service {
             }
         };
 
+        const onNotificationNew = (payload: {
+            notification: ChatV2UserNotification;
+        }) => {
+            if (payload?.notification) {
+                handlers.onNotificationNew?.(payload.notification);
+            }
+        };
+
         this.transport.socket.on("chat:v2:message:new", onMessageNew);
         this.transport.socket.on("chat:v2:message:update", onMessageUpdate);
         this.transport.socket.on("chat:v2:message:delete", onMessageDelete);
+        this.transport.socket.on("chat:v2:notification:new", onNotificationNew);
 
         this.teardownRealtimeHandlers = () => {
             this.transport.socket.off("chat:v2:message:new", onMessageNew);
             this.transport.socket.off("chat:v2:message:update", onMessageUpdate);
             this.transport.socket.off("chat:v2:message:delete", onMessageDelete);
+            this.transport.socket.off("chat:v2:notification:new", onNotificationNew);
             this.teardownRealtimeHandlers = null;
         };
 
@@ -149,12 +166,70 @@ export class ChatV2Service {
         return response.room;
     }
 
-    async listMessages(roomId: string, limit: number = 100): Promise<ChatV2Message[]> {
+    async listMessages(
+        roomId: string,
+        limit: number = 100,
+        options?: {
+            rootOnly?: boolean;
+            includeReplySummary?: boolean;
+        },
+    ): Promise<ChatV2Message[]> {
+        const payload: {
+            roomId: string;
+            limit: number;
+            rootOnly?: boolean;
+            includeReplySummary?: boolean;
+        } = {
+            roomId,
+            limit,
+        };
+        if (typeof options?.rootOnly === "boolean") {
+            payload.rootOnly = options.rootOnly;
+        }
+        if (typeof options?.includeReplySummary === "boolean") {
+            payload.includeReplySummary = options.includeReplySummary;
+        }
+
         const response = await this.emitWithAck<{ messages: ChatV2Message[] }>(
             "chat:v2:message:list",
-            { roomId, limit },
+            payload,
         );
         return response.messages;
+    }
+
+    async getThread(
+        roomId: string,
+        rootMessageId: string,
+        options?: {
+            before?: string | Date;
+            limit?: number;
+        },
+    ): Promise<ChatV2Thread> {
+        const payload: {
+            roomId: string;
+            rootMessageId: string;
+            before?: string;
+            limit?: number;
+        } = {
+            roomId,
+            rootMessageId,
+        };
+        if (options?.before) {
+            payload.before =
+                options.before instanceof Date
+                    ? options.before.toISOString()
+                    : options.before;
+        }
+        if (typeof options?.limit === "number") {
+            payload.limit = options.limit;
+        }
+
+        const response = await this.emitWithAck<ChatV2Thread>(
+            "chat:v2:thread:get",
+            payload,
+        );
+
+        return response;
     }
 
     async searchMessages(
@@ -200,10 +275,154 @@ export class ChatV2Service {
         return response.users;
     }
 
+    async getUserProfile(userId: number): Promise<ChatV2UserProfile> {
+        const response = await this.emitWithAck<{ profile: ChatV2UserProfile }>(
+            "chat:v2:user:profile:get",
+            { userId },
+        );
+        return response.profile;
+    }
+
+    async updateOwnUserProfile(
+        input: {
+            bio?: string | null;
+        },
+    ): Promise<ChatV2UserProfile> {
+        const payload: {
+            bio?: string | null;
+        } = {};
+        if (input.bio !== undefined) payload.bio = input.bio;
+
+        const response = await this.emitWithAck<{ profile: ChatV2UserProfile }>(
+            "chat:v2:user:profile:update",
+            payload,
+        );
+        return response.profile;
+    }
+
+    async listFriends(input?: {
+        status?: ChatV2FriendshipStatus;
+        query?: string;
+        limit?: number;
+    }): Promise<ChatV2Friend[]> {
+        const payload: {
+            status?: ChatV2FriendshipStatus;
+            query?: string;
+            limit?: number;
+        } = {};
+        if (input?.status) payload.status = input.status;
+        if (input?.query?.trim()) payload.query = input.query.trim();
+        if (typeof input?.limit === "number") payload.limit = input.limit;
+
+        const response = await this.emitWithAck<{ friends: ChatV2Friend[] }>(
+            "chat:v2:friend:list",
+            payload,
+        );
+        return response.friends;
+    }
+
+    async listNotifications(input?: {
+        unreadOnly?: boolean;
+        limit?: number;
+    }): Promise<{ notifications: ChatV2UserNotification[]; unreadCount: number }> {
+        const payload: {
+            unreadOnly?: boolean;
+            limit?: number;
+        } = {};
+        if (typeof input?.unreadOnly === "boolean") {
+            payload.unreadOnly = input.unreadOnly;
+        }
+        if (typeof input?.limit === "number") {
+            payload.limit = input.limit;
+        }
+
+        return await this.emitWithAck<{
+            notifications: ChatV2UserNotification[];
+            unreadCount: number;
+        }>("chat:v2:notification:list", payload);
+    }
+
+    async markNotificationsRead(input?: {
+        notificationIds?: string[];
+        markAll?: boolean;
+    }): Promise<{ markedCount: number; unreadCount: number }> {
+        const payload: {
+            notificationIds?: string[];
+            markAll?: boolean;
+        } = {};
+        if (Array.isArray(input?.notificationIds)) {
+            payload.notificationIds = input.notificationIds;
+        }
+        if (typeof input?.markAll === "boolean") {
+            payload.markAll = input.markAll;
+        }
+
+        return await this.emitWithAck<{
+            markedCount: number;
+            unreadCount: number;
+        }>("chat:v2:notification:read", payload);
+    }
+
+    async requestFriend(userId: number): Promise<ChatV2Friend> {
+        const response = await this.emitWithAck<{ friend: ChatV2Friend }>(
+            "chat:v2:friend:request",
+            { userId },
+        );
+        return response.friend;
+    }
+
+    async respondToFriendRequest(
+        friendshipId: string,
+        action: "ACCEPT" | "DECLINE" | "BLOCK",
+    ): Promise<ChatV2Friend> {
+        const response = await this.emitWithAck<{ friend: ChatV2Friend }>(
+            "chat:v2:friend:respond",
+            { friendshipId, action },
+        );
+        return response.friend;
+    }
+
+    async removeFriend(friendshipId: string): Promise<void> {
+        await this.emitWithAck<{ success: boolean }>("chat:v2:friend:remove", {
+            friendshipId,
+        });
+    }
+
+    async listDirectRooms(): Promise<ChatV2DirectRoom[]> {
+        const response = await this.emitWithAck<{
+            directRooms: ChatV2DirectRoom[];
+        }>("chat:v2:dm:list");
+        return response.directRooms;
+    }
+
+    async openDirectMessage(targetUserId: number): Promise<ChatV2Room> {
+        const response = await this.emitWithAck<{ room: ChatV2Room }>(
+            "chat:v2:dm:open",
+            { userId: targetUserId },
+        );
+        return response.room;
+    }
+
+    async updateReadCursor(
+        roomId: string,
+        lastReadMessageId?: string,
+    ): Promise<void> {
+        const payload: {
+            roomId: string;
+            lastReadMessageId?: string;
+        } = { roomId };
+        if (lastReadMessageId) payload.lastReadMessageId = lastReadMessageId;
+
+        await this.emitWithAck<{ readCursor: unknown }>("chat:v2:read:update", payload);
+    }
+
     async createMessage(
         roomId: string,
         content: string,
         attachments?: ChatV2CreateAttachment[],
+        options?: {
+            replyToMessageId?: string;
+        },
     ): Promise<ChatV2Message> {
         const clientMessageId =
             typeof crypto.randomUUID === "function"
@@ -216,11 +435,15 @@ export class ChatV2Service {
             content: string;
             messageType?: "TEXT" | "IMAGE" | "FILE" | "SYSTEM";
             attachments?: ChatV2CreateAttachment[];
+            replyToMessageId?: string;
         } = {
             roomId,
             clientMessageId,
             content,
         };
+        if (options?.replyToMessageId) {
+            payload.replyToMessageId = options.replyToMessageId;
+        }
         if (attachments?.length) {
             payload.attachments = attachments;
         } else {

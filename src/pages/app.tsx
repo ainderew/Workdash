@@ -29,7 +29,7 @@ export default function Game() {
                 />
                 <link rel="icon" href="/favicon.png" />
             </Head>
-            <main className="w-screen h-screen overflow-hidden relative">
+            <main className="w-screen h-[100dvh] overflow-hidden relative">
                 <AppWithoutSSR />
             </main>
         </>
