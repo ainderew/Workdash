@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import type {
     ChatV2CreateAttachment,
     ChatV2Message,
+    ChatV2RoomMember,
 } from "@/communication/chatV2/_types";
 import { ChatV2Service } from "@/communication/chatV2/chatV2Service";
 import { getStandaloneGifUrl } from "@/communication/chatV2/gifUrl";
@@ -16,8 +17,10 @@ import { extractDomain, parseMessageContent } from "@/common/utils/linkParser";
 import { GitHubPreview } from "@/common/components/TextChat/GitHubPreview";
 import { TwitterPreview } from "@/common/components/TextChat/TwitterPreview";
 import { YouTubePreview } from "@/common/components/TextChat/YouTubePreview";
+import { buildMemberNameMap, extractMentionedUserIds } from "@/communication/chatV2/mentionUtils";
 import Composer from "./Composer";
 import MessageHoverActions from "./MessageHoverActions";
+import MentionHighlightedContent from "./MentionHighlightedContent";
 import MessageReactionChips from "./MessageReactionChips";
 
 interface ThreadPanelProps {
@@ -28,12 +31,14 @@ interface ThreadPanelProps {
     isSending: boolean;
     error: string | null;
     className?: string;
+    members?: ChatV2RoomMember[];
     onClose: () => void;
     onRetry?: () => void;
     frequentEmojis: string[];
     onSendReply: (
         content: string,
         attachments?: ChatV2CreateAttachment[],
+        options?: { mentionedUserIds?: number[] },
     ) => Promise<void>;
     onToggleReaction: (messageId: string, emoji: string) => Promise<void> | void;
 }
@@ -94,6 +99,7 @@ type ThreadMessageRowProps = {
     frequentEmojis: string[];
     onToggleReaction: (messageId: string, emoji: string) => Promise<void> | void;
     resolvedSenderImage?: string;
+    memberNameMap: Map<number, string>;
 };
 
 function ThreadMessageRow({
@@ -104,6 +110,7 @@ function ThreadMessageRow({
     frequentEmojis,
     onToggleReaction,
     resolvedSenderImage,
+    memberNameMap,
 }: ThreadMessageRowProps) {
     const senderName = message.sender?.name?.trim() || `User ${message.senderUserId}`;
     const senderImage = message.sender?.image?.trim() || resolvedSenderImage || "";
@@ -131,6 +138,12 @@ function ThreadMessageRow({
     const fallbackGenericUrls = extractedUrls.filter(
         (url) => !parsedMessageLinkUrls.has(url),
     );
+    const effectiveMentionedUserIds =
+        Array.isArray(message.mentionedUserIds) && message.mentionedUserIds.length > 0
+            ? message.mentionedUserIds
+            : extractMentionedUserIds(message.content || "", memberNameMap);
+    const hasMentions = effectiveMentionedUserIds.length > 0;
+
     const handleFutureMessageAction = (label: string) => {
         toast(`${label} is coming soon`, {
             description: "This action is a placeholder for now.",
@@ -239,9 +252,18 @@ function ThreadMessageRow({
         );
     };
 
+    const localBackendUserId =
+        typeof window !== "undefined" ? window.__BACKEND_USER__?.id : undefined;
+    const isCurrentUserMentioned =
+        typeof localBackendUserId === "number"
+        && hasMentions
+        && effectiveMentionedUserIds.includes(localBackendUserId);
+
     return (
         <article
-            className="group relative px-0 py-1"
+            className={`group relative px-0 py-1 ${
+                isCurrentUserMentioned ? "border-l-2 border-l-[rgb(240,185,11)] bg-[rgba(240,185,11,0.06)]" : ""
+            }`}
             data-chat-thread-message-id={message.id}
         >
             <MessageHoverActions
@@ -307,6 +329,16 @@ function ThreadMessageRow({
                                         {parsedMessageLinks.length > 0
                                             ? parsedMessageParts.map((part, index) => {
                                                 if (part.type !== "text") return null;
+                                                if (hasMentions && part.content) {
+                                                    return (
+                                                        <MentionHighlightedContent
+                                                            key={`${message.id}-text-${index}`}
+                                                            content={part.content}
+                                                            mentionedUserIds={effectiveMentionedUserIds}
+                                                            memberNameMap={memberNameMap}
+                                                        />
+                                                    );
+                                                }
                                                 return (
                                                     <span
                                                         key={`${message.id}-text-${index}`}
@@ -315,7 +347,15 @@ function ThreadMessageRow({
                                                     </span>
                                                 );
                                             })
-                                            : message.content}
+                                            : hasMentions
+                                                ? (
+                                                    <MentionHighlightedContent
+                                                        content={message.content}
+                                                        mentionedUserIds={effectiveMentionedUserIds}
+                                                        memberNameMap={memberNameMap}
+                                                    />
+                                                )
+                                                : message.content}
                                     </div>
 
                                     {(parsedMessageLinks.length > 0
@@ -464,6 +504,7 @@ function ThreadPanel({
     isSending,
     error,
     className,
+    members,
     onClose,
     onRetry,
     frequentEmojis,
@@ -488,6 +529,10 @@ function ThreadPanel({
     const localBackendUserId =
         typeof window !== "undefined" ? window.__BACKEND_USER__?.id : undefined;
 
+    const memberNameMap = useMemo(
+        () => buildMemberNameMap(members || []),
+        [members],
+    );
     const orderedReplies = useMemo(() => [...replies].sort(byCreatedAtAsc), [replies]);
     const allMessages = useMemo(
         () => (rootMessage ? [rootMessage, ...orderedReplies] : orderedReplies),
@@ -815,6 +860,7 @@ function ThreadPanel({
                             resolvedSenderImage={
                                 resolvedSenderImagesByUserId[rootMessage.senderUserId]
                             }
+                            memberNameMap={memberNameMap}
                         />
 
                         <div className="pl-11 pr-2 pt-2">
@@ -844,6 +890,7 @@ function ThreadPanel({
                                         resolvedSenderImage={
                                             resolvedSenderImagesByUserId[reply.senderUserId]
                                         }
+                                        memberNameMap={memberNameMap}
                                     />
                                 </div>
                             ))
@@ -863,6 +910,7 @@ function ThreadPanel({
                         ? `Reply to ${rootMessage.sender?.name?.trim() || "thread"}`
                         : "Reply in thread"
                 }
+                members={members}
                 onSend={onSendReply}
             />
         </aside>

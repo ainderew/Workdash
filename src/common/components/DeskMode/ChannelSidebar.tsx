@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import useUiStore from "@/common/store/uiStore";
 import useUserStore from "@/common/store/useStore";
+import ChannelHashIcon from "./ChannelHashIcon";
 import DeskModeControls from "./DeskModeControls";
 import CreateCategoryModal from "./modals/CreateCategoryModal";
 import CreateRoomModal from "./modals/CreateRoomModal";
@@ -586,9 +587,9 @@ function ChannelSidebar({
                         setCategoryContextMenu(null);
                         setIsServerActionsMenuOpen((current) => !current);
                     }}
-                    className="inline-flex min-w-0 max-w-[85%] items-center gap-2 rounded-xl px-3 py-2 wd-bg-elevated wd-text-primary transition-colors hover:bg-[var(--wd-surface-base)] disabled:opacity-50"
+                    className="inline-flex min-w-0 max-w-[85%] items-center gap-2 rounded-md px-3 py-2 transition-colors hover:bg-[var(--wd-surface-elevated)] disabled:opacity-50"
                 >
-                    <span className="truncate text-base font-semibold">
+                    <span className="truncate text-sm font-semibold">
                         {normalizedServerName}
                     </span>
                     <ChevronDown
@@ -807,7 +808,7 @@ function ChannelSidebar({
 
                                     {!isCollapsed && (
                                         <div
-                                            className={`pl-4 pt-1 pb-2 min-h-10 rounded ${
+                                            className={`pt-1 pb-2 min-h-10 rounded ${
                                                 dragState &&
                                                 dropTarget?.categoryKey ===
                                                     category.key
@@ -943,18 +944,22 @@ function ChannelSidebar({
                                                                     style={{
                                                                         fontWeight:
                                                                             isActiveRoom
-                                                                                ? 700
-                                                                                : 500,
+                                                                                ? 500
+                                                                                : 400,
                                                                     }}
                                                                 >
-                                                                    #{" "}
-                                                                    {/**idk its not working on tailwind so inline it is**/}
+                                                                    <ChannelHashIcon
+                                                                        size={
+                                                                            18
+                                                                        }
+                                                                        className="inline-block shrink-0 align-text-bottom opacity-60"
+                                                                    />{" "}
                                                                     <span
                                                                         style={{
                                                                             fontWeight:
                                                                                 isActiveRoom
-                                                                                    ? 700
-                                                                                    : 500,
+                                                                                    ? 500
+                                                                                    : 400,
                                                                         }}
                                                                     >
                                                                         {

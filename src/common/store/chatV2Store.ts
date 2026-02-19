@@ -130,6 +130,7 @@ type ChatV2State = {
         attachments?: ChatV2CreateAttachment[],
         options?: {
             replyToMessageId?: string;
+            mentionedUserIds?: number[];
         },
     ) => Promise<ChatV2Message | null>;
     toggleMessageReaction: (messageId: string, emoji: string) => Promise<void>;
@@ -879,6 +880,9 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
         const roomId = get().currentRoomId;
         if (!roomId) return null;
         const replyToMessageId = options?.replyToMessageId?.trim() || undefined;
+        const mentionedUserIds = options?.mentionedUserIds?.length
+            ? options.mentionedUserIds
+            : undefined;
 
         set({ isSending: true, error: null });
 
@@ -890,6 +894,7 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
                 attachments,
                 {
                     replyToMessageId,
+                    mentionedUserIds,
                 },
             );
 

@@ -4,12 +4,11 @@ import { getCharacterLayerPathsArray, BASE_PATH } from "./AssetConfig";
 
 interface CharacterPreviewProps {
     customization: CharacterCustomization;
-    
+
     animationRow?: number;
-    
+
     frameCol?: number;
 }
-
 
 export const ANIMATION_ROWS = {
     DOWN: 0,
@@ -23,13 +22,11 @@ export const ANIMATION_ROWS = {
 export function CharacterPreview({
     customization,
     animationRow = ANIMATION_ROWS.IDLE,
-    
+
     frameCol = 18,
 }: CharacterPreviewProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
-    
-    
     const SRC_FRAME_WIDTH = 32;
     const SRC_FRAME_HEIGHT = 64;
 
@@ -56,7 +53,6 @@ export function CharacterPreview({
                         img.src = layerPath;
 
                         img.onload = () => {
-                            
                             const cols = Math.floor(
                                 img.width / SRC_FRAME_WIDTH,
                             );
@@ -67,24 +63,20 @@ export function CharacterPreview({
                             const safeRow = Math.min(animationRow, rows - 1);
                             const safeCol = Math.min(frameCol, cols - 1);
 
-                            
                             const srcX = safeCol * SRC_FRAME_WIDTH;
                             const srcY = safeRow * SRC_FRAME_HEIGHT;
 
-                            
-                            
-                            
                             const destWidth = 128;
                             const destHeight = 256;
-                            const destX = (canvas.width - destWidth) / 2; 
-                            const destY = 0; 
+                            const destX = (canvas.width - destWidth) / 2;
+                            const destY = 0;
 
                             ctx.drawImage(
                                 img,
                                 srcX,
                                 srcY,
-                                SRC_FRAME_WIDTH, 
-                                SRC_FRAME_HEIGHT, 
+                                SRC_FRAME_WIDTH,
+                                SRC_FRAME_HEIGHT,
                                 destX,
                                 destY,
                                 destWidth,

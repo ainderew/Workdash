@@ -1,12 +1,24 @@
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import { SendHorizontal, Sticker, X } from "lucide-react";
 import { toast } from "sonner";
-import type { ChatV2CreateAttachment } from "@/communication/chatV2/_types";
+import type {
+    ChatV2CreateAttachment,
+    ChatV2RoomMember,
+} from "@/communication/chatV2/_types";
 import {
     initChatUpload,
     uploadFileToSignedUrl,
 } from "@/communication/chatV2/uploadService";
+import {
+    buildMemberNameMap,
+    extractMentionedUserIds,
+    getMentionQueryAtCursor,
+    insertMentionIntoValue,
+} from "@/communication/chatV2/mentionUtils";
 import DeskGifPicker from "./DeskGifPicker";
+import MentionSuggestionFlyout, {
+    type MentionSuggestion,
+} from "./MentionSuggestionFlyout";
 
 function PlusSolidIcon({ className }: { className?: string }) {
     return (
@@ -47,6 +59,7 @@ function GifBadgeIcon({ className }: { className?: string }) {
     );
 }
 
+const MAX_MENTION_SUGGESTIONS = 25;
 
 interface ComposerProps {
     roomId: string | null;
@@ -54,9 +67,11 @@ interface ComposerProps {
     isSending?: boolean;
     inputId?: string;
     placeholder?: string;
+    members?: ChatV2RoomMember[];
     onSend: (
         content: string,
         attachments?: ChatV2CreateAttachment[],
+        options?: { mentionedUserIds?: number[] },
     ) => Promise<void> | void;
 }
 
@@ -66,30 +81,130 @@ function Composer({
     isSending,
     inputId = "desk-chat-input",
     placeholder = "Message room",
+    members,
     onSend,
 }: ComposerProps) {
     const [value, setValue] = useState("");
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [uploadError, setUploadError] = useState<string | null>(null);
     const [showGifPicker, setShowGifPicker] = useState(false);
+    const [mentionQuery, setMentionQuery] = useState<{
+        query: string;
+        atIndex: number;
+    } | null>(null);
+    const [mentionSelectedIndex, setMentionSelectedIndex] = useState(0);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
     const inputElementId = inputId;
     const inlineActionButtonClassName =
         "group/inline relative z-[99] h-9 w-9 shrink-0 rounded-full overflow-hidden text-[var(--wd-text-muted)] transition-colors duration-300 hover:text-white focus-visible:text-white disabled:opacity-55 disabled:cursor-not-allowed";
 
+    const localBackendUserId =
+        typeof window !== "undefined" ? window.__BACKEND_USER__?.id : undefined;
+
+    const memberNameMap = useMemo(
+        () => buildMemberNameMap(members || [], localBackendUserId),
+        [members, localBackendUserId],
+    );
+
+    const mentionSuggestions = useMemo<MentionSuggestion[]>(() => {
+        if (!mentionQuery || !members) return [];
+
+        const queryLower = mentionQuery.query.toLowerCase();
+
+        return members
+            .filter((member) => {
+                if (member.status !== "ACTIVE") return false;
+                if (
+                    typeof localBackendUserId === "number" &&
+                    member.userId === localBackendUserId
+                ) {
+                    return false;
+                }
+                const name = member.user.name?.trim();
+                if (!name) return false;
+                return name.toLowerCase().includes(queryLower);
+            })
+            .slice(0, MAX_MENTION_SUGGESTIONS)
+            .map((member) => ({
+                userId: member.userId,
+                name: member.user.name,
+                image: member.user.image ?? null,
+            }));
+    }, [members, mentionQuery, localBackendUserId]);
+
+    const isMentionFlyoutOpen =
+        mentionQuery !== null && mentionSuggestions.length > 0;
+
     const focusInput = useCallback(() => {
         if (typeof document === "undefined") return;
-        const input = document.getElementById(inputElementId) as HTMLTextAreaElement | null;
+        const input = document.getElementById(
+            inputElementId,
+        ) as HTMLTextAreaElement | null;
         if (!input) return;
 
         input.focus();
         const length = input.value.length;
         input.setSelectionRange(length, length);
+    }, [inputElementId]);
+
+    const closeMentionFlyout = useCallback(() => {
+        setMentionQuery(null);
+        setMentionSelectedIndex(0);
     }, []);
+
+    const handleMentionSelect = useCallback(
+        (suggestion: MentionSuggestion) => {
+            if (!mentionQuery) return;
+
+            const textarea = textareaRef.current;
+            const cursorPos = textarea?.selectionStart ?? value.length;
+
+            const { newValue, newCursorPosition } = insertMentionIntoValue(
+                value,
+                mentionQuery.atIndex,
+                cursorPos,
+                suggestion.name,
+            );
+
+            setValue(newValue);
+            closeMentionFlyout();
+
+            window.requestAnimationFrame(() => {
+                const input = textareaRef.current;
+                if (input) {
+                    input.focus();
+                    input.setSelectionRange(
+                        newCursorPosition,
+                        newCursorPosition,
+                    );
+                }
+            });
+        },
+        [closeMentionFlyout, mentionQuery, value],
+    );
+
+    const handleChange = useCallback(
+        (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+            const nextValue = event.target.value;
+            setValue(nextValue);
+
+            const cursorPos = event.target.selectionStart;
+            const query = getMentionQueryAtCursor(nextValue, cursorPos);
+            if (query) {
+                setMentionQuery(query);
+                setMentionSelectedIndex(0);
+            } else {
+                closeMentionFlyout();
+            }
+        },
+        [closeMentionFlyout],
+    );
 
     const submit = async () => {
         const content = value.trim();
-        if ((!content && !selectedFile) || disabled || isSending || !roomId) return;
+        if ((!content && !selectedFile) || disabled || isSending || !roomId)
+            return;
 
         setUploadError(null);
 
@@ -105,12 +220,25 @@ function Composer({
                 attachments = [uploadInit.attachment];
             }
 
-            await onSend(content, attachments);
+            // Extract mentioned user IDs from the content
+            const mentionedUserIds = extractMentionedUserIds(
+                value,
+                memberNameMap,
+            );
+
+            await onSend(
+                content,
+                attachments,
+                mentionedUserIds.length > 0 ? { mentionedUserIds } : undefined,
+            );
             setValue("");
             setSelectedFile(null);
+            closeMentionFlyout();
         } catch (error) {
             setUploadError(
-                error instanceof Error ? error.message : "Failed to upload file",
+                error instanceof Error
+                    ? error.message
+                    : "Failed to upload file",
             );
         } finally {
             window.requestAnimationFrame(() => {
@@ -137,8 +265,71 @@ function Composer({
         }
     };
 
+    const handleKeyDown = useCallback(
+        (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+            event.stopPropagation();
+
+            if (isMentionFlyoutOpen) {
+                if (event.key === "ArrowDown") {
+                    event.preventDefault();
+                    setMentionSelectedIndex((current) =>
+                        current < mentionSuggestions.length - 1
+                            ? current + 1
+                            : 0,
+                    );
+                    return;
+                }
+                if (event.key === "ArrowUp") {
+                    event.preventDefault();
+                    setMentionSelectedIndex((current) =>
+                        current > 0
+                            ? current - 1
+                            : mentionSuggestions.length - 1,
+                    );
+                    return;
+                }
+                if (event.key === "Enter" || event.key === "Tab") {
+                    event.preventDefault();
+                    const selected = mentionSuggestions[mentionSelectedIndex];
+                    if (selected) {
+                        handleMentionSelect(selected);
+                    }
+                    return;
+                }
+                if (event.key === "Escape") {
+                    event.preventDefault();
+                    closeMentionFlyout();
+                    return;
+                }
+            }
+
+            if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                void submit();
+            }
+        },
+        [
+            closeMentionFlyout,
+            handleMentionSelect,
+            isMentionFlyoutOpen,
+            mentionSelectedIndex,
+            mentionSuggestions,
+            submit,
+        ],
+    );
+
     return (
         <div className="relative border-t wd-border-subtle p-4 wd-bg-panel-2">
+            {isMentionFlyoutOpen && (
+                <MentionSuggestionFlyout
+                    suggestions={mentionSuggestions}
+                    query={mentionQuery?.query ?? ""}
+                    selectedIndex={mentionSelectedIndex}
+                    onSelect={handleMentionSelect}
+                    onClose={closeMentionFlyout}
+                />
+            )}
+
             {showGifPicker && (
                 <DeskGifPicker
                     inputId={inputElementId}
@@ -186,20 +377,19 @@ function Composer({
 
                         <div className="min-w-0 flex flex-1 items-center">
                             <textarea
+                                ref={textareaRef}
                                 id={inputElementId}
                                 value={value}
-                                onChange={(event) => setValue(event.target.value)}
-                                onKeyDown={(event) => {
-                                    event.stopPropagation();
-                                    if (event.key === "Enter" && !event.shiftKey) {
-                                        event.preventDefault();
-                                        void submit();
-                                    }
-                                }}
+                                onChange={handleChange}
+                                onKeyDown={handleKeyDown}
                                 disabled={disabled || isSending}
                                 rows={1}
                                 placeholder={placeholder}
-                                className="min-h-[44px] max-h-36 flex-1 border-0 bg-transparent px-2 py-[11px] leading-5 shadow-none resize-none wd-text-primary outline-none focus:outline-none"
+                                aria-expanded={isMentionFlyoutOpen}
+                                aria-autocomplete={
+                                    isMentionFlyoutOpen ? "list" : undefined
+                                }
+                                className="min-h-[44px] text-sm max-h-36 flex-1 border-0 bg-transparent px-2 py-[11px] leading-5 shadow-none resize-none wd-text-primary outline-none focus:outline-none"
                             />
                         </div>
 
@@ -212,7 +402,9 @@ function Composer({
                         >
                             <button
                                 type="button"
-                                onClick={() => setShowGifPicker((previous) => !previous)}
+                                onClick={() =>
+                                    setShowGifPicker((previous) => !previous)
+                                }
                                 disabled={disabled || isSending}
                                 title="Send GIF"
                                 className={inlineActionButtonClassName}
@@ -225,7 +417,8 @@ function Composer({
                                 type="button"
                                 onClick={() =>
                                     toast("Stickers are coming soon", {
-                                        description: "This action is a placeholder for now.",
+                                        description:
+                                            "This action is a placeholder for now.",
                                     })
                                 }
                                 disabled={disabled || isSending}
@@ -235,7 +428,6 @@ function Composer({
                                 <span className="pointer-events-none absolute inset-0 rounded-full scale-50 opacity-0 transition-all duration-300 ease-out bg-[radial-gradient(circle_at_30%_25%,var(--wd-accent-hover),var(--wd-accent))] group-hover/inline:scale-100 group-hover/inline:opacity-100 group-focus-visible/inline:scale-100 group-focus-visible/inline:opacity-100" />
                                 <Sticker className="relative z-10 h-4.5 w-4.5 mx-auto" />
                             </button>
-
                         </div>
                     </div>
 
@@ -253,9 +445,9 @@ function Composer({
                 <button
                     type="button"
                     disabled={
-                        disabled
-                        || isSending
-                        || (!value.trim() && !selectedFile)
+                        disabled ||
+                        isSending ||
+                        (!value.trim() && !selectedFile)
                     }
                     onMouseDown={(event) => {
                         event.preventDefault();

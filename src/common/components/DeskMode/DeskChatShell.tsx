@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+} from "react";
 import useChatV2Store from "@/common/store/chatV2Store";
 import { ChatV2Service } from "@/communication/chatV2/chatV2Service";
 import type {
@@ -26,10 +32,7 @@ interface DeskChatShellProps {
     onClose?: () => void;
 }
 
-function DeskChatShell({
-    mode = "desk",
-    onClose,
-}: DeskChatShellProps) {
+function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
     const chatV2Service = useMemo(() => ChatV2Service.getInstance(), []);
     const initialize = useChatV2Store((state) => state.initialize);
     const roomOrder = useChatV2Store((state) => state.roomOrder);
@@ -38,20 +41,32 @@ function DeskChatShell({
     const categoriesById = useChatV2Store((state) => state.categoriesById);
     const currentRoomId = useChatV2Store((state) => state.currentRoomId);
     const railView = useChatV2Store((state) => state.railView);
-    const selectedWorkspaceId = useChatV2Store((state) => state.selectedWorkspaceId);
+    const selectedWorkspaceId = useChatV2Store(
+        (state) => state.selectedWorkspaceId,
+    );
     const setRailView = useChatV2Store((state) => state.setRailView);
-    const setSelectedWorkspaceId = useChatV2Store((state) => state.setSelectedWorkspaceId);
+    const setSelectedWorkspaceId = useChatV2Store(
+        (state) => state.setSelectedWorkspaceId,
+    );
     const messagesByRoomId = useChatV2Store((state) => state.messagesByRoomId);
     const isLoadingRooms = useChatV2Store((state) => state.isLoadingRooms);
-    const isLoadingDirectRooms = useChatV2Store((state) => state.isLoadingDirectRooms);
+    const isLoadingDirectRooms = useChatV2Store(
+        (state) => state.isLoadingDirectRooms,
+    );
     const isLoadingFriends = useChatV2Store((state) => state.isLoadingFriends);
-    const isLoadingMessages = useChatV2Store((state) => state.isLoadingMessages);
+    const isLoadingMessages = useChatV2Store(
+        (state) => state.isLoadingMessages,
+    );
     const isSending = useChatV2Store((state) => state.isSending);
     const isCreatingRoom = useChatV2Store((state) => state.isCreatingRoom);
-    const isCreatingCategory = useChatV2Store((state) => state.isCreatingCategory);
+    const isCreatingCategory = useChatV2Store(
+        (state) => state.isCreatingCategory,
+    );
     const isArrangingRooms = useChatV2Store((state) => state.isArrangingRooms);
     const isUpdatingRoom = useChatV2Store((state) => state.isUpdatingRoom);
-    const isManagingMembers = useChatV2Store((state) => state.isManagingMembers);
+    const isManagingMembers = useChatV2Store(
+        (state) => state.isManagingMembers,
+    );
     const error = useChatV2Store((state) => state.error);
     const selectRoom = useChatV2Store((state) => state.selectRoom);
     const sendMessage = useChatV2Store((state) => state.sendMessage);
@@ -68,33 +83,44 @@ function DeskChatShell({
     const directRoomOrder = useChatV2Store((state) => state.directRoomOrder);
     const directRoomsById = useChatV2Store((state) => state.directRoomsById);
     const friends = useChatV2Store((state) => state.friends);
-    const reloadDirectRooms = useChatV2Store((state) => state.reloadDirectRooms);
+    const reloadDirectRooms = useChatV2Store(
+        (state) => state.reloadDirectRooms,
+    );
     const reloadFriends = useChatV2Store((state) => state.reloadFriends);
-    const openDirectMessage = useChatV2Store((state) => state.openDirectMessage);
+    const openDirectMessage = useChatV2Store(
+        (state) => state.openDirectMessage,
+    );
     const frequentEmojis = useChatV2Store((state) => state.frequentEmojis);
     const toggleMessageReaction = useChatV2Store(
         (state) => state.toggleMessageReaction,
     );
-    const getWorkspaceUnreadTotal = useChatV2Store((state) => state.getWorkspaceUnreadTotal);
-    const getDirectUnreadTotal = useChatV2Store((state) => state.getDirectUnreadTotal);
+    const getWorkspaceUnreadTotal = useChatV2Store(
+        (state) => state.getWorkspaceUnreadTotal,
+    );
+    const getDirectUnreadTotal = useChatV2Store(
+        (state) => state.getDirectUnreadTotal,
+    );
 
     const [searchQuery, setSearchQuery] = useState("");
-    const [searchFromUser, setSearchFromUser] = useState<ChatV2SearchUser | null>(
-        null,
-    );
+    const [searchFromUser, setSearchFromUser] =
+        useState<ChatV2SearchUser | null>(null);
     const [searchRoomId, setSearchRoomId] = useState<string | null>(null);
-    const [searchSort, setSearchSort] = useState<ChatV2MessageSearchSort>("LATEST");
+    const [searchSort, setSearchSort] =
+        useState<ChatV2MessageSearchSort>("LATEST");
     const [searchResults, setSearchResults] = useState<ChatV2Message[]>([]);
     const [searchTotalCount, setSearchTotalCount] = useState(0);
     const [isSearching, setIsSearching] = useState(false);
     const [searchError, setSearchError] = useState<string | null>(null);
-    const [focusedMessageId, setFocusedMessageId] = useState<string | null>(null);
-    const searchRequestIdRef = useRef(0);
-    const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
-    const [activeThreadRootId, setActiveThreadRootId] = useState<string | null>(null);
-    const [threadRootMessage, setThreadRootMessage] = useState<ChatV2Message | null>(
+    const [focusedMessageId, setFocusedMessageId] = useState<string | null>(
         null,
     );
+    const searchRequestIdRef = useRef(0);
+    const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
+    const [activeThreadRootId, setActiveThreadRootId] = useState<string | null>(
+        null,
+    );
+    const [threadRootMessage, setThreadRootMessage] =
+        useState<ChatV2Message | null>(null);
     const [threadReplies, setThreadReplies] = useState<ChatV2Message[]>([]);
     const [isLoadingThread, setIsLoadingThread] = useState(false);
     const [threadError, setThreadError] = useState<string | null>(null);
@@ -110,7 +136,13 @@ function DeskChatShell({
 
         void reloadDirectRooms();
         void reloadFriends("ACCEPTED");
-    }, [directRoomOrder.length, friends.length, railView, reloadDirectRooms, reloadFriends]);
+    }, [
+        directRoomOrder.length,
+        friends.length,
+        railView,
+        reloadDirectRooms,
+        reloadFriends,
+    ]);
 
     const rooms = useMemo<ChatV2Room[]>(
         () => roomOrder.map((roomId) => roomsById[roomId]).filter(Boolean),
@@ -125,7 +157,9 @@ function DeskChatShell({
     const serverRooms = useMemo<ChatV2Room[]>(() => {
         const nonDirect = rooms.filter((room) => room.type !== "DIRECT");
         if (!selectedWorkspaceId) return nonDirect;
-        return nonDirect.filter((room) => room.workspaceId === selectedWorkspaceId);
+        return nonDirect.filter(
+            (room) => room.workspaceId === selectedWorkspaceId,
+        );
     }, [rooms, selectedWorkspaceId]);
 
     const workspaceOptions = useMemo(
@@ -138,8 +172,11 @@ function DeskChatShell({
                             room.workspaceId,
                             {
                                 id: room.workspaceId,
-                                name: room.workspace?.name?.trim() || "Workspace",
-                                unreadCount: getWorkspaceUnreadTotal(room.workspaceId),
+                                name:
+                                    room.workspace?.name?.trim() || "Workspace",
+                                unreadCount: getWorkspaceUnreadTotal(
+                                    room.workspaceId,
+                                ),
                             },
                         ]),
                 ).values(),
@@ -179,19 +216,26 @@ function DeskChatShell({
     const roomMessages = currentRoomId
         ? messagesByRoomId[currentRoomId] || []
         : [];
-    const roomMembers = currentRoomId ? membersByRoomId[currentRoomId] || [] : [];
+    const roomMembers = currentRoomId
+        ? membersByRoomId[currentRoomId] || []
+        : [];
 
-    const activeRooms = railView === "dm"
-        ? directRooms.map((entry) => entry.room)
-        : serverRooms;
-    const activeWorkspaceId = currentRoom?.workspaceId || activeRooms[0]?.workspaceId;
+    const activeRooms =
+        railView === "dm"
+            ? directRooms.map((entry) => entry.room)
+            : serverRooms;
+    const activeWorkspaceId =
+        currentRoom?.workspaceId || activeRooms[0]?.workspaceId;
 
     const hasSearchCriteria =
-        debouncedSearchQuery.trim().length >= 2
-        || !!searchFromUser
-        || !!searchRoomId;
+        debouncedSearchQuery.trim().length >= 2 ||
+        !!searchFromUser ||
+        !!searchRoomId;
     const isSearchPanelVisible =
-        hasSearchCriteria || isSearching || searchResults.length > 0 || !!searchError;
+        hasSearchCriteria ||
+        isSearching ||
+        searchResults.length > 0 ||
+        !!searchError;
 
     useEffect(() => {
         const timeout = window.setTimeout(() => {
@@ -383,16 +427,17 @@ function DeskChatShell({
         [closeThreadPanel, selectRoom],
     );
 
-    const rootContainerClassName = mode === "desk"
-        ? "fixed inset-0 z-30 h-[100dvh] w-screen overflow-hidden flex flex-col wd-bg-overlay backdrop-blur-sm"
-        : "h-full w-full overflow-hidden flex flex-col wd-bg-overlay";
+    const rootContainerClassName =
+        mode === "desk"
+            ? "fixed inset-0 z-30 h-[100dvh] w-screen overflow-hidden flex flex-col wd-bg-overlay backdrop-blur-sm"
+            : "h-full w-full overflow-hidden flex flex-col wd-bg-overlay";
 
     return (
         <section className={rootContainerClassName}>
             <div className="h-9 flex shrink-0">
                 <div className="w-18 wd-bg-app" />
                 <div className="flex-1 min-w-0 wd-bg-app flex items-center justify-center px-4">
-                    <p className="truncate text-sm font-medium wd-text-primary">
+                    <p className="truncate text-sm wd-text-primary text-center">
                         {serverName}
                     </p>
                 </div>
@@ -408,7 +453,9 @@ function DeskChatShell({
                         setRailView("server");
                         setSelectedWorkspaceId(workspaceId);
                         const firstRoom = rooms.find(
-                            (room) => room.type !== "DIRECT" && room.workspaceId === workspaceId,
+                            (room) =>
+                                room.type !== "DIRECT" &&
+                                room.workspaceId === workspaceId,
                         );
                         if (firstRoom) {
                             void selectRoom(firstRoom.id);
@@ -423,8 +470,8 @@ function DeskChatShell({
                     }}
                 />
 
-                <div className="flex-1 min-w-0 p-2 pt-2">
-                    <div className="h-full min-h-0 flex rounded-lg overflow-visible outline outline-1 outline-[color:var(--wd-border-subtle)] shadow-[0_8px_24px_rgba(0,0,0,0.22),0_0_14px_rgba(88,101,242,0.08)]">
+                <div className="flex-1 min-w-0 pb-2">
+                    <div className="h-full min-h-0 flex rounded-lg overflow-visible outline-1 outline-[color:var(--wd-border-subtle)] shadow-[0_8px_24px_rgba(0,0,0,0.22),0_0_14px_rgba(88,101,242,0.08)]">
                         {railView === "server" ? (
                             <ChannelSidebar
                                 serverName={serverName}
@@ -457,8 +504,16 @@ function DeskChatShell({
                                 onArrangeCategory={(categoryId, position) => {
                                     void arrangeCategory(categoryId, position);
                                 }}
-                                onArrangeRoom={(roomId, categoryId, position) => {
-                                    void arrangeRoom(roomId, categoryId, position);
+                                onArrangeRoom={(
+                                    roomId,
+                                    categoryId,
+                                    position,
+                                ) => {
+                                    void arrangeRoom(
+                                        roomId,
+                                        categoryId,
+                                        position,
+                                    );
                                 }}
                                 onRenameRoom={(roomId, name) => {
                                     void renameRoom(roomId, name);
@@ -502,17 +557,38 @@ function DeskChatShell({
                                 onClearSearch={clearSearchState}
                                 isMemberPanelVisible={isMemberPanelVisible}
                                 onToggleMemberPanel={() => {
-                                    setIsMemberPanelVisible((current) => !current);
+                                    setIsMemberPanelVisible(
+                                        (current) => !current,
+                                    );
                                 }}
                                 onOpenNotification={(notification) => {
                                     void (async () => {
-                                        if (notification.roomId !== currentRoomId) {
-                                            await selectRoom(notification.roomId);
+                                        if (
+                                            notification.roomId !==
+                                            currentRoomId
+                                        ) {
+                                            await selectRoom(
+                                                notification.roomId,
+                                            );
+                                        }
+
+                                        if (
+                                            notification.type === "MENTION" &&
+                                            !notification.replyMessageId
+                                        ) {
+                                            // Mention in a root message — scroll to it, no thread
+                                            closeThreadPanel();
+                                            setFocusedMessageId(
+                                                notification.rootMessageId,
+                                            );
+                                            return;
                                         }
 
                                         setThreadRootMessage(null);
                                         setThreadReplies([]);
-                                        setActiveThreadRootId(notification.rootMessageId);
+                                        setActiveThreadRootId(
+                                            notification.rootMessageId,
+                                        );
                                         await loadThread(
                                             notification.rootMessageId,
                                             notification.roomId,
@@ -536,8 +612,8 @@ function DeskChatShell({
                                 onOpenThread={(rootMessageId) => {
                                     const rootFromTimeline = roomMessages.find(
                                         (message) =>
-                                            message.id === rootMessageId
-                                            && !message.replyToMessageId,
+                                            message.id === rootMessageId &&
+                                            !message.replyToMessageId,
                                     );
                                     if (rootFromTimeline) {
                                         setThreadRootMessage(rootFromTimeline);
@@ -554,8 +630,16 @@ function DeskChatShell({
                                 roomId={currentRoomId}
                                 disabled={!currentRoomId}
                                 isSending={isSending}
-                                onSend={async (content, attachments) => {
-                                    await sendMessage(content, attachments);
+                                members={roomMembers}
+                                onSend={async (
+                                    content,
+                                    attachments,
+                                    options,
+                                ) => {
+                                    await sendMessage(content, attachments, {
+                                        mentionedUserIds:
+                                            options?.mentionedUserIds,
+                                    });
                                 }}
                             />
                         </div>
@@ -568,31 +652,51 @@ function DeskChatShell({
                                 isLoading={isLoadingThread}
                                 isSending={isSending}
                                 error={threadError}
+                                members={roomMembers}
                                 onClose={closeThreadPanel}
                                 onRetry={() => {
                                     if (!activeThreadRootId) return;
                                     void loadThread(activeThreadRootId);
                                 }}
-                                frequentEmojis={frequentEmojis.map((entry) => entry.emoji)}
-                                onSendReply={async (content, attachments) => {
+                                frequentEmojis={frequentEmojis.map(
+                                    (entry) => entry.emoji,
+                                )}
+                                onSendReply={async (
+                                    content,
+                                    attachments,
+                                    options,
+                                ) => {
                                     if (!activeThreadRootId) return;
                                     const replyMessage = await sendMessage(
                                         content,
                                         attachments,
-                                        { replyToMessageId: activeThreadRootId },
+                                        {
+                                            replyToMessageId:
+                                                activeThreadRootId,
+                                            mentionedUserIds:
+                                                options?.mentionedUserIds,
+                                        },
                                     );
                                     if (!replyMessage) return;
                                     setThreadReplies((previous) => {
-                                        const byId = new Map<string, ChatV2Message>();
+                                        const byId = new Map<
+                                            string,
+                                            ChatV2Message
+                                        >();
                                         for (const reply of previous) {
                                             byId.set(reply.id, reply);
                                         }
                                         byId.set(replyMessage.id, replyMessage);
-                                        return sortByCreatedAtAsc(Array.from(byId.values()));
+                                        return sortByCreatedAtAsc(
+                                            Array.from(byId.values()),
+                                        );
                                     });
                                 }}
                                 onToggleReaction={async (messageId, emoji) => {
-                                    await toggleMessageReaction(messageId, emoji);
+                                    await toggleMessageReaction(
+                                        messageId,
+                                        emoji,
+                                    );
                                 }}
                             />
                         ) : isSearchPanelVisible ? (

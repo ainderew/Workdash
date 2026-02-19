@@ -93,6 +93,7 @@ export type ChatV2Message = {
         image: string | null;
     }>;
     reactions?: ChatV2MessageReaction[];
+    mentionedUserIds?: number[];
 };
 
 export type ChatV2MessageReactionUpdate = {
@@ -139,6 +140,7 @@ export type ChatV2RoomMember = {
         id: number;
         name: string;
         email: string;
+        image?: string | null;
     };
 };
 
@@ -203,7 +205,7 @@ export type ChatV2UserProfile = {
     canSendDirectMessage: boolean;
 };
 
-export type ChatV2UserNotificationType = "REPLY_TO_MESSAGE";
+export type ChatV2UserNotificationType = "REPLY_TO_MESSAGE" | "MENTION";
 
 export type ChatV2UserNotification = {
     id: string;

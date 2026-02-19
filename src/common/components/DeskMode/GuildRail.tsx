@@ -47,7 +47,7 @@ function RailButton({
                 <button
                     type="button"
                     onClick={onClick}
-                    className="group relative w-12 h-12 rounded-2xl wd-bg-elevated wd-text-primary transition-all duration-200 hover:bg-[var(--wd-accent-soft)] hover:wd-text-accent"
+                    className="group relative w-11 h-11 rounded-lg wd-bg-elevated wd-text-primary transition-all duration-200 hover:bg-[var(--wd-accent-soft)] hover:wd-text-accent"
                     aria-label={label}
                 >
                     <span
@@ -85,22 +85,30 @@ function GuildRail({
     const primaryWorkspace = workspaces[0];
 
     return (
-        <aside className="w-18 wd-bg-app p-3 flex flex-col items-center gap-3">
+        <aside className="w-16 wd-bg-app p-3 flex flex-col items-center gap-3">
             {primaryWorkspace ? (
                 <RailButton
-                    active={railView === "server" && selectedWorkspaceId === primaryWorkspace.id}
+                    active={
+                        railView === "server" &&
+                        selectedWorkspaceId === primaryWorkspace.id
+                    }
                     label={primaryWorkspace.name}
                     unreadCount={primaryWorkspace.unreadCount}
                     onClick={() => onSelectWorkspace(primaryWorkspace.id)}
                 >
-                    <span className="text-sm font-bold">{toInitials(primaryWorkspace.name)}</span>
+                    <span className="text-sm font-bold">
+                        {toInitials(primaryWorkspace.name)}
+                    </span>
                 </RailButton>
             ) : null}
 
             {workspaces.slice(1).map((workspace) => (
                 <RailButton
                     key={workspace.id}
-                    active={railView === "server" && selectedWorkspaceId === workspace.id}
+                    active={
+                        railView === "server" &&
+                        selectedWorkspaceId === workspace.id
+                    }
                     label={workspace.name}
                     unreadCount={workspace.unreadCount}
                     onClick={() => onSelectWorkspace(workspace.id)}

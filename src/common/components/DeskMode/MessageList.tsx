@@ -13,8 +13,13 @@ import useChatV2Store from "@/common/store/chatV2Store";
 import { GitHubPreview } from "@/common/components/TextChat/GitHubPreview";
 import { TwitterPreview } from "@/common/components/TextChat/TwitterPreview";
 import { YouTubePreview } from "@/common/components/TextChat/YouTubePreview";
+import {
+    buildMemberNameMap,
+    extractMentionedUserIds,
+} from "@/communication/chatV2/mentionUtils";
 import MessageHoverActions from "./MessageHoverActions";
 import MessageReactionChips from "./MessageReactionChips";
+import MentionHighlightedContent from "./MentionHighlightedContent";
 import {
     Ban,
     Copy,
@@ -54,16 +59,16 @@ type AvatarContextMenuState = {
 
 type SenderAvatar =
     | {
-        mode: "sprite";
-        style: React.CSSProperties;
-    }
+          mode: "sprite";
+          style: React.CSSProperties;
+      }
     | {
-        mode: "image";
-        src: string;
-    }
+          mode: "image";
+          src: string;
+      }
     | {
-        mode: "fallback";
-    };
+          mode: "fallback";
+      };
 
 type ProfilePopoverState = {
     x: number;
@@ -75,7 +80,9 @@ type ProfilePopoverState = {
 const MAX_PREVIEW_RETRIES = 3;
 const MAX_BIO_LENGTH = 280;
 
-const getFriendActionMeta = (friendshipStatus: ChatV2FriendshipStatus | null) => {
+const getFriendActionMeta = (
+    friendshipStatus: ChatV2FriendshipStatus | null,
+) => {
     if (friendshipStatus === "ACCEPTED") {
         return {
             isDisabled: true,
@@ -120,7 +127,9 @@ const formatTime = (value: string | Date) =>
 const isFacebookVideoUrl = (value: string) => {
     try {
         const parsed = new URL(value);
-        const normalizedHost = parsed.hostname.toLowerCase().replace(/^www\./, "");
+        const normalizedHost = parsed.hostname
+            .toLowerCase()
+            .replace(/^www\./, "");
         const normalizedPath = parsed.pathname.toLowerCase();
 
         if (normalizedHost === "fb.watch") return true;
@@ -151,8 +160,8 @@ const getSenderAvatarForMessage = (
     },
 ): SenderAvatar => {
     const isLocalSender =
-        input.localBackendUserId !== undefined
-        && message.senderUserId === input.localBackendUserId;
+        input.localBackendUserId !== undefined &&
+        message.senderUserId === input.localBackendUserId;
 
     if (isLocalSender && input.localSpriteSheet) {
         return {
@@ -167,8 +176,8 @@ const getSenderAvatarForMessage = (
     }
 
     const senderImage =
-        message.sender?.image?.trim()
-        || input.resolvedSenderImagesByUserId?.[message.senderUserId]?.trim();
+        message.sender?.image?.trim() ||
+        input.resolvedSenderImagesByUserId?.[message.senderUserId]?.trim();
     if (senderImage) {
         return { mode: "image", src: senderImage };
     }
@@ -193,28 +202,31 @@ function MessageList({
     const friends = useChatV2Store((state) => state.friends);
     const friendRequests = useChatV2Store((state) => state.friendRequests);
     const requestFriend = useChatV2Store((state) => state.requestFriend);
-    const openDirectMessage = useChatV2Store((state) => state.openDirectMessage);
+    const openDirectMessage = useChatV2Store(
+        (state) => state.openDirectMessage,
+    );
     const frequentEmojis = useChatV2Store((state) => state.frequentEmojis);
+    const currentRoomId = useChatV2Store((state) => state.currentRoomId);
+    const membersByRoomId = useChatV2Store((state) => state.membersByRoomId);
     const toggleMessageReaction = useChatV2Store(
         (state) => state.toggleMessageReaction,
     );
-    const [attachmentUrls, setAttachmentUrls] = useState<Record<string, string>>(
-        {},
-    );
+    const [attachmentUrls, setAttachmentUrls] = useState<
+        Record<string, string>
+    >({});
     const [linkPreviews, setLinkPreviews] = useState<
         Record<string, LinkPreviewMetadata | null>
     >({});
     const [previewRetryCounts, setPreviewRetryCounts] = useState<
         Record<string, number>
     >({});
-    const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(
-        null,
-    );
+    const [highlightedMessageId, setHighlightedMessageId] = useState<
+        string | null
+    >(null);
     const [avatarContextMenu, setAvatarContextMenu] =
         useState<AvatarContextMenuState | null>(null);
-    const [profilePopover, setProfilePopover] = useState<ProfilePopoverState | null>(
-        null,
-    );
+    const [profilePopover, setProfilePopover] =
+        useState<ProfilePopoverState | null>(null);
     const [activeUserProfile, setActiveUserProfile] =
         useState<ChatV2UserProfile | null>(null);
     const [isLoadingProfile, setIsLoadingProfile] = useState(false);
@@ -225,16 +237,19 @@ function MessageList({
     const [isMoreOptionsOpen, setIsMoreOptionsOpen] = useState(false);
     const [isOpeningDm, setIsOpeningDm] = useState(false);
     const [isAddingFriend, setIsAddingFriend] = useState(false);
-    const [resolvedSenderImagesByUserId, setResolvedSenderImagesByUserId] = useState<
-        Record<number, string>
-    >({});
-    const [avatarImageLookupStatusByUserId, setAvatarImageLookupStatusByUserId] =
-        useState<Record<number, "pending" | "done">>({});
+    const [resolvedSenderImagesByUserId, setResolvedSenderImagesByUserId] =
+        useState<Record<number, string>>({});
+    const [
+        avatarImageLookupStatusByUserId,
+        setAvatarImageLookupStatusByUserId,
+    ] = useState<Record<number, "pending" | "done">>({});
     const localBackendUserId =
         typeof window !== "undefined" ? window.__BACKEND_USER__?.id : undefined;
-    const localDisplayName = user.name?.trim() || window.__BACKEND_USER__?.name || "";
+    const localDisplayName =
+        user.name?.trim() || window.__BACKEND_USER__?.name || "";
     const localSpriteSheet = user.spriteSheetDataUrl?.trim() || "";
-    const localProfileImage = user.image?.trim() || window.__BACKEND_USER__?.image || "";
+    const localProfileImage =
+        user.image?.trim() || window.__BACKEND_USER__?.image || "";
     const acceptedFriendUserIds = useMemo(
         () =>
             new Set(
@@ -257,29 +272,37 @@ function MessageList({
         () => getFriendActionMeta(activeUserProfile?.friendshipStatus ?? null),
         [activeUserProfile?.friendshipStatus],
     );
-    const avatarContextFriendshipStatus = useMemo<ChatV2FriendshipStatus | null>(() => {
-        if (!avatarContextMenu) return null;
+    const avatarContextFriendshipStatus =
+        useMemo<ChatV2FriendshipStatus | null>(() => {
+            if (!avatarContextMenu) return null;
 
-        const targetUserId = avatarContextMenu.senderUserId;
-        if (
-            activeUserProfile
-            && activeUserProfile.user.id === targetUserId
-            && !activeUserProfile.isSelf
-        ) {
-            return activeUserProfile.friendshipStatus;
-        }
-        if (acceptedFriendUserIds.has(targetUserId)) return "ACCEPTED";
-        if (pendingFriendUserIds.has(targetUserId)) return "PENDING";
-        return null;
-    }, [
-        acceptedFriendUserIds,
-        activeUserProfile,
-        avatarContextMenu,
-        pendingFriendUserIds,
-    ]);
+            const targetUserId = avatarContextMenu.senderUserId;
+            if (
+                activeUserProfile &&
+                activeUserProfile.user.id === targetUserId &&
+                !activeUserProfile.isSelf
+            ) {
+                return activeUserProfile.friendshipStatus;
+            }
+            if (acceptedFriendUserIds.has(targetUserId)) return "ACCEPTED";
+            if (pendingFriendUserIds.has(targetUserId)) return "PENDING";
+            return null;
+        }, [
+            acceptedFriendUserIds,
+            activeUserProfile,
+            avatarContextMenu,
+            pendingFriendUserIds,
+        ]);
     const avatarFriendActionMeta = useMemo(
         () => getFriendActionMeta(avatarContextFriendshipStatus),
         [avatarContextFriendshipStatus],
+    );
+    const roomMembers = currentRoomId
+        ? membersByRoomId[currentRoomId] || []
+        : [];
+    const memberNameMap = useMemo(
+        () => buildMemberNameMap(roomMembers),
+        [roomMembers],
     );
     const messageScrollSignature = useMemo(() => {
         if (messages.length === 0) return "empty";
@@ -423,7 +446,10 @@ function MessageList({
     }, [chatV2Service, profilePopover]);
 
     useEffect(() => {
-        const unresolvedAttachments: Array<{ roomId: string; objectKey: string }> = [];
+        const unresolvedAttachments: Array<{
+            roomId: string;
+            objectKey: string;
+        }> = [];
 
         for (const message of messages) {
             for (const attachment of message.attachments) {
@@ -479,24 +505,28 @@ function MessageList({
             new Set(
                 messages
                     .filter((message) => {
-                        if (!Number.isInteger(message.senderUserId)) return false;
+                        if (!Number.isInteger(message.senderUserId))
+                            return false;
                         if (
-                            typeof localBackendUserId === "number"
-                            && message.senderUserId === localBackendUserId
+                            typeof localBackendUserId === "number" &&
+                            message.senderUserId === localBackendUserId
                         ) {
                             return false;
                         }
                         if (message.sender?.image?.trim()) return false;
-                        if (resolvedSenderImagesByUserId[message.senderUserId]) return false;
+                        if (resolvedSenderImagesByUserId[message.senderUserId])
+                            return false;
                         if (
-                            avatarImageLookupStatusByUserId[message.senderUserId]
-                            === "pending"
+                            avatarImageLookupStatusByUserId[
+                                message.senderUserId
+                            ] === "pending"
                         ) {
                             return false;
                         }
                         if (
-                            avatarImageLookupStatusByUserId[message.senderUserId]
-                            === "done"
+                            avatarImageLookupStatusByUserId[
+                                message.senderUserId
+                            ] === "done"
                         ) {
                             return false;
                         }
@@ -573,8 +603,8 @@ function MessageList({
                 .map((part) => part.url as string);
             const extractedUrls = Array.from(
                 new Set(
-                    (message.content.match(/https?:\/\/[^\s]+/gi) || []).map((url) =>
-                        url.trim(),
+                    (message.content.match(/https?:\/\/[^\s]+/gi) || []).map(
+                        (url) => url.trim(),
                     ),
                 ),
             );
@@ -586,22 +616,21 @@ function MessageList({
             for (const url of genericUrls) {
                 const existingPreview = linkPreviews[url];
                 const isWeakPreview =
-                    !!existingPreview
-                    && !existingPreview.title
-                    && !existingPreview.description
-                    && !existingPreview.image;
+                    !!existingPreview &&
+                    !existingPreview.title &&
+                    !existingPreview.description &&
+                    !existingPreview.image;
                 const retryCount = previewRetryCounts[url] || 0;
                 const shouldRetryWeakPreview =
-                    isWeakPreview
-                    && retryCount < MAX_PREVIEW_RETRIES;
+                    isWeakPreview && retryCount < MAX_PREVIEW_RETRIES;
                 const shouldRetryFailedPreview =
-                    existingPreview === null
-                    && retryCount < MAX_PREVIEW_RETRIES;
+                    existingPreview === null &&
+                    retryCount < MAX_PREVIEW_RETRIES;
 
                 if (
-                    existingPreview === undefined
-                    || shouldRetryWeakPreview
-                    || shouldRetryFailedPreview
+                    existingPreview === undefined ||
+                    shouldRetryWeakPreview ||
+                    shouldRetryFailedPreview
                 ) {
                     unresolvedUrls.add(url);
                 }
@@ -622,7 +651,8 @@ function MessageList({
                         if (!response.ok) {
                             return [url, null] as const;
                         }
-                        const payload = (await response.json()) as LinkPreviewMetadata;
+                        const payload =
+                            (await response.json()) as LinkPreviewMetadata;
                         return [url, payload] as const;
                     } catch {
                         return [url, null] as const;
@@ -636,10 +666,10 @@ function MessageList({
                 const next = { ...previous };
                 for (const [url, metadata] of resolvedEntries) {
                     const isWeakPreview =
-                        !!metadata
-                        && !metadata.title
-                        && !metadata.description
-                        && !metadata.image;
+                        !!metadata &&
+                        !metadata.title &&
+                        !metadata.description &&
+                        !metadata.image;
                     const shouldRetry = metadata === null || isWeakPreview;
 
                     if (shouldRetry) {
@@ -686,7 +716,8 @@ function MessageList({
                 continue;
             }
 
-            const existingReplies = repliesByRootId.get(message.replyToMessageId) || [];
+            const existingReplies =
+                repliesByRootId.get(message.replyToMessageId) || [];
             existingReplies.push(message);
             repliesByRootId.set(message.replyToMessageId, existingReplies);
         }
@@ -699,8 +730,8 @@ function MessageList({
 
     const getSenderName = (message: ChatV2Message) => {
         const isLocalSender =
-            localBackendUserId !== undefined
-            && message.senderUserId === localBackendUserId;
+            localBackendUserId !== undefined &&
+            message.senderUserId === localBackendUserId;
         if (isLocalSender && localDisplayName) {
             return localDisplayName;
         }
@@ -722,12 +753,15 @@ function MessageList({
         senderName: string,
     ) => {
         if (
-            typeof localBackendUserId === "number"
-            && message.senderUserId === localBackendUserId
+            typeof localBackendUserId === "number" &&
+            message.senderUserId === localBackendUserId
         ) {
             return;
         }
-        if (!Number.isInteger(message.senderUserId) || message.senderUserId <= 0) {
+        if (
+            !Number.isInteger(message.senderUserId) ||
+            message.senderUserId <= 0
+        ) {
             return;
         }
 
@@ -753,13 +787,58 @@ function MessageList({
         setIsMoreOptionsOpen(false);
     };
 
+    const handleMentionClick = (
+        event: React.MouseEvent,
+        userId: number,
+        displayName: string,
+    ) => {
+        if (!Number.isInteger(userId) || userId <= 0) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        const popoverWidth = 360;
+        const popoverHeight = 420;
+        const maxX = Math.max(8, window.innerWidth - popoverWidth - 8);
+        const maxY = Math.max(8, window.innerHeight - popoverHeight - 8);
+        const desiredX = event.clientX + 12;
+        const desiredY = event.clientY - 16;
+
+        let senderAvatar: SenderAvatar;
+        const resolvedImage = resolvedSenderImagesByUserId[userId];
+        if (resolvedImage) {
+            senderAvatar = { mode: "image", src: resolvedImage };
+        } else {
+            const member = roomMembers.find((m) => m.user.id === userId);
+            const memberImage = member?.user.image?.trim();
+            if (memberImage) {
+                senderAvatar = { mode: "image", src: memberImage };
+            } else {
+                senderAvatar = { mode: "fallback" };
+            }
+        }
+
+        setProfilePopover({
+            x: Math.min(desiredX, maxX),
+            y: Math.min(Math.max(8, desiredY), maxY),
+            senderUserId: userId,
+            senderName: displayName,
+            senderAvatar,
+        });
+        setAvatarContextMenu(null);
+        setIsMoreOptionsOpen(false);
+    };
+
     const openProfilePopover = (
         event: React.MouseEvent<HTMLDivElement>,
         message: ChatV2Message,
         senderName: string,
         senderAvatar: SenderAvatar,
     ) => {
-        if (!Number.isInteger(message.senderUserId) || message.senderUserId <= 0) {
+        if (
+            !Number.isInteger(message.senderUserId) ||
+            message.senderUserId <= 0
+        ) {
             return;
         }
 
@@ -802,7 +881,9 @@ function MessageList({
         } catch (error) {
             toast("Unable to send friend request", {
                 description:
-                    error instanceof Error ? error.message : "Please try again.",
+                    error instanceof Error
+                        ? error.message
+                        : "Please try again.",
             });
         } finally {
             setIsAddingFriend(false);
@@ -836,7 +917,9 @@ function MessageList({
         } catch (error) {
             toast("Unable to open private message", {
                 description:
-                    error instanceof Error ? error.message : "Please try again.",
+                    error instanceof Error
+                        ? error.message
+                        : "Please try again.",
             });
         } finally {
             setIsOpeningDm(false);
@@ -862,7 +945,9 @@ function MessageList({
         } catch (error) {
             toast("Failed to update bio", {
                 description:
-                    error instanceof Error ? error.message : "Please try again.",
+                    error instanceof Error
+                        ? error.message
+                        : "Please try again.",
             });
         } finally {
             setIsSavingBio(false);
@@ -881,13 +966,22 @@ function MessageList({
         metadata?: LinkPreviewMetadata | null,
     ) => {
         const isFacebookVideo = isFacebookVideoUrl(url);
-        const hasRichMetadata = !!(metadata?.title || metadata?.description || metadata?.image);
+        const hasRichMetadata = !!(
+            metadata?.title ||
+            metadata?.description ||
+            metadata?.image
+        );
 
         if (hasRichMetadata && !isFacebookVideo) {
-            const displayDomain = metadata?.domain || extractDomain(metadata?.url || url);
-            const displayTitle = metadata?.title || metadata?.siteName || displayDomain;
+            const displayDomain =
+                metadata?.domain || extractDomain(metadata?.url || url);
+            const displayTitle =
+                metadata?.title || metadata?.siteName || displayDomain;
             const displayDescription =
-                metadata?.description || metadata?.siteName || metadata?.url || url;
+                metadata?.description ||
+                metadata?.siteName ||
+                metadata?.url ||
+                url;
             const displayUrl = metadata?.url || url;
             const previewImageSrc = metadata?.image;
 
@@ -907,7 +1001,9 @@ function MessageList({
                         />
                     )}
                     <div className="px-3 py-2">
-                        <p className="text-xs wd-text-muted truncate">{displayDomain}</p>
+                        <p className="text-xs wd-text-muted truncate">
+                            {displayDomain}
+                        </p>
                         <p className="mt-1 text-sm wd-text-primary font-medium line-clamp-2">
                             {displayTitle}
                         </p>
@@ -923,7 +1019,8 @@ function MessageList({
             const displayUrl = metadata?.url || url;
             const displayDomain = metadata?.domain || extractDomain(displayUrl);
             const displayTitle = metadata?.title || "Facebook video";
-            const displayDescription = metadata?.description || "Open on Facebook";
+            const displayDescription =
+                metadata?.description || "Open on Facebook";
 
             return (
                 <div
@@ -946,7 +1043,9 @@ function MessageList({
                         rel="noopener noreferrer"
                         className="block px-3 py-2 transition-colors hover:bg-[var(--wd-surface-base)]"
                     >
-                        <p className="text-xs wd-text-muted truncate">{displayDomain}</p>
+                        <p className="text-xs wd-text-muted truncate">
+                            {displayDomain}
+                        </p>
                         <p className="mt-1 text-sm wd-text-primary font-medium line-clamp-2">
                             {displayTitle}
                         </p>
@@ -959,30 +1058,33 @@ function MessageList({
         }
 
         return (
-        <a
-            key={key}
-            href={url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-2 block max-w-md rounded-md border wd-border-subtle wd-bg-elevated px-3 py-2 transition-colors hover:bg-[var(--wd-surface-base)]"
-        >
-            <div className="flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                    <p className="text-xs wd-text-muted truncate">
-                        {extractDomain(url)}
-                    </p>
-                    <p className="text-sm wd-text-accent truncate">{url}</p>
+            <a
+                key={key}
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-2 block max-w-md rounded-md border wd-border-subtle wd-bg-elevated px-3 py-2 transition-colors hover:bg-[var(--wd-surface-base)]"
+            >
+                <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                        <p className="text-xs wd-text-muted truncate">
+                            {extractDomain(url)}
+                        </p>
+                        <p className="text-sm wd-text-accent truncate">{url}</p>
+                    </div>
+                    <ExternalLink
+                        size={14}
+                        className="shrink-0 wd-text-secondary"
+                    />
                 </div>
-                <ExternalLink size={14} className="shrink-0 wd-text-secondary" />
-            </div>
-        </a>
+            </a>
         );
     };
 
     return (
         <div
             ref={scrollContainerRef}
-            className="flex-1 overflow-y-auto px-5 py-4 space-y-3 wd-bg-panel-2"
+            className="no-scrollbar flex-1 overflow-y-auto px-5 py-4 space-y-3 wd-bg-panel-2"
         >
             {isLoading ? (
                 <div className="text-xs wd-text-muted">Loading messages...</div>
@@ -995,38 +1097,52 @@ function MessageList({
                     const threadReplies =
                         groupedMessages.repliesByRootId.get(message.id) || [];
                     const messageReplyPreviewUsers =
-                        message.replyPreviewUsers && message.replyPreviewUsers.length > 0
+                        message.replyPreviewUsers &&
+                        message.replyPreviewUsers.length > 0
                             ? message.replyPreviewUsers
                             : (() => {
-                                const previewUsers = new Map<
-                                    number,
-                                    { id: number; name: string | null; image: string | null }
-                                >();
-                                for (let index = threadReplies.length - 1; index >= 0; index -= 1) {
-                                    const reply = threadReplies[index];
-                                    if (!reply) continue;
-                                    if (previewUsers.has(reply.senderUserId)) continue;
-                                    previewUsers.set(reply.senderUserId, {
-                                        id: reply.senderUserId,
-                                        name: reply.sender?.name || `User ${reply.senderUserId}`,
-                                        image: reply.sender?.image || null,
-                                    });
-                                    if (previewUsers.size >= 3) break;
-                                }
-                                return Array.from(previewUsers.values());
-                            })();
-                    const totalReplies = message.replyCount ?? threadReplies.length;
-                    const isThreadHighlighted =
-                        threadReplies.some((reply) => reply.id === highlightedMessageId);
+                                  const previewUsers = new Map<
+                                      number,
+                                      {
+                                          id: number;
+                                          name: string | null;
+                                          image: string | null;
+                                      }
+                                  >();
+                                  for (
+                                      let index = threadReplies.length - 1;
+                                      index >= 0;
+                                      index -= 1
+                                  ) {
+                                      const reply = threadReplies[index];
+                                      if (!reply) continue;
+                                      if (previewUsers.has(reply.senderUserId))
+                                          continue;
+                                      previewUsers.set(reply.senderUserId, {
+                                          id: reply.senderUserId,
+                                          name:
+                                              reply.sender?.name ||
+                                              `User ${reply.senderUserId}`,
+                                          image: reply.sender?.image || null,
+                                      });
+                                      if (previewUsers.size >= 3) break;
+                                  }
+                                  return Array.from(previewUsers.values());
+                              })();
+                    const totalReplies =
+                        message.replyCount ?? threadReplies.length;
+                    const isThreadHighlighted = threadReplies.some(
+                        (reply) => reply.id === highlightedMessageId,
+                    );
                     const senderName = getSenderName(message);
                     const senderAvatar = getSenderAvatar(message);
                     const canOpenAvatarMenu = !(
-                        typeof localBackendUserId === "number"
-                        && message.senderUserId === localBackendUserId
+                        typeof localBackendUserId === "number" &&
+                        message.senderUserId === localBackendUserId
                     );
                     const standaloneGifUrl =
-                        message.messageType === "IMAGE"
-                            && message.attachments.length === 0
+                        message.messageType === "IMAGE" &&
+                        message.attachments.length === 0
                             ? getStandaloneGifUrl(message.content)
                             : null;
                     const parsedMessageParts =
@@ -1041,23 +1157,40 @@ function MessageList({
                     );
                     const extractedUrls = Array.from(
                         new Set(
-                            (message.content?.match(/https?:\/\/[^\s]+/gi) || []).map(
-                                (url) => url.trim(),
-                            ),
+                            (
+                                message.content?.match(/https?:\/\/[^\s]+/gi) ||
+                                []
+                            ).map((url) => url.trim()),
                         ),
                     );
                     const fallbackGenericUrls = extractedUrls.filter(
                         (url) => !parsedMessageLinkUrls.has(url),
                     );
 
+                    const effectiveMentionedUserIds =
+                        Array.isArray(message.mentionedUserIds) &&
+                        message.mentionedUserIds.length > 0
+                            ? message.mentionedUserIds
+                            : extractMentionedUserIds(
+                                  message.content || "",
+                                  memberNameMap,
+                              );
+                    const isCurrentUserMentioned =
+                        typeof localBackendUserId === "number" &&
+                        effectiveMentionedUserIds.includes(localBackendUserId);
+                    const hasMentions = effectiveMentionedUserIds.length > 0;
+
                     return (
                         <div
                             key={message.id}
                             data-chat-message-id={message.id}
-                            className={`group flex gap-3 rounded-md px-1 py-1 transition-colors ${
-                                highlightedMessageId === message.id || isThreadHighlighted
-                                    ? "bg-[var(--wd-accent-soft)]"
-                                    : ""
+                            className={`group flex gap-3 px-1 py-1 transition-colors ${
+                                highlightedMessageId === message.id ||
+                                isThreadHighlighted
+                                    ? "rounded-md bg-[var(--wd-accent-soft)]"
+                                    : isCurrentUserMentioned
+                                      ? "border-l-2 border-l-[rgb(240,185,11)] bg-[rgba(240,185,11,0.06)]"
+                                      : ""
                             }`}
                         >
                             <div
@@ -1070,7 +1203,11 @@ function MessageList({
                                     )
                                 }
                                 onContextMenu={(event) =>
-                                    openAvatarContextMenu(event, message, senderName)
+                                    openAvatarContextMenu(
+                                        event,
+                                        message,
+                                        senderName,
+                                    )
                                 }
                                 title={
                                     canOpenAvatarMenu
@@ -1091,14 +1228,18 @@ function MessageList({
                                         className="w-full h-full object-cover"
                                     />
                                 ) : (
-                                    <span>{senderName.charAt(0).toUpperCase()}</span>
+                                    <span>
+                                        {senderName.charAt(0).toUpperCase()}
+                                    </span>
                                 )}
                             </div>
 
                             <div className="min-w-0 flex-1 relative">
                                 <MessageHoverActions
                                     canReply={!message.replyToMessageId}
-                                    frequentEmojis={frequentEmojis.map((entry) => entry.emoji)}
+                                    frequentEmojis={frequentEmojis.map(
+                                        (entry) => entry.emoji,
+                                    )}
                                     onReply={() => {
                                         if (!message.replyToMessageId) {
                                             onOpenThread?.(message.id);
@@ -1107,7 +1248,10 @@ function MessageList({
                                         handleFutureMessageAction("Reply");
                                     }}
                                     onReact={(emoji) => {
-                                        void toggleMessageReaction(message.id, emoji);
+                                        void toggleMessageReaction(
+                                            message.id,
+                                            emoji,
+                                        );
                                     }}
                                     onFutureAction={handleFutureMessageAction}
                                 />
@@ -1142,141 +1286,253 @@ function MessageList({
                                             </div>
                                         )}
 
-                                        {message.content && !standaloneGifUrl && (
-                                            <div>
-                                                <div className="text-sm wd-text-secondary whitespace-pre-wrap break-words">
-                                                    {parsedMessageLinks.length > 0
-                                                        ? parsedMessageParts.map((part, index) => {
-                                                            if (part.type !== "text") return null;
-                                                            return (
-                                                                <span
-                                                                    key={`${message.id}-text-${index}`}
-                                                                >
-                                                                    {part.content}
-                                                                </span>
-                                                            );
-                                                        })
-                                                        : message.content}
-                                                </div>
+                                        {message.content &&
+                                            !standaloneGifUrl && (
+                                                <div>
+                                                    <div className="text-sm wd-text-secondary whitespace-pre-wrap break-words">
+                                                        {parsedMessageLinks.length >
+                                                        0 ? (
+                                                            parsedMessageParts.map(
+                                                                (
+                                                                    part,
+                                                                    index,
+                                                                ) => {
+                                                                    if (
+                                                                        part.type !==
+                                                                        "text"
+                                                                    )
+                                                                        return null;
+                                                                    if (
+                                                                        hasMentions &&
+                                                                        part.content
+                                                                    ) {
+                                                                        return (
+                                                                            <MentionHighlightedContent
+                                                                                key={`${message.id}-text-${index}`}
+                                                                                content={
+                                                                                    part.content
+                                                                                }
+                                                                                mentionedUserIds={
+                                                                                    effectiveMentionedUserIds
+                                                                                }
+                                                                                memberNameMap={
+                                                                                    memberNameMap
+                                                                                }
+                                                                                onClickMention={
+                                                                                    handleMentionClick
+                                                                                }
+                                                                            />
+                                                                        );
+                                                                    }
+                                                                    return (
+                                                                        <span
+                                                                            key={`${message.id}-text-${index}`}
+                                                                        >
+                                                                            {
+                                                                                part.content
+                                                                            }
+                                                                        </span>
+                                                                    );
+                                                                },
+                                                            )
+                                                        ) : hasMentions ? (
+                                                            <MentionHighlightedContent
+                                                                content={
+                                                                    message.content
+                                                                }
+                                                                mentionedUserIds={
+                                                                    effectiveMentionedUserIds
+                                                                }
+                                                                memberNameMap={
+                                                                    memberNameMap
+                                                                }
+                                                                onClickMention={
+                                                                    handleMentionClick
+                                                                }
+                                                            />
+                                                        ) : (
+                                                            message.content
+                                                        )}
+                                                    </div>
 
-                                                {(parsedMessageLinks.length > 0
-                                                    || fallbackGenericUrls.length > 0) && (
+                                                    {(parsedMessageLinks.length >
+                                                        0 ||
+                                                        fallbackGenericUrls.length >
+                                                            0) && (
                                                         <div className="mt-2">
-                                                            {parsedMessageParts.map((part, index) => {
-                                                                const key =
-                                                                    `${message.id}-preview-${index}`;
+                                                            {parsedMessageParts.map(
+                                                                (
+                                                                    part,
+                                                                    index,
+                                                                ) => {
+                                                                    const key = `${message.id}-preview-${index}`;
 
-                                                                if (
-                                                                    part.type === "youtube"
-                                                                    && part.youtubeId
-                                                                    && part.url
-                                                                ) {
-                                                                    return (
-                                                                        <YouTubePreview
-                                                                            key={key}
-                                                                            videoId={part.youtubeId}
-                                                                            url={part.url}
-                                                                        />
-                                                                    );
-                                                                }
+                                                                    if (
+                                                                        part.type ===
+                                                                            "youtube" &&
+                                                                        part.youtubeId &&
+                                                                        part.url
+                                                                    ) {
+                                                                        return (
+                                                                            <YouTubePreview
+                                                                                key={
+                                                                                    key
+                                                                                }
+                                                                                videoId={
+                                                                                    part.youtubeId
+                                                                                }
+                                                                                url={
+                                                                                    part.url
+                                                                                }
+                                                                            />
+                                                                        );
+                                                                    }
 
-                                                                if (
-                                                                    part.type === "twitter"
-                                                                    && part.twitterUsername
-                                                                    && part.twitterId
-                                                                    && part.url
-                                                                ) {
-                                                                    return (
-                                                                        <TwitterPreview
-                                                                            key={key}
-                                                                            username={
-                                                                                part.twitterUsername
-                                                                            }
-                                                                            twitterId={part.twitterId}
-                                                                            url={part.url}
-                                                                        />
-                                                                    );
-                                                                }
+                                                                    if (
+                                                                        part.type ===
+                                                                            "twitter" &&
+                                                                        part.twitterUsername &&
+                                                                        part.twitterId &&
+                                                                        part.url
+                                                                    ) {
+                                                                        return (
+                                                                            <TwitterPreview
+                                                                                key={
+                                                                                    key
+                                                                                }
+                                                                                username={
+                                                                                    part.twitterUsername
+                                                                                }
+                                                                                twitterId={
+                                                                                    part.twitterId
+                                                                                }
+                                                                                url={
+                                                                                    part.url
+                                                                                }
+                                                                            />
+                                                                        );
+                                                                    }
 
-                                                                if (
-                                                                    part.type === "github"
-                                                                    && part.githubOwner
-                                                                    && part.githubRepo
-                                                                    && part.githubType
-                                                                    && part.url
-                                                                ) {
-                                                                    return (
-                                                                        <GitHubPreview
-                                                                            key={key}
-                                                                            owner={part.githubOwner}
-                                                                            repo={part.githubRepo}
-                                                                            type={part.githubType}
-                                                                            issueNumber={
-                                                                                part.githubIssueNumber
-                                                                            }
-                                                                            url={part.url}
-                                                                        />
-                                                                    );
-                                                                }
+                                                                    if (
+                                                                        part.type ===
+                                                                            "github" &&
+                                                                        part.githubOwner &&
+                                                                        part.githubRepo &&
+                                                                        part.githubType &&
+                                                                        part.url
+                                                                    ) {
+                                                                        return (
+                                                                            <GitHubPreview
+                                                                                key={
+                                                                                    key
+                                                                                }
+                                                                                owner={
+                                                                                    part.githubOwner
+                                                                                }
+                                                                                repo={
+                                                                                    part.githubRepo
+                                                                                }
+                                                                                type={
+                                                                                    part.githubType
+                                                                                }
+                                                                                issueNumber={
+                                                                                    part.githubIssueNumber
+                                                                                }
+                                                                                url={
+                                                                                    part.url
+                                                                                }
+                                                                            />
+                                                                        );
+                                                                    }
 
-                                                                            if (part.type === "link" && part.url) {
-                                                                                return renderGenericLinkPreview(
-                                                                                    part.url,
-                                                                                    key,
-                                                                                    linkPreviews[part.url],
-                                                                                );
-                                                                            }
+                                                                    if (
+                                                                        part.type ===
+                                                                            "link" &&
+                                                                        part.url
+                                                                    ) {
+                                                                        return renderGenericLinkPreview(
+                                                                            part.url,
+                                                                            key,
+                                                                            linkPreviews[
+                                                                                part
+                                                                                    .url
+                                                                            ],
+                                                                        );
+                                                                    }
 
-                                                                return null;
-                                                            })}
+                                                                    return null;
+                                                                },
+                                                            )}
 
-                                                            {fallbackGenericUrls.map((url, index) =>
-                                                                renderGenericLinkPreview(
-                                                                    url,
-                                                                    `${message.id}-fallback-preview-${index}`,
-                                                                    linkPreviews[url],
-                                                                ),
+                                                            {fallbackGenericUrls.map(
+                                                                (url, index) =>
+                                                                    renderGenericLinkPreview(
+                                                                        url,
+                                                                        `${message.id}-fallback-preview-${index}`,
+                                                                        linkPreviews[
+                                                                            url
+                                                                        ],
+                                                                    ),
                                                             )}
                                                         </div>
                                                     )}
-                                            </div>
-                                        )}
+                                                </div>
+                                            )}
 
                                         {message.attachments.length > 0 && (
                                             <div className="mt-2 space-y-1">
-                                                {message.attachments.map((attachment) => (
-                                                    <div key={attachment.id}>
-                                                        {attachment.isImage
-                                                        && attachmentUrls[attachment.objectKey] ? (
-                                                            <img
-                                                                src={
-                                                                    attachmentUrls[
-                                                                        attachment.objectKey
-                                                                    ]
-                                                                }
-                                                                alt={attachment.originalFileName}
-                                                                className="rounded-md max-w-xs max-h-56 object-cover border wd-border-subtle"
-                                                            />
-                                                        ) : attachmentUrls[attachment.objectKey] ? (
-                                                            <a
-                                                                href={
-                                                                    attachmentUrls[
-                                                                        attachment.objectKey
-                                                                    ]
-                                                                }
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                className="text-xs px-2 py-1 rounded wd-bg-elevated wd-text-accent truncate inline-block border wd-border-subtle"
-                                                            >
-                                                                {attachment.originalFileName}
-                                                            </a>
-                                                        ) : (
-                                                            <div className="text-xs px-2 py-1 rounded wd-bg-elevated wd-text-secondary truncate border wd-border-subtle">
-                                                                Resolving {attachment.originalFileName}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                ))}
+                                                {message.attachments.map(
+                                                    (attachment) => (
+                                                        <div
+                                                            key={attachment.id}
+                                                        >
+                                                            {attachment.isImage &&
+                                                            attachmentUrls[
+                                                                attachment
+                                                                    .objectKey
+                                                            ] ? (
+                                                                <img
+                                                                    src={
+                                                                        attachmentUrls[
+                                                                            attachment
+                                                                                .objectKey
+                                                                        ]
+                                                                    }
+                                                                    alt={
+                                                                        attachment.originalFileName
+                                                                    }
+                                                                    className="rounded-md max-w-xs max-h-56 object-cover border wd-border-subtle"
+                                                                />
+                                                            ) : attachmentUrls[
+                                                                  attachment
+                                                                      .objectKey
+                                                              ] ? (
+                                                                <a
+                                                                    href={
+                                                                        attachmentUrls[
+                                                                            attachment
+                                                                                .objectKey
+                                                                        ]
+                                                                    }
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="text-xs px-2 py-1 rounded wd-bg-elevated wd-text-accent truncate inline-block border wd-border-subtle"
+                                                                >
+                                                                    {
+                                                                        attachment.originalFileName
+                                                                    }
+                                                                </a>
+                                                            ) : (
+                                                                <div className="text-xs px-2 py-1 rounded wd-bg-elevated wd-text-secondary truncate border wd-border-subtle">
+                                                                    Resolving{" "}
+                                                                    {
+                                                                        attachment.originalFileName
+                                                                    }
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    ),
+                                                )}
                                             </div>
                                         )}
 
@@ -1295,40 +1551,56 @@ function MessageList({
                                         {totalReplies > 0 && (
                                             <button
                                                 type="button"
-                                                onClick={() => onOpenThread?.(message.id)}
+                                                onClick={() =>
+                                                    onOpenThread?.(message.id)
+                                                }
                                                 className="mt-2 ml-2 inline-flex items-center gap-2 rounded-md px-2 py-1 text-sm font-semibold wd-text-accent hover:bg-[var(--wd-accent-soft)]"
                                             >
                                                 <span className="inline-flex items-center">
                                                     {messageReplyPreviewUsers
                                                         .slice(0, 3)
-                                                        .map((previewUser, index) => (
-                                                            <span
-                                                                key={`${message.id}-reply-preview-${previewUser.id}`}
-                                                                className={`${
-                                                                    index === 0
-                                                                        ? ""
-                                                                        : "-ml-1.5"
-                                                                } h-5 w-5 rounded-full border wd-border-strong wd-bg-elevated overflow-hidden inline-flex items-center justify-center text-[10px] font-semibold wd-text-primary`}
-                                                            >
-                                                                {previewUser.image ? (
-                                                                    <img
-                                                                        src={previewUser.image}
-                                                                        alt={
-                                                                            previewUser.name
-                                                                            || `User ${previewUser.id}`
-                                                                        }
-                                                                        className="h-full w-full object-cover"
-                                                                    />
-                                                                ) : (
-                                                                    (previewUser.name || "U")
-                                                                        .charAt(0)
-                                                                        .toUpperCase()
-                                                                )}
-                                                            </span>
-                                                        ))}
+                                                        .map(
+                                                            (
+                                                                previewUser,
+                                                                index,
+                                                            ) => (
+                                                                <span
+                                                                    key={`${message.id}-reply-preview-${previewUser.id}`}
+                                                                    className={`${
+                                                                        index ===
+                                                                        0
+                                                                            ? ""
+                                                                            : "-ml-1.5"
+                                                                    } h-5 w-5 rounded-full border wd-border-strong wd-bg-elevated overflow-hidden inline-flex items-center justify-center text-[10px] font-semibold wd-text-primary`}
+                                                                >
+                                                                    {previewUser.image ? (
+                                                                        <img
+                                                                            src={
+                                                                                previewUser.image
+                                                                            }
+                                                                            alt={
+                                                                                previewUser.name ||
+                                                                                `User ${previewUser.id}`
+                                                                            }
+                                                                            className="h-full w-full object-cover"
+                                                                        />
+                                                                    ) : (
+                                                                        (
+                                                                            previewUser.name ||
+                                                                            "U"
+                                                                        )
+                                                                            .charAt(
+                                                                                0,
+                                                                            )
+                                                                            .toUpperCase()
+                                                                    )}
+                                                                </span>
+                                                            ),
+                                                        )}
                                                 </span>
                                                 <span>
-                                                    {totalReplies} {totalReplies === 1
+                                                    {totalReplies}{" "}
+                                                    {totalReplies === 1
                                                         ? "reply"
                                                         : "replies"}
                                                 </span>
@@ -1356,8 +1628,8 @@ function MessageList({
                                 <button
                                     type="button"
                                     disabled={
-                                        isAddingFriend
-                                        || profileFriendActionMeta.isDisabled
+                                        isAddingFriend ||
+                                        profileFriendActionMeta.isDisabled
                                     }
                                     onClick={() => {
                                         void handleAddFriend(
@@ -1384,7 +1656,9 @@ function MessageList({
                                 <button
                                     type="button"
                                     onClick={() =>
-                                        setIsMoreOptionsOpen((current) => !current)
+                                        setIsMoreOptionsOpen(
+                                            (current) => !current,
+                                        )
                                     }
                                     title="More options"
                                     className="h-9 w-9 rounded-full border wd-border-subtle wd-bg-panel-2 wd-text-primary inline-flex items-center justify-center transition-colors hover:bg-[var(--wd-surface-elevated)]"
@@ -1402,42 +1676,52 @@ function MessageList({
                                             onClick={async () => {
                                                 try {
                                                     await navigator.clipboard.writeText(
-                                                        String(profilePopover.senderUserId),
+                                                        String(
+                                                            profilePopover.senderUserId,
+                                                        ),
                                                     );
                                                     toast("User ID copied", {
                                                         description: `Copied ${profilePopover.senderUserId}.`,
                                                     });
                                                 } catch {
-                                                    toast("Unable to copy user ID", {
-                                                        description: "Please try again.",
-                                                    });
+                                                    toast(
+                                                        "Unable to copy user ID",
+                                                        {
+                                                            description:
+                                                                "Please try again.",
+                                                        },
+                                                    );
                                                 }
                                                 setIsMoreOptionsOpen(false);
                                             }}
                                             className="w-full rounded px-2 py-1.5 text-left text-sm wd-text-primary transition-colors hover:bg-[var(--wd-surface-elevated)] inline-flex items-center gap-2"
                                         >
-                                            <Copy size={14} className="wd-text-secondary" />
+                                            <Copy
+                                                size={14}
+                                                className="wd-text-secondary"
+                                            />
                                             Copy User ID
                                         </button>
-                                        {activeUserProfile && !activeUserProfile.isSelf && (
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    void handleOpenDirectMessage(
-                                                        profilePopover.senderUserId,
-                                                        profilePopover.senderName,
-                                                        true,
-                                                    );
-                                                }}
-                                                className="w-full rounded px-2 py-1.5 text-left text-sm wd-text-primary transition-colors hover:bg-[var(--wd-surface-elevated)] inline-flex items-center gap-2"
-                                            >
-                                                <MessageSquare
-                                                    size={14}
-                                                    className="wd-text-secondary"
-                                                />
-                                                Send Private Message
-                                            </button>
-                                        )}
+                                        {activeUserProfile &&
+                                            !activeUserProfile.isSelf && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        void handleOpenDirectMessage(
+                                                            profilePopover.senderUserId,
+                                                            profilePopover.senderName,
+                                                            true,
+                                                        );
+                                                    }}
+                                                    className="w-full rounded px-2 py-1.5 text-left text-sm wd-text-primary transition-colors hover:bg-[var(--wd-surface-elevated)] inline-flex items-center gap-2"
+                                                >
+                                                    <MessageSquare
+                                                        size={14}
+                                                        className="wd-text-secondary"
+                                                    />
+                                                    Send Private Message
+                                                </button>
+                                            )}
                                         <button
                                             type="button"
                                             onClick={() => {
@@ -1481,7 +1765,9 @@ function MessageList({
                                 />
                             ) : (
                                 <div className="h-full w-full inline-flex items-center justify-center text-xl font-semibold wd-text-primary">
-                                    {profilePopover.senderName.charAt(0).toUpperCase()}
+                                    {profilePopover.senderName
+                                        .charAt(0)
+                                        .toUpperCase()}
                                 </div>
                             )}
                         </div>
@@ -1500,7 +1786,9 @@ function MessageList({
                                 Loading profile...
                             </p>
                         ) : profileError ? (
-                            <p className="mt-4 text-sm wd-text-danger">{profileError}</p>
+                            <p className="mt-4 text-sm wd-text-danger">
+                                {profileError}
+                            </p>
                         ) : activeUserProfile ? (
                             <div className="mt-4 space-y-3">
                                 <div className="rounded-lg border wd-border-subtle wd-bg-panel-2 p-3">
@@ -1508,24 +1796,33 @@ function MessageList({
                                         <p className="text-xs font-semibold uppercase tracking-wide wd-text-muted">
                                             Bio
                                         </p>
-                                        {activeUserProfile.isSelf && !isBioEditing && (
-                                            <button
-                                                type="button"
-                                                onClick={() => setIsBioEditing(true)}
-                                                className="text-xs wd-text-secondary inline-flex items-center gap-1 hover:wd-text-primary"
-                                            >
-                                                <Pencil size={12} />
-                                                Edit
-                                            </button>
-                                        )}
+                                        {activeUserProfile.isSelf &&
+                                            !isBioEditing && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() =>
+                                                        setIsBioEditing(true)
+                                                    }
+                                                    className="text-xs wd-text-secondary inline-flex items-center gap-1 hover:wd-text-primary"
+                                                >
+                                                    <Pencil size={12} />
+                                                    Edit
+                                                </button>
+                                            )}
                                     </div>
 
-                                    {activeUserProfile.isSelf && isBioEditing ? (
+                                    {activeUserProfile.isSelf &&
+                                    isBioEditing ? (
                                         <div className="space-y-2">
                                             <textarea
                                                 value={bioDraft}
                                                 onChange={(event) =>
-                                                    setBioDraft(event.target.value.slice(0, MAX_BIO_LENGTH))
+                                                    setBioDraft(
+                                                        event.target.value.slice(
+                                                            0,
+                                                            MAX_BIO_LENGTH,
+                                                        ),
+                                                    )
                                                 }
                                                 rows={4}
                                                 placeholder="Write a short bio..."
@@ -1533,15 +1830,20 @@ function MessageList({
                                             />
                                             <div className="flex items-center justify-between">
                                                 <p className="text-[11px] wd-text-muted">
-                                                    {bioDraft.length}/{MAX_BIO_LENGTH}
+                                                    {bioDraft.length}/
+                                                    {MAX_BIO_LENGTH}
                                                 </p>
                                                 <div className="flex items-center gap-2">
                                                     <button
                                                         type="button"
                                                         onClick={() => {
-                                                            setIsBioEditing(false);
+                                                            setIsBioEditing(
+                                                                false,
+                                                            );
                                                             setBioDraft(
-                                                                activeUserProfile.user.bio || "",
+                                                                activeUserProfile
+                                                                    .user.bio ||
+                                                                    "",
                                                             );
                                                         }}
                                                         className="h-7 px-2 rounded-md border wd-border-subtle wd-bg-elevated text-xs wd-text-secondary transition-colors hover:wd-text-primary"
@@ -1557,15 +1859,17 @@ function MessageList({
                                                         className="h-7 px-2 rounded-md bg-[var(--wd-accent)] text-white text-xs font-semibold inline-flex items-center gap-1 transition-colors hover:bg-[var(--wd-accent-hover)] disabled:opacity-70"
                                                     >
                                                         <Save size={12} />
-                                                        {isSavingBio ? "Saving..." : "Save"}
+                                                        {isSavingBio
+                                                            ? "Saving..."
+                                                            : "Save"}
                                                     </button>
                                                 </div>
                                             </div>
                                         </div>
                                     ) : (
                                         <p className="text-sm wd-text-secondary whitespace-pre-wrap break-words">
-                                            {activeUserProfile.user.bio?.trim()
-                                                || (activeUserProfile.isSelf
+                                            {activeUserProfile.user.bio?.trim() ||
+                                                (activeUserProfile.isSelf
                                                     ? "Set your bio to help others know you."
                                                     : "No bio set yet.")}
                                         </p>
@@ -1614,17 +1918,24 @@ function MessageList({
                                 true,
                             );
                         }}
-                        disabled={isAddingFriend || avatarFriendActionMeta.isDisabled}
+                        disabled={
+                            isAddingFriend || avatarFriendActionMeta.isDisabled
+                        }
                         title={avatarFriendActionMeta.tooltip}
                         className="w-full rounded px-2 py-1.5 text-left text-sm wd-text-primary transition-colors hover:bg-[var(--wd-surface-elevated)] disabled:opacity-70 inline-flex items-center gap-2"
                     >
                         {avatarFriendActionMeta.isAccepted ? (
                             <UserCheck size={14} className="text-emerald-400" />
                         ) : (
-                            <UserRoundPlus size={14} className="wd-text-secondary" />
+                            <UserRoundPlus
+                                size={14}
+                                className="wd-text-secondary"
+                            />
                         )}
                         <span>
-                            {isAddingFriend ? "Sending..." : avatarFriendActionMeta.label}
+                            {isAddingFriend
+                                ? "Sending..."
+                                : avatarFriendActionMeta.label}
                         </span>
                     </button>
                 </div>

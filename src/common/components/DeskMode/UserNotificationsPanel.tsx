@@ -1,5 +1,6 @@
 import React, { useMemo } from "react";
 import {
+    AtSign,
     Ban,
     Check,
     Inbox,
@@ -208,9 +209,18 @@ function UserNotificationsPanel({
                                 const actorName =
                                     notification.actorUser.name
                                     || `User ${notification.actorUser.id}`;
-                                const previewText = notification.replyMessage?.content?.trim()
-                                    || notification.rootMessage.content?.trim()
-                                    || "(no text)";
+                                const isMention = notification.type === "MENTION";
+                                const previewText = isMention
+                                    ? (notification.rootMessage.content?.trim() || "(no text)")
+                                    : (notification.replyMessage?.content?.trim()
+                                        || notification.rootMessage.content?.trim()
+                                        || "(no text)");
+                                const notificationLabel = isMention
+                                    ? `${actorName} mentioned you in #${notification.room.name}`
+                                    : `${actorName} replied in #${notification.room.name}`;
+                                const NotificationIcon = isMention
+                                    ? AtSign
+                                    : MessageSquareReply;
 
                                 return (
                                     <button
@@ -224,8 +234,8 @@ function UserNotificationsPanel({
                                         }`}
                                     >
                                         <p className="text-xs font-semibold wd-text-primary inline-flex items-center gap-1">
-                                            <MessageSquareReply size={11} />
-                                            {actorName} replied in #{notification.room.name}
+                                            <NotificationIcon size={11} />
+                                            {notificationLabel}
                                         </p>
                                         <p className="mt-1 text-[11px] wd-text-secondary line-clamp-2">
                                             {previewText}

@@ -486,6 +486,7 @@ export class ChatV2Service {
         attachments?: ChatV2CreateAttachment[],
         options?: {
             replyToMessageId?: string;
+            mentionedUserIds?: number[];
         },
     ): Promise<ChatV2Message> {
         const clientMessageId =
@@ -500,6 +501,7 @@ export class ChatV2Service {
             messageType?: "TEXT" | "IMAGE" | "FILE" | "SYSTEM";
             attachments?: ChatV2CreateAttachment[];
             replyToMessageId?: string;
+            mentionedUserIds?: number[];
         } = {
             roomId,
             clientMessageId,
@@ -507,6 +509,9 @@ export class ChatV2Service {
         };
         if (options?.replyToMessageId) {
             payload.replyToMessageId = options.replyToMessageId;
+        }
+        if (options?.mentionedUserIds?.length) {
+            payload.mentionedUserIds = options.mentionedUserIds;
         }
         if (attachments?.length) {
             payload.attachments = attachments;

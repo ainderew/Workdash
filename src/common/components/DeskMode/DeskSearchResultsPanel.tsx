@@ -5,6 +5,7 @@ import type {
     ChatV2Room,
 } from "@/communication/chatV2/_types";
 import { ArrowUpDown } from "lucide-react";
+import ChannelHashIcon from "./ChannelHashIcon";
 
 interface DeskSearchResultsPanelProps {
     messages: ChatV2Message[];
@@ -183,8 +184,8 @@ function DeskSearchResultsPanel({
                     <div className="space-y-5">
                         {groupedResults.map((group) => (
                             <section key={group.roomId}>
-                                <h4 className="text-[0.85rem] font-semibold wd-text-primary mb-3">
-                                    # {group.roomName}
+                                <h4 className="text-[0.85rem] font-semibold wd-text-primary mb-3 inline-flex items-center gap-1">
+                                    <ChannelHashIcon size={15} className="shrink-0 opacity-60" />{group.roomName}
                                 </h4>
                                 <div className="space-y-2">
                                     {group.messages.map((message) =>

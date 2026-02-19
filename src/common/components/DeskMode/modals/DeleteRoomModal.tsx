@@ -1,4 +1,5 @@
 import React from "react";
+import ChannelHashIcon from "../ChannelHashIcon";
 import DeskModalShell from "./DeskModalShell";
 
 interface DeleteRoomModalProps {
@@ -25,7 +26,7 @@ function DeleteRoomModal({
         >
             <div className="space-y-4">
                 <p className="text-sm wd-text-secondary">
-                    Delete <span className="font-semibold wd-text-primary">#{roomName}</span>?
+                    Delete <span className="font-semibold wd-text-primary inline-flex items-center gap-0.5"><ChannelHashIcon size={14} className="inline-block align-text-bottom opacity-60" />{roomName}</span>?
                     Existing history will stay in storage, but the channel is archived and no
                     longer shown in Desk mode.
                 </p>

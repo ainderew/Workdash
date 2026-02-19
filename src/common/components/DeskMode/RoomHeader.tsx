@@ -4,8 +4,9 @@ import type {
     ChatV2SearchUser,
     ChatV2UserNotification,
 } from "@/communication/chatV2/_types";
-import { Bell, Hash, Search, UserRound, Users, X } from "lucide-react";
+import { Bell, Search, UserRound, Users, X } from "lucide-react";
 import useChatV2Store from "@/common/store/chatV2Store";
+import ChannelHashIcon from "./ChannelHashIcon";
 import UserNotificationsPanel from "./UserNotificationsPanel";
 
 interface RoomHeaderProps {
@@ -212,7 +213,12 @@ function RoomHeader({
         <header className="h-14 border-b wd-border-subtle px-5 flex items-center justify-between gap-4 wd-bg-panel-2 backdrop-blur">
             <div className="min-w-0">
                 <div className="text-sm font-semibold wd-text-primary truncate">
-                    {room ? `# ${room.name}` : "Select a room"}
+                    {room ? (
+                        <span className="inline-flex items-center gap-1">
+                            <ChannelHashIcon size={16} className="shrink-0 opacity-60" />
+                            {room.name}
+                        </span>
+                    ) : "Select a room"}
                 </div>
                 <div className="text-xs wd-text-muted truncate">
                     {room?.topic || "Persistent room chat"}
@@ -409,7 +415,7 @@ function RoomHeader({
                                         }`}
                                     >
                                         <div className="flex items-center gap-3">
-                                            <Hash size={18} className="wd-text-muted shrink-0" />
+                                            <ChannelHashIcon size={18} className="wd-text-muted shrink-0" />
                                             <div className="min-w-0">
                                                 <p className="text-[0.85rem] font-medium wd-text-primary">
                                                     Sent in a specific channel

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Bell, ChevronDown, Search, UserRoundPlus, X } from "lucide-react";
 import useChatV2Store from "@/common/store/chatV2Store";
+import ChannelHashIcon from "./ChannelHashIcon";
 import { ChatV2Service } from "@/communication/chatV2/chatV2Service";
 import type { ChatV2DirectRoom, ChatV2Message, ChatV2Room } from "@/communication/chatV2/_types";
 import Composer from "./Composer";
@@ -58,6 +59,7 @@ function CompactChatShell({ onClose }: CompactChatShellProps) {
     const isSending = useChatV2Store((state) => state.isSending);
     const selectRoom = useChatV2Store((state) => state.selectRoom);
     const sendMessage = useChatV2Store((state) => state.sendMessage);
+    const membersByRoomId = useChatV2Store((state) => state.membersByRoomId);
     const reloadDirectRooms = useChatV2Store((state) => state.reloadDirectRooms);
     const reloadFriends = useChatV2Store((state) => state.reloadFriends);
     const openDirectMessage = useChatV2Store((state) => state.openDirectMessage);
@@ -562,7 +564,7 @@ function CompactChatShell({ onClose }: CompactChatShellProps) {
                                             : "wd-text-secondary hover:wd-text-primary hover:bg-[var(--wd-surface-elevated)]"
                                     }`}
                                 >
-                                    <span className="truncate"># {room.name}</span>
+                                    <span className="truncate inline-flex items-center gap-1"><ChannelHashIcon size={14} className="shrink-0 opacity-60" />{room.name}</span>
                                     {(room.unreadCount ?? 0) > 0 ? (
                                         <span className="h-4 min-w-4 px-1 rounded-full bg-[var(--wd-danger)] text-white text-[10px] font-bold inline-flex items-center justify-center">
                                             {room.unreadCount}
@@ -600,9 +602,14 @@ function CompactChatShell({ onClose }: CompactChatShellProps) {
                                 className="w-full h-9 rounded-md border wd-border-subtle wd-bg-elevated px-2 flex items-center justify-between gap-2 text-left"
                                 title={isRoomPickerOpen ? "Close room picker" : "Open room picker"}
                             >
-                                <span className="text-sm wd-text-primary truncate">
+                                <span className="text-sm wd-text-primary truncate inline-flex items-center gap-1">
                                     {currentRoom
-                                        ? `${currentRoom.type === "DIRECT" ? "@" : "#"} ${currentRoom.name}`
+                                        ? (
+                                            <>
+                                                {currentRoom.type === "DIRECT" ? "@" : <ChannelHashIcon size={14} className="shrink-0 opacity-60" />}
+                                                {currentRoom.name}
+                                            </>
+                                        )
                                         : "Select room"}
                                 </span>
                                 <ChevronDown
@@ -656,7 +663,7 @@ function CompactChatShell({ onClose }: CompactChatShellProps) {
                                                                 : "wd-text-secondary hover:wd-text-primary hover:bg-[var(--wd-surface-elevated)]"
                                                         }`}
                                                     >
-                                                        {room.type === "DIRECT" ? "@" : "#"} {room.name}
+                                                        <span className="inline-flex items-center gap-1">{room.type === "DIRECT" ? "@" : <ChannelHashIcon size={14} className="shrink-0 opacity-60" />}{room.name}</span>
                                                     </button>
                                                 );
                                             })
@@ -726,6 +733,18 @@ function CompactChatShell({ onClose }: CompactChatShellProps) {
                                             setDebouncedSearchQuery("");
                                             setSearchResults([]);
                                             setSearchError(null);
+
+                                            if (
+                                                notification.type === "MENTION"
+                                                && !notification.replyMessageId
+                                            ) {
+                                                setActiveThreadRootId(null);
+                                                setThreadRootMessage(null);
+                                                setThreadReplies([]);
+                                                setFocusedMessageId(notification.rootMessageId);
+                                                return;
+                                            }
+
                                             setThreadRootMessage(null);
                                             setThreadReplies([]);
                                             setActiveThreadRootId(
@@ -837,8 +856,8 @@ function CompactChatShell({ onClose }: CompactChatShellProps) {
                                                     {formatTime(message.createdAt)}
                                                 </span>
                                             </div>
-                                            <div className="mt-1 text-xs wd-text-muted truncate">
-                                                # {roomName}
+                                            <div className="mt-1 text-xs wd-text-muted truncate inline-flex items-center gap-1">
+                                                <ChannelHashIcon size={12} className="shrink-0 opacity-60" />{roomName}
                                             </div>
                                             <p className="mt-1 text-sm wd-text-primary line-clamp-2">
                                                 {toSearchSnippet(message)}
@@ -882,6 +901,7 @@ function CompactChatShell({ onClose }: CompactChatShellProps) {
                             isSending={isSending}
                             error={threadError}
                             className="absolute inset-y-0 right-0 z-[120] w-full max-w-[420px] min-w-0 shadow-[-14px_0_30px_rgba(0,0,0,0.35)]"
+                            members={currentRoomId ? membersByRoomId[currentRoomId] ?? [] : []}
                             onClose={() => {
                                 setActiveThreadRootId(null);
                                 setThreadRootMessage(null);
@@ -893,12 +913,15 @@ function CompactChatShell({ onClose }: CompactChatShellProps) {
                                 if (!activeThreadRootId) return;
                                 void loadThread(activeThreadRootId);
                             }}
-                            onSendReply={async (content, attachments) => {
+                            onSendReply={async (content, attachments, options) => {
                                 if (!activeThreadRootId) return;
                                 const replyMessage = await sendMessage(
                                     content,
                                     attachments,
-                                    { replyToMessageId: activeThreadRootId },
+                                    {
+                                        replyToMessageId: activeThreadRootId,
+                                        mentionedUserIds: options?.mentionedUserIds,
+                                    },
                                 );
                                 if (!replyMessage) return;
 
@@ -919,8 +942,11 @@ function CompactChatShell({ onClose }: CompactChatShellProps) {
                     roomId={currentRoomId}
                     disabled={!currentRoomId}
                     isSending={isSending}
-                    onSend={async (content, attachments) => {
-                        await sendMessage(content, attachments);
+                    members={currentRoomId ? membersByRoomId[currentRoomId] ?? [] : []}
+                    onSend={async (content, attachments, options) => {
+                        await sendMessage(content, attachments, {
+                            mentionedUserIds: options?.mentionedUserIds,
+                        });
                     }}
                 />
             </div>
