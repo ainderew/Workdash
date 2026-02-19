@@ -50,6 +50,13 @@ export type ChatV2Attachment = {
     createdAt: string | Date;
 };
 
+export type ChatV2MessageReaction = {
+    emoji: string;
+    count: number;
+    firstReactedAt: string | Date;
+    lastReactedAt: string | Date;
+};
+
 export type ChatV2CreateAttachment = {
     storageProvider: "DO_SPACES" | "S3" | "LOCAL";
     objectKey: string;
@@ -85,6 +92,35 @@ export type ChatV2Message = {
         name: string | null;
         image: string | null;
     }>;
+    reactions?: ChatV2MessageReaction[];
+};
+
+export type ChatV2MessageReactionUpdate = {
+    roomId: string;
+    messageId: string;
+    emoji: string;
+    action: "ADDED" | "REMOVED";
+    reactorUserId: number;
+    count: number;
+    firstReactedAt: string | Date | null;
+};
+
+export type ChatV2MessageReactionReactor = {
+    id: number;
+    name: string | null;
+    image: string | null;
+};
+
+export type ChatV2ReactionReactorList = {
+    emoji: string;
+    totalCount: number;
+    reactors: ChatV2MessageReactionReactor[];
+};
+
+export type ChatV2FrequentEmoji = {
+    emoji: string;
+    usageCount: number;
+    lastUsedAt: string | Date;
 };
 
 export type ChatV2Thread = {

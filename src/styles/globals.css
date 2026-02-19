@@ -16,6 +16,36 @@ body {
     color: var(--wd-text-primary);
 }
 
+@layer utilities {
+    .no-scrollbar {
+        /* This reserves the space so content doesn't shift */
+        scrollbar-gutter: stable;
+
+        /* Hide by default */
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+
+    .no-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+
+    /* Show on hover */
+    .no-scrollbar:hover {
+        scrollbar-width: thin; /* Firefox */
+    }
+
+    .no-scrollbar:hover::-webkit-scrollbar {
+        display: block;
+        width: 8px;
+    }
+
+    /* Track and Thumb (Required for Webkit) */
+    .no-scrollbar:hover::-webkit-scrollbar-thumb {
+        background-color: rgba(0, 0, 0, 0.2);
+        border-radius: 10px;
+    }
+}
 /* .spritePosition { */
 /*     margin: 10px 0 0 10px; */
 /*     font-size: 0.8em; */

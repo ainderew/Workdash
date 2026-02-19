@@ -13,18 +13,17 @@ import useChatV2Store from "@/common/store/chatV2Store";
 import { GitHubPreview } from "@/common/components/TextChat/GitHubPreview";
 import { TwitterPreview } from "@/common/components/TextChat/TwitterPreview";
 import { YouTubePreview } from "@/common/components/TextChat/YouTubePreview";
+import MessageHoverActions from "./MessageHoverActions";
+import MessageReactionChips from "./MessageReactionChips";
 import {
     Ban,
     Copy,
     Ellipsis,
     ExternalLink,
     Flag,
-    Forward,
     MessageSquare,
     Pencil,
-    Reply,
     Save,
-    Smile,
     UserCheck,
     UserRoundPlus,
 } from "lucide-react";
@@ -148,6 +147,7 @@ const getSenderAvatarForMessage = (
         localBackendUserId?: number;
         localSpriteSheet: string;
         localProfileImage: string;
+        resolvedSenderImagesByUserId?: Record<number, string>;
     },
 ): SenderAvatar => {
     const isLocalSender =
@@ -166,7 +166,9 @@ const getSenderAvatarForMessage = (
         };
     }
 
-    const senderImage = message.sender?.image?.trim();
+    const senderImage =
+        message.sender?.image?.trim()
+        || input.resolvedSenderImagesByUserId?.[message.senderUserId]?.trim();
     if (senderImage) {
         return { mode: "image", src: senderImage };
     }
@@ -185,12 +187,17 @@ function MessageList({
     onOpenThread,
 }: MessageListProps) {
     const chatV2Service = useMemo(() => ChatV2Service.getInstance(), []);
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
     const endRef = useRef<HTMLDivElement>(null);
     const user = useUserStore((state) => state.user);
     const friends = useChatV2Store((state) => state.friends);
     const friendRequests = useChatV2Store((state) => state.friendRequests);
     const requestFriend = useChatV2Store((state) => state.requestFriend);
     const openDirectMessage = useChatV2Store((state) => state.openDirectMessage);
+    const frequentEmojis = useChatV2Store((state) => state.frequentEmojis);
+    const toggleMessageReaction = useChatV2Store(
+        (state) => state.toggleMessageReaction,
+    );
     const [attachmentUrls, setAttachmentUrls] = useState<Record<string, string>>(
         {},
     );
@@ -218,6 +225,11 @@ function MessageList({
     const [isMoreOptionsOpen, setIsMoreOptionsOpen] = useState(false);
     const [isOpeningDm, setIsOpeningDm] = useState(false);
     const [isAddingFriend, setIsAddingFriend] = useState(false);
+    const [resolvedSenderImagesByUserId, setResolvedSenderImagesByUserId] = useState<
+        Record<number, string>
+    >({});
+    const [avatarImageLookupStatusByUserId, setAvatarImageLookupStatusByUserId] =
+        useState<Record<number, "pending" | "done">>({});
     const localBackendUserId =
         typeof window !== "undefined" ? window.__BACKEND_USER__?.id : undefined;
     const localDisplayName = user.name?.trim() || window.__BACKEND_USER__?.name || "";
@@ -269,13 +281,29 @@ function MessageList({
         () => getFriendActionMeta(avatarContextFriendshipStatus),
         [avatarContextFriendshipStatus],
     );
+    const messageScrollSignature = useMemo(() => {
+        if (messages.length === 0) return "empty";
+        const firstMessageId = messages[0]?.id || "";
+        const lastMessageId = messages[messages.length - 1]?.id || "";
+        return `${messages.length}:${firstMessageId}:${lastMessageId}`;
+    }, [messages]);
 
     useEffect(() => {
-        if (focusedMessageId) {
+        if (focusedMessageId || isLoading) {
             return;
         }
-        endRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [focusedMessageId, messages.length]);
+        const rafId = window.requestAnimationFrame(() => {
+            if (scrollContainerRef.current) {
+                scrollContainerRef.current.scrollTop =
+                    scrollContainerRef.current.scrollHeight;
+            }
+            endRef.current?.scrollIntoView({ behavior: "auto" });
+        });
+
+        return () => {
+            window.cancelAnimationFrame(rafId);
+        };
+    }, [focusedMessageId, isLoading, messageScrollSignature]);
 
     useEffect(() => {
         if (!avatarContextMenu && !profilePopover) {
@@ -447,6 +475,87 @@ function MessageList({
     }, [attachmentUrls, messages]);
 
     useEffect(() => {
+        const unresolvedSenderUserIds = Array.from(
+            new Set(
+                messages
+                    .filter((message) => {
+                        if (!Number.isInteger(message.senderUserId)) return false;
+                        if (
+                            typeof localBackendUserId === "number"
+                            && message.senderUserId === localBackendUserId
+                        ) {
+                            return false;
+                        }
+                        if (message.sender?.image?.trim()) return false;
+                        if (resolvedSenderImagesByUserId[message.senderUserId]) return false;
+                        if (
+                            avatarImageLookupStatusByUserId[message.senderUserId]
+                            === "pending"
+                        ) {
+                            return false;
+                        }
+                        if (
+                            avatarImageLookupStatusByUserId[message.senderUserId]
+                            === "done"
+                        ) {
+                            return false;
+                        }
+                        return true;
+                    })
+                    .map((message) => message.senderUserId),
+            ),
+        );
+
+        if (unresolvedSenderUserIds.length === 0) {
+            return;
+        }
+
+        let cancelled = false;
+        setAvatarImageLookupStatusByUserId((previous) => {
+            const next = { ...previous };
+            for (const userId of unresolvedSenderUserIds) {
+                next[userId] = "pending";
+            }
+            return next;
+        });
+
+        void (async () => {
+            for (const userId of unresolvedSenderUserIds) {
+                try {
+                    const profile = await chatV2Service.getUserProfile(userId);
+                    if (cancelled) return;
+
+                    const image = profile.user.image?.trim();
+                    if (image) {
+                        setResolvedSenderImagesByUserId((previous) => ({
+                            ...previous,
+                            [userId]: image,
+                        }));
+                    }
+                } catch {
+                    // Profile resolution is best-effort for avatar rendering fallback.
+                }
+
+                if (cancelled) return;
+                setAvatarImageLookupStatusByUserId((previous) => ({
+                    ...previous,
+                    [userId]: "done",
+                }));
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [
+        avatarImageLookupStatusByUserId,
+        chatV2Service,
+        localBackendUserId,
+        messages,
+        resolvedSenderImagesByUserId,
+    ]);
+
+    useEffect(() => {
         const unresolvedUrls = new Set<string>();
 
         for (const message of messages) {
@@ -603,6 +712,7 @@ function MessageList({
             localBackendUserId,
             localSpriteSheet,
             localProfileImage,
+            resolvedSenderImagesByUserId,
         });
     };
 
@@ -870,7 +980,10 @@ function MessageList({
     };
 
     return (
-        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3 wd-bg-panel-2">
+        <div
+            ref={scrollContainerRef}
+            className="flex-1 overflow-y-auto px-5 py-4 space-y-3 wd-bg-panel-2"
+        >
             {isLoading ? (
                 <div className="text-xs wd-text-muted">Loading messages...</div>
             ) : groupedMessages.rootMessages.length === 0 ? (
@@ -983,69 +1096,21 @@ function MessageList({
                             </div>
 
                             <div className="min-w-0 flex-1 relative">
-                                <div className="pointer-events-none absolute right-0 top-0 z-20 -translate-y-1/2 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
-                                    <div className="pointer-events-auto inline-flex items-center rounded-md border wd-border-subtle wd-bg-panel shadow-[0_8px_20px_rgba(0,0,0,0.35)] px-1 py-0.5 gap-0.5">
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                handleFutureMessageAction("Reactions")
-                                            }
-                                            title="Reactions (coming soon)"
-                                            className="h-7 w-7 rounded inline-flex items-center justify-center text-sm wd-text-secondary transition-colors hover:wd-text-primary hover:bg-[var(--wd-surface-elevated)]"
-                                        >
-                                            <Smile size={14} />
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                if (!message.replyToMessageId) {
-                                                    onOpenThread?.(message.id);
-                                                    return;
-                                                }
-                                                handleFutureMessageAction("Reply");
-                                            }}
-                                            title={
-                                                message.replyToMessageId
-                                                    ? "Reply is not available on replies"
-                                                    : "Reply in thread"
-                                            }
-                                            disabled={!!message.replyToMessageId}
-                                            className="h-7 w-7 rounded inline-flex items-center justify-center wd-text-secondary transition-colors hover:wd-text-primary hover:bg-[var(--wd-surface-elevated)] disabled:opacity-60 disabled:cursor-not-allowed"
-                                        >
-                                            <Reply size={14} />
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                handleFutureMessageAction("Edit")
-                                            }
-                                            title="Edit (coming soon)"
-                                            className="h-7 w-7 rounded inline-flex items-center justify-center wd-text-secondary transition-colors hover:wd-text-primary hover:bg-[var(--wd-surface-elevated)]"
-                                        >
-                                            <Pencil size={14} />
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                handleFutureMessageAction("Forward")
-                                            }
-                                            title="Forward (coming soon)"
-                                            className="h-7 w-7 rounded inline-flex items-center justify-center wd-text-secondary transition-colors hover:wd-text-primary hover:bg-[var(--wd-surface-elevated)]"
-                                        >
-                                            <Forward size={14} />
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() =>
-                                                handleFutureMessageAction("More actions")
-                                            }
-                                            title="More actions (coming soon)"
-                                            className="h-7 w-7 rounded inline-flex items-center justify-center wd-text-secondary transition-colors hover:wd-text-primary hover:bg-[var(--wd-surface-elevated)]"
-                                        >
-                                            <Ellipsis size={15} />
-                                        </button>
-                                    </div>
-                                </div>
+                                <MessageHoverActions
+                                    canReply={!message.replyToMessageId}
+                                    frequentEmojis={frequentEmojis.map((entry) => entry.emoji)}
+                                    onReply={() => {
+                                        if (!message.replyToMessageId) {
+                                            onOpenThread?.(message.id);
+                                            return;
+                                        }
+                                        handleFutureMessageAction("Reply");
+                                    }}
+                                    onReact={(emoji) => {
+                                        void toggleMessageReaction(message.id, emoji);
+                                    }}
+                                    onFutureAction={handleFutureMessageAction}
+                                />
 
                                 <div className="flex items-center gap-2 mb-1">
                                     <span className="text-sm font-semibold wd-text-primary">
@@ -1214,6 +1279,18 @@ function MessageList({
                                                 ))}
                                             </div>
                                         )}
+
+                                        <MessageReactionChips
+                                            roomId={message.roomId}
+                                            messageId={message.id}
+                                            reactions={message.reactions || []}
+                                            onToggleReaction={(emoji) => {
+                                                void toggleMessageReaction(
+                                                    message.id,
+                                                    emoji,
+                                                );
+                                            }}
+                                        />
 
                                         {totalReplies > 0 && (
                                             <button

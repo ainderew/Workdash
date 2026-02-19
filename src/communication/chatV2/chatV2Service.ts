@@ -4,9 +4,13 @@ import type {
     ChatV2DirectRoom,
     ChatV2Friend,
     ChatV2FriendshipStatus,
+    ChatV2FrequentEmoji,
     ChatV2Message,
+    ChatV2MessageReaction,
+    ChatV2MessageReactionUpdate,
     ChatV2MessageSearchInput,
     ChatV2MessageSearchSort,
+    ChatV2ReactionReactorList,
     ChatV2Room,
     ChatV2RoomCategory,
     ChatV2RoomMember,
@@ -29,6 +33,7 @@ type RealtimeHandlers = {
         messageId: string;
         deletedAt: string | Date | null;
     }) => void;
+    onMessageReactionUpdate?: (payload: ChatV2MessageReactionUpdate) => void;
     onNotificationNew?: (notification: ChatV2UserNotification) => void;
 };
 
@@ -127,15 +132,29 @@ export class ChatV2Service {
             }
         };
 
+        const onMessageReactionUpdate = (payload: ChatV2MessageReactionUpdate) => {
+            if (payload?.roomId && payload?.messageId && payload?.emoji) {
+                handlers.onMessageReactionUpdate?.(payload);
+            }
+        };
+
         this.transport.socket.on("chat:v2:message:new", onMessageNew);
         this.transport.socket.on("chat:v2:message:update", onMessageUpdate);
         this.transport.socket.on("chat:v2:message:delete", onMessageDelete);
+        this.transport.socket.on(
+            "chat:v2:message:reaction:update",
+            onMessageReactionUpdate,
+        );
         this.transport.socket.on("chat:v2:notification:new", onNotificationNew);
 
         this.teardownRealtimeHandlers = () => {
             this.transport.socket.off("chat:v2:message:new", onMessageNew);
             this.transport.socket.off("chat:v2:message:update", onMessageUpdate);
             this.transport.socket.off("chat:v2:message:delete", onMessageDelete);
+            this.transport.socket.off(
+                "chat:v2:message:reaction:update",
+                onMessageReactionUpdate,
+            );
             this.transport.socket.off("chat:v2:notification:new", onNotificationNew);
             this.teardownRealtimeHandlers = null;
         };
@@ -414,6 +433,51 @@ export class ChatV2Service {
         if (lastReadMessageId) payload.lastReadMessageId = lastReadMessageId;
 
         await this.emitWithAck<{ readCursor: unknown }>("chat:v2:read:update", payload);
+    }
+
+    async toggleMessageReaction(
+        roomId: string,
+        messageId: string,
+        emoji: string,
+    ): Promise<{
+        message: ChatV2Message;
+        action: "ADDED" | "REMOVED";
+        reaction: ChatV2MessageReaction | null;
+    }> {
+        return await this.emitWithAck<{
+            message: ChatV2Message;
+            action: "ADDED" | "REMOVED";
+            reaction: ChatV2MessageReaction | null;
+        }>("chat:v2:message:reaction:toggle", {
+            roomId,
+            messageId,
+            emoji,
+        });
+    }
+
+    async listReactionReactors(
+        roomId: string,
+        messageId: string,
+        emoji: string,
+        limit: number = 20,
+    ): Promise<ChatV2ReactionReactorList> {
+        return await this.emitWithAck<ChatV2ReactionReactorList>(
+            "chat:v2:message:reaction:reactors:list",
+            {
+                roomId,
+                messageId,
+                emoji,
+                limit,
+            },
+        );
+    }
+
+    async listFrequentEmojis(limit: number = 6): Promise<ChatV2FrequentEmoji[]> {
+        const response = await this.emitWithAck<{ emojis: ChatV2FrequentEmoji[] }>(
+            "chat:v2:emoji:frequent:list",
+            { limit },
+        );
+        return response.emojis;
     }
 
     async createMessage(

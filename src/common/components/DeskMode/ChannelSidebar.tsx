@@ -572,7 +572,10 @@ function ChannelSidebar({
     };
 
     return (
-        <aside className="w-80 wd-bg-panel border-r wd-border-subtle flex flex-col min-h-0">
+        <aside
+            id="category-aside"
+            className="w-80 wd-bg-panel border-r wd-border-subtle flex flex-col min-h-0"
+        >
             <div className="px-4 h-14 border-b wd-border-subtle flex items-center justify-between gap-2 relative">
                 <button
                     type="button"
@@ -664,7 +667,10 @@ function ChannelSidebar({
                 )}
             </div>
 
-            <div className="flex-1 min-h-0 overflow-y-auto px-3 py-2">
+            <div
+                id="categories-container"
+                className="no-scrollbar flex-1 min-h-0 overflow-y-auto px-3 py-2"
+            >
                 {isLoading ? (
                     <div className="text-xs wd-text-muted px-2 py-3">
                         Loading channels...

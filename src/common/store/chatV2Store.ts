@@ -3,19 +3,82 @@ import { ChatV2Service } from "@/communication/chatV2/chatV2Service";
 import type {
     ChatV2CreateAttachment,
     ChatV2DirectRoom,
+    ChatV2FrequentEmoji,
     ChatV2Friend,
     ChatV2FriendshipStatus,
     ChatV2Message,
+    ChatV2MessageReaction,
+    ChatV2MessageReactionReactor,
+    ChatV2MessageReactionUpdate,
+    ChatV2ReactionReactorList,
     ChatV2Room,
     ChatV2RoomCategory,
     ChatV2RoomMember,
     ChatV2UserNotification,
 } from "@/communication/chatV2/_types";
+import {
+    bumpFrequentEmojiLocal,
+    mergeFrequentEmojiSources,
+    readFrequentEmojiLocal,
+    writeFrequentEmojiLocal,
+} from "@/communication/chatV2/reactionFrequentCache";
 
 type MessageDeletePayload = {
     roomId: string;
     messageId: string;
     deletedAt: string | Date | null;
+};
+
+type ReactorCacheEntry = {
+    emoji: string;
+    totalCount: number;
+    reactors: ChatV2MessageReactionReactor[];
+    fetchedAt: number;
+};
+
+type MessageWithReactionAggregates = ChatV2Message & {
+    reactionAggregates?: Array<{
+        emoji: string;
+        count: number;
+        firstReactedAt: string | Date;
+        lastReactedAt: string | Date;
+    }>;
+};
+
+const REACTOR_CACHE_TTL_MS = 60_000;
+const DEFAULT_FREQUENT_EMOJI_LIMIT = 6;
+const toReactorCacheKey = (roomId: string, messageId: string, emoji: string) =>
+    `${roomId}:${messageId}:${emoji}`;
+
+const normalizeReactions = (
+    reactions: ChatV2MessageReaction[] | undefined,
+): ChatV2MessageReaction[] =>
+    [...(reactions || [])]
+        .filter((entry) => typeof entry?.emoji === "string" && entry.count > 0)
+        .sort((a, b) => {
+            const aTime = new Date(a.firstReactedAt).getTime();
+            const bTime = new Date(b.firstReactedAt).getTime();
+            if (aTime !== bTime) return aTime - bTime;
+            return a.emoji.localeCompare(b.emoji);
+        });
+
+const normalizeMessage = (message: MessageWithReactionAggregates): ChatV2Message => {
+    const directReactions = Array.isArray(message.reactions)
+        ? message.reactions
+        : undefined;
+    const fallbackReactions = Array.isArray(message.reactionAggregates)
+        ? message.reactionAggregates.map((aggregate) => ({
+            emoji: aggregate.emoji,
+            count: aggregate.count,
+            firstReactedAt: aggregate.firstReactedAt,
+            lastReactedAt: aggregate.lastReactedAt,
+        }))
+        : [];
+
+    return {
+        ...message,
+        reactions: normalizeReactions(directReactions || fallbackReactions),
+    };
 };
 
 type ChatV2State = {
@@ -40,6 +103,8 @@ type ChatV2State = {
     unreadByRoomId: Record<string, number>;
     directRoomsById: Record<string, ChatV2DirectRoom>;
     directRoomOrder: string[];
+    frequentEmojis: ChatV2FrequentEmoji[];
+    reactionReactorsCache: Record<string, ReactorCacheEntry>;
     friends: ChatV2Friend[];
     friendRequests: ChatV2Friend[];
     notifications: ChatV2UserNotification[];
@@ -67,6 +132,20 @@ type ChatV2State = {
             replyToMessageId?: string;
         },
     ) => Promise<ChatV2Message | null>;
+    toggleMessageReaction: (messageId: string, emoji: string) => Promise<void>;
+    listReactionReactors: (
+        roomId: string,
+        messageId: string,
+        emoji: string,
+        options?: {
+            force?: boolean;
+            limit?: number;
+        },
+    ) => Promise<ChatV2ReactionReactorList>;
+    loadFrequentEmojis: (options?: {
+        force?: boolean;
+        limit?: number;
+    }) => Promise<void>;
     openDirectMessage: (userId: number) => Promise<void>;
     requestFriend: (userId: number) => Promise<void>;
     respondToFriendRequest: (
@@ -159,7 +238,7 @@ const byCategoryLayout = (a: ChatV2RoomCategory, b: ChatV2RoomCategory) => {
 };
 
 const sortMessages = (messages: ChatV2Message[]) =>
-    [...messages].sort(byCreatedAtAsc);
+    [...messages].map((message) => normalizeMessage(message)).sort(byCreatedAtAsc);
 
 const toRoomsById = (rooms: ChatV2Room[]) =>
     rooms.reduce<Record<string, ChatV2Room>>((accumulator, room) => {
@@ -193,15 +272,16 @@ const upsertMessageWithResult = (
     messages: ChatV2Message[],
     nextMessage: ChatV2Message,
 ): UpsertMessageResult => {
+    const normalizedNextMessage = normalizeMessage(nextMessage);
     const existingIndex = messages.findIndex(
         (message) =>
-            message.id === nextMessage.id ||
-            message.clientMessageId === nextMessage.clientMessageId,
+            message.id === normalizedNextMessage.id ||
+            message.clientMessageId === normalizedNextMessage.clientMessageId,
     );
 
     if (existingIndex === -1) {
         return {
-            messages: sortMessages([...messages, nextMessage]),
+            messages: sortMessages([...messages, normalizedNextMessage]),
             inserted: true,
         };
     }
@@ -209,7 +289,8 @@ const upsertMessageWithResult = (
     const updated = [...messages];
     updated[existingIndex] = {
         ...updated[existingIndex],
-        ...nextMessage,
+        ...normalizedNextMessage,
+        reactions: normalizeReactions(normalizedNextMessage.reactions),
     };
 
     return {
@@ -284,6 +365,61 @@ const applyMessageDelete = (
     return updated;
 };
 
+const applyReactionUpdate = (
+    messages: ChatV2Message[],
+    payload: ChatV2MessageReactionUpdate,
+) => {
+    const messageIndex = messages.findIndex(
+        (message) => message.id === payload.messageId,
+    );
+    if (messageIndex === -1) {
+        return messages;
+    }
+
+    const targetMessage = normalizeMessage(messages[messageIndex]);
+    const existingReactions = normalizeReactions(targetMessage.reactions);
+    const reactionIndex = existingReactions.findIndex(
+        (reaction) => reaction.emoji === payload.emoji,
+    );
+
+    let nextReactions = [...existingReactions];
+    if (payload.count <= 0) {
+        if (reactionIndex !== -1) {
+            nextReactions.splice(reactionIndex, 1);
+        }
+    } else {
+        const firstReactedAt =
+            payload.firstReactedAt ||
+            existingReactions[reactionIndex]?.firstReactedAt ||
+            new Date().toISOString();
+        const lastReactedAt = new Date().toISOString();
+        const nextReaction: ChatV2MessageReaction = {
+            emoji: payload.emoji,
+            count: payload.count,
+            firstReactedAt,
+            lastReactedAt,
+        };
+        if (reactionIndex === -1) {
+            nextReactions.push(nextReaction);
+        } else {
+            nextReactions[reactionIndex] = {
+                ...nextReactions[reactionIndex],
+                ...nextReaction,
+            };
+        }
+    }
+
+    nextReactions = normalizeReactions(nextReactions);
+
+    const nextMessages = [...messages];
+    nextMessages[messageIndex] = {
+        ...targetMessage,
+        reactions: nextReactions,
+    };
+
+    return nextMessages;
+};
+
 const sortNotifications = (notifications: ChatV2UserNotification[]) =>
     [...notifications].sort((a, b) => {
         const aTime = new Date(a.createdAt).getTime();
@@ -331,6 +467,8 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
     unreadByRoomId: {},
     directRoomsById: {},
     directRoomOrder: [],
+    frequentEmojis: [],
+    reactionReactorsCache: {},
     friends: [],
     friendRequests: [],
     notifications: [],
@@ -423,6 +561,35 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
                         },
                     }));
                 },
+                onMessageReactionUpdate: (payload) => {
+                    set((state) => {
+                        const roomMessages = state.messagesByRoomId[payload.roomId] || [];
+                        const nextRoomMessages = applyReactionUpdate(
+                            roomMessages,
+                            payload,
+                        );
+                        if (nextRoomMessages === roomMessages) {
+                            return {};
+                        }
+
+                        const nextCache = { ...state.reactionReactorsCache };
+                        delete nextCache[
+                            toReactorCacheKey(
+                                payload.roomId,
+                                payload.messageId,
+                                payload.emoji,
+                            )
+                        ];
+
+                        return {
+                            reactionReactorsCache: nextCache,
+                            messagesByRoomId: {
+                                ...state.messagesByRoomId,
+                                [payload.roomId]: nextRoomMessages,
+                            },
+                        };
+                    });
+                },
                 onNotificationNew: (notification) => {
                     set((state) => ({
                         notifications: upsertNotification(
@@ -439,6 +606,7 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
                 get().reloadFriends("ACCEPTED"),
                 get().reloadFriendRequests(),
                 get().reloadNotifications({ limit: 100 }),
+                get().loadFrequentEmojis({ force: true }),
             ]);
 
             const currentRoomId = get().currentRoomId;
@@ -759,6 +927,164 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
                         : "Failed to send message",
             });
             return null;
+        }
+    },
+
+    toggleMessageReaction: async (messageId, emoji) => {
+        const roomId = get().currentRoomId;
+        const trimmedEmoji = emoji.trim();
+        if (!roomId || !messageId || !trimmedEmoji) return;
+
+        try {
+            const chatV2Service = getChatV2Service();
+            const result = await chatV2Service.toggleMessageReaction(
+                roomId,
+                messageId,
+                trimmedEmoji,
+            );
+
+            const localUserId =
+                typeof window !== "undefined"
+                    ? window.__BACKEND_USER__?.id
+                    : undefined;
+            const reactionPayload: ChatV2MessageReactionUpdate = {
+                roomId,
+                messageId,
+                emoji: trimmedEmoji,
+                action: result.action,
+                reactorUserId: localUserId || 0,
+                count: result.reaction?.count ?? 0,
+                firstReactedAt: result.reaction?.firstReactedAt ?? null,
+            };
+
+            set((state) => {
+                const roomMessages = state.messagesByRoomId[roomId] || [];
+                const nextRoomMessages = applyReactionUpdate(
+                    roomMessages,
+                    reactionPayload,
+                );
+                const nextCache = { ...state.reactionReactorsCache };
+                delete nextCache[toReactorCacheKey(roomId, messageId, trimmedEmoji)];
+
+                let nextFrequentEmojis = state.frequentEmojis;
+                if (
+                    result.action === "ADDED" &&
+                    typeof localUserId === "number" &&
+                    localUserId > 0
+                ) {
+                    const nextLocal = bumpFrequentEmojiLocal(localUserId, trimmedEmoji);
+                    nextFrequentEmojis = nextLocal
+                        .slice(0, DEFAULT_FREQUENT_EMOJI_LIMIT)
+                        .map((entry) => ({
+                            emoji: entry.emoji,
+                            usageCount: entry.usageCount,
+                            lastUsedAt: entry.lastUsedAt,
+                        }));
+                }
+
+                return {
+                    frequentEmojis: nextFrequentEmojis,
+                    reactionReactorsCache: nextCache,
+                    messagesByRoomId: {
+                        ...state.messagesByRoomId,
+                        [roomId]: nextRoomMessages,
+                    },
+                };
+            });
+        } catch (error) {
+            set({
+                error:
+                    error instanceof Error
+                        ? error.message
+                        : "Failed to toggle reaction",
+            });
+        }
+    },
+
+    listReactionReactors: async (roomId, messageId, emoji, options) => {
+        const limit = Math.min(20, Math.max(1, options?.limit ?? 20));
+        const cacheKey = toReactorCacheKey(roomId, messageId, emoji);
+        const cached = get().reactionReactorsCache[cacheKey];
+        const now = Date.now();
+        if (
+            cached &&
+            !options?.force &&
+            now - cached.fetchedAt < REACTOR_CACHE_TTL_MS
+        ) {
+            return {
+                emoji: cached.emoji,
+                totalCount: cached.totalCount,
+                reactors: cached.reactors,
+            };
+        }
+
+        const chatV2Service = getChatV2Service();
+        const result = await chatV2Service.listReactionReactors(
+            roomId,
+            messageId,
+            emoji,
+            limit,
+        );
+
+        set((state) => ({
+            reactionReactorsCache: {
+                ...state.reactionReactorsCache,
+                [cacheKey]: {
+                    emoji: result.emoji,
+                    totalCount: result.totalCount,
+                    reactors: result.reactors,
+                    fetchedAt: Date.now(),
+                },
+            },
+        }));
+
+        return result;
+    },
+
+    loadFrequentEmojis: async (options) => {
+        const userId =
+            typeof window !== "undefined" ? window.__BACKEND_USER__?.id : undefined;
+        if (typeof userId !== "number" || userId <= 0) {
+            return;
+        }
+
+        const limit = Math.min(20, Math.max(1, options?.limit ?? DEFAULT_FREQUENT_EMOJI_LIMIT));
+        const localEntries = readFrequentEmojiLocal(userId);
+        if (localEntries.length > 0 && !options?.force) {
+            set({
+                frequentEmojis: localEntries.slice(0, limit).map((entry) => ({
+                    emoji: entry.emoji,
+                    usageCount: entry.usageCount,
+                    lastUsedAt: entry.lastUsedAt,
+                })),
+            });
+        }
+
+        try {
+            const chatV2Service = getChatV2Service();
+            const serverEntries = await chatV2Service.listFrequentEmojis(limit);
+            const merged = mergeFrequentEmojiSources(
+                localEntries,
+                serverEntries,
+                limit,
+            );
+            writeFrequentEmojiLocal(userId, merged);
+            set({
+                frequentEmojis: merged.map((entry) => ({
+                    emoji: entry.emoji,
+                    usageCount: entry.usageCount,
+                    lastUsedAt: entry.lastUsedAt,
+                })),
+            });
+        } catch (error) {
+            if (localEntries.length === 0) {
+                set({
+                    error:
+                        error instanceof Error
+                            ? error.message
+                            : "Failed to load frequent emojis",
+                });
+            }
         }
     },
 
@@ -1247,6 +1573,8 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
             unreadByRoomId: {},
             directRoomsById: {},
             directRoomOrder: [],
+            frequentEmojis: [],
+            reactionReactorsCache: {},
             friends: [],
             friendRequests: [],
             notifications: [],

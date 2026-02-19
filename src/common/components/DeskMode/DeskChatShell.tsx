@@ -71,6 +71,10 @@ function DeskChatShell({
     const reloadDirectRooms = useChatV2Store((state) => state.reloadDirectRooms);
     const reloadFriends = useChatV2Store((state) => state.reloadFriends);
     const openDirectMessage = useChatV2Store((state) => state.openDirectMessage);
+    const frequentEmojis = useChatV2Store((state) => state.frequentEmojis);
+    const toggleMessageReaction = useChatV2Store(
+        (state) => state.toggleMessageReaction,
+    );
     const getWorkspaceUnreadTotal = useChatV2Store((state) => state.getWorkspaceUnreadTotal);
     const getDirectUnreadTotal = useChatV2Store((state) => state.getDirectUnreadTotal);
 
@@ -569,6 +573,7 @@ function DeskChatShell({
                                     if (!activeThreadRootId) return;
                                     void loadThread(activeThreadRootId);
                                 }}
+                                frequentEmojis={frequentEmojis.map((entry) => entry.emoji)}
                                 onSendReply={async (content, attachments) => {
                                     if (!activeThreadRootId) return;
                                     const replyMessage = await sendMessage(
@@ -585,6 +590,9 @@ function DeskChatShell({
                                         byId.set(replyMessage.id, replyMessage);
                                         return sortByCreatedAtAsc(Array.from(byId.values()));
                                     });
+                                }}
+                                onToggleReaction={async (messageId, emoji) => {
+                                    await toggleMessageReaction(messageId, emoji);
                                 }}
                             />
                         ) : isSearchPanelVisible ? (
