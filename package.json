@@ -27,7 +27,7 @@
         "dev-nolog": "next dev -p 8080",
         "build-nolog": "next build",
         "start": "next start -p 8080",
-        "lint": "eslint 'src/**/*.{ts,tsx}' --fix"
+        "lint": "eslint 'src/**/*.{ts,tsx}' --fix && node scripts/theme-guardrails.cjs"
     },
     "dependencies": {
         "@giphy/js-fetch-api": "^5.7.0",

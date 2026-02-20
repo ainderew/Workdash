@@ -25,6 +25,7 @@ import { SoccerGameControlButton } from "./common/components/SoccerGameControl/S
 import PingDisplay from "./common/components/PingDisplay/PingDisplay";
 import useUiStore, { InteractionMode } from "./common/store/uiStore";
 import DeskLayout from "./common/components/DeskMode/DeskLayout";
+import useThemeStore from "@/common/store/themeStore";
 
 
 
@@ -34,11 +35,20 @@ import DeskLayout from "./common/components/DeskMode/DeskLayout";
 function App() {
     const interactionMode = useUiStore((state) => state.interactionMode);
     const setInteractionMode = useUiStore((state) => state.setInteractionMode);
+    const bootstrapTheme = useThemeStore((state) => state.bootstrapTheme);
     const [isInitialized, setIsInitialized] = useState(false);
     const [isGameReady, setIsGameReady] = useState(false);
     const { data: session, status } = useSession();
-
+	
     useCommandPaletteHotkey();
+
+    useEffect(() => {
+        if (status !== "authenticated" || !session?.backendJwt) {
+            return;
+        }
+
+        void bootstrapTheme();
+    }, [bootstrapTheme, session?.backendJwt, status]);
 
     useEffect(() => {
         if (status !== "authenticated" || !session?.backendJwt) {

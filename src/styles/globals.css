@@ -91,110 +91,337 @@ body {
 }
 
 :root {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
-    --chart-1: oklch(0.488 0.243 264.376);
-    --chart-2: oklch(0.696 0.17 162.48);
-    --chart-3: oklch(0.769 0.188 70.08);
-    --chart-4: oklch(0.627 0.265 303.9);
-    --chart-5: oklch(0.645 0.246 16.439);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0);
+    --radius: 0.625rem;
 
-    /* Workdash semantic design tokens */
-    --wd-surface-base: #0f1115;
-    --wd-surface-panel: #0f1115;
-    --wd-surface-panel-2: #161a22;
-    --wd-surface-elevated: #1f2530;
-    --wd-surface-overlay: rgba(10, 12, 17, 0.96);
-    --wd-border-subtle: #2b3240;
-    --wd-border-strong: #3d4759;
-    --wd-text-primary: #f2f3f5;
-    --wd-text-secondary: #c0c5cd;
-    --wd-text-muted: #9099ab;
-    --wd-accent: #5865f2;
-    --wd-accent-hover: #4752c4;
-    --wd-accent-soft: rgba(88, 101, 242, 0.16);
-    --wd-success: #3ba55d;
-    --wd-danger: #ed4245;
-    --wd-warning: #f0b232;
-    --wd-info: #00a8fc;
+    --background: rgb(var(--background-rgb) / 1);
+    --foreground: rgb(var(--foreground-rgb) / 1);
+    --card: rgb(var(--card-rgb) / 1);
+    --card-foreground: rgb(var(--card-foreground-rgb) / 1);
+    --popover: rgb(var(--popover-rgb) / 1);
+    --popover-foreground: rgb(var(--popover-foreground-rgb) / 1);
+    --primary: rgb(var(--primary-rgb) / 1);
+    --primary-foreground: rgb(var(--primary-foreground-rgb) / 1);
+    --secondary: rgb(var(--secondary-rgb) / 1);
+    --secondary-foreground: rgb(var(--secondary-foreground-rgb) / 1);
+    --muted: rgb(var(--muted-rgb) / 1);
+    --muted-foreground: rgb(var(--muted-foreground-rgb) / 1);
+    --accent: rgb(var(--accent-rgb) / 1);
+    --accent-foreground: rgb(var(--accent-foreground-rgb) / 1);
+    --destructive: rgb(var(--destructive-rgb) / 1);
+    --border: rgb(var(--border-rgb) / 1);
+    --input: rgb(var(--input-rgb) / 1);
+    --ring: rgb(var(--ring-rgb) / 1);
+    --chart-1: rgb(var(--chart-1-rgb) / 1);
+    --chart-2: rgb(var(--chart-2-rgb) / 1);
+    --chart-3: rgb(var(--chart-3-rgb) / 1);
+    --chart-4: rgb(var(--chart-4-rgb) / 1);
+    --chart-5: rgb(var(--chart-5-rgb) / 1);
+    --sidebar: rgb(var(--sidebar-rgb) / 1);
+    --sidebar-foreground: rgb(var(--sidebar-foreground-rgb) / 1);
+    --sidebar-primary: rgb(var(--sidebar-primary-rgb) / 1);
+    --sidebar-primary-foreground: rgb(var(--sidebar-primary-foreground-rgb) / 1);
+    --sidebar-accent: rgb(var(--sidebar-accent-rgb) / 1);
+    --sidebar-accent-foreground: rgb(var(--sidebar-accent-foreground-rgb) / 1);
+    --sidebar-border: rgb(var(--sidebar-border-rgb) / 1);
+    --sidebar-ring: rgb(var(--sidebar-ring-rgb) / 1);
+
+    /* Workdash semantic compatibility aliases */
+    --wd-surface-base: rgb(var(--wd-surface-base-rgb) / 1);
+    --wd-surface-panel: rgb(var(--wd-surface-panel-rgb) / 1);
+    --wd-surface-panel-2: rgb(var(--wd-surface-panel-2-rgb) / 1);
+    --wd-surface-elevated: rgb(var(--wd-surface-elevated-rgb) / 1);
+    --wd-surface-overlay: rgb(
+        var(--wd-surface-overlay-rgb) / var(--wd-surface-overlay-alpha)
+    );
+    --wd-border-subtle: rgb(var(--wd-border-subtle-rgb) / 1);
+    --wd-border-strong: rgb(var(--wd-border-strong-rgb) / 1);
+    --wd-text-primary: rgb(var(--wd-text-primary-rgb) / 1);
+    --wd-text-secondary: rgb(var(--wd-text-secondary-rgb) / 1);
+    --wd-text-muted: rgb(var(--wd-text-muted-rgb) / 1);
+    --wd-accent: rgb(var(--wd-accent-rgb) / 1);
+    --wd-accent-hover: rgb(var(--wd-accent-hover-rgb) / 1);
+    --wd-accent-soft: rgb(var(--wd-accent-rgb) / var(--wd-accent-soft-alpha));
+    --wd-success: rgb(var(--wd-success-rgb) / 1);
+    --wd-danger: rgb(var(--wd-danger-rgb) / 1);
+    --wd-danger-soft: rgb(var(--wd-danger-rgb) / var(--wd-danger-soft-alpha));
+    --wd-warning: rgb(var(--wd-warning-rgb) / 1);
+    --wd-info: rgb(var(--wd-info-rgb) / 1);
 }
 
+:root,
+[data-theme="classic"] {
+    --background-rgb: 255 255 255;
+    --foreground-rgb: 15 23 42;
+    --card-rgb: 255 255 255;
+    --card-foreground-rgb: 15 23 42;
+    --popover-rgb: 255 255 255;
+    --popover-foreground-rgb: 15 23 42;
+    --primary-rgb: 37 99 235;
+    --primary-foreground-rgb: 255 255 255;
+    --secondary-rgb: 241 245 249;
+    --secondary-foreground-rgb: 15 23 42;
+    --muted-rgb: 241 245 249;
+    --muted-foreground-rgb: 100 116 139;
+    --accent-rgb: 219 234 254;
+    --accent-foreground-rgb: 30 64 175;
+    --destructive-rgb: 239 68 68;
+    --border-rgb: 203 213 225;
+    --input-rgb: 226 232 240;
+    --ring-rgb: 37 99 235;
+    --chart-1-rgb: 37 99 235;
+    --chart-2-rgb: 21 128 61;
+    --chart-3-rgb: 234 179 8;
+    --chart-4-rgb: 124 58 237;
+    --chart-5-rgb: 239 68 68;
+    --sidebar-rgb: 248 250 252;
+    --sidebar-foreground-rgb: 15 23 42;
+    --sidebar-primary-rgb: 37 99 235;
+    --sidebar-primary-foreground-rgb: 255 255 255;
+    --sidebar-accent-rgb: 241 245 249;
+    --sidebar-accent-foreground-rgb: 15 23 42;
+    --sidebar-border-rgb: 203 213 225;
+    --sidebar-ring-rgb: 37 99 235;
+
+    --wd-surface-base-rgb: 248 250 252;
+    --wd-surface-panel-rgb: 255 255 255;
+    --wd-surface-panel-2-rgb: 241 245 249;
+    --wd-surface-elevated-rgb: 226 232 240;
+    --wd-surface-overlay-rgb: 248 250 252;
+    --wd-surface-overlay-alpha: 0.94;
+    --wd-border-subtle-rgb: 203 213 225;
+    --wd-border-strong-rgb: 148 163 184;
+    --wd-text-primary-rgb: 15 23 42;
+    --wd-text-secondary-rgb: 51 65 85;
+    --wd-text-muted-rgb: 100 116 139;
+    --wd-accent-rgb: 37 99 235;
+    --wd-accent-hover-rgb: 29 78 216;
+    --wd-accent-soft-alpha: 0.16;
+    --wd-success-rgb: 22 163 74;
+    --wd-danger-rgb: 239 68 68;
+    --wd-danger-soft-alpha: 0.18;
+    --wd-warning-rgb: 217 119 6;
+    --wd-info-rgb: 14 116 144;
+}
+
+[data-theme="cyber"] {
+    --background-rgb: 2 6 23;
+    --foreground-rgb: 248 250 252;
+    --card-rgb: 15 23 42;
+    --card-foreground-rgb: 248 250 252;
+    --popover-rgb: 15 23 42;
+    --popover-foreground-rgb: 248 250 252;
+    --primary-rgb: 168 85 247;
+    --primary-foreground-rgb: 15 23 42;
+    --secondary-rgb: 30 41 59;
+    --secondary-foreground-rgb: 226 232 240;
+    --muted-rgb: 30 41 59;
+    --muted-foreground-rgb: 148 163 184;
+    --accent-rgb: 30 41 59;
+    --accent-foreground-rgb: 248 250 252;
+    --destructive-rgb: 248 113 113;
+    --border-rgb: 51 65 85;
+    --input-rgb: 51 65 85;
+    --ring-rgb: 168 85 247;
+    --chart-1-rgb: 168 85 247;
+    --chart-2-rgb: 59 130 246;
+    --chart-3-rgb: 34 197 94;
+    --chart-4-rgb: 248 113 113;
+    --chart-5-rgb: 234 179 8;
+    --sidebar-rgb: 15 23 42;
+    --sidebar-foreground-rgb: 248 250 252;
+    --sidebar-primary-rgb: 168 85 247;
+    --sidebar-primary-foreground-rgb: 15 23 42;
+    --sidebar-accent-rgb: 30 41 59;
+    --sidebar-accent-foreground-rgb: 248 250 252;
+    --sidebar-border-rgb: 51 65 85;
+    --sidebar-ring-rgb: 168 85 247;
+
+    --wd-surface-base-rgb: 2 6 23;
+    --wd-surface-panel-rgb: 15 17 21;
+    --wd-surface-panel-2-rgb: 22 26 34;
+    --wd-surface-elevated-rgb: 31 37 48;
+    --wd-surface-overlay-rgb: 10 12 17;
+    --wd-surface-overlay-alpha: 0.96;
+    --wd-border-subtle-rgb: 43 50 64;
+    --wd-border-strong-rgb: 61 71 89;
+    --wd-text-primary-rgb: 242 243 245;
+    --wd-text-secondary-rgb: 192 197 205;
+    --wd-text-muted-rgb: 144 153 171;
+    --wd-accent-rgb: 168 85 247;
+    --wd-accent-hover-rgb: 147 51 234;
+    --wd-accent-soft-alpha: 0.16;
+    --wd-success-rgb: 59 165 93;
+    --wd-danger-rgb: 248 113 113;
+    --wd-danger-soft-alpha: 0.2;
+    --wd-warning-rgb: 240 178 50;
+    --wd-info-rgb: 0 168 252;
+}
+
+[data-theme="eco"] {
+    --background-rgb: 250 250 249;
+    --foreground-rgb: 28 25 23;
+    --card-rgb: 255 255 252;
+    --card-foreground-rgb: 28 25 23;
+    --popover-rgb: 255 255 252;
+    --popover-foreground-rgb: 28 25 23;
+    --primary-rgb: 21 128 61;
+    --primary-foreground-rgb: 240 253 244;
+    --secondary-rgb: 231 229 228;
+    --secondary-foreground-rgb: 41 37 36;
+    --muted-rgb: 231 229 228;
+    --muted-foreground-rgb: 120 113 108;
+    --accent-rgb: 220 252 231;
+    --accent-foreground-rgb: 22 101 52;
+    --destructive-rgb: 239 68 68;
+    --border-rgb: 214 211 209;
+    --input-rgb: 231 229 228;
+    --ring-rgb: 21 128 61;
+    --chart-1-rgb: 21 128 61;
+    --chart-2-rgb: 8 145 178;
+    --chart-3-rgb: 202 138 4;
+    --chart-4-rgb: 37 99 235;
+    --chart-5-rgb: 239 68 68;
+    --sidebar-rgb: 245 245 244;
+    --sidebar-foreground-rgb: 28 25 23;
+    --sidebar-primary-rgb: 21 128 61;
+    --sidebar-primary-foreground-rgb: 240 253 244;
+    --sidebar-accent-rgb: 231 229 228;
+    --sidebar-accent-foreground-rgb: 41 37 36;
+    --sidebar-border-rgb: 214 211 209;
+    --sidebar-ring-rgb: 21 128 61;
+
+    --wd-surface-base-rgb: 250 250 249;
+    --wd-surface-panel-rgb: 255 255 252;
+    --wd-surface-panel-2-rgb: 245 245 244;
+    --wd-surface-elevated-rgb: 231 229 228;
+    --wd-surface-overlay-rgb: 250 250 249;
+    --wd-surface-overlay-alpha: 0.94;
+    --wd-border-subtle-rgb: 214 211 209;
+    --wd-border-strong-rgb: 168 162 158;
+    --wd-text-primary-rgb: 28 25 23;
+    --wd-text-secondary-rgb: 68 64 60;
+    --wd-text-muted-rgb: 120 113 108;
+    --wd-accent-rgb: 21 128 61;
+    --wd-accent-hover-rgb: 22 101 52;
+    --wd-accent-soft-alpha: 0.18;
+    --wd-success-rgb: 22 163 74;
+    --wd-danger-rgb: 239 68 68;
+    --wd-danger-soft-alpha: 0.18;
+    --wd-warning-rgb: 202 138 4;
+    --wd-info-rgb: 8 145 178;
+}
+
+[data-theme="a11y"] {
+    --background-rgb: 0 0 0;
+    --foreground-rgb: 255 255 255;
+    --card-rgb: 0 0 0;
+    --card-foreground-rgb: 255 255 255;
+    --popover-rgb: 0 0 0;
+    --popover-foreground-rgb: 255 255 255;
+    --primary-rgb: 234 179 8;
+    --primary-foreground-rgb: 0 0 0;
+    --secondary-rgb: 38 38 38;
+    --secondary-foreground-rgb: 255 255 255;
+    --muted-rgb: 38 38 38;
+    --muted-foreground-rgb: 212 212 212;
+    --accent-rgb: 38 38 38;
+    --accent-foreground-rgb: 255 255 255;
+    --destructive-rgb: 248 113 113;
+    --border-rgb: 255 255 255;
+    --input-rgb: 82 82 82;
+    --ring-rgb: 234 179 8;
+    --chart-1-rgb: 234 179 8;
+    --chart-2-rgb: 56 189 248;
+    --chart-3-rgb: 74 222 128;
+    --chart-4-rgb: 248 113 113;
+    --chart-5-rgb: 255 255 255;
+    --sidebar-rgb: 0 0 0;
+    --sidebar-foreground-rgb: 255 255 255;
+    --sidebar-primary-rgb: 234 179 8;
+    --sidebar-primary-foreground-rgb: 0 0 0;
+    --sidebar-accent-rgb: 38 38 38;
+    --sidebar-accent-foreground-rgb: 255 255 255;
+    --sidebar-border-rgb: 163 163 163;
+    --sidebar-ring-rgb: 234 179 8;
+
+    --wd-surface-base-rgb: 0 0 0;
+    --wd-surface-panel-rgb: 0 0 0;
+    --wd-surface-panel-2-rgb: 23 23 23;
+    --wd-surface-elevated-rgb: 38 38 38;
+    --wd-surface-overlay-rgb: 0 0 0;
+    --wd-surface-overlay-alpha: 0.98;
+    --wd-border-subtle-rgb: 163 163 163;
+    --wd-border-strong-rgb: 255 255 255;
+    --wd-text-primary-rgb: 255 255 255;
+    --wd-text-secondary-rgb: 229 229 229;
+    --wd-text-muted-rgb: 171 171 171;
+    --wd-accent-rgb: 234 179 8;
+    --wd-accent-hover-rgb: 250 204 21;
+    --wd-accent-soft-alpha: 0.22;
+    --wd-success-rgb: 74 222 128;
+    --wd-danger-rgb: 248 113 113;
+    --wd-danger-soft-alpha: 0.22;
+    --wd-warning-rgb: 250 204 21;
+    --wd-info-rgb: 56 189 248;
+}
+
+[data-theme="discord"] {
+    --background-rgb: 49 51 56;
+    --foreground-rgb: 242 243 245;
+    --card-rgb: 54 57 63;
+    --card-foreground-rgb: 242 243 245;
+    --popover-rgb: 43 45 49;
+    --popover-foreground-rgb: 242 243 245;
+    --primary-rgb: 88 101 242;
+    --primary-foreground-rgb: 255 255 255;
+    --secondary-rgb: 64 68 75;
+    --secondary-foreground-rgb: 242 243 245;
+    --muted-rgb: 43 45 49;
+    --muted-foreground-rgb: 183 186 194;
+    --accent-rgb: 64 68 75;
+    --accent-foreground-rgb: 242 243 245;
+    --destructive-rgb: 218 55 60;
+    --border-rgb: 63 66 73;
+    --input-rgb: 64 68 75;
+    --ring-rgb: 88 101 242;
+    --chart-1-rgb: 88 101 242;
+    --chart-2-rgb: 59 165 93;
+    --chart-3-rgb: 240 178 50;
+    --chart-4-rgb: 0 168 252;
+    --chart-5-rgb: 218 55 60;
+    --sidebar-rgb: 43 45 49;
+    --sidebar-foreground-rgb: 242 243 245;
+    --sidebar-primary-rgb: 88 101 242;
+    --sidebar-primary-foreground-rgb: 255 255 255;
+    --sidebar-accent-rgb: 64 68 75;
+    --sidebar-accent-foreground-rgb: 242 243 245;
+    --sidebar-border-rgb: 63 66 73;
+    --sidebar-ring-rgb: 88 101 242;
+
+    --wd-surface-base-rgb: 49 51 56;
+    --wd-surface-panel-rgb: 49 51 56;
+    --wd-surface-panel-2-rgb: 43 45 49;
+    --wd-surface-elevated-rgb: 64 68 75;
+    --wd-surface-overlay-rgb: 35 36 40;
+    --wd-surface-overlay-alpha: 0.96;
+    --wd-border-subtle-rgb: 63 66 73;
+    --wd-border-strong-rgb: 78 82 91;
+    --wd-text-primary-rgb: 242 243 245;
+    --wd-text-secondary-rgb: 192 197 205;
+    --wd-text-muted-rgb: 144 153 171;
+    --wd-accent-rgb: 88 101 242;
+    --wd-accent-hover-rgb: 71 82 196;
+    --wd-accent-soft-alpha: 0.16;
+    --wd-success-rgb: 59 165 93;
+    --wd-danger-rgb: 218 55 60;
+    --wd-danger-soft-alpha: 0.2;
+    --wd-warning-rgb: 240 178 50;
+    --wd-info-rgb: 0 168 252;
+}
+
+/* Keep legacy dark-mode class behavior for out-of-scope marketing/auth pages. */
 .dark {
     --radius: 0.625rem;
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.205 0 0);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.97 0 0);
-    --secondary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
-    --accent-foreground: oklch(0.205 0 0);
-    --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
-    --ring: oklch(0.708 0 0);
-    --chart-1: oklch(0.646 0.222 41.116);
-    --chart-2: oklch(0.6 0.118 184.704);
-    --chart-3: oklch(0.398 0.07 227.392);
-    --chart-4: oklch(0.828 0.189 84.429);
-    --chart-5: oklch(0.769 0.188 70.08);
-    --sidebar: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.205 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: oklch(0.205 0 0);
-    --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.708 0 0);
-
-    /* Keep semantic tokens consistent in dark mode (primary application mode) */
-    --wd-surface-base: #0f1115;
-    --wd-surface-panel: #0f1115;
-    --wd-surface-panel-2: #161a22;
-    --wd-surface-elevated: #1f2530;
-    --wd-surface-overlay: rgba(10, 12, 17, 0.96);
-    --wd-border-subtle: #2b3240;
-    --wd-border-strong: #3d4759;
-    --wd-text-primary: #f2f3f5;
-    --wd-text-secondary: #c0c5cd;
-    --wd-text-muted: #9099ab;
-    --wd-accent: #5865f2;
-    --wd-accent-hover: #4752c4;
-    --wd-accent-soft: rgba(88, 101, 242, 0.16);
-    --wd-success: #3ba55d;
-    --wd-danger: #ed4245;
-    --wd-warning: #f0b232;
-    --wd-info: #00a8fc;
 }
 
 /* @layer base { */
@@ -446,31 +673,31 @@ input[type="range"].slider::-webkit-slider-thumb {
     width: 16px;
     height: 16px;
     border-radius: 50%;
-    background: rgb(168 85 247);
+    background: var(--wd-accent);
     cursor: pointer;
     transition: all 0.2s ease;
-    box-shadow: 0 0 0 4px rgba(168, 85, 247, 0.2);
+    box-shadow: 0 0 0 4px var(--wd-accent-soft);
 }
 
 input[type="range"].slider::-webkit-slider-thumb:hover {
-    background: rgb(147 51 234);
-    box-shadow: 0 0 0 6px rgba(168, 85, 247, 0.3);
+    background: var(--wd-accent-hover);
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--wd-accent) 24%, transparent);
 }
 
 input[type="range"].slider::-moz-range-thumb {
     width: 16px;
     height: 16px;
     border-radius: 50%;
-    background: rgb(168 85 247);
+    background: var(--wd-accent);
     cursor: pointer;
     border: none;
     transition: all 0.2s ease;
-    box-shadow: 0 0 0 4px rgba(168, 85, 247, 0.2);
+    box-shadow: 0 0 0 4px var(--wd-accent-soft);
 }
 
 input[type="range"].slider::-moz-range-thumb:hover {
-    background: rgb(147 51 234);
-    box-shadow: 0 0 0 6px rgba(168, 85, 247, 0.3);
+    background: var(--wd-accent-hover);
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--wd-accent) 24%, transparent);
 }
 
 /* #game-container { */

@@ -1,9 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
-import { Loader2, Settings, X } from "lucide-react";
+import { Check, Loader2, Settings, X } from "lucide-react";
 import useUserStore from "@/common/store/useStore";
 import { CharacterEventBus } from "@/game/character/CharacterEventBus";
 import { getDisplayNameFromParts } from "@/common/utils/displayName";
+import { THEME_OPTIONS } from "@/common/theme/themeRegistry";
+import { ThemeId } from "@/common/theme/_types";
+import useThemeStore from "@/common/store/themeStore";
 
 const MAX_NAME_LENGTH = 20;
 const MAX_NICKNAME_LENGTH = 20;
@@ -17,6 +20,12 @@ function UserSettingsModal({ isOpen, onClose }: UserSettingsModalProps) {
     const { data: session } = useSession();
     const user = useUserStore((state) => state.user);
     const updateUser = useUserStore((state) => state.updateUser);
+    const theme = useThemeStore((state) => state.theme);
+    const setThemeLocal = useThemeStore((state) => state.setThemeLocal);
+    const persistTheme = useThemeStore((state) => state.persistTheme);
+    const isThemeSyncing = useThemeStore((state) => state.isSyncing);
+    const themeSyncError = useThemeStore((state) => state.lastSyncError);
+    const clearThemeSyncError = useThemeStore((state) => state.clearSyncError);
     const [name, setName] = useState("");
     const [nickname, setNickname] = useState("");
     const [isSaving, setIsSaving] = useState(false);
@@ -38,7 +47,8 @@ function UserSettingsModal({ isOpen, onClose }: UserSettingsModalProps) {
         setName(resolvedName);
         setNickname(resolvedNickname);
         setError(null);
-    }, [isOpen, session?.backendUser?.name, session?.backendUser?.nickname, session?.user?.name, user.name, user.nickname]);
+        clearThemeSyncError();
+    }, [clearThemeSyncError, isOpen, session?.backendUser?.name, session?.backendUser?.nickname, session?.user?.name, user.name, user.nickname]);
 
     const previewName = useMemo(
         () => getDisplayNameFromParts(nickname, name, "You"),
@@ -149,6 +159,11 @@ function UserSettingsModal({ isOpen, onClose }: UserSettingsModalProps) {
         }
     };
 
+    const handleThemeSelect = (nextTheme: ThemeId) => {
+        setThemeLocal(nextTheme);
+        void persistTheme(nextTheme);
+    };
+
     if (!isOpen) return null;
 
     return (
@@ -188,6 +203,65 @@ function UserSettingsModal({ isOpen, onClose }: UserSettingsModalProps) {
                         <p className="mt-1 text-lg font-semibold wd-text-primary truncate">
                             {previewName}
                         </p>
+                    </div>
+
+                    <div className="rounded-lg border wd-border-subtle wd-bg-panel-2 p-3">
+                        <p className="text-[11px] font-semibold uppercase tracking-wide wd-text-muted">
+                            Theming
+                        </p>
+                        <div className="mt-2 grid grid-cols-3 gap-2">
+                            {THEME_OPTIONS.map((option) => {
+                                const isSelected = theme === option.id;
+
+                                return (
+                                    <button
+                                        key={option.id}
+                                        type="button"
+                                        onClick={() => handleThemeSelect(option.id)}
+                                        title={option.description}
+                                        aria-label={`Select ${option.label} theme`}
+                                        className="group rounded-md border border-transparent p-1.5 transition-colors hover:bg-[var(--wd-surface-elevated)]"
+                                    >
+                                        <span className="block text-[11px] font-semibold wd-text-secondary">
+                                            {option.label}
+                                        </span>
+                                        <span
+                                            className={`relative mt-1 inline-flex h-10 w-10 items-center justify-center rounded-full border-2 transition-all ${
+                                                isSelected
+                                                    ? "outline outline-2 outline-offset-2 outline-[var(--wd-accent)]"
+                                                    : "border-[var(--wd-border-subtle)]"
+                                            }`}
+                                            style={{
+                                                backgroundColor: `rgb(${option.swatch.base})`,
+                                                borderColor: `rgb(${option.swatch.accent})`,
+                                            }}
+                                        >
+                                            <span
+                                                className="pointer-events-none absolute inset-[7px] rounded-full"
+                                                style={{
+                                                    backgroundColor: `rgb(${option.swatch.surface})`,
+                                                }}
+                                            />
+                                            {isSelected && (
+                                                <span className="pointer-events-none absolute -right-1 -top-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-[var(--wd-accent)] text-white">
+                                                    <Check size={11} />
+                                                </span>
+                                            )}
+                                        </span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                        {isThemeSyncing && (
+                            <p className="mt-2 text-xs wd-text-muted">
+                                Saving theme preference...
+                            </p>
+                        )}
+                        {themeSyncError && (
+                            <p className="mt-2 text-xs wd-text-warning">
+                                Theme saved locally. Cloud sync failed: {themeSyncError}
+                            </p>
+                        )}
                     </div>
 
                     <div>
@@ -255,4 +329,3 @@ function UserSettingsModal({ isOpen, onClose }: UserSettingsModalProps) {
 }
 
 export default UserSettingsModal;
-
