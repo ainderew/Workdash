@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/router";
 import { useSession, signOut } from "next-auth/react";
+import { getDisplayName } from "@/common/utils/displayName";
 import { ThemeToggle } from "./themeToggle";
 
 export function Navbar() {
@@ -22,6 +23,13 @@ export function Navbar() {
     const [isOpen, setIsOpen] = useState(false);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [scrolled, setScrolled] = useState(false);
+    const sessionDisplayName = getDisplayName(
+        {
+            nickname: session?.backendUser?.nickname,
+            name: session?.backendUser?.name || session?.user?.name,
+        },
+        "User",
+    );
 
     
     useEffect(() => {
@@ -138,7 +146,7 @@ export function Navbar() {
                                             setIsProfileOpen(!isProfileOpen)
                                         }
                                         className="relative group cursor-pointer focus:outline-none"
-                                        title={session.user.name || "User"}
+                                        title={sessionDisplayName}
                                     >
                                         <div
                                             className={`absolute -inset-0.5 bg-cyan-500 rounded-full blur opacity-0 group-hover:opacity-50 transition duration-500 ${isProfileOpen ? "opacity-75" : ""}`}
@@ -193,7 +201,7 @@ export function Navbar() {
                                                     {/* User Header */}
                                                     <div className="px-4 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
                                                         <p className="text-sm font-bold text-slate-900 dark:text-white truncate">
-                                                            {session.user.name}
+                                                            {sessionDisplayName}
                                                         </p>
                                                         <p className="text-xs text-slate-500 dark:text-slate-400 truncate font-mono mt-1">
                                                             {session.user.email}
@@ -293,7 +301,7 @@ export function Navbar() {
                                             )}
                                             <div className="flex flex-col">
                                                 <span className="text-sm font-bold text-slate-900 dark:text-white truncate max-w-[150px]">
-                                                    {session.user.name}
+                                                    {sessionDisplayName}
                                                 </span>
                                                 <span className="text-[10px] text-slate-500 dark:text-slate-400 truncate max-w-[150px]">
                                                     {session.user.email}

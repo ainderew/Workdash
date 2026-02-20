@@ -1,10 +1,13 @@
 import React from 'react';
-import { parseContentWithMentions } from '@/communication/chatV2/mentionUtils';
+import {
+  parseContentWithMentions,
+  type MentionMemberNameMap,
+} from '@/communication/chatV2/mentionUtils';
 
 interface MentionHighlightedContentProps {
   content: string;
   mentionedUserIds: number[];
-  memberNameMap: Map<number, string>;
+  memberNameMap: MentionMemberNameMap;
   onClickMention?: (event: React.MouseEvent, userId: number, displayName: string) => void;
 }
 

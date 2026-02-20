@@ -429,8 +429,8 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
 
     const rootContainerClassName =
         mode === "desk"
-            ? "fixed inset-0 z-30 h-[100dvh] w-screen overflow-hidden flex flex-col wd-bg-overlay backdrop-blur-sm"
-            : "h-full w-full overflow-hidden flex flex-col wd-bg-overlay";
+            ? "fixed inset-0 z-30 h-[100dvh] w-screen overflow-hidden flex flex-col wd-bg-overlay backdrop-blur-sm wd-desk-mode-filled-icons"
+            : "h-full w-full overflow-hidden flex flex-col wd-bg-overlay wd-desk-mode-filled-icons";
 
     return (
         <section className={rootContainerClassName}>

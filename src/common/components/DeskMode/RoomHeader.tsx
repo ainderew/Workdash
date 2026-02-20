@@ -6,6 +6,7 @@ import type {
 } from "@/communication/chatV2/_types";
 import { Bell, Search, UserRound, Users, X } from "lucide-react";
 import useChatV2Store from "@/common/store/chatV2Store";
+import { getDisplayName } from "@/common/utils/displayName";
 import ChannelHashIcon from "./ChannelHashIcon";
 import UserNotificationsPanel from "./UserNotificationsPanel";
 
@@ -90,6 +91,9 @@ function RoomHeader({
         () => rooms.find((entry) => entry.id === searchRoomId)?.name || "",
         [rooms, searchRoomId],
     );
+    const searchFromUserDisplayName = searchFromUser
+        ? getDisplayName(searchFromUser, `User ${searchFromUser.id}`)
+        : "user";
 
     const activeFilterCount = Number(!!searchFromUser) + Number(!!searchRoomId);
     const normalizedSearchQuery = searchQuery.trim();
@@ -393,9 +397,7 @@ function RoomHeader({
                                                 </p>
                                                 <p className="text-[0.85rem] wd-text-muted truncate">
                                                     from:{" "}
-                                                    {searchFromUser
-                                                        ? searchFromUser.name || `User ${searchFromUser.id}`
-                                                        : "user"}
+                                                    {searchFromUserDisplayName}
                                                 </p>
                                             </div>
                                         </div>
@@ -435,7 +437,7 @@ function RoomHeader({
                                         {searchFromUser ? (
                                             <div className="flex items-center justify-between rounded-md wd-bg-elevated border wd-border-subtle px-3 py-2 mb-2">
                                                 <p className="text-[0.85rem] wd-text-primary truncate">
-                                                    {searchFromUser.name || `User ${searchFromUser.id}`}
+                                                    {searchFromUserDisplayName}
                                                 </p>
                                                 <button
                                                     type="button"
@@ -478,7 +480,10 @@ function RoomHeader({
                                                             }}
                                                             className="w-full text-left px-3 py-2 text-[0.85rem] wd-text-primary transition-colors hover:bg-[var(--wd-surface-base)]"
                                                         >
-                                                            {userResult.name || `User ${userResult.id}`}
+                                                            {getDisplayName(
+                                                                userResult,
+                                                                `User ${userResult.id}`,
+                                                            )}
                                                         </button>
                                                     ))
                                                 )}

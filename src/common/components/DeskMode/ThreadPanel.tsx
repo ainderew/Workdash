@@ -17,7 +17,13 @@ import { extractDomain, parseMessageContent } from "@/common/utils/linkParser";
 import { GitHubPreview } from "@/common/components/TextChat/GitHubPreview";
 import { TwitterPreview } from "@/common/components/TextChat/TwitterPreview";
 import { YouTubePreview } from "@/common/components/TextChat/YouTubePreview";
-import { buildMemberNameMap, extractMentionedUserIds } from "@/communication/chatV2/mentionUtils";
+import {
+    buildMemberNameMap,
+    extractMentionedUserIds,
+    type MentionMemberNameMap,
+} from "@/communication/chatV2/mentionUtils";
+import { getDisplayName } from "@/common/utils/displayName";
+import { formatChatMessageTimestamp } from "@/common/utils/messageTimestamp";
 import Composer from "./Composer";
 import MessageHoverActions from "./MessageHoverActions";
 import MentionHighlightedContent from "./MentionHighlightedContent";
@@ -42,12 +48,6 @@ interface ThreadPanelProps {
     ) => Promise<void>;
     onToggleReaction: (messageId: string, emoji: string) => Promise<void> | void;
 }
-
-const formatTime = (value: string | Date) =>
-    new Date(value).toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-    });
 
 const byCreatedAtAsc = (a: ChatV2Message, b: ChatV2Message) => {
     const aTime = new Date(a.createdAt).getTime();
@@ -99,7 +99,7 @@ type ThreadMessageRowProps = {
     frequentEmojis: string[];
     onToggleReaction: (messageId: string, emoji: string) => Promise<void> | void;
     resolvedSenderImage?: string;
-    memberNameMap: Map<number, string>;
+    memberNameMap: MentionMemberNameMap;
 };
 
 function ThreadMessageRow({
@@ -112,7 +112,10 @@ function ThreadMessageRow({
     resolvedSenderImage,
     memberNameMap,
 }: ThreadMessageRowProps) {
-    const senderName = message.sender?.name?.trim() || `User ${message.senderUserId}`;
+    const senderName = getDisplayName(
+        message.sender,
+        `User ${message.senderUserId}`,
+    );
     const senderImage = message.sender?.image?.trim() || resolvedSenderImage || "";
     const standaloneGifUrl =
         message.messageType === "IMAGE" && message.attachments.length === 0
@@ -304,7 +307,7 @@ function ThreadMessageRow({
                             {senderName}
                         </span>
                         <span className="text-xs wd-text-muted">
-                            {formatTime(message.createdAt)}
+                            {formatChatMessageTimestamp(message.createdAt)}
                         </span>
                         {message.editedAt && (
                             <span className="text-[10px] uppercase tracking-wide wd-text-muted">
@@ -907,7 +910,7 @@ function ThreadPanel({
                 inputId="desk-thread-reply-input"
                 placeholder={
                     rootMessage
-                        ? `Reply to ${rootMessage.sender?.name?.trim() || "thread"}`
+                        ? `Reply to ${getDisplayName(rootMessage.sender, "thread")}`
                         : "Reply in thread"
                 }
                 members={members}

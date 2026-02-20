@@ -5,6 +5,7 @@ import { CharacterCustomization } from "@/game/character/_types";
 const useUserStore = create<UserStore>((set) => ({
     user: {
         name: "",
+        nickname: null,
         producerIds: [],
         image: undefined,
         spriteSheetDataUrl: undefined,

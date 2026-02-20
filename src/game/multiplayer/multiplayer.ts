@@ -8,6 +8,7 @@ import { CharacterCustomization } from "../character/_types";
 import useUserStore from "@/common/store/useStore";
 import { Player } from "../player/player";
 import useUiStore from "@/common/store/uiStore";
+import { getDisplayNameFromParts } from "@/common/utils/displayName";
 
 type QueuedMessage = {
     event: string;
@@ -232,9 +233,15 @@ export class Multiplayer {
             ? AvailabilityStatus.FOCUS
             : AvailabilityStatus.ONLINE;
 
+        const playerDisplayName = getDisplayNameFromParts(
+            player.nickname,
+            player.name,
+            `User ${player.id}`,
+        );
+
         createPlayer(
             player.id,
-            player.name,
+            playerDisplayName,
             player.x,
             player.y,
             availabilityStatus,
@@ -252,7 +259,12 @@ export class Multiplayer {
 
         if (isLocal) {
             useUserStore.getState().updateUser({
-                name: player.name,
+                ...(typeof player.name === "string"
+                    ? { name: player.name }
+                    : {}),
+                ...(player.nickname !== undefined
+                    ? { nickname: player.nickname }
+                    : {}),
                 socketId: this.socket.id,
             });
         }
@@ -307,9 +319,9 @@ export class Multiplayer {
         );
     }
 
-    public emitNameUpdate(newName: string) {
-        console.log("Emitting name update to backend:", newName);
-        this.send("updateName", { name: newName });
+    public emitNameUpdate(newName: string, nickname?: string | null) {
+        console.log("Emitting name update to backend:", newName, nickname);
+        this.send("updateName", { name: newName, nickname });
     }
 
     public watchNameUpdates(players: Map<string, Player>) {
@@ -317,7 +329,12 @@ export class Multiplayer {
 
         this.socket.on(
             "nameUpdated",
-            (data: { playerId: string; name: string }) => {
+            (data: {
+                playerId: string;
+                name?: string;
+                nickname?: string | null;
+                displayName?: string;
+            }) => {
                 console.log(
                     "Name updated for player:",
                     data.playerId,
@@ -326,9 +343,24 @@ export class Multiplayer {
 
                 const targetPlayer = players.get(data.playerId);
                 if (targetPlayer) {
-                    targetPlayer.name = data.name;
+                    const resolvedDisplayName = getDisplayNameFromParts(
+                        data.nickname,
+                        data.name || data.displayName,
+                        targetPlayer.name,
+                    );
+                    targetPlayer.name = resolvedDisplayName;
                     if (typeof targetPlayer.initializeNameTag === "function") {
                         targetPlayer.initializeNameTag();
+                    }
+                    if (data.playerId === this.socket.id) {
+                        useUserStore.getState().updateUser({
+                            ...(typeof data.name === "string"
+                                ? { name: data.name }
+                                : {}),
+                            ...(data.nickname !== undefined
+                                ? { nickname: data.nickname }
+                                : {}),
+                        });
                     }
                 } else {
                     console.warn(

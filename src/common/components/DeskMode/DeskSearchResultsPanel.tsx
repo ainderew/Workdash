@@ -6,6 +6,8 @@ import type {
 } from "@/communication/chatV2/_types";
 import { ArrowUpDown } from "lucide-react";
 import ChannelHashIcon from "./ChannelHashIcon";
+import { getDisplayName } from "@/common/utils/displayName";
+import { formatChatMessageTimestamp } from "@/common/utils/messageTimestamp";
 
 interface DeskSearchResultsPanelProps {
     messages: ChatV2Message[];
@@ -17,14 +19,6 @@ interface DeskSearchResultsPanelProps {
     onSortChange: (sort: ChatV2MessageSearchSort) => void;
     onSelectResult: (message: ChatV2Message) => void;
 }
-
-const formatTimestamp = (value: string | Date) =>
-    new Date(value).toLocaleString([], {
-        month: "short",
-        day: "numeric",
-        hour: "numeric",
-        minute: "2-digit",
-    });
 
 function DeskSearchResultsPanel({
     messages,
@@ -73,7 +67,10 @@ function DeskSearchResultsPanel({
     }, [messages, roomsById]);
 
     const renderMessageCard = (message: ChatV2Message) => {
-        const senderName = message.sender?.name?.trim() || `User ${message.senderUserId}`;
+        const senderName = getDisplayName(
+            message.sender,
+            `User ${message.senderUserId}`,
+        );
         const senderInitial = senderName.charAt(0).toUpperCase();
         const senderImage = message.sender?.image?.trim();
         const hasImageAttachment = message.attachments.some((attachment) =>
@@ -108,7 +105,7 @@ function DeskSearchResultsPanel({
                                 {senderName}
                             </span>
                             <span className="text-[0.85rem] wd-text-muted shrink-0">
-                                {formatTimestamp(message.createdAt)}
+                                {formatChatMessageTimestamp(message.createdAt)}
                             </span>
                         </div>
 

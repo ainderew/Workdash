@@ -11,14 +11,15 @@ import {
 } from "@/communication/chatV2/uploadService";
 import {
     buildMemberNameMap,
-    extractMentionedUserIds,
     getMentionQueryAtCursor,
     insertMentionIntoValue,
+    serializeMentionContentForSend,
 } from "@/communication/chatV2/mentionUtils";
 import DeskGifPicker from "./DeskGifPicker";
 import MentionSuggestionFlyout, {
     type MentionSuggestion,
 } from "./MentionSuggestionFlyout";
+import { getDisplayName, getNameAliases } from "@/common/utils/displayName";
 
 function PlusSolidIcon({ className }: { className?: string }) {
     return (
@@ -121,14 +122,21 @@ function Composer({
                 ) {
                     return false;
                 }
-                const name = member.user.name?.trim();
-                if (!name) return false;
-                return name.toLowerCase().includes(queryLower);
+                const aliases = getNameAliases({
+                    nickname: member.user.nickname,
+                    name: member.user.name,
+                });
+                if (aliases.length === 0) return false;
+                return aliases.some((alias) =>
+                    alias.toLowerCase().includes(queryLower),
+                );
             })
             .slice(0, MAX_MENTION_SUGGESTIONS)
             .map((member) => ({
                 userId: member.userId,
-                name: member.user.name,
+                name: getDisplayName(member.user, `User ${member.userId}`),
+                fullName: member.user.name,
+                nickname: member.user.nickname ?? null,
                 image: member.user.image ?? null,
             }));
     }, [members, mentionQuery, localBackendUserId]);
@@ -202,7 +210,11 @@ function Composer({
     );
 
     const submit = async () => {
-        const content = value.trim();
+        const serializedMentionContent = serializeMentionContentForSend(
+            value,
+            memberNameMap,
+        );
+        const content = serializedMentionContent.content.trim();
         if ((!content && !selectedFile) || disabled || isSending || !roomId)
             return;
 
@@ -220,16 +232,15 @@ function Composer({
                 attachments = [uploadInit.attachment];
             }
 
-            // Extract mentioned user IDs from the content
-            const mentionedUserIds = extractMentionedUserIds(
-                value,
-                memberNameMap,
-            );
-
             await onSend(
                 content,
                 attachments,
-                mentionedUserIds.length > 0 ? { mentionedUserIds } : undefined,
+                serializedMentionContent.mentionedUserIds.length > 0
+                    ? {
+                          mentionedUserIds:
+                              serializedMentionContent.mentionedUserIds,
+                      }
+                    : undefined,
             );
             setValue("");
             setSelectedFile(null);

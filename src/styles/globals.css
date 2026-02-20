@@ -335,6 +335,20 @@ body {
 }
 
 @layer components {
+    .wd-desk-mode-filled-icons .lucide {
+        fill: currentColor;
+        stroke: currentColor;
+        stroke-width: 1.75;
+    }
+
+    .wd-desk-mode-filled-icons .lucide path,
+    .wd-desk-mode-filled-icons .lucide circle,
+    .wd-desk-mode-filled-icons .lucide rect,
+    .wd-desk-mode-filled-icons .lucide polygon,
+    .wd-desk-mode-filled-icons .lucide ellipse {
+        fill: currentColor;
+    }
+
     .wd-card {
         background-color: var(--wd-surface-panel);
         border: 1px solid var(--wd-border-subtle);

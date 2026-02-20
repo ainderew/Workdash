@@ -22,6 +22,7 @@ import {
     readFrequentEmojiLocal,
     writeFrequentEmojiLocal,
 } from "@/communication/chatV2/reactionFrequentCache";
+import { getDisplayName } from "@/common/utils/displayName";
 
 type MessageDeletePayload = {
     roomId: string;
@@ -324,7 +325,10 @@ const applyReplySummaryInsert = (
     const rootMessage = messages[rootMessageIndex];
     const replyPreviewSender = {
         id: replyMessage.senderUserId,
-        name: replyMessage.sender?.name || `User ${replyMessage.senderUserId}`,
+        name: getDisplayName(
+            replyMessage.sender,
+            `User ${replyMessage.senderUserId}`,
+        ),
         image: replyMessage.sender?.image || null,
     };
     const nextReplyPreviewUsers = [

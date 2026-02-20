@@ -9,16 +9,12 @@ import GuildRail from "./GuildRail";
 import MessageList from "./MessageList";
 import ThreadPanel from "./ThreadPanel";
 import UserNotificationsPanel from "./UserNotificationsPanel";
+import { getDisplayName } from "@/common/utils/displayName";
+import { formatChatMessageTimestamp } from "@/common/utils/messageTimestamp";
 
 interface CompactChatShellProps {
     onClose: () => void;
 }
-
-const formatTime = (value: string | Date) =>
-    new Date(value).toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-    });
 
 const toSearchSnippet = (message: ChatV2Message) => {
     const content = message.content?.trim();
@@ -372,7 +368,7 @@ function CompactChatShell({ onClose }: CompactChatShellProps) {
 
         return friends
             .filter((entry) =>
-                (entry.peerUser.name || `User ${entry.peerUser.id}`)
+                getDisplayName(entry.peerUser, `User ${entry.peerUser.id}`)
                     .toLowerCase()
                     .includes(normalized),
             )
@@ -434,7 +430,7 @@ function CompactChatShell({ onClose }: CompactChatShellProps) {
     };
 
     return (
-        <section className="h-full min-h-0 flex wd-bg-app overflow-hidden">
+        <section className="h-full min-h-0 flex wd-bg-app overflow-hidden wd-desk-mode-filled-icons">
             <GuildRail
                 workspaces={workspaceOptions}
                 railView={railView}
@@ -502,7 +498,10 @@ function CompactChatShell({ onClose }: CompactChatShellProps) {
                                         className="w-full px-2 py-1.5 rounded-md text-left text-xs wd-text-primary transition-colors hover:bg-[var(--wd-surface-elevated)] flex items-center justify-between gap-2"
                                     >
                                         <span className="truncate">
-                                            {entry.peerUser.name || `User ${entry.peerUser.id}`}
+                                            {getDisplayName(
+                                                entry.peerUser,
+                                                `User ${entry.peerUser.id}`,
+                                            )}
                                         </span>
                                         <UserRoundPlus size={12} className="wd-text-secondary" />
                                     </button>
@@ -533,7 +532,10 @@ function CompactChatShell({ onClose }: CompactChatShellProps) {
                                         }`}
                                     >
                                         <span className="truncate">
-                                            {entry.peerUser.name || `User ${entry.peerUser.id}`}
+                                            {getDisplayName(
+                                                entry.peerUser,
+                                                `User ${entry.peerUser.id}`,
+                                            )}
                                         </span>
                                         {(entry.room.unreadCount ?? 0) > 0 ? (
                                             <span className="h-4 min-w-4 px-1 rounded-full bg-[var(--wd-danger)] text-white text-[10px] font-bold inline-flex items-center justify-center">
@@ -823,8 +825,10 @@ function CompactChatShell({ onClose }: CompactChatShellProps) {
                                 </div>
                             ) : (
                                 searchResults.map((message) => {
-                                    const senderName = message.sender?.name?.trim()
-                                        || `User ${message.senderUserId}`;
+                                    const senderName = getDisplayName(
+                                        message.sender,
+                                        `User ${message.senderUserId}`,
+                                    );
                                     const roomName = roomsById[message.roomId]?.name || "Unknown";
 
                                     return (
@@ -853,7 +857,7 @@ function CompactChatShell({ onClose }: CompactChatShellProps) {
                                                     {senderName}
                                                 </span>
                                                 <span className="wd-text-muted shrink-0">
-                                                    {formatTime(message.createdAt)}
+                                                    {formatChatMessageTimestamp(message.createdAt)}
                                                 </span>
                                             </div>
                                             <div className="mt-1 text-xs wd-text-muted truncate inline-flex items-center gap-1">

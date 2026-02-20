@@ -3,6 +3,7 @@ import { CharacterCustomization } from "@/game/character/_types";
 
 export type User = {
     name: string;
+    nickname?: string | null;
     email?: string;
     image?: string;
     producerIds: string[];

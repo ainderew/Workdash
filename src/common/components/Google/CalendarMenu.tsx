@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { format, addDays, subDays } from "date-fns";
 import { RefreshCw, LogOut, ChevronLeft, ChevronRight } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
+import { getDisplayName } from "@/common/utils/displayName";
 import SidebarHeader from "../SidebarMenu/SidebarHeader";
 import SidebarMenu from "../SidebarMenu/SidebarMenu";
 import GoogleCalendarButton from "./GoogleCalendarButton";
@@ -32,6 +33,13 @@ function CalendarMenu({ isOpen, onClose }: CalendarMenuProps) {
 
     const isToday =
         format(selectedDate, "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd");
+    const sessionDisplayName = getDisplayName(
+        {
+            nickname: session?.backendUser?.nickname,
+            name: session?.backendUser?.name || session?.user?.name,
+        },
+        "User",
+    );
 
     return (
         <SidebarMenu isOpen={isOpen}>
@@ -131,13 +139,13 @@ function CalendarMenu({ isOpen, onClose }: CalendarMenuProps) {
                             {session.user.image && (
                                 <img
                                     src={session.user.image}
-                                    alt={session.user.name || "User"}
+                                    alt={sessionDisplayName}
                                     className="w-8 h-8 rounded-full"
                                 />
                             )}
                             <div className="flex-1 min-w-0">
                                 <p className="text-sm font-medium text-white truncate">
-                                    {session.user.name}
+                                    {sessionDisplayName}
                                 </p>
                                 <p className="text-xs text-gray-400 truncate">
                                     {session.user.email}

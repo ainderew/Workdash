@@ -1,16 +1,19 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
     Check,
     Copy,
     Fingerprint,
     MoreHorizontal,
     Search,
+    Settings,
     UserRoundPlus,
 } from "lucide-react";
 import type { ChatV2DirectRoom, ChatV2Friend } from "@/communication/chatV2/_types";
 import useUiStore from "@/common/store/uiStore";
 import useUserStore from "@/common/store/useStore";
 import DeskModeControls from "./DeskModeControls";
+import UserSettingsModal from "./modals/UserSettingsModal";
+import { getDisplayName } from "@/common/utils/displayName";
 
 interface DirectMessageSidebarProps {
     directRooms: ChatV2DirectRoom[];
@@ -41,12 +44,20 @@ function DirectMessageSidebar({
     const [isAvatarLoadFailed, setIsAvatarLoadFailed] = useState(false);
     const [isUserIdExpanded, setIsUserIdExpanded] = useState(false);
     const [isUtilityMenuOpen, setIsUtilityMenuOpen] = useState(false);
+    const [isUserSettingsModalOpen, setIsUserSettingsModalOpen] = useState(false);
     const [userIdCopyState, setUserIdCopyState] = useState<"idle" | "copied" | "failed">(
         "idle",
     );
     const userIdCopyResetTimeoutRef = useRef<number | null>(null);
 
-    const displayName = user.name?.trim() || "You";
+    const displayName = getDisplayName(
+        {
+            nickname:
+                user.nickname ?? window.__BACKEND_USER__?.nickname ?? null,
+            name: user.name || window.__BACKEND_USER__?.name || null,
+        },
+        "You",
+    );
     const localBackendUserId =
         typeof window !== "undefined" ? window.__BACKEND_USER__?.id : undefined;
     const spriteSheetDataUrl = user.spriteSheetDataUrl?.trim() || "";
@@ -77,6 +88,11 @@ function DirectMessageSidebar({
     );
 
     const normalizedQuery = query.trim().toLowerCase();
+    const getPeerDisplayName = useCallback(
+        (peerUser: { id: number; name: string | null; nickname?: string | null }) =>
+            getDisplayName(peerUser, `User ${peerUser.id}`),
+        [],
+    );
 
     useEffect(() => {
         setIsAvatarLoadFailed(false);
@@ -131,22 +147,22 @@ function DirectMessageSidebar({
     const filteredDirectRooms = useMemo(() => {
         if (!normalizedQuery) return directRooms;
         return directRooms.filter((entry) =>
-            (entry.peerUser.name || `User ${entry.peerUser.id}`)
+            getPeerDisplayName(entry.peerUser)
                 .toLowerCase()
                 .includes(normalizedQuery),
         );
-    }, [directRooms, normalizedQuery]);
+    }, [directRooms, getPeerDisplayName, normalizedQuery]);
 
     const filteredFriends = useMemo(() => {
         if (!normalizedQuery) return [];
         return friends
             .filter((entry) =>
-                (entry.peerUser.name || `User ${entry.peerUser.id}`)
+                getPeerDisplayName(entry.peerUser)
                     .toLowerCase()
                     .includes(normalizedQuery),
             )
             .slice(0, 6);
-    }, [friends, normalizedQuery]);
+    }, [friends, getPeerDisplayName, normalizedQuery]);
 
     const handleCopyUserId = async () => {
         if (typeof localBackendUserId !== "number") {
@@ -170,7 +186,8 @@ function DirectMessageSidebar({
     };
 
     return (
-        <aside className="w-80 wd-bg-panel border-r wd-border-subtle flex flex-col min-h-0">
+        <>
+            <aside className="w-80 wd-bg-panel border-r wd-border-subtle flex flex-col min-h-0">
             <div className="px-4 h-14 border-b wd-border-subtle flex items-center">
                 <p className="text-base font-semibold wd-text-primary">Direct Messages</p>
             </div>
@@ -211,7 +228,7 @@ function DirectMessageSidebar({
                                         className="w-full px-2 py-2 rounded-md text-left text-sm wd-text-primary transition-colors hover:bg-[var(--wd-surface-elevated)] flex items-center justify-between gap-2"
                                     >
                                         <span className="truncate">
-                                            {entry.peerUser.name || `User ${entry.peerUser.id}`}
+                                            {getPeerDisplayName(entry.peerUser)}
                                         </span>
                                         <UserRoundPlus size={14} className="wd-text-secondary" />
                                     </button>
@@ -248,7 +265,7 @@ function DirectMessageSidebar({
                                         }`}
                                     >
                                         <span className="truncate">
-                                            {entry.peerUser.name || `User ${entry.peerUser.id}`}
+                                            {getPeerDisplayName(entry.peerUser)}
                                         </span>
                                         {unreadCount > 0 ? (
                                             <span className="h-5 min-w-5 px-1 rounded-full bg-[var(--wd-danger)] text-white text-[10px] font-bold inline-flex items-center justify-center">
@@ -327,6 +344,22 @@ function DirectMessageSidebar({
                                     User Actions
                                 </p>
                                 <div className="mt-2 space-y-1">
+                                    <button
+                                        type="button"
+                                        title="Settings"
+                                        aria-label="Settings"
+                                        onClick={() => {
+                                            setIsUserSettingsModalOpen(true);
+                                            setIsUtilityMenuOpen(false);
+                                            setIsUserIdExpanded(false);
+                                        }}
+                                        className="w-full h-8 px-2 inline-flex items-center justify-between rounded-md border wd-border-subtle wd-bg-elevated wd-text-secondary transition-colors hover:bg-[var(--wd-surface-base)] hover:wd-text-primary"
+                                    >
+                                        <span className="inline-flex items-center gap-2 text-xs font-medium">
+                                            <Settings size={13} />
+                                            Settings
+                                        </span>
+                                    </button>
                                     <button
                                         type="button"
                                         data-user-id-trigger="true"
@@ -412,7 +445,12 @@ function DirectMessageSidebar({
                     </button>
                 )}
             </footer>
-        </aside>
+            </aside>
+            <UserSettingsModal
+                isOpen={isUserSettingsModalOpen}
+                onClose={() => setIsUserSettingsModalOpen(false)}
+            />
+        </>
     );
 }
 

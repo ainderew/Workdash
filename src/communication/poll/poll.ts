@@ -1,5 +1,6 @@
 import useUserStore from "@/common/store/useStore";
 import usePollStore from "@/common/store/pollStore";
+import { getDisplayName } from "@/common/utils/displayName";
 import { MediaTransportService } from "../mediaTransportService/mediaTransportServive";
 import { PollEvents } from "./_enums";
 import type {
@@ -30,7 +31,15 @@ export class PollService {
         const userId = backendUserId
             ? String(backendUserId)
             : this.sfuService.socket.id || "";
-        const userName = useUserStore.getState().user.name;
+        const localUser = useUserStore.getState().user;
+        const userName = getDisplayName(
+            {
+                nickname:
+                    localUser.nickname ?? window.__BACKEND_USER__?.nickname,
+                name: localUser.name || window.__BACKEND_USER__?.name,
+            },
+            "User",
+        );
 
         const pollData = {
             ...data,

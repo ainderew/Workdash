@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useMemo, useState } from "react";
 import useUserStore from "@/common/store/useStore";
 import { UserStore } from "@/common/store/_types";
 import { AudioChat } from "@/communication/audioChat/audioChat";
@@ -11,22 +11,27 @@ import {
 } from "@/components/ui/tooltip";
 import { User, Pencil } from "lucide-react";
 import { EditNameModal } from "./modal/EditName.modal";
+import { getDisplayName } from "@/common/utils/displayName";
 
 function CharacterButton() {
     const { data: session } = useSession();
     const user = useUserStore((state: UserStore) => state.user);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-    const [displayName, setDisplayName] = useState(
-        user?.name || session?.user?.name || "Guest",
-    );
     const [focusState, setFocusState] = useState<AvailabilityStatus>(
         AvailabilityStatus.ONLINE,
     );
-
-    useEffect(() => {
-        if (!user?.name) return;
-        setDisplayName(user.name);
-    }, [user?.name]);
+    const displayName = useMemo(
+        () =>
+            getDisplayName(
+                {
+                    nickname: user?.nickname,
+                    name: user?.name || session?.user?.name,
+                },
+                "Guest",
+            ),
+        [session?.user?.name, user?.name, user?.nickname],
+    );
+    const fullName = user?.name || session?.user?.name || "Guest";
 
     const spriteSheetDataUrl = user?.spriteSheetDataUrl;
     const googleImage = user?.image || session?.user?.image;
@@ -139,7 +144,7 @@ function CharacterButton() {
             <EditNameModal
                 isOpen={isEditModalOpen}
                 onClose={() => setIsEditModalOpen(false)}
-                currentName={displayName}
+                currentName={fullName}
             />
         </>
     );

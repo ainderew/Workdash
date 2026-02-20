@@ -5,6 +5,7 @@ import { Account } from "next-auth";
 export interface BackendUser {
     id: number;
     name: string;
+    nickname?: string | null;
     email: string;
     image?: string;
     createdAt?: string;

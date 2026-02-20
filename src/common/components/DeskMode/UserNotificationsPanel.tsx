@@ -12,6 +12,7 @@ import type {
     ChatV2Friend,
     ChatV2UserNotification,
 } from "@/communication/chatV2/_types";
+import { getDisplayName } from "@/common/utils/displayName";
 
 interface UserNotificationsPanelProps {
     localUserId?: number;
@@ -103,7 +104,10 @@ function UserNotificationsPanel({
                                     className="rounded-md border wd-border-subtle wd-bg-elevated px-2 py-2"
                                 >
                                     <p className="text-xs font-semibold wd-text-primary truncate">
-                                        {request.peerUser.name || `User ${request.peerUser.id}`}
+                                        {getDisplayName(
+                                            request.peerUser,
+                                            `User ${request.peerUser.id}`,
+                                        )}
                                     </p>
                                     <p className="text-[11px] wd-text-muted">
                                         sent you a friend request
@@ -162,11 +166,14 @@ function UserNotificationsPanel({
                             {outgoingRequests.map((request) => (
                                 <div
                                     key={request.friendshipId}
-                                    className="rounded-md border wd-border-subtle wd-bg-elevated px-2 py-1.5"
-                                >
-                                    <p className="text-xs wd-text-primary truncate">
-                                        {request.peerUser.name || `User ${request.peerUser.id}`}
-                                    </p>
+                                className="rounded-md border wd-border-subtle wd-bg-elevated px-2 py-1.5"
+                            >
+                                <p className="text-xs wd-text-primary truncate">
+                                        {getDisplayName(
+                                            request.peerUser,
+                                            `User ${request.peerUser.id}`,
+                                        )}
+                                </p>
                                     <p className="text-[11px] wd-text-muted">
                                         Waiting for response
                                     </p>
@@ -207,8 +214,10 @@ function UserNotificationsPanel({
                         <div className="space-y-1">
                             {notifications.map((notification) => {
                                 const actorName =
-                                    notification.actorUser.name
-                                    || `User ${notification.actorUser.id}`;
+                                    getDisplayName(
+                                        notification.actorUser,
+                                        `User ${notification.actorUser.id}`,
+                                    );
                                 const isMention = notification.type === "MENTION";
                                 const previewText = isMention
                                     ? (notification.rootMessage.content?.trim() || "(no text)")

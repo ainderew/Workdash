@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import useUiStore from "@/common/store/uiStore";
 import useUserStore from "@/common/store/useStore";
+import { getDisplayName } from "@/common/utils/displayName";
 import ChannelHashIcon from "./ChannelHashIcon";
 import DeskModeControls from "./DeskModeControls";
 import CreateCategoryModal from "./modals/CreateCategoryModal";
@@ -25,6 +26,7 @@ import CreateRoomModal from "./modals/CreateRoomModal";
 import DeleteRoomModal from "./modals/DeleteRoomModal";
 import RenameCategoryModal from "./modals/RenameCategoryModal";
 import RenameRoomModal from "./modals/RenameRoomModal";
+import UserSettingsModal from "./modals/UserSettingsModal";
 
 const DEFAULT_CATEGORY_KEY = "__workspace_default__";
 const DEFAULT_CATEGORY_NAME = "W";
@@ -138,6 +140,8 @@ function ChannelSidebar({
     const [deleteRoomId, setDeleteRoomId] = useState<string | null>(null);
     const [isUserIdExpanded, setIsUserIdExpanded] = useState(false);
     const [isUtilityMenuOpen, setIsUtilityMenuOpen] = useState(false);
+    const [isUserSettingsModalOpen, setIsUserSettingsModalOpen] =
+        useState(false);
     const [userIdCopyState, setUserIdCopyState] = useState<
         "idle" | "copied" | "failed"
     >("idle");
@@ -228,7 +232,14 @@ function ChannelSidebar({
         [categories],
     );
 
-    const displayName = user.name?.trim() || "You";
+    const displayName = getDisplayName(
+        {
+            nickname:
+                user.nickname ?? window.__BACKEND_USER__?.nickname ?? null,
+            name: user.name || window.__BACKEND_USER__?.name || null,
+        },
+        "You",
+    );
     const normalizedServerName = serverName.trim() || "Workdash Server";
     const localBackendUserId =
         typeof window !== "undefined" ? window.__BACKEND_USER__?.id : undefined;
@@ -1074,6 +1085,22 @@ function ChannelSidebar({
                                 <div className="mt-2 space-y-1">
                                     <button
                                         type="button"
+                                        title="Settings"
+                                        aria-label="Settings"
+                                        onClick={() => {
+                                            setIsUserSettingsModalOpen(true);
+                                            setIsUtilityMenuOpen(false);
+                                            setIsUserIdExpanded(false);
+                                        }}
+                                        className="w-full h-8 px-2 inline-flex items-center justify-between rounded-md border wd-border-subtle wd-bg-elevated wd-text-secondary transition-colors hover:bg-[var(--wd-surface-base)] hover:wd-text-primary"
+                                    >
+                                        <span className="inline-flex items-center gap-2 text-xs font-medium">
+                                            <Settings size={13} />
+                                            Settings
+                                        </span>
+                                    </button>
+                                    <button
+                                        type="button"
                                         data-user-id-trigger="true"
                                         title="User ID"
                                         aria-label="User ID"
@@ -1162,6 +1189,10 @@ function ChannelSidebar({
                     </button>
                 )}
             </footer>
+            <UserSettingsModal
+                isOpen={isUserSettingsModalOpen}
+                onClose={() => setIsUserSettingsModalOpen(false)}
+            />
 
             <CreateCategoryModal
                 isOpen={isCreateCategoryModalOpen}

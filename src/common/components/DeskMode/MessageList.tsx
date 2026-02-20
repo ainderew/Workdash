@@ -16,6 +16,7 @@ import { YouTubePreview } from "@/common/components/TextChat/YouTubePreview";
 import {
     buildMemberNameMap,
     extractMentionedUserIds,
+    getMemberDisplayName,
 } from "@/communication/chatV2/mentionUtils";
 import MessageHoverActions from "./MessageHoverActions";
 import MessageReactionChips from "./MessageReactionChips";
@@ -33,6 +34,12 @@ import {
     UserRoundPlus,
 } from "lucide-react";
 import { toast } from "sonner";
+import { getDisplayName } from "@/common/utils/displayName";
+import {
+    formatChatDaySeparatorLabel,
+    formatChatMessageTimestamp,
+    isSameMessageCalendarDay,
+} from "@/common/utils/messageTimestamp";
 
 interface MessageListProps {
     messages: ChatV2Message[];
@@ -117,12 +124,6 @@ const getFriendActionMeta = (
         isAccepted: false,
     };
 };
-
-const formatTime = (value: string | Date) =>
-    new Date(value).toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-    });
 
 const isFacebookVideoUrl = (value: string) => {
     try {
@@ -245,8 +246,14 @@ function MessageList({
     ] = useState<Record<number, "pending" | "done">>({});
     const localBackendUserId =
         typeof window !== "undefined" ? window.__BACKEND_USER__?.id : undefined;
-    const localDisplayName =
-        user.name?.trim() || window.__BACKEND_USER__?.name || "";
+    const localDisplayName = getDisplayName(
+        {
+            nickname:
+                user.nickname ?? window.__BACKEND_USER__?.nickname ?? null,
+            name: user.name || window.__BACKEND_USER__?.name || null,
+        },
+        "",
+    );
     const localSpriteSheet = user.spriteSheetDataUrl?.trim() || "";
     const localProfileImage =
         user.image?.trim() || window.__BACKEND_USER__?.image || "";
@@ -735,7 +742,7 @@ function MessageList({
         if (isLocalSender && localDisplayName) {
             return localDisplayName;
         }
-        return message.sender?.name?.trim() || `User ${message.senderUserId}`;
+        return getDisplayName(message.sender, `User ${message.senderUserId}`);
     };
 
     const getSenderAvatar = (message: ChatV2Message) => {
@@ -803,6 +810,8 @@ function MessageList({
         const maxY = Math.max(8, window.innerHeight - popoverHeight - 8);
         const desiredX = event.clientX + 12;
         const desiredY = event.clientY - 16;
+        const resolvedDisplayName =
+            getMemberDisplayName(memberNameMap, userId) || displayName;
 
         let senderAvatar: SenderAvatar;
         const resolvedImage = resolvedSenderImagesByUserId[userId];
@@ -822,7 +831,7 @@ function MessageList({
             x: Math.min(desiredX, maxX),
             y: Math.min(Math.max(8, desiredY), maxY),
             senderUserId: userId,
-            senderName: displayName,
+            senderName: resolvedDisplayName,
             senderAvatar,
         });
         setAvatarContextMenu(null);
@@ -1093,7 +1102,7 @@ function MessageList({
                     No messages yet. Start the room conversation.
                 </div>
             ) : (
-                groupedMessages.rootMessages.map((message) => {
+                groupedMessages.rootMessages.map((message, index) => {
                     const threadReplies =
                         groupedMessages.repliesByRootId.get(message.id) || [];
                     const messageReplyPreviewUsers =
@@ -1120,9 +1129,10 @@ function MessageList({
                                           continue;
                                       previewUsers.set(reply.senderUserId, {
                                           id: reply.senderUserId,
-                                          name:
-                                              reply.sender?.name ||
+                                          name: getDisplayName(
+                                              reply.sender,
                                               `User ${reply.senderUserId}`,
+                                          ),
                                           image: reply.sender?.image || null,
                                       });
                                       if (previewUsers.size >= 3) break;
@@ -1179,62 +1189,87 @@ function MessageList({
                         typeof localBackendUserId === "number" &&
                         effectiveMentionedUserIds.includes(localBackendUserId);
                     const hasMentions = effectiveMentionedUserIds.length > 0;
+                    const previousMessage =
+                        index > 0
+                            ? groupedMessages.rootMessages[index - 1]
+                            : null;
+                    const showDaySeparator =
+                        !previousMessage ||
+                        !isSameMessageCalendarDay(
+                            previousMessage.createdAt,
+                            message.createdAt,
+                        );
+                    const daySeparatorLabel = showDaySeparator
+                        ? formatChatDaySeparatorLabel(message.createdAt)
+                        : "";
 
                     return (
-                        <div
-                            key={message.id}
-                            data-chat-message-id={message.id}
-                            className={`group flex gap-3 px-1 py-1 transition-colors ${
-                                highlightedMessageId === message.id ||
-                                isThreadHighlighted
-                                    ? "rounded-md bg-[var(--wd-accent-soft)]"
-                                    : isCurrentUserMentioned
-                                      ? "border-l-2 border-l-[rgb(240,185,11)] bg-[rgba(240,185,11,0.06)]"
-                                      : ""
-                            }`}
-                        >
-                            <div
-                                onClick={(event) =>
-                                    openProfilePopover(
-                                        event,
-                                        message,
-                                        senderName,
-                                        senderAvatar,
-                                    )
-                                }
-                                onContextMenu={(event) =>
-                                    openAvatarContextMenu(
-                                        event,
-                                        message,
-                                        senderName,
-                                    )
-                                }
-                                title={
-                                    canOpenAvatarMenu
-                                        ? "Click to view profile. Right-click to add friend."
-                                        : "Click to view profile"
-                                }
-                                className="w-9 h-9 rounded-full wd-bg-elevated wd-text-secondary text-xs flex items-center justify-center font-semibold overflow-hidden border wd-border-subtle cursor-pointer"
-                            >
-                                {senderAvatar.mode === "sprite" ? (
-                                    <div
-                                        className="w-full h-full bg-no-repeat"
-                                        style={senderAvatar.style}
-                                    />
-                                ) : senderAvatar.mode === "image" ? (
-                                    <img
-                                        src={senderAvatar.src}
-                                        alt={`${senderName} avatar`}
-                                        className="w-full h-full object-cover"
-                                    />
-                                ) : (
-                                    <span>
-                                        {senderName.charAt(0).toUpperCase()}
+                        <React.Fragment key={message.id}>
+                            {showDaySeparator && (
+                                <div
+                                    data-chat-day-separator={daySeparatorLabel}
+                                    className="my-1 flex items-center gap-3 px-1"
+                                >
+                                    <div className="flex-1 border-t wd-border-subtle" />
+                                    <span className="text-[11px] wd-text-muted">
+                                        {daySeparatorLabel}
                                     </span>
-                                )}
-                            </div>
+                                    <div className="flex-1 border-t wd-border-subtle" />
+                                </div>
+                            )}
+                            <div
+                                data-chat-message-id={message.id}
+                                className={`group flex gap-3 px-1 py-1 transition-colors ${
+                                    highlightedMessageId === message.id ||
+                                    isThreadHighlighted
+                                        ? "rounded-md bg-[var(--wd-accent-soft)]"
+                                        : isCurrentUserMentioned
+                                          ? "border-l-2 border-l-[rgb(240,185,11)] bg-[rgba(240,185,11,0.06)]"
+                                          : ""
+                                }`}
+                            >
+                                <div
+                                    onClick={(event) =>
+                                        openProfilePopover(
+                                            event,
+                                            message,
+                                            senderName,
+                                            senderAvatar,
+                                        )
+                                    }
+                                    onContextMenu={(event) =>
+                                        openAvatarContextMenu(
+                                            event,
+                                            message,
+                                            senderName,
+                                        )
+                                    }
+                                    title={
+                                        canOpenAvatarMenu
+                                            ? "Click to view profile. Right-click to add friend."
+                                            : "Click to view profile"
+                                    }
+                                    className="w-9 h-9 rounded-full wd-bg-elevated wd-text-secondary text-xs flex items-center justify-center font-semibold overflow-hidden border wd-border-subtle cursor-pointer"
+                                >
+                                    {senderAvatar.mode === "sprite" ? (
+                                        <div
+                                            className="w-full h-full bg-no-repeat"
+                                            style={senderAvatar.style}
+                                        />
+                                    ) : senderAvatar.mode === "image" ? (
+                                        <img
+                                            src={senderAvatar.src}
+                                            alt={`${senderName} avatar`}
+                                            className="w-full h-full object-cover"
+                                        />
+                                    ) : (
+                                        <span>
+                                            {senderName.charAt(0).toUpperCase()}
+                                        </span>
+                                    )}
+                                </div>
 
-                            <div className="min-w-0 flex-1 relative">
+                                <div className="min-w-0 flex-1 relative">
                                 <MessageHoverActions
                                     canReply={!message.replyToMessageId}
                                     frequentEmojis={frequentEmojis.map(
@@ -1261,7 +1296,7 @@ function MessageList({
                                         {senderName}
                                     </span>
                                     <span className="text-xs wd-text-muted">
-                                        {formatTime(message.createdAt)}
+                                        {formatChatMessageTimestamp(message.createdAt)}
                                     </span>
                                     {message.editedAt && (
                                         <span className="text-[10px] uppercase tracking-wide wd-text-muted">
@@ -1563,39 +1598,42 @@ function MessageList({
                                                             (
                                                                 previewUser,
                                                                 index,
-                                                            ) => (
-                                                                <span
-                                                                    key={`${message.id}-reply-preview-${previewUser.id}`}
-                                                                    className={`${
-                                                                        index ===
-                                                                        0
-                                                                            ? ""
-                                                                            : "-ml-1.5"
-                                                                    } h-5 w-5 rounded-full border wd-border-strong wd-bg-elevated overflow-hidden inline-flex items-center justify-center text-[10px] font-semibold wd-text-primary`}
-                                                                >
-                                                                    {previewUser.image ? (
-                                                                        <img
-                                                                            src={
-                                                                                previewUser.image
-                                                                            }
-                                                                            alt={
-                                                                                previewUser.name ||
-                                                                                `User ${previewUser.id}`
-                                                                            }
-                                                                            className="h-full w-full object-cover"
-                                                                        />
-                                                                    ) : (
-                                                                        (
-                                                                            previewUser.name ||
-                                                                            "U"
-                                                                        )
-                                                                            .charAt(
-                                                                                0,
-                                                                            )
-                                                                            .toUpperCase()
-                                                                    )}
-                                                                </span>
-                                                            ),
+                                                            ) => {
+                                                                const previewDisplayName =
+                                                                    getDisplayName(
+                                                                        previewUser,
+                                                                        `User ${previewUser.id}`,
+                                                                    );
+                                                                return (
+                                                                    <span
+                                                                        key={`${message.id}-reply-preview-${previewUser.id}`}
+                                                                        className={`${
+                                                                            index ===
+                                                                            0
+                                                                                ? ""
+                                                                                : "-ml-1.5"
+                                                                        } h-5 w-5 rounded-full border wd-border-strong wd-bg-elevated overflow-hidden inline-flex items-center justify-center text-[10px] font-semibold wd-text-primary`}
+                                                                    >
+                                                                        {previewUser.image ? (
+                                                                            <img
+                                                                                src={
+                                                                                    previewUser.image
+                                                                                }
+                                                                                alt={
+                                                                                    previewDisplayName
+                                                                                }
+                                                                                className="h-full w-full object-cover"
+                                                                            />
+                                                                        ) : (
+                                                                            previewDisplayName
+                                                                                .charAt(
+                                                                                    0,
+                                                                                )
+                                                                                .toUpperCase()
+                                                                        )}
+                                                                    </span>
+                                                                );
+                                                            },
                                                         )}
                                                 </span>
                                                 <span>
@@ -1608,8 +1646,9 @@ function MessageList({
                                         )}
                                     </div>
                                 )}
+                                </div>
                             </div>
-                        </div>
+                        </React.Fragment>
                     );
                 })
             )}

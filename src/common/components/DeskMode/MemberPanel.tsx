@@ -1,6 +1,13 @@
 import React from "react";
 import type { ChatV2RoomMember } from "@/communication/chatV2/_types";
 import AddMemberModal from "./modals/AddMemberModal";
+import { getDisplayName } from "@/common/utils/displayName";
+import { UserRoundX } from "lucide-react";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface MemberPanelProps {
     members: ChatV2RoomMember[];
@@ -45,19 +52,34 @@ function MemberPanel({
                                 key={`${member.roomId}-${member.userId}`}
                                 className="rounded-md wd-bg-elevated px-2 py-2 border wd-border-subtle"
                             >
-                                <div className="text-xs wd-text-primary truncate">
-                                    {member.user.name || `User ${member.userId}`}
+                                <div className="flex items-center justify-between gap-2">
+                                    <div className="min-w-0">
+                                        <div className="text-xs wd-text-primary truncate">
+                                            {getDisplayName(
+                                                member.user,
+                                                `User ${member.userId}`,
+                                            )}
+                                        </div>
+                                        <div className="text-[10px] wd-text-muted">
+                                            {member.role}
+                                        </div>
+                                    </div>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <button
+                                                type="button"
+                                                aria-label="Remove member"
+                                                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-red-800/70 bg-red-950/40 text-red-300 transition-colors hover:bg-red-900/55"
+                                                onClick={() => onRemoveMember(member.userId)}
+                                            >
+                                                <UserRoundX size={14} />
+                                            </button>
+                                        </TooltipTrigger>
+                                        <TooltipContent side="top">
+                                            <span>Remove member</span>
+                                        </TooltipContent>
+                                    </Tooltip>
                                 </div>
-                                <div className="text-[10px] wd-text-muted mb-2">
-                                    {member.role}
-                                </div>
-                                <button
-                                    type="button"
-                                    className="wd-btn-danger"
-                                    onClick={() => onRemoveMember(member.userId)}
-                                >
-                                    Remove
-                                </button>
                             </div>
                         ))}
                     </div>

@@ -2,6 +2,7 @@ import React from "react";
 import { X, Maximize2, Minimize2 } from "lucide-react";
 import { VideoChatViewer } from "@/communication/videoChat/videoChatViewer";
 import useUserStore from "@/common/store/useStore";
+import { getDisplayName, getNameAliases } from "@/common/utils/displayName";
 
 function VideoChatContainer({
     producerId,
@@ -19,7 +20,23 @@ function VideoChatContainer({
         handleExpand(producerId);
     }
 
-    const name = useUserStore((state) => state.user.name);
+    const user = useUserStore((state) => state.user);
+    const localNameAliases = getNameAliases({
+        nickname: user.nickname ?? window.__BACKEND_USER__?.nickname ?? null,
+        name: user.name || window.__BACKEND_USER__?.name || null,
+    });
+    const localDisplayName = getDisplayName(
+        {
+            nickname: user.nickname ?? window.__BACKEND_USER__?.nickname ?? null,
+            name: user.name || window.__BACKEND_USER__?.name || null,
+        },
+        "",
+    );
+    const ownerName =
+        VideoChatViewer.getInstance().videoChatOwnerMap[producerId] || "";
+    const isCurrentUserOwner =
+        (localDisplayName.length > 0 && ownerName === localDisplayName) ||
+        localNameAliases.includes(ownerName);
 
     return (
         <>
@@ -97,13 +114,7 @@ function VideoChatContainer({
 
                 <div className="absolute flex gap-2 items-center bottom-3 left-2 bg-black/60 backdrop-blur-sm px-2 py-1 rounded text-white text-xs font-mono z-50">
                     <div className="green w-2 h-2 bg-green-500 rounded-full"></div>
-                    {VideoChatViewer.getInstance().videoChatOwnerMap[
-                        producerId
-                    ] === name
-                        ? "You"
-                        : VideoChatViewer.getInstance().videoChatOwnerMap[
-                              producerId
-                          ]}
+                    {isCurrentUserOwner ? "You" : ownerName}
                 </div>
 
                 <div className="container"></div>

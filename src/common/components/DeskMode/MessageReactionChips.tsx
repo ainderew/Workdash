@@ -3,6 +3,7 @@ import type { ChatV2MessageReaction } from "@/communication/chatV2/_types";
 import useChatV2Store from "@/common/store/chatV2Store";
 import { createPortal } from "react-dom";
 import { Smile } from "lucide-react";
+import { getDisplayName } from "@/common/utils/displayName";
 import ReactionPickerFlyout from "./ReactionPickerFlyout";
 
 type MessageReactionChipsProps = {
@@ -20,6 +21,7 @@ type TooltipState = {
     reactors: Array<{
         id: number;
         name: string | null;
+        nickname?: string | null;
         image: string | null;
     }>;
     totalCount: number;
@@ -223,29 +225,35 @@ function MessageReactionChips({
                                 <p className="text-xs wd-text-muted">No reactors yet.</p>
                             ) : (
                                 <div className="space-y-1">
-                                    {tooltip.reactors.slice(0, 20).map((reactor) => (
-                                        <div
-                                            key={`${tooltip.emoji}-${reactor.id}`}
-                                            className="flex items-center gap-2 rounded-md px-1.5 py-1 wd-bg-panel-2"
-                                        >
-                                            <span className="h-6 w-6 shrink-0 rounded-full overflow-hidden border wd-border-subtle wd-bg-elevated inline-flex items-center justify-center text-[10px] font-semibold wd-text-primary">
-                                                {reactor.image ? (
-                                                    <img
-                                                        src={reactor.image}
-                                                        alt={reactor.name || `User ${reactor.id}`}
-                                                        className="h-full w-full object-cover"
-                                                    />
-                                                ) : (
-                                                    (reactor.name || "U")
-                                                        .charAt(0)
-                                                        .toUpperCase()
-                                                )}
-                                            </span>
-                                            <span className="text-xs wd-text-primary truncate">
-                                                {reactor.name || `User ${reactor.id}`}
-                                            </span>
-                                        </div>
-                                    ))}
+                                    {tooltip.reactors.slice(0, 20).map((reactor) => {
+                                        const reactorName = getDisplayName(
+                                            reactor,
+                                            `User ${reactor.id}`,
+                                        );
+                                        return (
+                                            <div
+                                                key={`${tooltip.emoji}-${reactor.id}`}
+                                                className="flex items-center gap-2 rounded-md px-1.5 py-1 wd-bg-panel-2"
+                                            >
+                                                <span className="h-6 w-6 shrink-0 rounded-full overflow-hidden border wd-border-subtle wd-bg-elevated inline-flex items-center justify-center text-[10px] font-semibold wd-text-primary">
+                                                    {reactor.image ? (
+                                                        <img
+                                                            src={reactor.image}
+                                                            alt={reactorName}
+                                                            className="h-full w-full object-cover"
+                                                        />
+                                                    ) : (
+                                                        reactorName
+                                                            .charAt(0)
+                                                            .toUpperCase()
+                                                    )}
+                                                </span>
+                                                <span className="text-xs wd-text-primary truncate">
+                                                    {reactorName}
+                                                </span>
+                                            </div>
+                                        );
+                                    })}
 
                                     {tooltip.totalCount > tooltip.reactors.length ? (
                                         <p className="pt-1 text-xs font-medium wd-text-muted">

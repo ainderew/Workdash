@@ -74,6 +74,7 @@ export type ChatV2Message = {
     sender?: {
         id: number;
         name: string | null;
+        nickname?: string | null;
         image: string | null;
         bio?: string | null;
     };
@@ -90,6 +91,7 @@ export type ChatV2Message = {
     replyPreviewUsers?: Array<{
         id: number;
         name: string | null;
+        nickname?: string | null;
         image: string | null;
     }>;
     reactions?: ChatV2MessageReaction[];
@@ -109,6 +111,7 @@ export type ChatV2MessageReactionUpdate = {
 export type ChatV2MessageReactionReactor = {
     id: number;
     name: string | null;
+    nickname?: string | null;
     image: string | null;
 };
 
@@ -139,6 +142,7 @@ export type ChatV2RoomMember = {
     user: {
         id: number;
         name: string;
+        nickname?: string | null;
         email: string;
         image?: string | null;
     };
@@ -158,6 +162,7 @@ export type ChatV2MessageSearchInput = {
 export type ChatV2SearchUser = {
     id: number;
     name: string | null;
+    nickname?: string | null;
     image: string | null;
     bio?: string | null;
 };
@@ -175,6 +180,7 @@ export type ChatV2Friend = {
     peerUser: {
         id: number;
         name: string | null;
+        nickname?: string | null;
         email: string;
         image: string | null;
         bio: string | null;
@@ -187,6 +193,7 @@ export type ChatV2DirectRoom = {
     peerUser: {
         id: number;
         name: string | null;
+        nickname?: string | null;
         email: string;
         image: string | null;
         bio: string | null;
@@ -197,6 +204,7 @@ export type ChatV2UserProfile = {
     user: {
         id: number;
         name: string | null;
+        nickname?: string | null;
         image: string | null;
         bio: string | null;
     };
@@ -220,6 +228,7 @@ export type ChatV2UserNotification = {
     actorUser: {
         id: number;
         name: string | null;
+        nickname?: string | null;
         image: string | null;
         bio: string | null;
     };

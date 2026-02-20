@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import useUserStore from "@/common/store/useStore";
-import { CONFIG } from "@/common/utils/config";
 import { X, Loader2 } from "lucide-react";
 import { CharacterEventBus } from "@/game/character/CharacterEventBus";
+import { getDisplayNameFromParts } from "@/common/utils/displayName";
 
 interface EditNameModalProps {
     isOpen: boolean;
@@ -44,23 +44,17 @@ export function EditNameModal({
         setError(null);
 
         try {
-            const token = session?.backendJwt;
-
-            if (!token) {
+            if (!session?.backendJwt) {
                 throw new Error("You must be logged in to update your name.");
             }
 
-            const response = await fetch(
-                `${CONFIG.SFU_SERVER_URL}/api/user/update-name`,
-                {
-                    method: "PATCH",
-                    headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${token}`,
-                    },
-                    body: JSON.stringify({ name: name.trim() }),
+            const response = await fetch("/api/user/update-name", {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json",
                 },
-            );
+                body: JSON.stringify({ name: name.trim() }),
+            });
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
@@ -70,15 +64,35 @@ export function EditNameModal({
             }
 
             // 1. Get the updated user object from the backend
-            const updatedUserFromBackend = await response.json();
+            const updateResponseBody = await response.json();
+            const updatedUserFromBackend =
+                updateResponseBody?.user ?? updateResponseBody;
 
-            // 2. Update ONLY the name in your global store.
-            // We explicitly pick 'name' to ensure we don't overwrite client-side
-            // fields (like producerIds) with backend data that might be missing them.
-            updateUser({ name: updatedUserFromBackend.name });
+            // Update profile fields in global store without replacing client-only fields.
+            const updatedName =
+                typeof updatedUserFromBackend?.name === "string"
+                    ? updatedUserFromBackend.name
+                    : name.trim();
+            const updatedNickname =
+                typeof updatedUserFromBackend?.nickname === "string"
+                    ? updatedUserFromBackend.nickname
+                    : updatedUserFromBackend?.nickname === null
+                      ? null
+                      : undefined;
+            updateUser({
+                name: updatedName,
+                ...(updatedNickname !== undefined
+                    ? { nickname: updatedNickname }
+                    : {}),
+            });
 
             // Emit local event for immediate update
-            CharacterEventBus.emitNameUpdate(name.trim());
+            const effectiveDisplayName = getDisplayNameFromParts(
+                updatedNickname,
+                updatedName,
+                updatedName,
+            );
+            CharacterEventBus.emitNameUpdate(effectiveDisplayName);
 
             // Emit socket event to backend for real-time broadcast to other players
             const multiplayer = window.__MULTIPLAYER__;
@@ -86,7 +100,7 @@ export function EditNameModal({
                 multiplayer &&
                 typeof multiplayer.emitNameUpdate === "function"
             ) {
-                multiplayer.emitNameUpdate(name.trim());
+                multiplayer.emitNameUpdate(updatedName, updatedNickname);
                 console.log("Name update emitted to backend via socket");
             } else {
                 console.warn(

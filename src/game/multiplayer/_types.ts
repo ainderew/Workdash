@@ -3,6 +3,7 @@ import { CharacterCustomization } from "../character/_types";
 export interface PlayerDto {
     id: string;
     name?: string;
+    nickname?: string | null;
     x: number;
     y: number;
     isInFocusMode: boolean;
@@ -29,6 +30,7 @@ export interface PlayerDto {
 export interface MovementPacket {
     id: string;
     name?: string;
+    nickname?: string | null;
     x: number;
     y: number;
     isAttacking: boolean;

@@ -3,6 +3,8 @@ import React, { useEffect, useRef } from 'react';
 export type MentionSuggestion = {
   userId: number;
   name: string;
+  fullName?: string | null;
+  nickname?: string | null;
   image?: string | null;
 };
 
@@ -56,6 +58,10 @@ function MentionSuggestionFlyout({
       {suggestions.map((suggestion, index) => {
         const isSelected = index === selectedIndex;
         const initial = (suggestion.name || 'U').charAt(0).toUpperCase();
+        const hasSecondaryName =
+          !!suggestion.nickname &&
+          !!suggestion.fullName &&
+          suggestion.nickname !== suggestion.fullName;
 
         return (
           <button
@@ -85,7 +91,14 @@ function MentionSuggestionFlyout({
                 <span className="wd-text-secondary">{initial}</span>
               )}
             </div>
-            <span className="truncate">{suggestion.name}</span>
+            <div className="min-w-0">
+              <p className="truncate">{suggestion.name}</p>
+              {hasSecondaryName && (
+                <p className="truncate text-[11px] wd-text-muted">
+                  {suggestion.fullName}
+                </p>
+              )}
+            </div>
           </button>
         );
       })}

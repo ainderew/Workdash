@@ -132,6 +132,7 @@ export const authOptions: AuthOptions = {
                     backendJwtExpiresAt: account.backendJwtExpiresAt,
                     backendUser: account.backendUser,
                     backendCharacter: account.backendCharacter,
+                    nickname: account.backendUser?.nickname ?? null,
                     user: token.user,
                     ...token,
                 };
@@ -160,6 +161,7 @@ export const authOptions: AuthOptions = {
                     newToken.backendJwtExpiresAt = syncData.expiresAt;
                     newToken.backendUser = syncData.user;
                     newToken.backendCharacter = syncData.character;
+                    newToken.nickname = syncData.user?.nickname ?? null;
                 } catch (error) {
                     console.error("Failed to refresh backend token during JWT callback", error);
                 }
@@ -190,6 +192,11 @@ export const authOptions: AuthOptions = {
 
             if (token.error) {
                 session.error = token.error as string;
+            }
+
+            if (session.user) {
+                session.user.nickname =
+                    token.backendUser?.nickname ?? token.nickname ?? null;
             }
 
             return session;
