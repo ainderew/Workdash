@@ -124,7 +124,7 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
     const [threadReplies, setThreadReplies] = useState<ChatV2Message[]>([]);
     const [isLoadingThread, setIsLoadingThread] = useState(false);
     const [threadError, setThreadError] = useState<string | null>(null);
-    const [isMemberPanelVisible, setIsMemberPanelVisible] = useState(true);
+    const [isMemberPanelVisible, setIsMemberPanelVisible] = useState(false);
 
     useEffect(() => {
         void initialize();

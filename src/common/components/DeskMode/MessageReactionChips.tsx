@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import type { ChatV2MessageReaction } from "@/communication/chatV2/_types";
 import useChatV2Store from "@/common/store/chatV2Store";
 import { createPortal } from "react-dom";
-import { Smile } from "lucide-react";
+import { Plus } from "lucide-react";
 import { getDisplayName } from "@/common/utils/displayName";
 import ReactionPickerFlyout from "./ReactionPickerFlyout";
 
@@ -27,6 +27,34 @@ type TooltipState = {
     totalCount: number;
     loading: boolean;
 };
+
+function SmileyFaceIcon() {
+    return (
+        <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-[16px] w-[16px]"
+            aria-hidden="true"
+        >
+            <path d="M8.5 9v1" />
+            <path d="M15.5 9v1" />
+            <path d="M7.5 14c1.2 1.4 2.7 2 4.5 2s3.3-.6 4.5-2" />
+        </svg>
+    );
+}
+
+function ReactionAddIcon() {
+    return (
+        <span className="relative inline-flex h-[18px] w-[18px] items-center justify-center">
+            <SmileyFaceIcon />
+            <Plus size={11} className="absolute -right-[6px] -top-[6px]" />
+        </span>
+    );
+}
 
 function MessageReactionChips({
     roomId,
@@ -183,11 +211,11 @@ function MessageReactionChips({
                 <button
                     type="button"
                     onClick={() => setIsPickerOpen((current) => !current)}
-                    className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded border wd-border-subtle wd-bg-elevated wd-text-secondary transition-all duration-150 hover:-translate-y-[1px] hover:wd-text-primary hover:bg-[var(--wd-surface-elevated)] hover:shadow-[0_6px_14px_rgba(0,0,0,0.28)] active:translate-y-0"
+                    className="inline-flex cursor-pointer items-center gap-1 rounded-full border wd-border-subtle wd-bg-elevated px-2.5 py-1 text-xs wd-text-secondary transition-all duration-150 hover:-translate-y-[1px] hover:wd-text-primary hover:bg-[var(--wd-surface-elevated)] hover:shadow-[0_6px_14px_rgba(0,0,0,0.28)] active:translate-y-0"
                     title="Add emoji reaction"
                     aria-label="Add emoji reaction"
                 >
-                    <Smile size={16} />
+                    <ReactionAddIcon />
                 </button>
 
                 {isPickerOpen ? (

@@ -1,30 +1,145 @@
-# Workdash
+# Workdash Client
 
-A collaborative workspace that brings remote teams together through an immersive 2D game-like environment with video, audio, and screen sharing capabilities.
+Next.js + React + Phaser frontend for Workdash.
 
-![Workdash Interface](https://github.com/ainderew/Workdash/blob/main/workdash.png?raw=true)
+This repo depends on the media server in `/Users/AndrewPinon/projects/workdash-media-server`.
 
-## Overview
+## Local Architecture
 
-Workdash transforms remote work into an engaging, interactive experience by combining spatial audio, video chat, and collaborative tools in a dynamic 2D world. Navigate virtual spaces, interact with teammates naturally through proximity-based audio, and collaborate seamlessly with multiple screen sharing capabilities.
+- Client (this repo): `http://localhost:8080`
+- Media server: `http://localhost:4000`
+- Postgres: `localhost:5432`
+- NATS JetStream: `localhost:4222` (monitoring on `localhost:8222`)
 
-## Features
+## Prerequisites
 
-### Spatial Collaboration
-- **2D Game Environment**: Move through virtual workspaces using a game-like interface that makes remote work feel more connected and fun
-- **Proximity Audio**: Audio dynamically adjusts based on your avatar's position - get closer to hear teammates better, just like in real life
-- **Spaces**: Organize your workspace into different rooms or areas for focused work, meetings, and casual hangouts
+- Node.js 20+ and npm
+- Docker (Docker Desktop or OrbStack)
+- `workdash-media-server` checked out locally
+- Google OAuth credentials for NextAuth
+- GCS bucket + service account key for chat file uploads (required by server startup)
 
-### Communication
-- **Video Chat**: High-quality video streaming to see your teammates face-to-face
-- **Audio Chat**: Crystal-clear voice communication with spatial awareness
-- **Natural Interactions**: Move around to join different conversations organically
+## 1) Start local infrastructure
 
-### Screen Sharing
-- **Multiple Screen Sharing**: Share multiple screens simultaneously for enhanced collaboration
-- **Real-time Collaboration**: Work together on documents, code, or designs with everyone seeing the same content
+Run once:
 
-## Why Workdash?
+```bash
+docker volume create workdash-postgres-data
+```
 
-Remote work doesn't have to feel isolated. Workdash recreates the spontaneous interactions and spatial awareness of a physical office in a fun, engaging virtual environment. Whether you're having a quick chat by the virtual water cooler or diving into a focused collaboration session, Workdash makes working from home more interactive and enjoyable.
+Run Postgres:
+
+```bash
+docker run --name workdash-postgres -d \
+  -e POSTGRES_DB=workdash_dev \
+  -e POSTGRES_USER=workdash_dev_admin \
+  -e POSTGRES_PASSWORD=qwe123.. \
+  -p 5432:5432 \
+  -v workdash-postgres-data:/var/lib/postgresql/data \
+  postgres:16
+```
+
+Run NATS JetStream:
+
+```bash
+docker run --name workdash-nats -d \
+  -p 4222:4222 \
+  -p 8222:8222 \
+  nats:2.10 -js
+```
+
+## 2) Configure and start the media server
+
+In `/Users/AndrewPinon/projects/workdash-media-server/.env` set:
+
+```env
+PUBLIC_IP=127.0.0.1
+
+DATABASE_URL=postgresql://workdash_dev_admin:qwe123..@localhost:5432/workdash_dev
+
+JWT_SECRET=replace-with-a-random-secret
+JWT_EXPIRES_IN=7d
+
+NATS_SERVERS=nats://127.0.0.1:4222
+
+GCS_BUCKET_NAME=your-bucket
+GCS_PROJECT_ID=your-gcp-project-id
+GOOGLE_APPLICATION_CREDENTIALS=/absolute/path/to/service-account-key.json
+
+# Optional
+# CHAT_FILE_PURGE_INTERVAL_MS=300000
+# CHAT_FILE_PURGE_RETENTION_MS=604800000
+# CHAT_FILE_PURGE_BATCH_SIZE=100
+```
+
+Then:
+
+```bash
+cd /Users/AndrewPinon/projects/workdash-media-server
+npm install
+npx prisma generate
+npx prisma db push
+npm run dev
+```
+
+The server should log:
+
+- `SFU Server running on http://localhost:4000`
+- `[broker] Connected to NATS JetStream`
+
+## 3) Configure this client repo
+
+Create `/Users/AndrewPinon/projects/workdash/.env.local`:
+
+```env
+NEXT_PUBLIC_SFU_SERVER_URL=http://localhost:4000
+NEXTAUTH_URL=http://localhost:8080
+NEXTAUTH_SECRET=replace-with-a-random-secret
+
+GOOGLE_CLIENT_ID=your-google-oauth-client-id
+GOOGLE_CLIENT_SECRET=your-google-oauth-client-secret
+
+# Optional (GIF picker)
+# NEXT_PUBLIC_GIPHY_PICKER=your-giphy-api-key
+```
+
+Google OAuth setup must include this redirect URI:
+
+- `http://localhost:8080/api/auth/callback/google`
+
+## 4) Run the client
+
+```bash
+cd /Users/AndrewPinon/projects/workdash
+npm install
+npm run dev
+```
+
+Open `http://localhost:8080` and sign in with Google.
+
+## Dev Commands
+
+```bash
+npm run dev        # next dev on :8080
+npm run lint       # eslint + autofix
+npm run build      # production build
+```
+
+## Troubleshooting
+
+- Server exits at startup with a NATS error:
+  - Verify NATS is running on `127.0.0.1:4222`.
+- Server exits with `GCS_* environment variable is required`:
+  - Set `GCS_BUCKET_NAME`, `GCS_PROJECT_ID`, and `GOOGLE_APPLICATION_CREDENTIALS`.
+- Google sign-in fails:
+  - Confirm `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and redirect URI.
+- Client cannot connect to SFU:
+  - Check `NEXT_PUBLIC_SFU_SERVER_URL` and that server is running on `:4000`.
+
+## Stopping local services
+
+```bash
+docker stop workdash-postgres workdash-nats
+docker rm workdash-postgres workdash-nats
+```
 

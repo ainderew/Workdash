@@ -1,12 +1,16 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import type {
+    ChatV2Attachment,
     ChatV2FriendshipStatus,
     ChatV2Message,
     ChatV2UserProfile,
 } from "@/communication/chatV2/_types";
 import { ChatV2Service } from "@/communication/chatV2/chatV2Service";
 import { getStandaloneGifUrl } from "@/communication/chatV2/gifUrl";
-import { getSignedAttachmentUrl } from "@/communication/chatV2/uploadService";
+import {
+    downloadChatFile,
+    getChatFilePreviewUrl,
+} from "@/communication/chatV2/uploadService";
 import { extractDomain, parseMessageContent } from "@/common/utils/linkParser";
 import useUserStore from "@/common/store/useStore";
 import useChatV2Store from "@/common/store/chatV2Store";
@@ -86,6 +90,11 @@ type ProfilePopoverState = {
 };
 const MAX_PREVIEW_RETRIES = 3;
 const MAX_BIO_LENGTH = 280;
+const isPreviewableAttachment = (attachment: ChatV2Attachment) =>
+    attachment.isImage || attachment.mimeType === "application/pdf";
+const hasImageContent = (message: ChatV2Message) =>
+    message.messageType === "IMAGE" ||
+    message.attachments.some((attachment) => attachment.isImage);
 
 const getFriendActionMeta = (
     friendshipStatus: ChatV2FriendshipStatus | null,
@@ -454,16 +463,17 @@ function MessageList({
 
     useEffect(() => {
         const unresolvedAttachments: Array<{
-            roomId: string;
-            objectKey: string;
+            fileId: string;
         }> = [];
 
         for (const message of messages) {
             for (const attachment of message.attachments) {
-                if (!attachmentUrls[attachment.objectKey]) {
+                if (
+                    isPreviewableAttachment(attachment) &&
+                    !attachmentUrls[attachment.id]
+                ) {
                     unresolvedAttachments.push({
-                        roomId: message.roomId,
-                        objectKey: attachment.objectKey,
+                        fileId: attachment.id,
                     });
                 }
             }
@@ -479,11 +489,10 @@ function MessageList({
             const resolvedEntries = await Promise.all(
                 unresolvedAttachments.map(async (attachment) => {
                     try {
-                        const downloadUrl = await getSignedAttachmentUrl({
-                            roomId: attachment.roomId,
-                            objectKey: attachment.objectKey,
-                        });
-                        return [attachment.objectKey, downloadUrl] as const;
+                        const previewUrl = await getChatFilePreviewUrl(
+                            attachment.fileId,
+                        );
+                        return [attachment.fileId, previewUrl] as const;
                     } catch {
                         return null;
                     }
@@ -754,6 +763,21 @@ function MessageList({
         });
     };
 
+    const handleDownloadAttachment = (fileId: string, filename: string) => {
+        void (async () => {
+            try {
+                await downloadChatFile(fileId);
+            } catch (error) {
+                toast("Download failed", {
+                    description:
+                        error instanceof Error
+                            ? error.message
+                            : `Failed to download ${filename}`,
+                });
+            }
+        })();
+    };
+
     const openAvatarContextMenu = (
         event: React.MouseEvent<HTMLDivElement>,
         message: ChatV2Message,
@@ -967,6 +991,39 @@ function MessageList({
         toast(`${label} is coming soon`, {
             description: "This action is a placeholder for now.",
         });
+    };
+
+    const handleUnsendImage = (message: ChatV2Message) => {
+        if (
+            typeof localBackendUserId !== "number" ||
+            message.senderUserId !== localBackendUserId
+        ) {
+            return;
+        }
+        if (message.deletedAt || !hasImageContent(message)) {
+            return;
+        }
+
+        const confirmed = window.confirm(
+            "Unsend this image message for everyone in this chat?",
+        );
+        if (!confirmed) return;
+
+        void (async () => {
+            try {
+                await chatV2Service.deleteMessage(message.roomId, message.id);
+                toast("Image unsent", {
+                    description: "The image message was removed.",
+                });
+            } catch (error) {
+                toast("Unable to unsend image", {
+                    description:
+                        error instanceof Error
+                            ? error.message
+                            : "Please try again.",
+                });
+            }
+        })();
     };
 
     const renderGenericLinkPreview = (
@@ -1288,6 +1345,14 @@ function MessageList({
                                             emoji,
                                         );
                                     }}
+                                    onUnsend={
+                                        typeof localBackendUserId === "number" &&
+                                        message.senderUserId === localBackendUserId &&
+                                        !message.deletedAt &&
+                                        hasImageContent(message)
+                                            ? () => handleUnsendImage(message)
+                                            : undefined
+                                    }
                                     onFutureAction={handleFutureMessageAction}
                                 />
 
@@ -1517,56 +1582,106 @@ function MessageList({
                                         {message.attachments.length > 0 && (
                                             <div className="mt-2 space-y-1">
                                                 {message.attachments.map(
-                                                    (attachment) => (
-                                                        <div
-                                                            key={attachment.id}
-                                                        >
-                                                            {attachment.isImage &&
+                                                    (attachment) => {
+                                                        const previewUrl =
                                                             attachmentUrls[
-                                                                attachment
-                                                                    .objectKey
-                                                            ] ? (
+                                                                attachment.id
+                                                            ];
+                                                        const isPdfAttachment =
+                                                            attachment.mimeType ===
+                                                            "application/pdf";
+                                                        const isPreviewable =
+                                                            isPreviewableAttachment(
+                                                                attachment,
+                                                            );
+
+                                                        if (
+                                                            isPreviewable &&
+                                                            !previewUrl
+                                                        ) {
+                                                            return (
+                                                                <div
+                                                                    key={attachment.id}
+                                                                    className="text-xs px-2 py-1 rounded wd-bg-elevated wd-text-secondary truncate border wd-border-subtle"
+                                                                >
+                                                                    Resolving{" "}
+                                                                    {attachment.originalFileName}
+                                                                </div>
+                                                            );
+                                                        }
+
+                                                        if (
+                                                            attachment.isImage &&
+                                                            previewUrl
+                                                        ) {
+                                                            return (
                                                                 <img
-                                                                    src={
-                                                                        attachmentUrls[
-                                                                            attachment
-                                                                                .objectKey
-                                                                        ]
-                                                                    }
-                                                                    alt={
-                                                                        attachment.originalFileName
-                                                                    }
+                                                                    key={attachment.id}
+                                                                    src={previewUrl}
+                                                                    alt={attachment.originalFileName}
                                                                     className="rounded-md max-w-xs max-h-56 object-cover border wd-border-subtle"
                                                                 />
-                                                            ) : attachmentUrls[
-                                                                  attachment
-                                                                      .objectKey
-                                                              ] ? (
-                                                                <a
-                                                                    href={
-                                                                        attachmentUrls[
-                                                                            attachment
-                                                                                .objectKey
-                                                                        ]
-                                                                    }
-                                                                    target="_blank"
-                                                                    rel="noopener noreferrer"
-                                                                    className="text-xs px-2 py-1 rounded wd-bg-elevated wd-text-accent truncate inline-block border wd-border-subtle"
+                                                            );
+                                                        }
+
+                                                        if (
+                                                            isPdfAttachment &&
+                                                            previewUrl
+                                                        ) {
+                                                            return (
+                                                                <div
+                                                                    key={attachment.id}
+                                                                    className="space-y-1"
                                                                 >
-                                                                    {
-                                                                        attachment.originalFileName
-                                                                    }
-                                                                </a>
-                                                            ) : (
-                                                                <div className="text-xs px-2 py-1 rounded wd-bg-elevated wd-text-secondary truncate border wd-border-subtle">
-                                                                    Resolving{" "}
-                                                                    {
-                                                                        attachment.originalFileName
-                                                                    }
+                                                                    <iframe
+                                                                        src={previewUrl}
+                                                                        title={attachment.originalFileName}
+                                                                        className="h-64 w-full max-w-md rounded-md border wd-border-subtle"
+                                                                    />
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() =>
+                                                                            handleDownloadAttachment(
+                                                                                attachment.id,
+                                                                                attachment.originalFileName,
+                                                                            )
+                                                                        }
+                                                                        className="text-xs px-2 py-1 rounded wd-bg-elevated wd-text-accent truncate inline-flex items-center gap-1 border wd-border-subtle"
+                                                                    >
+                                                                        {
+                                                                            attachment.originalFileName
+                                                                        }
+                                                                        <ExternalLink
+                                                                            size={
+                                                                                12
+                                                                            }
+                                                                        />
+                                                                    </button>
                                                                 </div>
-                                                            )}
-                                                        </div>
-                                                    ),
+                                                            );
+                                                        }
+
+                                                        return (
+                                                            <button
+                                                                key={attachment.id}
+                                                                type="button"
+                                                                onClick={() =>
+                                                                    handleDownloadAttachment(
+                                                                        attachment.id,
+                                                                        attachment.originalFileName,
+                                                                    )
+                                                                }
+                                                                className="text-xs px-2 py-1 rounded wd-bg-elevated wd-text-accent truncate inline-flex items-center gap-1 border wd-border-subtle"
+                                                            >
+                                                                {
+                                                                    attachment.originalFileName
+                                                                }
+                                                                <ExternalLink
+                                                                    size={12}
+                                                                />
+                                                            </button>
+                                                        );
+                                                    },
                                                 )}
                                             </div>
                                         )}

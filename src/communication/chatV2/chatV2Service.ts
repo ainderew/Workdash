@@ -531,6 +531,24 @@ export class ChatV2Service {
         return response.message;
     }
 
+    async deleteMessage(
+        roomId: string,
+        messageId: string,
+    ): Promise<{
+        messageId: string;
+        roomId: string;
+        deletedAt: string | Date | null;
+    }> {
+        return await this.emitWithAck<{
+            messageId: string;
+            roomId: string;
+            deletedAt: string | Date | null;
+        }>("chat:v2:message:delete", {
+            roomId,
+            messageId,
+        });
+    }
+
     async createRoom(input: {
         name: string;
         topic?: string;

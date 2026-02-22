@@ -7,12 +7,16 @@ import {
 import { toast } from "sonner";
 import type {
     ChatV2CreateAttachment,
+    ChatV2Attachment,
     ChatV2Message,
     ChatV2RoomMember,
 } from "@/communication/chatV2/_types";
 import { ChatV2Service } from "@/communication/chatV2/chatV2Service";
 import { getStandaloneGifUrl } from "@/communication/chatV2/gifUrl";
-import { getSignedAttachmentUrl } from "@/communication/chatV2/uploadService";
+import {
+    downloadChatFile,
+    getChatFilePreviewUrl,
+} from "@/communication/chatV2/uploadService";
 import { extractDomain, parseMessageContent } from "@/common/utils/linkParser";
 import { GitHubPreview } from "@/common/components/TextChat/GitHubPreview";
 import { TwitterPreview } from "@/common/components/TextChat/TwitterPreview";
@@ -57,6 +61,11 @@ const byCreatedAtAsc = (a: ChatV2Message, b: ChatV2Message) => {
 };
 
 const MAX_PREVIEW_RETRIES = 3;
+const isPreviewableAttachment = (attachment: ChatV2Attachment) =>
+    attachment.isImage || attachment.mimeType === "application/pdf";
+const hasImageContent = (message: ChatV2Message) =>
+    message.messageType === "IMAGE" ||
+    message.attachments.some((attachment) => attachment.isImage);
 
 type LinkPreviewMetadata = {
     url: string;
@@ -98,6 +107,9 @@ type ThreadMessageRowProps = {
     linkPreviews: Record<string, LinkPreviewMetadata | null>;
     frequentEmojis: string[];
     onToggleReaction: (messageId: string, emoji: string) => Promise<void> | void;
+    canUnsendImage: boolean;
+    onUnsendImage: (message: ChatV2Message) => void;
+    onDownloadAttachment: (fileId: string, filename: string) => void;
     resolvedSenderImage?: string;
     memberNameMap: MentionMemberNameMap;
 };
@@ -109,6 +121,9 @@ function ThreadMessageRow({
     linkPreviews,
     frequentEmojis,
     onToggleReaction,
+    canUnsendImage,
+    onUnsendImage,
+    onDownloadAttachment,
     resolvedSenderImage,
     memberNameMap,
 }: ThreadMessageRowProps) {
@@ -285,6 +300,9 @@ function ThreadMessageRow({
                 onReact={(emoji) => {
                     void onToggleReaction(message.id, emoji);
                 }}
+                onUnsend={
+                    canUnsendImage ? () => onUnsendImage(message) : undefined
+                }
                 onFutureAction={handleFutureMessageAction}
             />
 
@@ -442,8 +460,13 @@ function ThreadMessageRow({
                             {message.attachments.length > 0 ? (
                                 <div className="space-y-1">
                                     {message.attachments.map((attachment) => {
-                                        const signedUrl = attachmentUrls[attachment.objectKey];
-                                        if (!signedUrl) {
+                                        const signedUrl = attachmentUrls[attachment.id];
+                                        const isPdfAttachment =
+                                            attachment.mimeType === "application/pdf";
+                                        const isPreviewable =
+                                            isPreviewableAttachment(attachment);
+
+                                        if (isPreviewable && !signedUrl) {
                                             return (
                                                 <div
                                                     key={attachment.id}
@@ -465,19 +488,50 @@ function ThreadMessageRow({
                                             );
                                         }
 
+                                        if (isPdfAttachment && signedUrl) {
+                                            return (
+                                                <div key={attachment.id} className="space-y-1">
+                                                    <iframe
+                                                        src={signedUrl}
+                                                        title={attachment.originalFileName}
+                                                        className="h-64 w-full max-w-md rounded-md border wd-border-subtle"
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            onDownloadAttachment(
+                                                                attachment.id,
+                                                                attachment.originalFileName,
+                                                            )
+                                                        }
+                                                        className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded wd-bg-panel-2 wd-text-accent border wd-border-subtle"
+                                                    >
+                                                        <span className="truncate max-w-[240px]">
+                                                            {attachment.originalFileName}
+                                                        </span>
+                                                        <ExternalLink size={11} />
+                                                    </button>
+                                                </div>
+                                            );
+                                        }
+
                                         return (
-                                            <a
+                                            <button
                                                 key={attachment.id}
-                                                href={signedUrl}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
+                                                type="button"
+                                                onClick={() =>
+                                                    onDownloadAttachment(
+                                                        attachment.id,
+                                                        attachment.originalFileName,
+                                                    )
+                                                }
                                                 className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded wd-bg-panel-2 wd-text-accent border wd-border-subtle"
                                             >
                                                 <span className="truncate max-w-[240px]">
                                                     {attachment.originalFileName}
                                                 </span>
                                                 <ExternalLink size={11} />
-                                            </a>
+                                            </button>
                                         );
                                     })}
                                 </div>
@@ -548,14 +602,16 @@ function ThreadPanel({
     }, [orderedReplies, rootMessage?.id]);
 
     useEffect(() => {
-        const unresolvedAttachments: Array<{ roomId: string; objectKey: string }> = [];
+        const unresolvedAttachments: Array<{ fileId: string }> = [];
 
         for (const message of allMessages) {
             for (const attachment of message.attachments) {
-                if (!attachmentUrls[attachment.objectKey]) {
+                if (
+                    isPreviewableAttachment(attachment) &&
+                    !attachmentUrls[attachment.id]
+                ) {
                     unresolvedAttachments.push({
-                        roomId: message.roomId,
-                        objectKey: attachment.objectKey,
+                        fileId: attachment.id,
                     });
                 }
             }
@@ -571,11 +627,10 @@ function ThreadPanel({
             const resolvedEntries = await Promise.all(
                 unresolvedAttachments.map(async (attachment) => {
                     try {
-                        const downloadUrl = await getSignedAttachmentUrl({
-                            roomId: attachment.roomId,
-                            objectKey: attachment.objectKey,
-                        });
-                        return [attachment.objectKey, downloadUrl] as const;
+                        const previewUrl = await getChatFilePreviewUrl(
+                            attachment.fileId,
+                        );
+                        return [attachment.fileId, previewUrl] as const;
                     } catch {
                         return null;
                     }
@@ -808,6 +863,54 @@ function ThreadPanel({
         resolvedSenderImagesByUserId,
     ]);
 
+    const handleDownloadAttachment = (fileId: string, filename: string) => {
+        void (async () => {
+            try {
+                await downloadChatFile(fileId);
+            } catch (error) {
+                toast("Download failed", {
+                    description:
+                        error instanceof Error
+                            ? error.message
+                            : `Failed to download ${filename}`,
+                });
+            }
+        })();
+    };
+
+    const handleUnsendImage = (message: ChatV2Message) => {
+        if (
+            typeof localBackendUserId !== "number" ||
+            message.senderUserId !== localBackendUserId
+        ) {
+            return;
+        }
+        if (message.deletedAt || !hasImageContent(message)) {
+            return;
+        }
+
+        const confirmed = window.confirm(
+            "Unsend this image message for everyone in this chat?",
+        );
+        if (!confirmed) return;
+
+        void (async () => {
+            try {
+                await chatV2Service.deleteMessage(message.roomId, message.id);
+                toast("Image unsent", {
+                    description: "The image message was removed.",
+                });
+            } catch (error) {
+                toast("Unable to unsend image", {
+                    description:
+                        error instanceof Error
+                            ? error.message
+                            : "Please try again.",
+                });
+            }
+        })();
+    };
+
     return (
         <aside
             className={`flex h-full min-h-0 w-[370px] max-w-[45vw] min-w-[320px] flex-col border-l wd-border-subtle wd-bg-panel ${className ?? ""}`}
@@ -860,6 +963,14 @@ function ThreadPanel({
                             linkPreviews={linkPreviews}
                             frequentEmojis={frequentEmojis}
                             onToggleReaction={onToggleReaction}
+                            canUnsendImage={
+                                typeof localBackendUserId === "number" &&
+                                rootMessage.senderUserId === localBackendUserId &&
+                                !rootMessage.deletedAt &&
+                                hasImageContent(rootMessage)
+                            }
+                            onUnsendImage={handleUnsendImage}
+                            onDownloadAttachment={handleDownloadAttachment}
                             resolvedSenderImage={
                                 resolvedSenderImagesByUserId[rootMessage.senderUserId]
                             }
@@ -890,6 +1001,14 @@ function ThreadPanel({
                                         linkPreviews={linkPreviews}
                                         frequentEmojis={frequentEmojis}
                                         onToggleReaction={onToggleReaction}
+                                        canUnsendImage={
+                                            typeof localBackendUserId === "number" &&
+                                            reply.senderUserId === localBackendUserId &&
+                                            !reply.deletedAt &&
+                                            hasImageContent(reply)
+                                        }
+                                        onUnsendImage={handleUnsendImage}
+                                        onDownloadAttachment={handleDownloadAttachment}
                                         resolvedSenderImage={
                                             resolvedSenderImagesByUserId[reply.senderUserId]
                                         }

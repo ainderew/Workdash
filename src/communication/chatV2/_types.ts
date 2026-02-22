@@ -40,7 +40,7 @@ export type ChatV2Room = {
 export type ChatV2Attachment = {
     id: string;
     messageId: string;
-    storageProvider: "DO_SPACES" | "S3" | "LOCAL";
+    storageProvider: "DO_SPACES" | "S3" | "LOCAL" | "GCS";
     objectKey: string;
     originalFileName: string;
     mimeType: string;
@@ -58,7 +58,8 @@ export type ChatV2MessageReaction = {
 };
 
 export type ChatV2CreateAttachment = {
-    storageProvider: "DO_SPACES" | "S3" | "LOCAL";
+    id: string;
+    storageProvider: "DO_SPACES" | "S3" | "LOCAL" | "GCS";
     objectKey: string;
     originalFileName: string;
     mimeType: string;

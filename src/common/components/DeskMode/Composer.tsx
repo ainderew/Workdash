@@ -5,10 +5,7 @@ import type {
     ChatV2CreateAttachment,
     ChatV2RoomMember,
 } from "@/communication/chatV2/_types";
-import {
-    initChatUpload,
-    uploadFileToSignedUrl,
-} from "@/communication/chatV2/uploadService";
+import { uploadChatFileForMessage } from "@/communication/chatV2/uploadService";
 import {
     buildMemberNameMap,
     getMentionQueryAtCursor,
@@ -224,12 +221,11 @@ function Composer({
             let attachments: ChatV2CreateAttachment[] | undefined;
 
             if (selectedFile) {
-                const uploadInit = await initChatUpload({
+                const uploaded = await uploadChatFileForMessage(
                     roomId,
-                    file: selectedFile,
-                });
-                await uploadFileToSignedUrl(selectedFile, uploadInit);
-                attachments = [uploadInit.attachment];
+                    selectedFile,
+                );
+                attachments = [uploaded.attachment];
             }
 
             await onSend(

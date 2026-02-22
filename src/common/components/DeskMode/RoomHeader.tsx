@@ -44,7 +44,7 @@ function RoomHeader({
     onSearchUsers,
     onClearSearch,
     onOpenNotification,
-    isMemberPanelVisible = true,
+    isMemberPanelVisible = false,
     onToggleMemberPanel,
 }: RoomHeaderProps) {
     const friendRequests = useChatV2Store((state) => state.friendRequests);
