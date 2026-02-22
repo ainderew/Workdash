@@ -553,6 +553,29 @@ body {
         --tw-ring-color: var(--wd-accent);
     }
 
+    .wd-control-hub-legacy {
+        --primary: oklch(0.205 0 0);
+        --primary-foreground: oklch(0.985 0 0);
+        --wd-surface-base: #0f1115;
+        --wd-surface-panel: #0f1115;
+        --wd-surface-panel-2: #161a22;
+        --wd-surface-elevated: #1f2530;
+        --wd-surface-overlay: rgba(10, 12, 17, 0.96);
+        --wd-border-subtle: #2b3240;
+        --wd-border-strong: #3d4759;
+        --wd-text-primary: #f2f3f5;
+        --wd-text-secondary: #c0c5cd;
+        --wd-text-muted: #9099ab;
+        --wd-accent: #5865f2;
+        --wd-accent-hover: #4752c4;
+        --wd-accent-soft: rgba(88, 101, 242, 0.16);
+        --wd-success: #3ba55d;
+        --wd-danger: #ed4245;
+        --wd-danger-soft: rgba(237, 66, 69, 0.18);
+        --wd-warning: #f0b232;
+        --wd-info: #00a8fc;
+    }
+
     .clip-path-polygon {
         clip-path: polygon(92% 0, 100% 25%, 100% 100%, 8% 100%, 0% 75%, 0 0);
     }

@@ -132,7 +132,7 @@ function UiControls({ isVisible = true }: UiControlsProps) {
     return (
         <>
             <div
-                className={`h-[var(--ui-controls-height)] w-fit fixed rounded-xl bottom-4 flex gap-4 justify-between items-center bg-primary/80 px-5 z-40 transition-all duration-200 ease-out ${
+                className={`wd-control-hub-legacy h-[var(--ui-controls-height)] w-fit fixed rounded-xl bottom-4 flex gap-4 justify-between items-center bg-primary/80 px-5 z-40 transition-all duration-200 ease-out ${
                     isVisible
                         ? "translate-y-0 opacity-100 pointer-events-auto"
                         : "translate-y-8 opacity-0 pointer-events-none"

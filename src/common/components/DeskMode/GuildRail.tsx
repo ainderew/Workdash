@@ -32,12 +32,14 @@ function RailButton({
     active,
     label,
     unreadCount,
+    indicatorMode = "default",
     onClick,
     children,
 }: {
     active: boolean;
     label: string;
     unreadCount?: number;
+    indicatorMode?: "default" | "dot-to-bar";
     onClick: () => void;
     children: React.ReactNode;
 }) {
@@ -51,10 +53,14 @@ function RailButton({
                     aria-label={label}
                 >
                     <span
-                        className={`absolute -left-2 top-1/2 -translate-y-1/2 w-1 rounded-full bg-[var(--wd-accent)] transition-all duration-200 ${
-                            active
-                                ? "h-8 opacity-100"
-                                : "h-6 opacity-0 group-hover:opacity-100"
+                        className={`absolute -left-2 top-1/2 w-1 -translate-y-1/2 rounded-full bg-[var(--wd-accent)] transition-[height,opacity] duration-150 ease-linear ${
+                            indicatorMode === "dot-to-bar"
+                                ? active
+                                    ? "h-8 opacity-100"
+                                    : "h-1 opacity-100 group-hover:h-8"
+                                : active
+                                  ? "h-8 opacity-100"
+                                  : "h-0 opacity-0 group-hover:h-8 group-hover:opacity-100"
                         }`}
                     />
                     <span className="inline-flex h-full w-full items-center justify-center">
@@ -123,6 +129,7 @@ function GuildRail({
                 active={railView === "dm"}
                 label="Direct Messages"
                 unreadCount={dmUnreadCount}
+                indicatorMode="dot-to-bar"
                 onClick={onSelectDm}
             >
                 <MessageSquareMore size={18} />
