@@ -10,6 +10,7 @@ import {
     Copy,
     Fingerprint,
     FolderPlus,
+    Lock,
     LogOut,
     MoreHorizontal,
     Plus,
@@ -867,6 +868,10 @@ function ChannelSidebar({
                                                         const isActiveRoom =
                                                             currentRoomId ===
                                                             room.id;
+                                                        const isLockedRoom =
+                                                            hasViewerRoleData &&
+                                                            room.viewerRole ===
+                                                                null;
                                                         const isDraggingRoom =
                                                             dragState?.roomId ===
                                                             room.id;
@@ -878,6 +883,7 @@ function ChannelSidebar({
                                                                 <button
                                                                     type="button"
                                                                     draggable={
+                                                                        !isLockedRoom &&
                                                                         !isArranging &&
                                                                         !isUpdatingRoom &&
                                                                         !categoryDragState
@@ -895,6 +901,7 @@ function ChannelSidebar({
                                                                         event,
                                                                     ) => {
                                                                         if (
+                                                                            isLockedRoom ||
                                                                             isArranging ||
                                                                             categoryDragState
                                                                         ) {
@@ -931,6 +938,11 @@ function ChannelSidebar({
                                                                         setCategoryContextMenu(
                                                                             null,
                                                                         );
+                                                                        if (
+                                                                            isLockedRoom
+                                                                        ) {
+                                                                            return;
+                                                                        }
                                                                         onSelectRoom(
                                                                             room.id,
                                                                         );
@@ -944,7 +956,9 @@ function ChannelSidebar({
                                                                         );
                                                                     }}
                                                                     className={`w-full text-left px-2 py-2 rounded-md text-sm transition-colors ${
-                                                                        isActiveRoom
+                                                                        isLockedRoom
+                                                                            ? "wd-text-muted cursor-not-allowed"
+                                                                            : isActiveRoom
                                                                             ? "wd-text-primary bg-[var(--wd-surface-elevated)]"
                                                                             : "wd-text-secondary hover:text-[var(--wd-text-primary)] hover:bg-[var(--wd-surface-elevated)]"
                                                                     } ${
@@ -952,6 +966,11 @@ function ChannelSidebar({
                                                                             ? "opacity-40"
                                                                             : "opacity-100"
                                                                     }`}
+                                                                    title={
+                                                                        isLockedRoom
+                                                                            ? "You are not a member of this channel"
+                                                                            : undefined
+                                                                    }
                                                                     style={{
                                                                         fontWeight:
                                                                             isActiveRoom
@@ -959,23 +978,35 @@ function ChannelSidebar({
                                                                                 : 400,
                                                                     }}
                                                                 >
-                                                                    <ChannelHashIcon
-                                                                        size={
-                                                                            18
-                                                                        }
-                                                                        className="inline-block shrink-0 align-text-bottom opacity-60"
-                                                                    />{" "}
-                                                                    <span
-                                                                        style={{
-                                                                            fontWeight:
-                                                                                isActiveRoom
-                                                                                    ? 500
-                                                                                    : 400,
-                                                                        }}
-                                                                    >
-                                                                        {
-                                                                            room.name
-                                                                        }
+                                                                    <span className="inline-flex min-w-0 items-center gap-1">
+                                                                        {isLockedRoom ? (
+                                                                            <Lock
+                                                                                size={
+                                                                                    14
+                                                                                }
+                                                                                className="shrink-0 opacity-70"
+                                                                            />
+                                                                        ) : (
+                                                                            <ChannelHashIcon
+                                                                                size={
+                                                                                    18
+                                                                                }
+                                                                                className="inline-block shrink-0 align-text-bottom opacity-60"
+                                                                            />
+                                                                        )}
+                                                                        <span
+                                                                            className="truncate"
+                                                                            style={{
+                                                                                fontWeight:
+                                                                                    isActiveRoom
+                                                                                        ? 500
+                                                                                        : 400,
+                                                                            }}
+                                                                        >
+                                                                            {
+                                                                                room.name
+                                                                            }
+                                                                        </span>
                                                                     </span>
                                                                 </button>
                                                                 {renderInsertionIndicator(

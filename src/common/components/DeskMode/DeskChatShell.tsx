@@ -126,6 +126,13 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
     const [threadError, setThreadError] = useState<string | null>(null);
     const [isMemberPanelVisible, setIsMemberPanelVisible] = useState(false);
 
+    const canEnterRoom = useCallback((room: ChatV2Room | undefined | null) => {
+        if (!room) return false;
+        if (room.type === "DIRECT") return true;
+        if (room.viewerRole === undefined) return true;
+        return room.viewerRole !== null;
+    }, []);
+
     useEffect(() => {
         void initialize();
     }, [initialize]);
@@ -455,6 +462,7 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
                         const firstRoom = rooms.find(
                             (room) =>
                                 room.type !== "DIRECT" &&
+                                canEnterRoom(room) &&
                                 room.workspaceId === workspaceId,
                         );
                         if (firstRoom) {
@@ -463,7 +471,9 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
                     }}
                     onSelectDm={() => {
                         setRailView("dm");
-                        const firstDmRoom = directRooms[0]?.room.id;
+                        const firstDmRoom = directRooms.find((entry) =>
+                            canEnterRoom(entry.room),
+                        )?.room.id;
                         if (firstDmRoom) {
                             void selectRoom(firstDmRoom);
                         }

@@ -262,6 +262,13 @@ const toUnreadByRoomId = (rooms: ChatV2Room[]) =>
         return accumulator;
     }, {});
 
+const canUserEnterRoom = (room: ChatV2Room | null | undefined): boolean => {
+    if (!room) return false;
+    if (room.type === "DIRECT") return true;
+    if (room.viewerRole === undefined) return true;
+    return room.viewerRole !== null;
+};
+
 const toCategoryOrder = (categories: ChatV2RoomCategory[]) =>
     [...categories].sort(byCategoryLayout).map((category) => category.id);
 
@@ -649,16 +656,24 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
 
             set((state) => {
                 const hasCurrentRoom =
-                    state.currentRoomId && roomsById[state.currentRoomId];
+                    state.currentRoomId
+                    && canUserEnterRoom(roomsById[state.currentRoomId]);
                 const firstServerRoom = roomOrder
                     .map((roomId) => roomsById[roomId])
-                    .find((room) => room?.type !== "DIRECT");
+                    .find(
+                        (room) =>
+                            room?.type !== "DIRECT" && canUserEnterRoom(room),
+                    );
+                const firstSelectableRoom = roomOrder
+                    .map((roomId) => roomsById[roomId])
+                    .find((room) => canUserEnterRoom(room));
                 const hasSelectedWorkspace = state.selectedWorkspaceId
                     && roomOrder.some((roomId) => {
                         const room = roomsById[roomId];
                         return (
                             !!room
                             && room.type !== "DIRECT"
+                            && canUserEnterRoom(room)
                             && room.workspaceId === state.selectedWorkspaceId
                         );
                     });
@@ -675,7 +690,7 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
                     categoryOrder,
                     currentRoomId: hasCurrentRoom
                         ? state.currentRoomId
-                        : (firstServerRoom?.id ?? roomOrder[0] ?? null),
+                        : (firstServerRoom?.id ?? firstSelectableRoom?.id ?? null),
                     selectedWorkspaceId: hasSelectedWorkspace
                         ? state.selectedWorkspaceId
                         : (firstServerRoom?.workspaceId ?? null),
@@ -831,6 +846,14 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
         if (!roomId) return;
 
         const room = get().roomsById[roomId];
+        if (room && !canUserEnterRoom(room)) {
+            set({
+                isLoadingMessages: false,
+                error: "You are not a member of this channel.",
+            });
+            return;
+        }
+
         set({
             currentRoomId: roomId,
             isLoadingMessages: true,
