@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Server Issues
+    url: https://github.com/AndrewPinon/workdash-media-server/issues
+    about: For backend/SFU/media server issues, file them in the server repo

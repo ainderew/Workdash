@@ -1,0 +1,81 @@
+name: Performance Issue
+description: App is slow, laggy, or using too many resources
+labels: ["bug", "performance"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Performance problems degrade the experience for everyone. Help us pinpoint the issue.
+
+  - type: dropdown
+    id: symptom
+    attributes:
+      label: Symptom
+      description: What are you experiencing?
+      multiple: true
+      options:
+        - UI is laggy / unresponsive
+        - Phaser game world stuttering / low FPS
+        - High CPU usage
+        - High memory usage / memory leak
+        - Slow page load
+        - Socket disconnects / reconnects
+        - Audio/video degradation over time
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Interaction Mode
+      options:
+        - World Mode
+        - Desk Mode
+        - Both
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: When does the performance issue occur? Does it get worse over time?
+      placeholder: |
+        After ~30 minutes in a room with 5+ people, the game world
+        drops to ~10 FPS and memory usage climbs to 2GB+.
+    validations:
+      required: true
+
+  - type: textarea
+    id: metrics
+    attributes:
+      label: Metrics
+      description: If you have performance data (FPS, memory snapshots, network stats), paste it here.
+      render: shell
+
+  - type: input
+    id: participants
+    attributes:
+      label: Number of Participants
+      description: How many people were in the room when the issue occurred?
+      placeholder: e.g. 5
+
+  - type: dropdown
+    id: browser
+    attributes:
+      label: Browser
+      options:
+        - Chrome
+        - Firefox
+        - Safari
+        - Edge
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating System
+      placeholder: e.g. macOS 15, Windows 11

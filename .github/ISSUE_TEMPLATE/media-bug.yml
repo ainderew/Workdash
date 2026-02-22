@@ -1,0 +1,104 @@
+name: Audio / Video / Streaming Bug
+description: Issues with audio chat, video chat, screen sharing, or proximity audio
+labels: ["bug", "media"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Media issues can be tricky to diagnose. The more detail you provide, the faster we can fix it.
+
+  - type: dropdown
+    id: media-type
+    attributes:
+      label: Media Type
+      description: Which media feature is affected?
+      multiple: true
+      options:
+        - Audio Chat (microphone)
+        - Video Chat (camera)
+        - Screen Sharing
+        - Proximity / Spatial Audio
+        - Audio Zones
+    validations:
+      required: true
+
+  - type: dropdown
+    id: symptom
+    attributes:
+      label: Symptom
+      description: What best describes the issue?
+      multiple: true
+      options:
+        - No audio/video at all
+        - Audio/video cuts out intermittently
+        - One-way audio/video (can hear but not be heard, or vice versa)
+        - Echo or feedback
+        - High latency / delay
+        - Poor quality / artifacts
+        - Doesn't connect / stuck connecting
+        - Crashes or freezes
+        - Proximity audio not working correctly
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: Describe the issue in detail. Include how many participants were in the session.
+      placeholder: |
+        What happened? How many people were in the call?
+        Did it work initially and then break, or never worked?
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      placeholder: |
+        1. Join a room with audio enabled
+        2. Move avatar near another player
+        3. Audio cuts out after ~30 seconds
+    validations:
+      required: true
+
+  - type: textarea
+    id: console
+    attributes:
+      label: Console / Network Errors
+      description: Check the browser console for WebRTC or socket errors.
+      render: shell
+
+  - type: dropdown
+    id: network
+    attributes:
+      label: Network Conditions
+      options:
+        - Stable connection (wired / strong WiFi)
+        - Unstable connection (weak WiFi / mobile)
+        - VPN / Firewall
+        - Unknown
+    validations:
+      required: true
+
+  - type: dropdown
+    id: browser
+    attributes:
+      label: Browser
+      multiple: true
+      options:
+        - Chrome
+        - Firefox
+        - Safari
+        - Edge
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Operating System
+      placeholder: e.g. macOS 15, Windows 11
