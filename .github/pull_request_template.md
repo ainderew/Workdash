@@ -1,49 +1,44 @@
-## Summary
+## Description
 
-<!-- What does this PR do? Keep it to 1-3 bullet points. -->
+<!-- A clear, concise summary of what this PR does and why. -->
 
--
+## Related Issues
 
-## Type
+<!-- Link any related issues. Use "Closes #123" to auto-close on merge. -->
 
-<!-- Check all that apply -->
+## Type of Change
 
-- [ ] Feature
-- [ ] Bug fix
-- [ ] Refactor
-- [ ] Styling / UI
-- [ ] Performance
-- [ ] Docs
-- [ ] Chore (deps, config, CI)
+- [ ] `feat` — New feature or functionality
+- [ ] `fix` — Bug fix
+- [ ] `refactor` — Code restructuring (no behavior change)
+- [ ] `style` — UI / styling updates
+- [ ] `perf` — Performance improvement
+- [ ] `docs` — Documentation only
+- [ ] `chore` — Dependencies, config, CI, tooling
 
-## Area
+## Affected Areas
 
-<!-- Check all that apply -->
+- [ ] World Mode — Phaser, avatars, proximity, audio zones
+- [ ] Desk Mode — Chat UI, channels, threads, reactions
+- [ ] Media — Audio / video / screen share (mediasoup)
+- [ ] Networking — Socket.IO, real-time sync
+- [ ] State — Zustand stores
+- [ ] Auth — Login, sessions, OAuth
+- [ ] Other
 
-- [ ] World Mode (Phaser, avatars, proximity)
-- [ ] Desk Mode (chat UI, channels, threads)
-- [ ] Audio / Video / Screen Share
-- [ ] Communication layer (Socket.IO, mediasoup)
-- [ ] Auth
-- [ ] State management (Zustand stores)
-- [ ] Other: <!-- specify -->
+## How It Was Tested
 
-## Changes
+<!-- Describe how you verified this works. Include browsers tested if relevant. -->
 
-<!-- Brief description of what was changed and why. Link related issues. -->
+- [ ] World Mode
+- [ ] Desk Mode
+- [ ] Mode switching (World <-> Desk)
+- [ ] Multi-participant session
+- [ ] Not applicable
 
-Closes #<!-- issue number -->
+## Screenshots
 
-## Testing
+## <!-- If this includes visual changes, add before/after screenshots or a short recording. Remove this section if not applicable. -->
 
-<!-- How was this tested? -->
-
-- [ ] Tested in World Mode
-- [ ] Tested in Desk Mode
-- [ ] Tested mode switching
-- [ ] Tested with multiple participants
-- [ ] N/A
-
-## Screenshots / Recordings
-
-<!-- If there are UI changes, add before/after screenshots or a recording. -->
+> [!NOTE]
+> Please ensure your branch is up to date with `main` before requesting review.
