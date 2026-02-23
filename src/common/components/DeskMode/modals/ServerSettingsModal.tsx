@@ -4,6 +4,7 @@ import { CONFIG } from "@/common/utils/config";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"];
+const MAX_SERVER_NAME_LENGTH = 100;
 
 interface ServerSettingsModalProps {
     isOpen: boolean;
@@ -12,6 +13,7 @@ interface ServerSettingsModalProps {
     currentImageUrl: string | null;
     onClose: () => void;
     onImageChanged: (serverId: string, imageUrl: string | null) => void;
+    onServerRenamed?: (serverId: string, name: string) => void;
 }
 
 function ServerSettingsModal({
@@ -21,6 +23,7 @@ function ServerSettingsModal({
     currentImageUrl,
     onClose,
     onImageChanged,
+    onServerRenamed,
 }: ServerSettingsModalProps) {
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -29,28 +32,39 @@ function ServerSettingsModal({
     const [error, setError] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    const [editName, setEditName] = useState("");
+    const [isRenaming, setIsRenaming] = useState(false);
+
     useEffect(() => {
-        if (!isOpen) {
+        if (isOpen) {
+            setEditName(serverName);
+        } else {
             setPreviewUrl(null);
             setSelectedFile(null);
             setError(null);
             setIsUploading(false);
             setIsDeleting(false);
+            setIsRenaming(false);
         }
-    }, [isOpen]);
+    }, [isOpen, serverName]);
 
     useEffect(() => {
         if (!isOpen) return undefined;
 
         const onKeyDown = (event: KeyboardEvent) => {
-            if (event.key === "Escape" && !isUploading && !isDeleting) {
+            if (
+                event.key === "Escape" &&
+                !isUploading &&
+                !isDeleting &&
+                !isRenaming
+            ) {
                 onClose();
             }
         };
 
         window.addEventListener("keydown", onKeyDown);
         return () => window.removeEventListener("keydown", onKeyDown);
-    }, [isOpen, isUploading, isDeleting, onClose]);
+    }, [isOpen, isUploading, isDeleting, isRenaming, onClose]);
 
     const handleFileSelect = useCallback(
         (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -93,9 +107,7 @@ function ServerSettingsModal({
 
         try {
             const jwt = window.__BACKEND_JWT__;
-            if (!jwt) {
-                throw new Error("Not authenticated");
-            }
+            if (!jwt) throw new Error("Not authenticated");
 
             const formData = new FormData();
             formData.append("image", selectedFile);
@@ -137,9 +149,7 @@ function ServerSettingsModal({
 
         try {
             const jwt = window.__BACKEND_JWT__;
-            if (!jwt) {
-                throw new Error("Not authenticated");
-            }
+            if (!jwt) throw new Error("Not authenticated");
 
             const response = await fetch(
                 `${CONFIG.SFU_SERVER_URL}/api/servers/${serverId}/image`,
@@ -169,10 +179,56 @@ function ServerSettingsModal({
         }
     };
 
+    const handleRename = async () => {
+        if (!serverId) return;
+        const trimmed = editName.trim();
+        if (!trimmed || trimmed === serverName) return;
+
+        setIsRenaming(true);
+        setError(null);
+
+        try {
+            const jwt = window.__BACKEND_JWT__;
+            if (!jwt) throw new Error("Not authenticated");
+
+            const response = await fetch(
+                `${CONFIG.SFU_SERVER_URL}/api/servers/${serverId}/name`,
+                {
+                    method: "PATCH",
+                    headers: {
+                        Authorization: `Bearer ${jwt}`,
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ name: trimmed }),
+                },
+            );
+
+            const body = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                throw new Error(
+                    body?.error || `Rename failed: ${response.status}`,
+                );
+            }
+
+            onServerRenamed?.(serverId, body.name);
+            onClose();
+        } catch (renameError) {
+            setError(
+                renameError instanceof Error
+                    ? renameError.message
+                    : "Failed to rename server",
+            );
+        } finally {
+            setIsRenaming(false);
+        }
+    };
+
     if (!isOpen || !serverId) return null;
 
     const displayImage = previewUrl || currentImageUrl;
-    const isBusy = isUploading || isDeleting;
+    const isBusy = isUploading || isDeleting || isRenaming;
+    const nameChanged = editName.trim() !== serverName && editName.trim().length > 0;
+    const hasUnsavedChanges = !!selectedFile || nameChanged;
 
     return (
         <div className="fixed inset-0 z-[290] flex items-center justify-center bg-black/70 backdrop-blur-[1px] p-4">
@@ -208,6 +264,20 @@ function ServerSettingsModal({
                 </div>
 
                 <div className="p-4 space-y-4">
+                    <div className="rounded-lg border wd-border-subtle wd-bg-panel-2 p-3">
+                        <p className="text-[11px] font-semibold uppercase tracking-wide wd-text-muted">
+                            Server Name
+                        </p>
+                        <input
+                            type="text"
+                            value={editName}
+                            onChange={(e) => setEditName(e.target.value)}
+                            maxLength={MAX_SERVER_NAME_LENGTH}
+                            disabled={isBusy}
+                            className="mt-1.5 h-9 w-full rounded-md border wd-border-subtle wd-bg-elevated px-3 text-sm wd-text-primary outline-none focus:border-[var(--wd-border-strong)] disabled:opacity-50"
+                        />
+                    </div>
+
                     <div className="rounded-lg border wd-border-subtle wd-bg-panel-2 p-3">
                         <p className="text-[11px] font-semibold uppercase tracking-wide wd-text-muted">
                             Server Image
@@ -291,13 +361,14 @@ function ServerSettingsModal({
                         </p>
                     )}
 
-                    {selectedFile && (
+                    {hasUnsavedChanges && (
                         <div className="flex items-center justify-end gap-2">
                             <button
                                 type="button"
                                 onClick={() => {
                                     setSelectedFile(null);
                                     setPreviewUrl(null);
+                                    setEditName(serverName);
                                     setError(null);
                                     if (fileInputRef.current) {
                                         fileInputRef.current.value = "";
@@ -310,20 +381,23 @@ function ServerSettingsModal({
                             </button>
                             <button
                                 type="button"
-                                onClick={handleUpload}
+                                onClick={async () => {
+                                    if (selectedFile) await handleUpload();
+                                    if (nameChanged) await handleRename();
+                                }}
                                 disabled={isBusy}
                                 className="inline-flex h-9 items-center gap-2 rounded-md border border-[rgba(88,101,242,0.6)] bg-[rgba(88,101,242,0.2)] px-3 text-sm font-semibold wd-text-primary transition-colors hover:bg-[rgba(88,101,242,0.3)] disabled:opacity-60"
                             >
-                                {isUploading ? (
+                                {isBusy ? (
                                     <>
                                         <Loader2
                                             size={14}
                                             className="animate-spin"
                                         />
-                                        Uploading...
+                                        Saving...
                                     </>
                                 ) : (
-                                    "Save Image"
+                                    "Save Changes"
                                 )}
                             </button>
                         </div>

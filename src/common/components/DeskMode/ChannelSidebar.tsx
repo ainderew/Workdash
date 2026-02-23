@@ -90,6 +90,7 @@ interface ChannelSidebarProps {
     onRenameRoom: (roomId: string, name: string) => void;
     onDeleteRoom: (roomId: string) => void;
     onServerImageChanged?: (serverId: string, imageUrl: string | null) => void;
+    onServerRenamed?: (serverId: string, name: string) => void;
 }
 
 function ChannelSidebar({
@@ -115,6 +116,7 @@ function ChannelSidebar({
     onRenameRoom,
     onDeleteRoom,
     onServerImageChanged,
+    onServerRenamed,
 }: ChannelSidebarProps) {
     const setInteractionMode = useUiStore((state) => state.setInteractionMode);
     const user = useUserStore((state) => state.user);
@@ -1260,6 +1262,10 @@ function ChannelSidebar({
                 onClose={() => setIsServerSettingsModalOpen(false)}
                 onImageChanged={(sid, imageUrl) => {
                     onServerImageChanged?.(sid, imageUrl);
+                    setIsServerSettingsModalOpen(false);
+                }}
+                onServerRenamed={(sid, name) => {
+                    onServerRenamed?.(sid, name);
                     setIsServerSettingsModalOpen(false);
                 }}
             />

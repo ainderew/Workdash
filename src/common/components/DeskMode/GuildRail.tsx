@@ -75,7 +75,7 @@ function RailButton({
                         {children}
                     </span>
                     {typeof unreadCount === "number" && unreadCount > 0 ? (
-                        <span className="absolute -bottom-1 -right-1 h-5 min-w-5 px-1 rounded-full bg-[var(--wd-danger)] text-white text-[10px] font-bold inline-flex items-center justify-center">
+                        <span className="absolute bottom-0 right-0 h-4 min-w-4 px-0.5 rounded-full bg-[var(--wd-danger)] text-white text-[9px] font-bold inline-flex items-center justify-center z-10">
                             {unreadCount > 99 ? "99+" : unreadCount}
                         </span>
                     ) : null}

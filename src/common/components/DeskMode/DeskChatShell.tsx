@@ -138,6 +138,9 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
     const [serverImageOverrides, setServerImageOverrides] = useState<
         Record<string, string | null>
     >({});
+    const [serverNameOverrides, setServerNameOverrides] = useState<
+        Record<string, string>
+    >({});
 
     const canEnterRoom = useCallback((room: ChatV2Room | undefined | null) => {
         if (!room) return false;
@@ -193,7 +196,9 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
                             {
                                 id: room.workspaceId,
                                 name:
-                                    room.workspace?.name?.trim() || "Workspace",
+                                    serverNameOverrides[room.workspaceId] ||
+                                    room.workspace?.name?.trim() ||
+                                    "Workspace",
                                 unreadCount: getWorkspaceUnreadTotal(
                                     room.workspaceId,
                                 ),
@@ -205,7 +210,7 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
                         ]),
                 ).values(),
             ),
-        [getWorkspaceUnreadTotal, rooms, serverImageOverrides],
+        [getWorkspaceUnreadTotal, rooms, serverImageOverrides, serverNameOverrides],
     );
 
     const categories = useMemo<ChatV2RoomCategory[]>(
@@ -255,6 +260,16 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
             setServerImageOverrides((current) => ({
                 ...current,
                 [serverId]: imageUrl,
+            }));
+        },
+        [],
+    );
+
+    const handleServerRenamed = useCallback(
+        (serverId: string, name: string) => {
+            setServerNameOverrides((current) => ({
+                ...current,
+                [serverId]: name,
             }));
         },
         [],
@@ -590,6 +605,7 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
                                     void deleteRoom(roomId);
                                 }}
                                 onServerImageChanged={handleServerImageChanged}
+                                onServerRenamed={handleServerRenamed}
                             />
                         ) : (
                             <DirectMessageSidebar
@@ -828,6 +844,10 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
                 onClose={() => setServerSettingsTargetId(null)}
                 onImageChanged={(sid, imageUrl) => {
                     handleServerImageChanged(sid, imageUrl);
+                    setServerSettingsTargetId(null);
+                }}
+                onServerRenamed={(sid, name) => {
+                    handleServerRenamed(sid, name);
                     setServerSettingsTargetId(null);
                 }}
             />
