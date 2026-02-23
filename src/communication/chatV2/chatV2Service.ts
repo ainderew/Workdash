@@ -191,6 +191,7 @@ export class ChatV2Service {
         options?: {
             rootOnly?: boolean;
             includeReplySummary?: boolean;
+            before?: string | Date;
         },
     ): Promise<ChatV2Message[]> {
         const payload: {
@@ -198,6 +199,7 @@ export class ChatV2Service {
             limit: number;
             rootOnly?: boolean;
             includeReplySummary?: boolean;
+            before?: string;
         } = {
             roomId,
             limit,
@@ -207,6 +209,12 @@ export class ChatV2Service {
         }
         if (typeof options?.includeReplySummary === "boolean") {
             payload.includeReplySummary = options.includeReplySummary;
+        }
+        if (options?.before) {
+            payload.before =
+                options.before instanceof Date
+                    ? options.before.toISOString()
+                    : options.before;
         }
 
         const response = await this.emitWithAck<{ messages: ChatV2Message[] }>(

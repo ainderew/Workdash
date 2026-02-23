@@ -57,6 +57,15 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
     const isLoadingMessages = useChatV2Store(
         (state) => state.isLoadingMessages,
     );
+    const isLoadingOlderMessages = useChatV2Store(
+        (state) => state.isLoadingOlderMessages,
+    );
+    const hasMoreMessagesByRoomId = useChatV2Store(
+        (state) => state.hasMoreMessagesByRoomId,
+    );
+    const loadOlderMessages = useChatV2Store(
+        (state) => state.loadOlderMessages,
+    );
     const isSending = useChatV2Store((state) => state.isSending);
     const isCreatingRoom = useChatV2Store((state) => state.isCreatingRoom);
     const isCreatingCategory = useChatV2Store(
@@ -616,6 +625,19 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
                             <MessageList
                                 messages={roomMessages}
                                 isLoading={isLoadingMessages}
+                                isLoadingOlderMessages={isLoadingOlderMessages}
+                                hasMoreMessages={
+                                    currentRoomId
+                                        ? (hasMoreMessagesByRoomId[
+                                              currentRoomId
+                                          ] ?? true)
+                                        : true
+                                }
+                                onLoadOlderMessages={() => {
+                                    if (currentRoomId) {
+                                        void loadOlderMessages(currentRoomId);
+                                    }
+                                }}
                                 focusedMessageId={
                                     currentRoomId ? focusedMessageId : null
                                 }

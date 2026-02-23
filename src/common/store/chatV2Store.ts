@@ -92,6 +92,8 @@ type ChatV2State = {
     isLoadingFriendRequests: boolean;
     isLoadingNotifications: boolean;
     isLoadingMessages: boolean;
+    isLoadingOlderMessages: boolean;
+    hasMoreMessagesByRoomId: Record<string, boolean>;
     isSending: boolean;
     isCreatingRoom: boolean;
     isCreatingCategory: boolean;
@@ -126,6 +128,7 @@ type ChatV2State = {
         limit?: number;
     }) => Promise<void>;
     selectRoom: (roomId: string) => Promise<void>;
+    loadOlderMessages: (roomId: string) => Promise<void>;
     sendMessage: (
         content: string,
         attachments?: ChatV2CreateAttachment[],
@@ -467,6 +470,8 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
     isLoadingFriendRequests: false,
     isLoadingNotifications: false,
     isLoadingMessages: false,
+    isLoadingOlderMessages: false,
+    hasMoreMessagesByRoomId: {},
     isSending: false,
     isCreatingRoom: false,
     isCreatingCategory: false,
@@ -857,6 +862,7 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
         set({
             currentRoomId: roomId,
             isLoadingMessages: true,
+            isLoadingOlderMessages: false,
             error: null,
             railView: room?.type === "DIRECT" ? "dm" : "server",
             selectedWorkspaceId:
@@ -866,12 +872,17 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
         });
 
         try {
+            const PAGE_SIZE = 35;
             const chatV2Service = getChatV2Service();
             await chatV2Service.joinRoom(roomId);
-            const messages = await chatV2Service.listMessages(roomId, 100, {
-                rootOnly: true,
-                includeReplySummary: true,
-            });
+            const messages = await chatV2Service.listMessages(
+                roomId,
+                PAGE_SIZE,
+                {
+                    rootOnly: true,
+                    includeReplySummary: true,
+                },
+            );
             const sortedMessages = sortMessages(messages);
             const lastMessageId = sortedMessages[sortedMessages.length - 1]?.id;
 
@@ -885,6 +896,10 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
                     ...state.messagesByRoomId,
                     [roomId]: sortedMessages,
                 },
+                hasMoreMessagesByRoomId: {
+                    ...state.hasMoreMessagesByRoomId,
+                    [roomId]: messages.length >= PAGE_SIZE,
+                },
             }));
 
             await get().loadRoomMembers(roomId);
@@ -897,6 +912,55 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
                         ? error.message
                         : "Failed to load room messages",
             });
+        }
+    },
+
+    loadOlderMessages: async (roomId) => {
+        const PAGE_SIZE = 35;
+        const { isLoadingOlderMessages, hasMoreMessagesByRoomId, messagesByRoomId } = get();
+        if (isLoadingOlderMessages || hasMoreMessagesByRoomId[roomId] === false) return;
+
+        const existingMessages = messagesByRoomId[roomId] || [];
+        if (existingMessages.length === 0) return;
+
+        const oldestMessage = existingMessages[0];
+        if (!oldestMessage) return;
+
+        set({ isLoadingOlderMessages: true });
+
+        try {
+            const chatV2Service = getChatV2Service();
+            const olderMessages = await chatV2Service.listMessages(
+                roomId,
+                PAGE_SIZE,
+                {
+                    rootOnly: true,
+                    includeReplySummary: true,
+                    before: oldestMessage.createdAt,
+                },
+            );
+            const sortedOlder = sortMessages(olderMessages);
+
+            const existingIds = new Set(
+                (get().messagesByRoomId[roomId] || []).map((m) => m.id),
+            );
+            const dedupedOlder = sortedOlder.filter(
+                (m) => !existingIds.has(m.id),
+            );
+
+            set((state) => ({
+                isLoadingOlderMessages: false,
+                messagesByRoomId: {
+                    ...state.messagesByRoomId,
+                    [roomId]: [...dedupedOlder, ...(state.messagesByRoomId[roomId] || [])],
+                },
+                hasMoreMessagesByRoomId: {
+                    ...state.hasMoreMessagesByRoomId,
+                    [roomId]: olderMessages.length >= PAGE_SIZE,
+                },
+            }));
+        } catch {
+            set({ isLoadingOlderMessages: false });
         }
     },
 
@@ -1593,6 +1657,8 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
             isLoadingFriendRequests: false,
             isLoadingNotifications: false,
             isLoadingMessages: false,
+            isLoadingOlderMessages: false,
+            hasMoreMessagesByRoomId: {},
             isSending: false,
             isCreatingRoom: false,
             isCreatingCategory: false,

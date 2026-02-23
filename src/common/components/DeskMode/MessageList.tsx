@@ -1,4 +1,11 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, {
+    useCallback,
+    useEffect,
+    useLayoutEffect,
+    useMemo,
+    useRef,
+    useState,
+} from "react";
 import type {
     ChatV2Attachment,
     ChatV2FriendshipStatus,
@@ -23,6 +30,7 @@ import {
     extractMentionedUserIds,
     getMemberDisplayName,
 } from "@/communication/chatV2/mentionUtils";
+import MessageSkeleton from "./MessageSkeleton";
 import MessageHoverActions from "./MessageHoverActions";
 import MessageReactionChips from "./MessageReactionChips";
 import MentionHighlightedContent from "./MentionHighlightedContent";
@@ -51,6 +59,9 @@ interface MessageListProps {
     isLoading: boolean;
     focusedMessageId?: string | null;
     onOpenThread?: (rootMessageId: string) => void;
+    isLoadingOlderMessages?: boolean;
+    hasMoreMessages?: boolean;
+    onLoadOlderMessages?: () => void;
 }
 
 type LinkPreviewMetadata = {
@@ -205,10 +216,17 @@ function MessageList({
     isLoading,
     focusedMessageId = null,
     onOpenThread,
+    isLoadingOlderMessages = false,
+    hasMoreMessages = true,
+    onLoadOlderMessages,
 }: MessageListProps) {
     const chatV2Service = useMemo(() => ChatV2Service.getInstance(), []);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const endRef = useRef<HTMLDivElement>(null);
+    const topSentinelRef = useRef<HTMLDivElement>(null);
+    const previousScrollHeightRef = useRef<number>(0);
+    const isLoadingOlderRef = useRef(false);
+    const [showNewMessagesPill, setShowNewMessagesPill] = useState(false);
     const user = useUserStore((state) => state.user);
     const friends = useChatV2Store((state) => state.friends);
     const friendRequests = useChatV2Store((state) => state.friendRequests);
@@ -328,29 +346,115 @@ function MessageList({
         () => buildMemberNameMap(roomMembers),
         [roomMembers],
     );
-    const messageScrollSignature = useMemo(() => {
-        if (messages.length === 0) return "empty";
-        const firstMessageId = messages[0]?.id || "";
-        const lastMessageId = messages[messages.length - 1]?.id || "";
-        return `${messages.length}:${firstMessageId}:${lastMessageId}`;
-    }, [messages]);
+    const lastMessageId = useMemo(
+        () => messages[messages.length - 1]?.id || "",
+        [messages],
+    );
 
     useEffect(() => {
         if (focusedMessageId || isLoading) {
             return;
         }
-        const rafId = window.requestAnimationFrame(() => {
-            if (scrollContainerRef.current) {
-                scrollContainerRef.current.scrollTop =
-                    scrollContainerRef.current.scrollHeight;
-            }
-            endRef.current?.scrollIntoView({ behavior: "auto" });
-        });
+        const container = scrollContainerRef.current;
+        if (!container) return;
 
-        return () => {
-            window.cancelAnimationFrame(rafId);
+        const distanceFromBottom =
+            container.scrollHeight - container.scrollTop - container.clientHeight;
+        const isNearBottom = distanceFromBottom < 100;
+
+        if (isNearBottom) {
+            const rafId = window.requestAnimationFrame(() => {
+                if (scrollContainerRef.current) {
+                    scrollContainerRef.current.scrollTop =
+                        scrollContainerRef.current.scrollHeight;
+                }
+                endRef.current?.scrollIntoView({ behavior: "auto" });
+            });
+
+            return () => {
+                window.cancelAnimationFrame(rafId);
+            };
+        } else {
+            setShowNewMessagesPill(true);
+        }
+    }, [focusedMessageId, isLoading, lastMessageId]);
+
+    // IntersectionObserver for lazy loading older messages
+    useEffect(() => {
+        const sentinel = topSentinelRef.current;
+        const container = scrollContainerRef.current;
+        if (!sentinel || !container || !onLoadOlderMessages) return;
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                const entry = entries[0];
+                if (entry?.isIntersecting && !isLoadingOlderRef.current) {
+                    onLoadOlderMessages();
+                }
+            },
+            {
+                root: container,
+                rootMargin: "250px 0px 0px 0px",
+                threshold: 0,
+            },
+        );
+
+        observer.observe(sentinel);
+        return () => observer.disconnect();
+    }, [onLoadOlderMessages]);
+
+    // Sync loading ref for observer guard
+    useEffect(() => {
+        isLoadingOlderRef.current = isLoadingOlderMessages;
+    }, [isLoadingOlderMessages]);
+
+    // Scroll anchoring: save scrollHeight before older messages prepend
+    useEffect(() => {
+        if (isLoadingOlderMessages && scrollContainerRef.current) {
+            previousScrollHeightRef.current =
+                scrollContainerRef.current.scrollHeight;
+        }
+    }, [isLoadingOlderMessages]);
+
+    // Scroll anchoring: restore scroll position after older messages prepend
+    useLayoutEffect(() => {
+        const container = scrollContainerRef.current;
+        const prevHeight = previousScrollHeightRef.current;
+        if (!container || !prevHeight || isLoadingOlderMessages) return;
+
+        const delta = container.scrollHeight - prevHeight;
+        if (delta > 0) {
+            container.scrollTop += delta;
+        }
+        previousScrollHeightRef.current = 0;
+    }, [messages, isLoadingOlderMessages]);
+
+    const scrollToBottom = useCallback(() => {
+        if (scrollContainerRef.current) {
+            scrollContainerRef.current.scrollTop =
+                scrollContainerRef.current.scrollHeight;
+        }
+        setShowNewMessagesPill(false);
+    }, []);
+
+    // Hide new messages pill when user scrolls near bottom
+    useEffect(() => {
+        const container = scrollContainerRef.current;
+        if (!container) return;
+
+        const onScroll = () => {
+            const distanceFromBottom =
+                container.scrollHeight -
+                container.scrollTop -
+                container.clientHeight;
+            if (distanceFromBottom < 100) {
+                setShowNewMessagesPill(false);
+            }
         };
-    }, [focusedMessageId, isLoading, messageScrollSignature]);
+
+        container.addEventListener("scroll", onScroll, { passive: true });
+        return () => container.removeEventListener("scroll", onScroll);
+    }, []);
 
     useEffect(() => {
         if (!avatarContextMenu && !profilePopover) {
@@ -1207,16 +1311,26 @@ function MessageList({
     return (
         <div
             ref={scrollContainerRef}
-            className="no-scrollbar flex-1 overflow-y-auto px-5 py-4 space-y-3 wd-bg-panel-2"
+            className="relative no-scrollbar flex-1 overflow-y-auto px-5 py-4 space-y-3 wd-bg-panel-2"
         >
             {isLoading ? (
-                <div className="text-xs wd-text-muted">Loading messages...</div>
+                <MessageSkeleton count={8} />
             ) : groupedMessages.rootMessages.length === 0 ? (
                 <div className="text-xs wd-text-muted">
                     No messages yet. Start the room conversation.
                 </div>
             ) : (
-                groupedMessages.rootMessages.map((message, index) => {
+                <>
+                <div ref={topSentinelRef} className="h-px" />
+                {isLoadingOlderMessages && (
+                    <MessageSkeleton count={3} />
+                )}
+                {!hasMoreMessages && !isLoadingOlderMessages && (
+                    <div className="pb-4 pt-2 text-center text-xs wd-text-muted">
+                        This is the beginning of the conversation
+                    </div>
+                )}
+                {groupedMessages.rootMessages.map((message, index) => {
                     const threadReplies =
                         groupedMessages.repliesByRootId.get(message.id) || [];
                     const messageReplyPreviewUsers =
@@ -1850,9 +1964,8 @@ function MessageList({
                             </div>
                         </React.Fragment>
                     );
-                })
-            )}
-            {profilePopover && (
+                })}
+                {profilePopover && (
                 <div
                     data-user-profile-popover="true"
                     className="fixed z-[170] w-[360px] rounded-2xl border wd-border-strong wd-bg-panel shadow-[0_24px_56px_rgba(0,0,0,0.5)] overflow-hidden"
@@ -2179,7 +2292,18 @@ function MessageList({
                     </button>
                 </div>
             )}
+            </>
+            )}
             <div ref={endRef} />
+            {showNewMessagesPill && (
+                <button
+                    type="button"
+                    onClick={scrollToBottom}
+                    className="sticky bottom-2 left-1/2 -translate-x-1/2 z-10 rounded-full px-4 py-1.5 text-xs font-medium shadow-lg wd-bg-accent wd-text-on-accent transition-opacity hover:opacity-90"
+                >
+                    New messages
+                </button>
+            )}
         </div>
     );
 }
