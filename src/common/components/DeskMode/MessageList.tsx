@@ -10,6 +10,7 @@ import { getStandaloneGifUrl } from "@/communication/chatV2/gifUrl";
 import {
     downloadChatFile,
     getChatFilePreviewUrl,
+    getChatFileThumbnailUrl,
 } from "@/communication/chatV2/uploadService";
 import { extractDomain, parseMessageContent } from "@/common/utils/linkParser";
 import useUserStore from "@/common/store/useStore";
@@ -222,7 +223,14 @@ function MessageList({
         (state) => state.toggleMessageReaction,
     );
     const [attachmentUrls, setAttachmentUrls] = useState<
-        Record<string, string>
+        Record<
+            string,
+            {
+                thumbnailUrl: string | null;
+                viewUrl: string | null;
+                showFull: boolean;
+            }
+        >
     >({});
     const [linkPreviews, setLinkPreviews] = useState<
         Record<string, LinkPreviewMetadata | null>
@@ -464,6 +472,7 @@ function MessageList({
     useEffect(() => {
         const unresolvedAttachments: Array<{
             fileId: string;
+            isImage: boolean;
         }> = [];
 
         for (const message of messages) {
@@ -474,6 +483,7 @@ function MessageList({
                 ) {
                     unresolvedAttachments.push({
                         fileId: attachment.id,
+                        isImage: attachment.isImage,
                     });
                 }
             }
@@ -489,10 +499,27 @@ function MessageList({
             const resolvedEntries = await Promise.all(
                 unresolvedAttachments.map(async (attachment) => {
                     try {
-                        const previewUrl = await getChatFilePreviewUrl(
+                        if (attachment.isImage) {
+                            const thumbnailUrl =
+                                await getChatFileThumbnailUrl(
+                                    attachment.fileId,
+                                );
+                            if (thumbnailUrl) {
+                                return {
+                                    fileId: attachment.fileId,
+                                    thumbnailUrl,
+                                    viewUrl: null,
+                                } as const;
+                            }
+                        }
+                        const viewUrl = await getChatFilePreviewUrl(
                             attachment.fileId,
                         );
-                        return [attachment.fileId, previewUrl] as const;
+                        return {
+                            fileId: attachment.fileId,
+                            thumbnailUrl: null,
+                            viewUrl,
+                        } as const;
                     } catch {
                         return null;
                     }
@@ -505,7 +532,11 @@ function MessageList({
                 const next = { ...previous };
                 for (const entry of resolvedEntries) {
                     if (!entry) continue;
-                    next[entry[0]] = entry[1];
+                    next[entry.fileId] = {
+                        thumbnailUrl: entry.thumbnailUrl,
+                        viewUrl: entry.viewUrl,
+                        showFull: false,
+                    };
                 }
                 return next;
             });
@@ -761,6 +792,32 @@ function MessageList({
             localProfileImage,
             resolvedSenderImagesByUserId,
         });
+    };
+
+    const handleImageClick = (fileId: string) => {
+        const current = attachmentUrls[fileId];
+        if (current?.viewUrl) {
+            setAttachmentUrls((prev) => ({
+                ...prev,
+                [fileId]: { ...current, showFull: true },
+            }));
+            return;
+        }
+        void (async () => {
+            try {
+                const viewUrl = await getChatFilePreviewUrl(fileId);
+                setAttachmentUrls((prev) => ({
+                    ...prev,
+                    [fileId]: {
+                        thumbnailUrl: prev[fileId]?.thumbnailUrl ?? null,
+                        viewUrl,
+                        showFull: true,
+                    },
+                }));
+            } catch {
+                // Silently fail - user can try clicking again
+            }
+        })();
     };
 
     const handleDownloadAttachment = (fileId: string, filename: string) => {
@@ -1583,7 +1640,7 @@ function MessageList({
                                             <div className="mt-2 space-y-1">
                                                 {message.attachments.map(
                                                     (attachment) => {
-                                                        const previewUrl =
+                                                        const urlState =
                                                             attachmentUrls[
                                                                 attachment.id
                                                             ];
@@ -1597,36 +1654,64 @@ function MessageList({
 
                                                         if (
                                                             isPreviewable &&
-                                                            !previewUrl
+                                                            !urlState
                                                         ) {
                                                             return (
                                                                 <div
                                                                     key={attachment.id}
-                                                                    className="text-xs px-2 py-1 rounded wd-bg-elevated wd-text-secondary truncate border wd-border-subtle"
-                                                                >
-                                                                    Resolving{" "}
-                                                                    {attachment.originalFileName}
-                                                                </div>
-                                                            );
-                                                        }
-
-                                                        if (
-                                                            attachment.isImage &&
-                                                            previewUrl
-                                                        ) {
-                                                            return (
-                                                                <img
-                                                                    key={attachment.id}
-                                                                    src={previewUrl}
-                                                                    alt={attachment.originalFileName}
-                                                                    className="rounded-md max-w-xs max-h-56 object-cover border wd-border-subtle"
+                                                                    className="rounded-md max-w-xs h-32 animate-pulse wd-bg-elevated border wd-border-subtle"
                                                                 />
                                                             );
                                                         }
 
                                                         if (
+                                                            attachment.isImage &&
+                                                            urlState
+                                                        ) {
+                                                            const showFull =
+                                                                urlState.showFull &&
+                                                                urlState.viewUrl;
+                                                            const imgSrc =
+                                                                showFull
+                                                                    ? urlState.viewUrl!
+                                                                    : (urlState.thumbnailUrl ??
+                                                                      urlState.viewUrl ??
+                                                                      "");
+                                                            const isThumbnail =
+                                                                !showFull &&
+                                                                !!urlState.thumbnailUrl;
+
+                                                            return (
+                                                                <button
+                                                                    key={attachment.id}
+                                                                    type="button"
+                                                                    onClick={() =>
+                                                                        handleImageClick(
+                                                                            attachment.id,
+                                                                        )
+                                                                    }
+                                                                    className="relative block cursor-pointer group"
+                                                                >
+                                                                    <img
+                                                                        src={imgSrc}
+                                                                        alt={attachment.originalFileName}
+                                                                        className="rounded-md max-w-xs max-h-56 object-cover border wd-border-subtle"
+                                                                    />
+                                                                    {isThumbnail && (
+                                                                        <span className="absolute bottom-1 right-1 text-[10px] px-1.5 py-0.5 rounded bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                            Click
+                                                                            for
+                                                                            full
+                                                                            size
+                                                                        </span>
+                                                                    )}
+                                                                </button>
+                                                            );
+                                                        }
+
+                                                        if (
                                                             isPdfAttachment &&
-                                                            previewUrl
+                                                            urlState?.viewUrl
                                                         ) {
                                                             return (
                                                                 <div
@@ -1634,7 +1719,7 @@ function MessageList({
                                                                     className="space-y-1"
                                                                 >
                                                                     <iframe
-                                                                        src={previewUrl}
+                                                                        src={urlState.viewUrl}
                                                                         title={attachment.originalFileName}
                                                                         className="h-64 w-full max-w-md rounded-md border wd-border-subtle"
                                                                     />
