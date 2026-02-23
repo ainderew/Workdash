@@ -2,7 +2,7 @@
 
 Next.js + React + Phaser frontend for Workdash.
 
-This repo depends on the media server in `/Users/AndrewPinon/projects/workdash-media-server`.
+This repo depends on `workdash-media-server`.
 
 ## Local Architecture
 
@@ -48,9 +48,17 @@ docker run --name workdash-nats -d \
   nats:2.10 -js
 ```
 
+**OrbStack users:** The same `docker` commands work — OrbStack is a drop-in Docker replacement. Just make sure OrbStack is running first (`open -a OrbStack`). You can also use `orb` to manage containers:
+
+```bash
+# Start stopped containers
+orb start workdash-postgres
+orb start workdash-nats
+```
+
 ## 2) Configure and start the media server
 
-In `/Users/AndrewPinon/projects/workdash-media-server/.env` set:
+In `workdash-media-server/.env` set:
 
 ```env
 PUBLIC_IP=127.0.0.1
@@ -75,7 +83,7 @@ GOOGLE_APPLICATION_CREDENTIALS=/absolute/path/to/service-account-key.json
 Then:
 
 ```bash
-cd /Users/AndrewPinon/projects/workdash-media-server
+cd /workdash-media-server
 npm install
 npx prisma generate
 npx prisma db push
@@ -89,7 +97,7 @@ The server should log:
 
 ## 3) Configure this client repo
 
-Create `/Users/AndrewPinon/projects/workdash/.env.local`:
+Create `workdash/.env.local`:
 
 ```env
 NEXT_PUBLIC_SFU_SERVER_URL=http://localhost:4000
@@ -128,13 +136,14 @@ npm run build      # production build
 ## Troubleshooting
 
 - Server exits at startup with a NATS error:
-  - Verify NATS is running on `127.0.0.1:4222`.
+    - Verify NATS is running on `127.0.0.1:4222`.
+    - OrbStack users: ensure OrbStack is running (`open -a OrbStack`) and the container is started (`docker start workdash-nats`).
 - Server exits with `GCS_* environment variable is required`:
-  - Set `GCS_BUCKET_NAME`, `GCS_PROJECT_ID`, and `GOOGLE_APPLICATION_CREDENTIALS`.
+    - Set `GCS_BUCKET_NAME`, `GCS_PROJECT_ID`, and `GOOGLE_APPLICATION_CREDENTIALS`.
 - Google sign-in fails:
-  - Confirm `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and redirect URI.
+    - Confirm `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and redirect URI.
 - Client cannot connect to SFU:
-  - Check `NEXT_PUBLIC_SFU_SERVER_URL` and that server is running on `:4000`.
+    - Check `NEXT_PUBLIC_SFU_SERVER_URL` and that server is running on `:4000`.
 
 ## Stopping local services
 
@@ -142,4 +151,3 @@ npm run build      # production build
 docker stop workdash-postgres workdash-nats
 docker rm workdash-postgres workdash-nats
 ```
-
