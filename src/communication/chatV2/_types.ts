@@ -14,6 +14,7 @@ export type ChatV2Room = {
     workspace?: {
         id: string;
         name: string;
+        imageUrl?: string | null;
     };
     viewerRole?: "OWNER" | "ADMIN" | "MODERATOR" | "MEMBER" | "READ_ONLY" | null;
     unreadCount?: number;

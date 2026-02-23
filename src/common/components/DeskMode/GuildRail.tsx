@@ -1,5 +1,5 @@
-import React from "react";
-import { MessageSquareMore, Building2 } from "lucide-react";
+import React, { useRef, useState } from "react";
+import { MessageSquareMore, ImagePlus } from "lucide-react";
 import {
     Tooltip,
     TooltipContent,
@@ -10,6 +10,7 @@ type GuildRailWorkspace = {
     id: string;
     name: string;
     unreadCount: number;
+    imageUrl?: string | null;
 };
 
 interface GuildRailProps {
@@ -19,6 +20,7 @@ interface GuildRailProps {
     dmUnreadCount: number;
     onSelectWorkspace: (workspaceId: string) => void;
     onSelectDm: () => void;
+    onChangeServerImage?: (workspaceId: string) => void;
 }
 
 const toInitials = (name: string) => {
@@ -28,12 +30,16 @@ const toInitials = (name: string) => {
     return `${words[0][0]}${words[1][0]}`.toUpperCase();
 };
 
+const CONTEXT_MENU_WIDTH = 180;
+const CONTEXT_MENU_HEIGHT = 40;
+
 function RailButton({
     active,
     label,
     unreadCount,
     indicatorMode = "default",
     onClick,
+    onContextMenu,
     children,
 }: {
     active: boolean;
@@ -41,6 +47,7 @@ function RailButton({
     unreadCount?: number;
     indicatorMode?: "default" | "dot-to-bar";
     onClick: () => void;
+    onContextMenu?: (event: React.MouseEvent<HTMLButtonElement>) => void;
     children: React.ReactNode;
 }) {
     return (
@@ -49,11 +56,12 @@ function RailButton({
                 <button
                     type="button"
                     onClick={onClick}
+                    onContextMenu={onContextMenu}
                     className="group relative w-11 h-11 rounded-lg wd-bg-elevated wd-text-primary transition-all duration-200 hover:bg-[var(--wd-accent-soft)] hover:wd-text-accent"
                     aria-label={label}
                 >
                     <span
-                        className={`absolute -left-2 top-1/2 w-1 -translate-y-1/2 rounded-full bg-[var(--wd-accent)] transition-[height,opacity] duration-150 ease-linear ${
+                        className={`absolute -left-[14px] top-1/2 w-1 -translate-y-1/2 rounded-full bg-[var(--wd-accent)] transition-[height,opacity] duration-150 ease-linear ${
                             indicatorMode === "dot-to-bar"
                                 ? active
                                     ? "h-8 opacity-100"
@@ -63,7 +71,7 @@ function RailButton({
                                   : "h-0 opacity-0 group-hover:h-8 group-hover:opacity-100"
                         }`}
                     />
-                    <span className="inline-flex h-full w-full items-center justify-center">
+                    <span className="inline-flex h-full w-full items-center justify-center overflow-hidden rounded-lg">
                         {children}
                     </span>
                     {typeof unreadCount === "number" && unreadCount > 0 ? (
@@ -80,6 +88,21 @@ function RailButton({
     );
 }
 
+function ServerImage({ src, alt }: { src: string; alt: string }) {
+    const [failed, setFailed] = useState(false);
+
+    if (failed) return null;
+
+    return (
+        <img
+            src={src}
+            alt={alt}
+            className="absolute inset-0 h-full w-full object-cover"
+            onError={() => setFailed(true)}
+        />
+    );
+}
+
 function GuildRail({
     workspaces,
     railView,
@@ -87,40 +110,103 @@ function GuildRail({
     dmUnreadCount,
     onSelectWorkspace,
     onSelectDm,
+    onChangeServerImage,
 }: GuildRailProps) {
     const primaryWorkspace = workspaces[0];
+    const [contextMenu, setContextMenu] = useState<{
+        workspaceId: string;
+        x: number;
+        y: number;
+    } | null>(null);
+    const contextMenuRef = useRef<HTMLDivElement>(null);
+
+    const handleContextMenu = (
+        event: React.MouseEvent<HTMLButtonElement>,
+        workspaceId: string,
+    ) => {
+        if (!onChangeServerImage) return;
+        event.preventDefault();
+        const maxX = Math.max(
+            8,
+            window.innerWidth - CONTEXT_MENU_WIDTH - 8,
+        );
+        const maxY = Math.max(
+            8,
+            window.innerHeight - CONTEXT_MENU_HEIGHT - 8,
+        );
+        setContextMenu({
+            workspaceId,
+            x: Math.min(event.clientX, maxX),
+            y: Math.min(event.clientY, maxY),
+        });
+    };
+
+    React.useEffect(() => {
+        if (!contextMenu) return undefined;
+
+        const close = () => setContextMenu(null);
+        const onMouseDown = (event: MouseEvent) => {
+            if (
+                contextMenuRef.current &&
+                !contextMenuRef.current.contains(event.target as Node)
+            ) {
+                close();
+            }
+        };
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.key === "Escape") close();
+        };
+
+        window.addEventListener("mousedown", onMouseDown);
+        window.addEventListener("keydown", onKeyDown);
+        window.addEventListener("scroll", close, true);
+        window.addEventListener("resize", close);
+        return () => {
+            window.removeEventListener("mousedown", onMouseDown);
+            window.removeEventListener("keydown", onKeyDown);
+            window.removeEventListener("scroll", close, true);
+            window.removeEventListener("resize", close);
+        };
+    }, [contextMenu]);
+
+    const renderWorkspaceButton = (workspace: GuildRailWorkspace) => {
+        const hasImage = !!workspace.imageUrl;
+
+        return (
+            <RailButton
+                active={
+                    railView === "server" &&
+                    selectedWorkspaceId === workspace.id
+                }
+                label={workspace.name}
+                unreadCount={workspace.unreadCount}
+                onClick={() => onSelectWorkspace(workspace.id)}
+                onContextMenu={(event) =>
+                    handleContextMenu(event, workspace.id)
+                }
+            >
+                {hasImage ? (
+                    <ServerImage
+                        src={workspace.imageUrl!}
+                        alt={workspace.name}
+                    />
+                ) : (
+                    <span className="text-sm font-bold">
+                        {toInitials(workspace.name)}
+                    </span>
+                )}
+            </RailButton>
+        );
+    };
 
     return (
-        <aside className="w-16 wd-bg-app p-3 flex flex-col items-center gap-3">
-            {primaryWorkspace ? (
-                <RailButton
-                    active={
-                        railView === "server" &&
-                        selectedWorkspaceId === primaryWorkspace.id
-                    }
-                    label={primaryWorkspace.name}
-                    unreadCount={primaryWorkspace.unreadCount}
-                    onClick={() => onSelectWorkspace(primaryWorkspace.id)}
-                >
-                    <span className="text-sm font-bold">
-                        {toInitials(primaryWorkspace.name)}
-                    </span>
-                </RailButton>
-            ) : null}
+        <aside className="w-[72px] wd-bg-app py-3 flex flex-col items-center gap-3">
+            {primaryWorkspace ? renderWorkspaceButton(primaryWorkspace) : null}
 
             {workspaces.slice(1).map((workspace) => (
-                <RailButton
-                    key={workspace.id}
-                    active={
-                        railView === "server" &&
-                        selectedWorkspaceId === workspace.id
-                    }
-                    label={workspace.name}
-                    unreadCount={workspace.unreadCount}
-                    onClick={() => onSelectWorkspace(workspace.id)}
-                >
-                    <Building2 size={18} />
-                </RailButton>
+                <React.Fragment key={workspace.id}>
+                    {renderWorkspaceButton(workspace)}
+                </React.Fragment>
             ))}
 
             <div className="h-px w-10 bg-[var(--wd-border-subtle)] my-1" />
@@ -134,6 +220,30 @@ function GuildRail({
             >
                 <MessageSquareMore size={18} />
             </RailButton>
+
+            {contextMenu && (
+                <div
+                    ref={contextMenuRef}
+                    className="fixed z-[200] rounded-lg border wd-border-strong wd-bg-panel shadow-[0_8px_24px_rgba(0,0,0,0.45)] p-1"
+                    style={{
+                        left: contextMenu.x,
+                        top: contextMenu.y,
+                        width: CONTEXT_MENU_WIDTH,
+                    }}
+                >
+                    <button
+                        type="button"
+                        className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm wd-text-primary transition-colors hover:bg-[var(--wd-surface-elevated)]"
+                        onClick={() => {
+                            onChangeServerImage?.(contextMenu.workspaceId);
+                            setContextMenu(null);
+                        }}
+                    >
+                        <ImagePlus size={15} className="wd-text-secondary" />
+                        <span>Change Image</span>
+                    </button>
+                </div>
+            )}
         </aside>
     );
 }

@@ -35,6 +35,7 @@ import MessageHoverActions from "./MessageHoverActions";
 import MessageReactionChips from "./MessageReactionChips";
 import MentionHighlightedContent from "./MentionHighlightedContent";
 import {
+    ArrowDown,
     Ban,
     Copy,
     Ellipsis,
@@ -227,6 +228,7 @@ function MessageList({
     const previousScrollHeightRef = useRef<number>(0);
     const isLoadingOlderRef = useRef(false);
     const [showNewMessagesPill, setShowNewMessagesPill] = useState(false);
+    const [isScrolledFarBack, setIsScrolledFarBack] = useState(false);
     const user = useUserStore((state) => state.user);
     const friends = useChatV2Store((state) => state.friends);
     const friendRequests = useChatV2Store((state) => state.friendRequests);
@@ -435,9 +437,10 @@ function MessageList({
                 scrollContainerRef.current.scrollHeight;
         }
         setShowNewMessagesPill(false);
+        setIsScrolledFarBack(false);
     }, []);
 
-    // Hide new messages pill when user scrolls near bottom
+    // Track scroll position for pill and scroll-to-latest button
     useEffect(() => {
         const container = scrollContainerRef.current;
         if (!container) return;
@@ -450,6 +453,7 @@ function MessageList({
             if (distanceFromBottom < 100) {
                 setShowNewMessagesPill(false);
             }
+            setIsScrolledFarBack(distanceFromBottom > 600);
         };
 
         container.addEventListener("scroll", onScroll, { passive: true });
@@ -2295,7 +2299,7 @@ function MessageList({
             </>
             )}
             <div ref={endRef} />
-            {showNewMessagesPill && (
+            {showNewMessagesPill ? (
                 <button
                     type="button"
                     onClick={scrollToBottom}
@@ -2303,7 +2307,16 @@ function MessageList({
                 >
                     New messages
                 </button>
-            )}
+            ) : isScrolledFarBack ? (
+                <button
+                    type="button"
+                    onClick={scrollToBottom}
+                    className="sticky bottom-3 left-1/2 -translate-x-1/2 z-10 inline-flex items-center gap-1.5 rounded-full border wd-border-subtle wd-bg-elevated px-3 py-1.5 text-xs font-medium wd-text-secondary shadow-lg transition-colors hover:wd-text-primary hover:bg-[var(--wd-surface-elevated)]"
+                >
+                    <ArrowDown size={13} />
+                    Scroll to latest
+                </button>
+            ) : null}
         </div>
     );
 }

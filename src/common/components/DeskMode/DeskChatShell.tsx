@@ -21,6 +21,7 @@ import DeskSearchResultsPanel from "./DeskSearchResultsPanel";
 import DirectMessageSidebar from "./DirectMessageSidebar";
 import GuildRail from "./GuildRail";
 import MemberPanel from "./MemberPanel";
+import ServerSettingsModal from "./modals/ServerSettingsModal";
 import MessageList from "./MessageList";
 import RoomHeader from "./RoomHeader";
 import ThreadPanel from "./ThreadPanel";
@@ -134,6 +135,9 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
     const [isLoadingThread, setIsLoadingThread] = useState(false);
     const [threadError, setThreadError] = useState<string | null>(null);
     const [isMemberPanelVisible, setIsMemberPanelVisible] = useState(false);
+    const [serverImageOverrides, setServerImageOverrides] = useState<
+        Record<string, string | null>
+    >({});
 
     const canEnterRoom = useCallback((room: ChatV2Room | undefined | null) => {
         if (!room) return false;
@@ -193,11 +197,15 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
                                 unreadCount: getWorkspaceUnreadTotal(
                                     room.workspaceId,
                                 ),
+                                imageUrl:
+                                    serverImageOverrides[room.workspaceId] !== undefined
+                                        ? serverImageOverrides[room.workspaceId]
+                                        : (room.workspace?.imageUrl ?? null),
                             },
                         ]),
                 ).values(),
             ),
-        [getWorkspaceUnreadTotal, rooms],
+        [getWorkspaceUnreadTotal, rooms, serverImageOverrides],
     );
 
     const categories = useMemo<ChatV2RoomCategory[]>(
@@ -228,6 +236,33 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
 
         return workspaceOptions[0]?.name || "Workdash Server";
     }, [currentRoom, railView, selectedWorkspaceId, workspaceOptions]);
+
+    const serverImageUrl = useMemo(() => {
+        if (railView === "dm") return null;
+
+        if (selectedWorkspaceId) {
+            const selectedWorkspace = workspaceOptions.find(
+                (entry) => entry.id === selectedWorkspaceId,
+            );
+            return selectedWorkspace?.imageUrl ?? null;
+        }
+
+        return workspaceOptions[0]?.imageUrl ?? null;
+    }, [railView, selectedWorkspaceId, workspaceOptions]);
+
+    const handleServerImageChanged = useCallback(
+        (serverId: string, imageUrl: string | null) => {
+            setServerImageOverrides((current) => ({
+                ...current,
+                [serverId]: imageUrl,
+            }));
+        },
+        [],
+    );
+
+    const [serverSettingsTargetId, setServerSettingsTargetId] = useState<
+        string | null
+    >(null);
 
     const roomMessages = currentRoomId
         ? messagesByRoomId[currentRoomId] || []
@@ -451,8 +486,17 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
     return (
         <section className={rootContainerClassName}>
             <div className="h-9 flex shrink-0">
-                <div className="w-18 wd-bg-app" />
-                <div className="flex-1 min-w-0 wd-bg-app flex items-center justify-center px-4">
+                <div className="w-[72px] shrink-0 wd-bg-app" />
+                <div className="flex-1 min-w-0 wd-bg-app flex items-center justify-center gap-1.5 px-4">
+                    {serverImageUrl && (
+                        <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center overflow-hidden rounded">
+                            <img
+                                src={serverImageUrl}
+                                alt=""
+                                className="h-full w-full object-cover"
+                            />
+                        </span>
+                    )}
                     <p className="truncate text-sm wd-text-primary text-center">
                         {serverName}
                     </p>
@@ -487,6 +531,9 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
                             void selectRoom(firstDmRoom);
                         }
                     }}
+                    onChangeServerImage={(workspaceId) => {
+                        setServerSettingsTargetId(workspaceId);
+                    }}
                 />
 
                 <div className="flex-1 min-w-0 pb-2">
@@ -494,6 +541,8 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
                         {railView === "server" ? (
                             <ChannelSidebar
                                 serverName={serverName}
+                                serverImageUrl={serverImageUrl}
+                                serverId={selectedWorkspaceId}
                                 rooms={serverRooms}
                                 currentRoomId={currentRoomId}
                                 isLoading={isLoadingRooms}
@@ -540,6 +589,7 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
                                 onDeleteRoom={(roomId) => {
                                     void deleteRoom(roomId);
                                 }}
+                                onServerImageChanged={handleServerImageChanged}
                             />
                         ) : (
                             <DirectMessageSidebar
@@ -759,6 +809,28 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
                     </div>
                 </div>
             </div>
+
+            <ServerSettingsModal
+                isOpen={!!serverSettingsTargetId}
+                serverId={serverSettingsTargetId}
+                serverName={
+                    workspaceOptions.find(
+                        (w) => w.id === serverSettingsTargetId,
+                    )?.name || serverName
+                }
+                currentImageUrl={
+                    serverSettingsTargetId
+                        ? (workspaceOptions.find(
+                              (w) => w.id === serverSettingsTargetId,
+                          )?.imageUrl ?? null)
+                        : null
+                }
+                onClose={() => setServerSettingsTargetId(null)}
+                onImageChanged={(sid, imageUrl) => {
+                    handleServerImageChanged(sid, imageUrl);
+                    setServerSettingsTargetId(null);
+                }}
+            />
         </section>
     );
 }

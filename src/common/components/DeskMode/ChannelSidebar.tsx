@@ -27,6 +27,7 @@ import CreateRoomModal from "./modals/CreateRoomModal";
 import DeleteRoomModal from "./modals/DeleteRoomModal";
 import RenameCategoryModal from "./modals/RenameCategoryModal";
 import RenameRoomModal from "./modals/RenameRoomModal";
+import ServerSettingsModal from "./modals/ServerSettingsModal";
 import UserSettingsModal from "./modals/UserSettingsModal";
 
 const DEFAULT_CATEGORY_KEY = "__workspace_default__";
@@ -64,6 +65,8 @@ type CategoryContextMenuState = {
 
 interface ChannelSidebarProps {
     serverName: string;
+    serverImageUrl?: string | null;
+    serverId: string | null;
     rooms: ChatV2Room[];
     categories: ChatV2RoomCategory[];
     currentRoomId: string | null;
@@ -86,10 +89,13 @@ interface ChannelSidebarProps {
     ) => void;
     onRenameRoom: (roomId: string, name: string) => void;
     onDeleteRoom: (roomId: string) => void;
+    onServerImageChanged?: (serverId: string, imageUrl: string | null) => void;
 }
 
 function ChannelSidebar({
     serverName,
+    serverImageUrl,
+    serverId,
     rooms,
     categories,
     currentRoomId,
@@ -108,6 +114,7 @@ function ChannelSidebar({
     onArrangeRoom,
     onRenameRoom,
     onDeleteRoom,
+    onServerImageChanged,
 }: ChannelSidebarProps) {
     const setInteractionMode = useUiStore((state) => state.setInteractionMode);
     const user = useUserStore((state) => state.user);
@@ -142,6 +149,8 @@ function ChannelSidebar({
     const [isUserIdExpanded, setIsUserIdExpanded] = useState(false);
     const [isUtilityMenuOpen, setIsUtilityMenuOpen] = useState(false);
     const [isUserSettingsModalOpen, setIsUserSettingsModalOpen] =
+        useState(false);
+    const [isServerSettingsModalOpen, setIsServerSettingsModalOpen] =
         useState(false);
     const [userIdCopyState, setUserIdCopyState] = useState<
         "idle" | "copied" | "failed"
@@ -601,6 +610,15 @@ function ChannelSidebar({
                     }}
                     className="inline-flex min-w-0 max-w-[85%] items-center gap-2 rounded-md px-3 py-2 transition-colors hover:bg-[var(--wd-surface-elevated)] disabled:opacity-50"
                 >
+                    {serverImageUrl && (
+                        <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden rounded">
+                            <img
+                                src={serverImageUrl}
+                                alt=""
+                                className="h-full w-full object-cover"
+                            />
+                        </span>
+                    )}
                     <span className="truncate text-sm font-semibold">
                         {normalizedServerName}
                     </span>
@@ -667,10 +685,20 @@ function ChannelSidebar({
                         <div className="my-1 h-px bg-[var(--wd-border-subtle)]" />
 
                         <div className="space-y-1 py-1">
-                            <div className="flex items-center justify-between rounded-md px-3 py-2 text-sm wd-text-secondary">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setIsServerSettingsModalOpen(true);
+                                    setIsServerActionsMenuOpen(false);
+                                }}
+                                className="flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm wd-text-primary transition-colors hover:bg-[var(--wd-surface-elevated)]"
+                            >
                                 <span>Server Settings</span>
-                                <Settings size={17} />
-                            </div>
+                                <Settings
+                                    size={17}
+                                    className="wd-text-secondary"
+                                />
+                            </button>
                             <div className="flex items-center justify-between rounded-md px-3 py-2 text-sm text-[#ff7b7b]">
                                 <span>Leave Server</span>
                                 <LogOut size={17} />
@@ -1223,6 +1251,17 @@ function ChannelSidebar({
             <UserSettingsModal
                 isOpen={isUserSettingsModalOpen}
                 onClose={() => setIsUserSettingsModalOpen(false)}
+            />
+            <ServerSettingsModal
+                isOpen={isServerSettingsModalOpen}
+                serverId={serverId}
+                serverName={normalizedServerName}
+                currentImageUrl={serverImageUrl ?? null}
+                onClose={() => setIsServerSettingsModalOpen(false)}
+                onImageChanged={(sid, imageUrl) => {
+                    onServerImageChanged?.(sid, imageUrl);
+                    setIsServerSettingsModalOpen(false);
+                }}
             />
 
             <CreateCategoryModal
