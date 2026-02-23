@@ -13,7 +13,7 @@ This repo depends on `workdash-media-server`.
 
 ## Prerequisites
 
-- Node.js 20 (v20.x) — **Node 23 breaks the webpack build**
+- Node.js 20 (v20.x) for builds — `npm run dev` works on Node 20–23, but `npm run build` requires Node 20 (as of Feb 23, 2026)
 - Docker (Docker Desktop or OrbStack)
 - `workdash-media-server` checked out locally
 - Google OAuth credentials for NextAuth
