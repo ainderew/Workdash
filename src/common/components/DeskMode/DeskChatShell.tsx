@@ -691,6 +691,7 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
                             <MessageList
                                 messages={roomMessages}
                                 isLoading={isLoadingMessages}
+                                serverOwnerUserId={currentRoom?.workspace?.ownerUserId}
                                 isLoadingOlderMessages={isLoadingOlderMessages}
                                 hasMoreMessages={
                                     currentRoomId

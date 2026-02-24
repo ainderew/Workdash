@@ -63,6 +63,7 @@ interface MessageListProps {
     isLoadingOlderMessages?: boolean;
     hasMoreMessages?: boolean;
     onLoadOlderMessages?: () => void;
+    serverOwnerUserId?: number;
 }
 
 type LinkPreviewMetadata = {
@@ -220,6 +221,7 @@ function MessageList({
     isLoadingOlderMessages = false,
     hasMoreMessages = true,
     onLoadOlderMessages,
+    serverOwnerUserId,
 }: MessageListProps) {
     const chatV2Service = useMemo(() => ChatV2Service.getInstance(), []);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -1532,7 +1534,10 @@ function MessageList({
                                 />
 
                                 <div className="flex items-center gap-2 mb-1">
-                                    <span className="text-sm font-semibold wd-text-primary">
+                                    <span
+                                        className={`text-sm font-semibold ${message.senderUserId === serverOwnerUserId ? "" : "wd-text-primary"}`}
+                                        style={message.senderUserId === serverOwnerUserId ? { color: "#E91E63" } : undefined}
+                                    >
                                         {senderName}
                                     </span>
                                     <span className="text-xs wd-text-muted">

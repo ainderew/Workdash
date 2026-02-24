@@ -38,6 +38,7 @@ function RailButton({
     label,
     unreadCount,
     indicatorMode = "default",
+    backgroundImageUrl,
     onClick,
     onContextMenu,
     children,
@@ -46,6 +47,7 @@ function RailButton({
     label: string;
     unreadCount?: number;
     indicatorMode?: "default" | "dot-to-bar";
+    backgroundImageUrl?: string | null;
     onClick: () => void;
     onContextMenu?: (event: React.MouseEvent<HTMLButtonElement>) => void;
     children: React.ReactNode;
@@ -57,7 +59,12 @@ function RailButton({
                     type="button"
                     onClick={onClick}
                     onContextMenu={onContextMenu}
-                    className="group relative w-11 h-11 rounded-lg wd-bg-elevated wd-text-primary transition-all duration-200 hover:bg-[var(--wd-accent-soft)] hover:wd-text-accent"
+                    className="group relative w-11 h-11 rounded-lg wd-bg-elevated wd-text-primary transition-all duration-200 hover:bg-[var(--wd-accent-soft)] hover:wd-text-accent bg-cover bg-center"
+                    style={
+                        backgroundImageUrl
+                            ? { backgroundImage: `url(${backgroundImageUrl})` }
+                            : undefined
+                    }
                     aria-label={label}
                 >
                     <span
@@ -75,7 +82,7 @@ function RailButton({
                         {children}
                     </span>
                     {typeof unreadCount === "number" && unreadCount > 0 ? (
-                        <span className="absolute bottom-0 right-0 h-4 min-w-4 px-0.5 rounded-full bg-[var(--wd-danger)] text-white text-[9px] font-bold inline-flex items-center justify-center z-10">
+                        <span className="absolute -bottom-1 -right-1 h-5 min-w-5 px-1 rounded-full bg-[var(--wd-danger)] text-white text-[10px] font-bold inline-flex items-center justify-center z-10">
                             {unreadCount > 99 ? "99+" : unreadCount}
                         </span>
                     ) : null}
@@ -85,21 +92,6 @@ function RailButton({
                 <span>{label}</span>
             </TooltipContent>
         </Tooltip>
-    );
-}
-
-function ServerImage({ src, alt }: { src: string; alt: string }) {
-    const [failed, setFailed] = useState(false);
-
-    if (failed) return null;
-
-    return (
-        <img
-            src={src}
-            alt={alt}
-            className="absolute inset-0 h-full w-full object-cover"
-            onError={() => setFailed(true)}
-        />
     );
 }
 
@@ -170,8 +162,6 @@ function GuildRail({
     }, [contextMenu]);
 
     const renderWorkspaceButton = (workspace: GuildRailWorkspace) => {
-        const hasImage = !!workspace.imageUrl;
-
         return (
             <RailButton
                 active={
@@ -180,17 +170,13 @@ function GuildRail({
                 }
                 label={workspace.name}
                 unreadCount={workspace.unreadCount}
+                backgroundImageUrl={workspace.imageUrl}
                 onClick={() => onSelectWorkspace(workspace.id)}
                 onContextMenu={(event) =>
                     handleContextMenu(event, workspace.id)
                 }
             >
-                {hasImage ? (
-                    <ServerImage
-                        src={workspace.imageUrl!}
-                        alt={workspace.name}
-                    />
-                ) : (
+                {!workspace.imageUrl && (
                     <span className="text-sm font-bold">
                         {toInitials(workspace.name)}
                     </span>

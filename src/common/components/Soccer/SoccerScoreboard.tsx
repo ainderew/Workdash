@@ -110,15 +110,27 @@ export default function SoccerScoreboard() {
     const [rankUpData, setRankUpData] = useState<RankUpData | null>(null);
     const [overtimeMessage, setOvertimeMessage] = useState<string | null>(null);
     const currentScene = useUiStore((state) => state.currentScene);
-    const isSoccerEndgameVisibleInStore = useUiStore((state) => state.isSoccerEndgameVisible);
-    const setIsSoccerEndgameVisible = useUiStore((state) => state.setIsSoccerEndgameVisible);
+    const isSoccerEndgameVisibleInStore = useUiStore(
+        (state) => state.isSoccerEndgameVisible,
+    );
+    const setIsSoccerEndgameVisible = useUiStore(
+        (state) => state.setIsSoccerEndgameVisible,
+    );
 
     useEffect(() => {
-        const isVisible = !!mvp || !!rankUpData || showMmrScreen || !!gameEndMessage;
+        const isVisible =
+            !!mvp || !!rankUpData || showMmrScreen || !!gameEndMessage;
         if (isVisible !== isSoccerEndgameVisibleInStore) {
             setIsSoccerEndgameVisible(isVisible);
         }
-    }, [mvp, rankUpData, showMmrScreen, gameEndMessage, isSoccerEndgameVisibleInStore, setIsSoccerEndgameVisible]);
+    }, [
+        mvp,
+        rankUpData,
+        showMmrScreen,
+        gameEndMessage,
+        isSoccerEndgameVisibleInStore,
+        setIsSoccerEndgameVisible,
+    ]);
 
     useEffect(() => {
         const multiplayer = window.__MULTIPLAYER__;
@@ -167,7 +179,6 @@ export default function SoccerScoreboard() {
             const incomingMmrUpdates = data.mmrUpdates ?? [];
             setMmrUpdates(incomingMmrUpdates);
 
-            
             const localPlayerUpdate = incomingMmrUpdates.find(
                 (u) => u.playerId === socket.id,
             );
@@ -188,7 +199,6 @@ export default function SoccerScoreboard() {
                 }
             }
 
-            
             if (data.mvp) {
                 setTimeout(() => {
                     setMvp(data.mvp!);
@@ -210,17 +220,13 @@ export default function SoccerScoreboard() {
                     }, 8500);
                 }
             } else if (localRankedUp) {
-                
-                setTimeout(() => {
-                    
-                }, 1500);
+                setTimeout(() => {}, 1500);
 
                 setTimeout(() => {
                     setRankUpData(null);
                     setShowMmrScreen(true);
                 }, 7500);
             } else {
-                
                 setTimeout(() => {
                     setShowMmrScreen(true);
                 }, 1500);
@@ -365,28 +371,28 @@ export default function SoccerScoreboard() {
                         <div className="absolute inset-0 overflow-hidden pointer-events-none">
                             <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(180,40,40,0.15)_0%,transparent_70%)]" />
                             <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')] opacity-20" />
-                            
+
                             {/* Animated Particles/Embers */}
                             {[...Array(30)].map((_, i) => (
                                 <motion.div
                                     key={i}
-                                    initial={{ 
-                                        x: Math.random() * 100 + "%", 
+                                    initial={{
+                                        x: Math.random() * 100 + "%",
                                         y: "110%",
                                         opacity: Math.random() * 0.5 + 0.2,
-                                        scale: Math.random() * 0.5 + 0.5
+                                        scale: Math.random() * 0.5 + 0.5,
                                     }}
-                                    animate={{ 
+                                    animate={{
                                         y: "-10%",
-                                        x: (Math.random() * 100 - 10) + "%",
+                                        x: Math.random() * 100 - 10 + "%",
                                         opacity: 0,
-                                        rotate: 360
+                                        rotate: 360,
                                     }}
-                                    transition={{ 
-                                        duration: Math.random() * 5 + 5, 
+                                    transition={{
+                                        duration: Math.random() * 5 + 5,
                                         repeat: Infinity,
                                         ease: "linear",
-                                        delay: Math.random() * 5
+                                        delay: Math.random() * 5,
                                     }}
                                     className="absolute w-1 h-1 bg-amber-500/40 rounded-full blur-[1px]"
                                 />
@@ -420,11 +426,19 @@ export default function SoccerScoreboard() {
                                 <div className="flex items-center gap-6 mb-4">
                                     <div className="h-[1px] w-32 bg-gradient-to-l from-amber-600 to-transparent" />
                                     <motion.div
-                                        animate={{ 
+                                        animate={{
                                             rotateY: [0, 360],
-                                            filter: ["drop-shadow(0 0 10px rgba(217,119,6,0.5))", "drop-shadow(0 0 20px rgba(217,119,6,0.8))", "drop-shadow(0 0 10px rgba(217,119,6,0.5))"]
+                                            filter: [
+                                                "drop-shadow(0 0 10px rgba(217,119,6,0.5))",
+                                                "drop-shadow(0 0 20px rgba(217,119,6,0.8))",
+                                                "drop-shadow(0 0 10px rgba(217,119,6,0.5))",
+                                            ],
                                         }}
-                                        transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+                                        transition={{
+                                            duration: 4,
+                                            repeat: Infinity,
+                                            ease: "linear",
+                                        }}
                                     >
                                         <Crown className="text-amber-500 w-12 h-12" />
                                     </motion.div>
@@ -443,13 +457,17 @@ export default function SoccerScoreboard() {
                                 <motion.div
                                     initial={{ x: -50, opacity: 0 }}
                                     animate={{ x: 0, opacity: 1 }}
-                                    transition={{ delay: 0.4, type: "spring", damping: 20 }}
+                                    transition={{
+                                        delay: 0.4,
+                                        type: "spring",
+                                        damping: 20,
+                                    }}
                                     className="relative"
                                 >
                                     {/* Epic Character Pedestal/Glow */}
                                     <div className="absolute bottom-10 left-1/2 -translate-x-1/2 w-[300px] h-[40px] bg-amber-500/20 blur-[40px] rounded-full" />
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent rounded-full blur-2xl -z-10" />
-                                    
+
                                     <motion.div
                                         animate={{ y: [0, -15, 0] }}
                                         transition={{
@@ -470,14 +488,19 @@ export default function SoccerScoreboard() {
                                         <motion.div
                                             initial={{ scale: 0, rotate: -30 }}
                                             animate={{ scale: 1, rotate: 0 }}
-                                            transition={{ delay: 0.8, type: "spring" }}
+                                            transition={{
+                                                delay: 0.8,
+                                                type: "spring",
+                                            }}
                                             className="relative"
                                         >
                                             <div className="absolute inset-0 bg-amber-500/40 blur-2xl rounded-full" />
                                             <img
                                                 src={getRankBadgePath(
                                                     mmrUpdates.find(
-                                                        (u) => u.playerId === mvp.id,
+                                                        (u) =>
+                                                            u.playerId ===
+                                                            mvp.id,
                                                     )?.newMmr || 500,
                                                 )}
                                                 className="w-40 h-40 object-contain relative z-10"
@@ -503,7 +526,9 @@ export default function SoccerScoreboard() {
                                     className="flex flex-col gap-5 w-full md:w-[400px]"
                                 >
                                     <StatRow
-                                        icon={<Goal className="w-8 h-8 text-red-500" />}
+                                        icon={
+                                            <Goal className="w-8 h-8 text-red-500" />
+                                        }
                                         label="Goals Scored"
                                         value={mvp.stats.goals}
                                         color="text-red-500"
@@ -511,7 +536,9 @@ export default function SoccerScoreboard() {
                                         description="Direct contributions to victory"
                                     />
                                     <StatRow
-                                        icon={<Handshake className="w-8 h-8 text-amber-500" />}
+                                        icon={
+                                            <Handshake className="w-8 h-8 text-amber-500" />
+                                        }
                                         label="Assists Provided"
                                         value={mvp.stats.assists}
                                         color="text-amber-500"
@@ -519,7 +546,9 @@ export default function SoccerScoreboard() {
                                         description="Masterful team coordination"
                                     />
                                     <StatRow
-                                        icon={<Shield className="w-8 h-8 text-blue-500" />}
+                                        icon={
+                                            <Shield className="w-8 h-8 text-blue-500" />
+                                        }
                                         label="Key Interceptions"
                                         value={mvp.stats.interceptions}
                                         color="text-blue-500"
@@ -553,7 +582,10 @@ export default function SoccerScoreboard() {
                                                 {Math.round(
                                                     (mvp.stats.goals * 10 +
                                                         mvp.stats.assists * 5 +
-                                                        mvp.stats.interceptions * 2) / 2,
+                                                        mvp.stats
+                                                            .interceptions *
+                                                            2) /
+                                                        2,
                                                 )}
                                             </span>
                                         </div>
@@ -642,28 +674,28 @@ export default function SoccerScoreboard() {
                             </motion.p>
 
                             <div className="flex items-center gap-12 mb-12">
-                                    <motion.div
-                                        initial={{ x: -50, opacity: 0 }}
-                                        animate={{ x: 0, opacity: 1 }}
-                                        transition={{ delay: 0.8 }}
-                                        className="flex flex-col items-center gap-4"
-                                    >
-                                        <div className="text-neutral-500 font-black text-xl uppercase italic">
-                                            Previous
+                                <motion.div
+                                    initial={{ x: -50, opacity: 0 }}
+                                    animate={{ x: 0, opacity: 1 }}
+                                    transition={{ delay: 0.8 }}
+                                    className="flex flex-col items-center gap-4"
+                                >
+                                    <div className="text-neutral-500 font-black text-xl uppercase italic">
+                                        Previous
+                                    </div>
+                                    <div className="relative">
+                                        <div className="bg-white/5 p-4 rounded-2xl border border-white/10 grayscale opacity-30 blur-[2px]">
+                                            <img
+                                                src={rankUpData.oldBadgePath}
+                                                className="w-40 h-auto object-contain"
+                                                alt="Old Rank Badge"
+                                            />
                                         </div>
-                                        <div className="relative">
-                                            <div className="bg-white/5 p-4 rounded-2xl border border-white/10 grayscale opacity-30 blur-[2px]">
-                                                <img 
-                                                    src={rankUpData.oldBadgePath} 
-                                                    className="w-40 h-auto object-contain"
-                                                    alt="Old Rank Badge"
-                                                />
-                                            </div>
-                                            <div className="mt-2 text-neutral-600 font-black text-2xl uppercase tracking-tighter italic">
-                                                {rankUpData.oldRank}
-                                            </div>
+                                        <div className="mt-2 text-neutral-600 font-black text-2xl uppercase tracking-tighter italic">
+                                            {rankUpData.oldRank}
                                         </div>
-                                    </motion.div>
+                                    </div>
+                                </motion.div>
 
                                 <motion.div
                                     initial={{ scale: 0 }}
@@ -754,19 +786,20 @@ export default function SoccerScoreboard() {
 
                             <div className="grid grid-cols-1 gap-6">
                                 {displayedMmrUpdates.map((update, idx) => (
-                                        <MmrRow
-                                            key={update.playerId}
-                                            update={update}
-                                            delay={idx * 0.2}
-                                        />
-                                    ))}
+                                    <MmrRow
+                                        key={update.playerId}
+                                        update={update}
+                                        delay={idx * 0.2}
+                                    />
+                                ))}
                                 {displayedMmrUpdates.length === 0 && (
                                     <div className="rounded-xl border border-white/15 bg-white/5 px-6 py-8 text-center">
                                         <p className="text-white text-lg font-bold uppercase tracking-wide">
                                             Match completed
                                         </p>
                                         <p className="mt-2 text-neutral-300 text-sm">
-                                            MMR update is unavailable for this round.
+                                            MMR update is unavailable for this
+                                            round.
                                         </p>
                                     </div>
                                 )}
@@ -1017,7 +1050,7 @@ function StatRow({
             <div className="bg-black/60 p-4 rounded-lg border border-white/5 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 shadow-inner">
                 {icon}
             </div>
-            
+
             <div className="flex flex-col flex-1 relative z-10">
                 <span className="text-neutral-500 text-[10px] font-black uppercase tracking-[0.2em] mb-0.5">
                     {label}

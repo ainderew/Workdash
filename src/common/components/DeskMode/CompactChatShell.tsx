@@ -876,6 +876,7 @@ function CompactChatShell({ onClose }: CompactChatShellProps) {
                             <MessageList
                                 messages={roomMessages}
                                 isLoading={isLoadingMessages}
+                                serverOwnerUserId={currentRoom?.workspace?.ownerUserId}
                                 focusedMessageId={focusedMessageId}
                                 onOpenThread={(rootMessageId) => {
                                     const rootFromTimeline = roomMessages.find(

@@ -296,7 +296,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         
         if (this.isLocal) {
             const { up, down, left, right } = this.currentInput;
-            const space = this.cursors?.space.isDown;
+            const space = this.cursors?.space.isDown && !this.shouldBlockInput();
 
             if (left || right || up || down) {
                 if (up) {
@@ -382,6 +382,15 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     // LOCAL PLAYER - Client-side prediction
     // ============================================================================
 
+    private shouldBlockInput(): boolean {
+        const uiState = useUiStore.getState();
+        return (
+            uiState.interactionMode === "desk" ||
+            uiState.isCommandPaletteOpen ||
+            this.isTextEntryFocused()
+        );
+    }
+
     private updateLocalPlayer(delta: number) {
         const isSoccerMap = this.scene.scene.key === "SoccerMap";
 
@@ -399,6 +408,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             !isSoccerMap &&
             this.isLocal &&
             this.kartKey &&
+            !this.shouldBlockInput() &&
             Phaser.Input.Keyboard.JustDown(this.kartKey)
         ) {
             this.isKartMode = !this.isKartMode;
@@ -480,16 +490,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     }
 
     private sampleInput() {
-        const uiState = useUiStore.getState();
-        const isCommandPaletteOpen = uiState.isCommandPaletteOpen;
-        const isDeskMode = uiState.interactionMode === "desk";
         const isSoccerMap = this.scene.scene.key === "SoccerMap";
         const isSoccerStatsReady = !isSoccerMap || this.soccerStats !== null;
         const canMoveInSoccer = !isSoccerMap || !this.isSpectator;
         if (
-            isDeskMode ||
-            isCommandPaletteOpen ||
-            this.isTextEntryFocused() ||
+            this.shouldBlockInput() ||
             !this.cursors ||
             !this.wasd ||
             !isSoccerStatsReady ||

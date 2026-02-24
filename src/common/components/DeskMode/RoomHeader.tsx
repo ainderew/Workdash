@@ -180,14 +180,25 @@ function RoomHeader({
             }
         };
 
+        const onScroll = (event: Event) => {
+            if (
+                notificationsContainerRef.current &&
+                event.target instanceof Node &&
+                notificationsContainerRef.current.contains(event.target)
+            ) {
+                return;
+            }
+            closeNotifications();
+        };
+
         window.addEventListener("mousedown", onMouseDown);
         window.addEventListener("keydown", onKeyDown);
-        window.addEventListener("scroll", closeNotifications, true);
+        window.addEventListener("scroll", onScroll, true);
         window.addEventListener("resize", closeNotifications);
         return () => {
             window.removeEventListener("mousedown", onMouseDown);
             window.removeEventListener("keydown", onKeyDown);
-            window.removeEventListener("scroll", closeNotifications, true);
+            window.removeEventListener("scroll", onScroll, true);
             window.removeEventListener("resize", closeNotifications);
         };
     }, [isNotificationsOpen]);
@@ -214,7 +225,7 @@ function RoomHeader({
     }, [incomingFriendRequestCount, isNotificationsOpen, unreadNotificationCount]);
 
     return (
-        <header className="h-14 border-b wd-border-subtle px-5 flex items-center justify-between gap-4 wd-bg-panel-2 backdrop-blur">
+        <header className="relative z-[50] h-14 border-b wd-border-subtle px-5 flex items-center justify-between gap-4 wd-bg-panel-2 backdrop-blur">
             <div className="min-w-0">
                 <div className="text-sm font-semibold wd-text-primary truncate">
                     {room ? (

@@ -15,6 +15,7 @@ export type ChatV2Room = {
         id: string;
         name: string;
         imageUrl?: string | null;
+        ownerUserId?: number;
     };
     viewerRole?: "OWNER" | "ADMIN" | "MODERATOR" | "MEMBER" | "READ_ONLY" | null;
     unreadCount?: number;

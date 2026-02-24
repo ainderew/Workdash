@@ -224,9 +224,9 @@ function UserNotificationsPanel({
                                     : (notification.replyMessage?.content?.trim()
                                         || notification.rootMessage.content?.trim()
                                         || "(no text)");
-                                const notificationLabel = isMention
-                                    ? `${actorName} mentioned you in #${notification.room.name}`
-                                    : `${actorName} replied in #${notification.room.name}`;
+                                const notificationSuffix = isMention
+                                    ? ` mentioned you in #${notification.room.name}`
+                                    : ` replied in #${notification.room.name}`;
                                 const NotificationIcon = isMention
                                     ? AtSign
                                     : MessageSquareReply;
@@ -244,7 +244,7 @@ function UserNotificationsPanel({
                                     >
                                         <p className="text-xs font-semibold wd-text-primary inline-flex items-center gap-1">
                                             <NotificationIcon size={11} />
-                                            {notificationLabel}
+                                            <span>{actorName}{notificationSuffix}</span>
                                         </p>
                                         <p className="mt-1 text-[11px] wd-text-secondary line-clamp-2">
                                             {previewText}

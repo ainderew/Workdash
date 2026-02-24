@@ -10,7 +10,7 @@ import {
     Copy,
     Fingerprint,
     FolderPlus,
-    Lock,
+    LockKeyhole,
     LogOut,
     MoreHorizontal,
     Plus,
@@ -1010,10 +1010,11 @@ function ChannelSidebar({
                                                                 >
                                                                     <span className="inline-flex min-w-0 items-center gap-1">
                                                                         {isLockedRoom ? (
-                                                                            <Lock
+                                                                            <LockKeyhole
                                                                                 size={
                                                                                     14
                                                                                 }
+                                                                                strokeWidth={1}
                                                                                 className="shrink-0 opacity-70"
                                                                             />
                                                                         ) : (
