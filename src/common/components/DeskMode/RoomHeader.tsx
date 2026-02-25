@@ -1,13 +1,15 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import type {
+    ChatV2PinnedMessage,
     ChatV2Room,
     ChatV2SearchUser,
     ChatV2UserNotification,
 } from "@/communication/chatV2/_types";
-import { Bell, Search, UserRound, Users, X } from "lucide-react";
+import { Bell, Pin, Search, UserRound, Users, X } from "lucide-react";
 import useChatV2Store from "@/common/store/chatV2Store";
 import { getDisplayName } from "@/common/utils/displayName";
 import ChannelHashIcon from "./ChannelHashIcon";
+import PinnedMessagesPanel from "./PinnedMessagesPanel";
 import UserNotificationsPanel from "./UserNotificationsPanel";
 
 interface RoomHeaderProps {
@@ -27,6 +29,12 @@ interface RoomHeaderProps {
     onOpenNotification?: (notification: ChatV2UserNotification) => void;
     isMemberPanelVisible?: boolean;
     onToggleMemberPanel?: () => void;
+    isPinnedPanelVisible?: boolean;
+    onTogglePinnedPanel?: () => void;
+    pinnedMessages?: ChatV2PinnedMessage[];
+    isLoadingPinnedMessages?: boolean;
+    onUnpinMessage?: (pinnedMessage: ChatV2PinnedMessage) => void;
+    onJumpToPinnedMessage?: (pinnedMessage: ChatV2PinnedMessage) => void;
 }
 
 function RoomHeader({
@@ -46,6 +54,12 @@ function RoomHeader({
     onOpenNotification,
     isMemberPanelVisible = false,
     onToggleMemberPanel,
+    isPinnedPanelVisible = false,
+    onTogglePinnedPanel,
+    pinnedMessages = [],
+    isLoadingPinnedMessages = false,
+    onUnpinMessage,
+    onJumpToPinnedMessage,
 }: RoomHeaderProps) {
     const friendRequests = useChatV2Store((state) => state.friendRequests);
     const notifications = useChatV2Store((state) => state.notifications);
@@ -83,6 +97,7 @@ function RoomHeader({
     const [userResults, setUserResults] = useState<ChatV2SearchUser[]>([]);
     const searchContainerRef = useRef<HTMLDivElement | null>(null);
     const notificationsContainerRef = useRef<HTMLDivElement | null>(null);
+    const pinnedPanelContainerRef = useRef<HTMLDivElement | null>(null);
     const previousIncomingCountRef = useRef<number | null>(null);
     const localBackendUserId =
         typeof window !== "undefined" ? window.__BACKEND_USER__?.id : undefined;
@@ -204,6 +219,54 @@ function RoomHeader({
     }, [isNotificationsOpen]);
 
     useEffect(() => {
+        if (!isPinnedPanelVisible) {
+            return;
+        }
+
+        const closePinnedPanel = () => {
+            onTogglePinnedPanel?.();
+        };
+
+        const onMouseDown = (event: MouseEvent) => {
+            if (!pinnedPanelContainerRef.current) {
+                return;
+            }
+            if (pinnedPanelContainerRef.current.contains(event.target as Node)) {
+                return;
+            }
+            closePinnedPanel();
+        };
+
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.key === "Escape") {
+                closePinnedPanel();
+            }
+        };
+
+        const onScroll = (event: Event) => {
+            if (
+                pinnedPanelContainerRef.current &&
+                event.target instanceof Node &&
+                pinnedPanelContainerRef.current.contains(event.target)
+            ) {
+                return;
+            }
+            closePinnedPanel();
+        };
+
+        window.addEventListener("mousedown", onMouseDown);
+        window.addEventListener("keydown", onKeyDown);
+        window.addEventListener("scroll", onScroll, true);
+        window.addEventListener("resize", closePinnedPanel);
+        return () => {
+            window.removeEventListener("mousedown", onMouseDown);
+            window.removeEventListener("keydown", onKeyDown);
+            window.removeEventListener("scroll", onScroll, true);
+            window.removeEventListener("resize", closePinnedPanel);
+        };
+    }, [isPinnedPanelVisible, onTogglePinnedPanel]);
+
+    useEffect(() => {
         const previousCount = previousIncomingCountRef.current;
 
         if (unreadNotificationCount > 0 && !isNotificationsOpen) {
@@ -295,6 +358,48 @@ function RoomHeader({
                             }}
                             onRespond={(friendshipId, action) => {
                                 void respondToFriendRequest(friendshipId, action);
+                            }}
+                        />
+                    )}
+                </div>
+
+                <div className="relative shrink-0" ref={pinnedPanelContainerRef}>
+                    <button
+                        type="button"
+                        aria-label={
+                            isPinnedPanelVisible
+                                ? "Hide pinned messages"
+                                : "Show pinned messages"
+                        }
+                        title={
+                            isPinnedPanelVisible
+                                ? "Hide pinned messages"
+                                : "Show pinned messages"
+                        }
+                        aria-pressed={isPinnedPanelVisible}
+                        onClick={() => {
+                            setIsNotificationsOpen(false);
+                            onTogglePinnedPanel?.();
+                        }}
+                        className={`h-8 w-8 inline-flex items-center justify-center rounded-md border wd-border-subtle transition-colors ${
+                            isPinnedPanelVisible
+                                ? "wd-bg-elevated wd-text-primary hover:bg-[var(--wd-surface-base)]"
+                                : "wd-bg-panel-2 wd-text-secondary hover:wd-text-primary hover:bg-[var(--wd-surface-base)]"
+                        }`}
+                    >
+                        <Pin size={15} />
+                    </button>
+
+                    {isPinnedPanelVisible && (
+                        <PinnedMessagesPanel
+                            panelClassName="right-0 top-[calc(100%+10px)] z-[240]"
+                            pinnedMessages={pinnedMessages}
+                            isLoading={isLoadingPinnedMessages}
+                            onJumpToMessage={(pin) => {
+                                onJumpToPinnedMessage?.(pin);
+                            }}
+                            onUnpin={(pin) => {
+                                onUnpinMessage?.(pin);
                             }}
                         />
                     )}

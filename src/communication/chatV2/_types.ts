@@ -70,6 +70,17 @@ export type ChatV2CreateAttachment = {
     isImage: boolean;
 };
 
+export type ChatV2CharacterCustomization = {
+    type: "ADULT" | "KID";
+    bodyId: number;
+    eyesId: number;
+    hairstyleId: number;
+    outfitId: number;
+    accessoryId?: number;
+    itemId?: number;
+    itemType?: string;
+};
+
 export type ChatV2Message = {
     id: string;
     roomId: string;
@@ -80,6 +91,7 @@ export type ChatV2Message = {
         nickname?: string | null;
         image: string | null;
         bio?: string | null;
+        characterCustomization?: ChatV2CharacterCustomization | null;
     };
     clientMessageId: string;
     content: string;
@@ -96,6 +108,7 @@ export type ChatV2Message = {
         name: string | null;
         nickname?: string | null;
         image: string | null;
+        characterCustomization?: ChatV2CharacterCustomization | null;
     }>;
     reactions?: ChatV2MessageReaction[];
     mentionedUserIds?: number[];
@@ -116,6 +129,7 @@ export type ChatV2MessageReactionReactor = {
     name: string | null;
     nickname?: string | null;
     image: string | null;
+    characterCustomization?: ChatV2CharacterCustomization | null;
 };
 
 export type ChatV2ReactionReactorList = {
@@ -148,6 +162,7 @@ export type ChatV2RoomMember = {
         nickname?: string | null;
         email: string;
         image?: string | null;
+        characterCustomization?: ChatV2CharacterCustomization | null;
     };
 };
 
@@ -168,6 +183,7 @@ export type ChatV2SearchUser = {
     nickname?: string | null;
     image: string | null;
     bio?: string | null;
+    characterCustomization?: ChatV2CharacterCustomization | null;
 };
 
 export type ChatV2FriendshipStatus = "PENDING" | "ACCEPTED" | "DECLINED" | "BLOCKED";
@@ -187,6 +203,7 @@ export type ChatV2Friend = {
         email: string;
         image: string | null;
         bio: string | null;
+        characterCustomization?: ChatV2CharacterCustomization | null;
     };
 };
 
@@ -200,6 +217,7 @@ export type ChatV2DirectRoom = {
         email: string;
         image: string | null;
         bio: string | null;
+        characterCustomization?: ChatV2CharacterCustomization | null;
     };
 };
 
@@ -210,6 +228,7 @@ export type ChatV2UserProfile = {
         nickname?: string | null;
         image: string | null;
         bio: string | null;
+        characterCustomization?: ChatV2CharacterCustomization | null;
     };
     isSelf: boolean;
     friendshipStatus: ChatV2FriendshipStatus | null;
@@ -234,6 +253,7 @@ export type ChatV2UserNotification = {
         nickname?: string | null;
         image: string | null;
         bio: string | null;
+        characterCustomization?: ChatV2CharacterCustomization | null;
     };
     room: {
         id: string;
@@ -251,4 +271,20 @@ export type ChatV2UserNotification = {
         senderUserId: number;
         createdAt: string | Date;
     } | null;
+};
+
+export type ChatV2PinnedMessage = {
+    id: string;
+    roomId: string;
+    messageId: string;
+    pinnedByUserId: number;
+    createdAt: string | Date;
+    pinnedBy: {
+        id: number;
+        name: string | null;
+        nickname?: string | null;
+        image: string | null;
+        characterCustomization?: ChatV2CharacterCustomization | null;
+    };
+    message: ChatV2Message;
 };

@@ -10,6 +10,7 @@ import type {
     ChatV2MessageReactionUpdate,
     ChatV2MessageSearchInput,
     ChatV2MessageSearchSort,
+    ChatV2PinnedMessage,
     ChatV2ReactionReactorList,
     ChatV2Room,
     ChatV2RoomCategory,
@@ -35,6 +36,8 @@ type RealtimeHandlers = {
     }) => void;
     onMessageReactionUpdate?: (payload: ChatV2MessageReactionUpdate) => void;
     onNotificationNew?: (notification: ChatV2UserNotification) => void;
+    onMessagePinNew?: (pinnedMessage: ChatV2PinnedMessage) => void;
+    onMessagePinRemoved?: (payload: { roomId: string; messageId: string }) => void;
 };
 
 export class ChatV2Service {
@@ -138,6 +141,18 @@ export class ChatV2Service {
             }
         };
 
+        const onMessagePinNew = (payload: { pinnedMessage: ChatV2PinnedMessage }) => {
+            if (payload?.pinnedMessage) {
+                handlers.onMessagePinNew?.(payload.pinnedMessage);
+            }
+        };
+
+        const onMessagePinRemoved = (payload: { roomId: string; messageId: string }) => {
+            if (payload?.roomId && payload?.messageId) {
+                handlers.onMessagePinRemoved?.(payload);
+            }
+        };
+
         this.transport.socket.on("chat:v2:message:new", onMessageNew);
         this.transport.socket.on("chat:v2:message:update", onMessageUpdate);
         this.transport.socket.on("chat:v2:message:delete", onMessageDelete);
@@ -146,6 +161,8 @@ export class ChatV2Service {
             onMessageReactionUpdate,
         );
         this.transport.socket.on("chat:v2:notification:new", onNotificationNew);
+        this.transport.socket.on("chat:v2:message:pin:new", onMessagePinNew);
+        this.transport.socket.on("chat:v2:message:pin:removed", onMessagePinRemoved);
 
         this.teardownRealtimeHandlers = () => {
             this.transport.socket.off("chat:v2:message:new", onMessageNew);
@@ -156,6 +173,8 @@ export class ChatV2Service {
                 onMessageReactionUpdate,
             );
             this.transport.socket.off("chat:v2:notification:new", onNotificationNew);
+            this.transport.socket.off("chat:v2:message:pin:new", onMessagePinNew);
+            this.transport.socket.off("chat:v2:message:pin:removed", onMessagePinRemoved);
             this.teardownRealtimeHandlers = null;
         };
 
@@ -486,6 +505,31 @@ export class ChatV2Service {
             { limit },
         );
         return response.emojis;
+    }
+
+    async pinMessage(roomId: string, messageId: string): Promise<ChatV2PinnedMessage> {
+        const response = await this.emitWithAck<{ pinnedMessage: ChatV2PinnedMessage }>(
+            "chat:v2:message:pin",
+            { roomId, messageId },
+        );
+        return response.pinnedMessage;
+    }
+
+    async unpinMessage(roomId: string, messageId: string): Promise<void> {
+        await this.emitWithAck<{ success: boolean }>(
+            "chat:v2:message:unpin",
+            { roomId, messageId },
+        );
+    }
+
+    async listPinnedMessages(roomId: string, limit?: number): Promise<ChatV2PinnedMessage[]> {
+        const payload: { roomId: string; limit?: number } = { roomId };
+        if (typeof limit === "number") payload.limit = limit;
+        const response = await this.emitWithAck<{ pinnedMessages: ChatV2PinnedMessage[] }>(
+            "chat:v2:message:pin:list",
+            payload,
+        );
+        return response.pinnedMessages;
     }
 
     async createMessage(

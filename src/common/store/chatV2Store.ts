@@ -10,6 +10,7 @@ import type {
     ChatV2MessageReaction,
     ChatV2MessageReactionReactor,
     ChatV2MessageReactionUpdate,
+    ChatV2PinnedMessage,
     ChatV2ReactionReactorList,
     ChatV2Room,
     ChatV2RoomCategory,
@@ -116,6 +117,11 @@ type ChatV2State = {
     currentRoomId: string | null;
     messagesByRoomId: Record<string, ChatV2Message[]>;
     membersByRoomId: Record<string, ChatV2RoomMember[]>;
+    pinnedMessagesByRoomId: Record<string, ChatV2PinnedMessage[]>;
+    isLoadingPinnedMessages: boolean;
+    loadPinnedMessages: (roomId: string) => Promise<void>;
+    pinMessage: (roomId: string, messageId: string) => Promise<void>;
+    unpinMessage: (roomId: string, messageId: string) => Promise<void>;
     setRailView: (view: "server" | "dm") => void;
     setSelectedWorkspaceId: (workspaceId: string | null) => void;
     initialize: () => Promise<void>;
@@ -340,6 +346,8 @@ const applyReplySummaryInsert = (
             `User ${replyMessage.senderUserId}`,
         ),
         image: replyMessage.sender?.image || null,
+        characterCustomization:
+            replyMessage.sender?.characterCustomization ?? undefined,
     };
     const nextReplyPreviewUsers = [
         replyPreviewSender,
@@ -494,6 +502,8 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
     currentRoomId: null,
     messagesByRoomId: {},
     membersByRoomId: {},
+    pinnedMessagesByRoomId: {},
+    isLoadingPinnedMessages: false,
 
     setRailView: (view) => {
         set({ railView: view });
@@ -615,21 +625,45 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
                         ),
                     }));
                 },
+                onMessagePinNew: (pinnedMessage) => {
+                    set((state) => {
+                        const current = state.pinnedMessagesByRoomId[pinnedMessage.roomId] || [];
+                        const exists = current.some((p) => p.id === pinnedMessage.id);
+                        if (exists) return {};
+                        return {
+                            pinnedMessagesByRoomId: {
+                                ...state.pinnedMessagesByRoomId,
+                                [pinnedMessage.roomId]: [pinnedMessage, ...current],
+                            },
+                        };
+                    });
+                },
+                onMessagePinRemoved: (payload) => {
+                    set((state) => {
+                        const current = state.pinnedMessagesByRoomId[payload.roomId] || [];
+                        return {
+                            pinnedMessagesByRoomId: {
+                                ...state.pinnedMessagesByRoomId,
+                                [payload.roomId]: current.filter(
+                                    (p) => p.messageId !== payload.messageId,
+                                ),
+                            },
+                        };
+                    });
+                },
             });
 
             await get().reloadRoomStructure();
+
+            const currentRoomId = get().currentRoomId;
             await Promise.all([
+                currentRoomId ? get().selectRoom(currentRoomId) : Promise.resolve(),
                 get().reloadDirectRooms(),
                 get().reloadFriends("ACCEPTED"),
                 get().reloadFriendRequests(),
                 get().reloadNotifications({ limit: 100 }),
                 get().loadFrequentEmojis({ force: true }),
             ]);
-
-            const currentRoomId = get().currentRoomId;
-            if (currentRoomId) {
-                await get().selectRoom(currentRoomId);
-            }
 
             set({ initialized: true });
         } catch (error) {
@@ -874,15 +908,13 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
         try {
             const PAGE_SIZE = 35;
             const chatV2Service = getChatV2Service();
-            await chatV2Service.joinRoom(roomId);
-            const messages = await chatV2Service.listMessages(
-                roomId,
-                PAGE_SIZE,
-                {
+            const [, messages] = await Promise.all([
+                chatV2Service.joinRoom(roomId),
+                chatV2Service.listMessages(roomId, PAGE_SIZE, {
                     rootOnly: true,
                     includeReplySummary: true,
-                },
-            );
+                }),
+            ]);
             const sortedMessages = sortMessages(messages);
             const lastMessageId = sortedMessages[sortedMessages.length - 1]?.id;
 
@@ -902,8 +934,11 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
                 },
             }));
 
-            await get().loadRoomMembers(roomId);
-            await get().markRoomRead(roomId, lastMessageId);
+            void Promise.all([
+                get().loadRoomMembers(roomId),
+                get().markRoomRead(roomId, lastMessageId),
+                get().loadPinnedMessages(roomId),
+            ]);
         } catch (error) {
             set({
                 isLoadingMessages: false,
@@ -1646,6 +1681,71 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
         }
     },
 
+    loadPinnedMessages: async (roomId) => {
+        set({ isLoadingPinnedMessages: true });
+        try {
+            const chatV2Service = getChatV2Service();
+            const pinnedMessages = await chatV2Service.listPinnedMessages(roomId);
+            set((state) => ({
+                isLoadingPinnedMessages: false,
+                pinnedMessagesByRoomId: {
+                    ...state.pinnedMessagesByRoomId,
+                    [roomId]: pinnedMessages,
+                },
+            }));
+        } catch {
+            set({ isLoadingPinnedMessages: false });
+        }
+    },
+
+    pinMessage: async (roomId, messageId) => {
+        try {
+            const chatV2Service = getChatV2Service();
+            const pinnedMessage = await chatV2Service.pinMessage(roomId, messageId);
+            set((state) => {
+                const current = state.pinnedMessagesByRoomId[roomId] || [];
+                const exists = current.some((p) => p.id === pinnedMessage.id);
+                if (exists) return {};
+                return {
+                    pinnedMessagesByRoomId: {
+                        ...state.pinnedMessagesByRoomId,
+                        [roomId]: [pinnedMessage, ...current],
+                    },
+                };
+            });
+        } catch (error) {
+            set({
+                error:
+                    error instanceof Error
+                        ? error.message
+                        : "Failed to pin message",
+            });
+        }
+    },
+
+    unpinMessage: async (roomId, messageId) => {
+        try {
+            const chatV2Service = getChatV2Service();
+            await chatV2Service.unpinMessage(roomId, messageId);
+            set((state) => {
+                const current = state.pinnedMessagesByRoomId[roomId] || [];
+                return {
+                    pinnedMessagesByRoomId: {
+                        ...state.pinnedMessagesByRoomId,
+                        [roomId]: current.filter((p) => p.messageId !== messageId),
+                    },
+                };
+            });
+        } catch (error) {
+            set({
+                error:
+                    error instanceof Error
+                        ? error.message
+                        : "Failed to unpin message",
+            });
+        }
+    },
+
     clear: () =>
         set({
             initialized: false,
@@ -1681,6 +1781,8 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
             currentRoomId: null,
             messagesByRoomId: {},
             membersByRoomId: {},
+            pinnedMessagesByRoomId: {},
+            isLoadingPinnedMessages: false,
         }),
 }));
 

@@ -43,6 +43,7 @@ import {
     Flag,
     MessageSquare,
     Pencil,
+    Pin,
     Save,
     UserCheck,
     UserRoundPlus,
@@ -54,6 +55,10 @@ import {
     formatChatMessageTimestamp,
     isSameMessageCalendarDay,
 } from "@/common/utils/messageTimestamp";
+import {
+    generateCharacterFaceDataUrl,
+    toCharacterCustomization,
+} from "@/common/utils/characterFaceAvatar";
 
 interface MessageListProps {
     messages: ChatV2Message[];
@@ -64,6 +69,9 @@ interface MessageListProps {
     hasMoreMessages?: boolean;
     onLoadOlderMessages?: () => void;
     serverOwnerUserId?: number;
+    pinnedMessageIds?: Map<string, { pinnedByName: string }>;
+    onPinMessage?: (messageId: string) => void;
+    onUnpinMessage?: (messageId: string) => void;
 }
 
 type LinkPreviewMetadata = {
@@ -199,11 +207,26 @@ const getSenderAvatarForMessage = (
         };
     }
 
-    const senderImage =
-        message.sender?.image?.trim() ||
+    const profileImage = message.sender?.image?.trim();
+    if (profileImage) {
+        return { mode: "image", src: profileImage };
+    }
+
+    const resolvedImage =
         input.resolvedSenderImagesByUserId?.[message.senderUserId]?.trim();
-    if (senderImage) {
-        return { mode: "image", src: senderImage };
+    if (resolvedImage) {
+        if (resolvedImage.startsWith("data:")) {
+            return {
+                mode: "sprite",
+                style: {
+                    backgroundImage: `url('${resolvedImage}')`,
+                    backgroundRepeat: "no-repeat",
+                    backgroundPosition: "center -20px",
+                    imageRendering: "pixelated",
+                },
+            };
+        }
+        return { mode: "image", src: resolvedImage };
     }
 
     if (isLocalSender && input.localProfileImage) {
@@ -222,6 +245,9 @@ function MessageList({
     hasMoreMessages = true,
     onLoadOlderMessages,
     serverOwnerUserId,
+    pinnedMessageIds,
+    onPinMessage,
+    onUnpinMessage,
 }: MessageListProps) {
     const chatV2Service = useMemo(() => ChatV2Service.getInstance(), []);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -229,6 +255,7 @@ function MessageList({
     const topSentinelRef = useRef<HTMLDivElement>(null);
     const previousScrollHeightRef = useRef<number>(0);
     const isLoadingOlderRef = useRef(false);
+    const needsInitialScrollRef = useRef(true);
     const [showNewMessagesPill, setShowNewMessagesPill] = useState(false);
     const [isScrolledFarBack, setIsScrolledFarBack] = useState(false);
     const user = useUserStore((state) => state.user);
@@ -355,12 +382,31 @@ function MessageList({
         [messages],
     );
 
+    // Reset initial scroll flag when switching rooms
+    useEffect(() => {
+        needsInitialScrollRef.current = true;
+    }, [currentRoomId]);
+
     useEffect(() => {
         if (focusedMessageId || isLoading) {
             return;
         }
         const container = scrollContainerRef.current;
         if (!container) return;
+
+        // On initial load, always scroll to bottom
+        if (needsInitialScrollRef.current) {
+            needsInitialScrollRef.current = false;
+            const rafId = window.requestAnimationFrame(() => {
+                if (scrollContainerRef.current) {
+                    scrollContainerRef.current.scrollTop =
+                        scrollContainerRef.current.scrollHeight;
+                }
+            });
+            return () => {
+                window.cancelAnimationFrame(rafId);
+            };
+        }
 
         const distanceFromBottom =
             container.scrollHeight - container.scrollTop - container.clientHeight;
@@ -538,6 +584,23 @@ function MessageList({
     }, [focusedMessageId, messages]);
 
     useEffect(() => {
+        if (!focusedMessageId) {
+            return;
+        }
+
+        const targetNode = document.querySelector(
+            `[data-chat-message-id="${focusedMessageId}"]`,
+        );
+        if (targetNode instanceof HTMLElement) {
+            return;
+        }
+
+        if (hasMoreMessages && !isLoadingOlderMessages) {
+            onLoadOlderMessages?.();
+        }
+    }, [focusedMessageId, messages, hasMoreMessages, isLoadingOlderMessages, onLoadOlderMessages]);
+
+    useEffect(() => {
         if (!profilePopover) {
             setActiveUserProfile(null);
             setProfileError(null);
@@ -657,6 +720,45 @@ function MessageList({
         };
     }, [attachmentUrls, messages]);
 
+    const processedCharacterUserIds = useRef(new Set<number>());
+
+    useEffect(() => {
+        const inlineCharacterSenders = messages.filter((message) => {
+            if (!Number.isInteger(message.senderUserId)) return false;
+            if (
+                typeof localBackendUserId === "number" &&
+                message.senderUserId === localBackendUserId
+            ) {
+                return false;
+            }
+            if (message.sender?.image?.trim()) return false;
+            if (processedCharacterUserIds.current.has(message.senderUserId))
+                return false;
+            return !!message.sender?.characterCustomization;
+        });
+
+        if (inlineCharacterSenders.length === 0) return;
+
+        const seen = new Set<number>();
+        for (const message of inlineCharacterSenders) {
+            if (seen.has(message.senderUserId)) continue;
+            seen.add(message.senderUserId);
+            processedCharacterUserIds.current.add(message.senderUserId);
+            const cc = message.sender!.characterCustomization!;
+
+            void generateCharacterFaceDataUrl(toCharacterCustomization(cc)).then(
+                (url) => {
+                    if (url) {
+                        setResolvedSenderImagesByUserId((prev) => ({
+                            ...prev,
+                            [message.senderUserId]: url,
+                        }));
+                    }
+                },
+            );
+        }
+    }, [messages, localBackendUserId]);
+
     useEffect(() => {
         const unresolvedSenderUserIds = Array.from(
             new Set(
@@ -718,6 +820,17 @@ function MessageList({
                             ...previous,
                             [userId]: image,
                         }));
+                    } else if (profile.user.characterCustomization) {
+                        const faceUrl = await generateCharacterFaceDataUrl(
+                            toCharacterCustomization(profile.user.characterCustomization),
+                        );
+                        if (cancelled) return;
+                        if (faceUrl) {
+                            setResolvedSenderImagesByUserId((previous) => ({
+                                ...previous,
+                                [userId]: faceUrl,
+                            }));
+                        }
                     }
                 } catch {
                     // Profile resolution is best-effort for avatar rendering fallback.
@@ -1459,7 +1572,9 @@ function MessageList({
                                         ? "rounded-md bg-[var(--wd-accent-soft)]"
                                         : isCurrentUserMentioned
                                           ? "border-l-2 border-l-[rgb(240,185,11)] bg-[rgba(240,185,11,0.06)]"
-                                          : ""
+                                          : pinnedMessageIds?.has(message.id)
+                                            ? "border-l-2 border-l-[var(--wd-accent)]"
+                                            : ""
                                 }`}
                             >
                                 <div
@@ -1509,6 +1624,7 @@ function MessageList({
                                     frequentEmojis={frequentEmojis.map(
                                         (entry) => entry.emoji,
                                     )}
+                                    isPinned={pinnedMessageIds?.has(message.id) ?? false}
                                     onReply={() => {
                                         if (!message.replyToMessageId) {
                                             onOpenThread?.(message.id);
@@ -1530,8 +1646,19 @@ function MessageList({
                                             ? () => handleUnsendImage(message)
                                             : undefined
                                     }
+                                    onTogglePin={
+                                        pinnedMessageIds?.has(message.id)
+                                            ? () => onUnpinMessage?.(message.id)
+                                            : () => onPinMessage?.(message.id)
+                                    }
                                     onFutureAction={handleFutureMessageAction}
                                 />
+
+                                {pinnedMessageIds?.has(message.id) && (
+                                    <div className="flex items-center gap-1 text-[11px] wd-text-muted mb-1">
+                                        <Pin size={11} /> Pinned by {pinnedMessageIds.get(message.id)?.pinnedByName ?? "unknown"}
+                                    </div>
+                                )}
 
                                 <div className="flex items-center gap-2 mb-1">
                                     <span

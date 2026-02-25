@@ -28,6 +28,10 @@ import {
 } from "@/communication/chatV2/mentionUtils";
 import { getDisplayName } from "@/common/utils/displayName";
 import { formatChatMessageTimestamp } from "@/common/utils/messageTimestamp";
+import {
+    generateCharacterFaceDataUrl,
+    toCharacterCustomization,
+} from "@/common/utils/characterFaceAvatar";
 import Composer from "./Composer";
 import MessageHoverActions from "./MessageHoverActions";
 import MentionHighlightedContent from "./MentionHighlightedContent";
@@ -309,11 +313,22 @@ function ThreadMessageRow({
             <div className="flex items-start gap-3 pr-24">
                 <div className="h-8 w-8 shrink-0 rounded-full overflow-hidden border wd-border-subtle wd-bg-panel inline-flex items-center justify-center text-xs font-semibold wd-text-primary">
                     {senderImage ? (
-                        <img
-                            src={senderImage}
-                            alt={`${senderName} avatar`}
-                            className="h-full w-full object-cover"
-                        />
+                        senderImage.startsWith("data:") ? (
+                            <div
+                                className="h-full w-full bg-no-repeat"
+                                style={{
+                                    backgroundImage: `url('${senderImage}')`,
+                                    backgroundPosition: "center -20px",
+                                    imageRendering: "pixelated",
+                                }}
+                            />
+                        ) : (
+                            <img
+                                src={senderImage}
+                                alt={`${senderName} avatar`}
+                                className="h-full w-full object-cover"
+                            />
+                        )
                     ) : (
                         senderName.charAt(0).toUpperCase()
                     )}
@@ -782,6 +797,45 @@ function ThreadPanel({
         };
     }, [allMessages, linkPreviews, previewRetryCounts]);
 
+    const processedCharacterUserIds = useRef(new Set<number>());
+
+    useEffect(() => {
+        const inlineCharacterSenders = allMessages.filter((message) => {
+            if (!Number.isInteger(message.senderUserId)) return false;
+            if (
+                typeof localBackendUserId === "number"
+                && message.senderUserId === localBackendUserId
+            ) {
+                return false;
+            }
+            if (message.sender?.image?.trim()) return false;
+            if (processedCharacterUserIds.current.has(message.senderUserId))
+                return false;
+            return !!message.sender?.characterCustomization;
+        });
+
+        if (inlineCharacterSenders.length === 0) return;
+
+        const seen = new Set<number>();
+        for (const message of inlineCharacterSenders) {
+            if (seen.has(message.senderUserId)) continue;
+            seen.add(message.senderUserId);
+            processedCharacterUserIds.current.add(message.senderUserId);
+            const cc = message.sender!.characterCustomization!;
+
+            void generateCharacterFaceDataUrl(toCharacterCustomization(cc)).then(
+                (url) => {
+                    if (url) {
+                        setResolvedSenderImagesByUserId((prev) => ({
+                            ...prev,
+                            [message.senderUserId]: url,
+                        }));
+                    }
+                },
+            );
+        }
+    }, [allMessages, localBackendUserId]);
+
     useEffect(() => {
         const unresolvedSenderUserIds = Array.from(
             new Set(
@@ -839,6 +893,17 @@ function ThreadPanel({
                             ...previous,
                             [userId]: image,
                         }));
+                    } else if (profile.user.characterCustomization) {
+                        const faceUrl = await generateCharacterFaceDataUrl(
+                            toCharacterCustomization(profile.user.characterCustomization),
+                        );
+                        if (cancelled) return;
+                        if (faceUrl) {
+                            setResolvedSenderImagesByUserId((previous) => ({
+                                ...previous,
+                                [userId]: faceUrl,
+                            }));
+                        }
                     }
                 } catch {
                     // Best-effort avatar resolution only.

@@ -21,6 +21,7 @@ import DeskSearchResultsPanel from "./DeskSearchResultsPanel";
 import DirectMessageSidebar from "./DirectMessageSidebar";
 import GuildRail from "./GuildRail";
 import MemberPanel from "./MemberPanel";
+import { getDisplayName } from "@/common/utils/displayName";
 import ServerSettingsModal from "./modals/ServerSettingsModal";
 import MessageList from "./MessageList";
 import RoomHeader from "./RoomHeader";
@@ -110,6 +111,17 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
     const getDirectUnreadTotal = useChatV2Store(
         (state) => state.getDirectUnreadTotal,
     );
+    const pinnedMessagesByRoomId = useChatV2Store(
+        (state) => state.pinnedMessagesByRoomId,
+    );
+    const isLoadingPinnedMessages = useChatV2Store(
+        (state) => state.isLoadingPinnedMessages,
+    );
+    const loadPinnedMessages = useChatV2Store(
+        (state) => state.loadPinnedMessages,
+    );
+    const pinMessage = useChatV2Store((state) => state.pinMessage);
+    const unpinMessage = useChatV2Store((state) => state.unpinMessage);
 
     const [searchQuery, setSearchQuery] = useState("");
     const [searchFromUser, setSearchFromUser] =
@@ -135,6 +147,7 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
     const [isLoadingThread, setIsLoadingThread] = useState(false);
     const [threadError, setThreadError] = useState<string | null>(null);
     const [isMemberPanelVisible, setIsMemberPanelVisible] = useState(false);
+    const [isPinnedPanelVisible, setIsPinnedPanelVisible] = useState(false);
     const [serverImageOverrides, setServerImageOverrides] = useState<
         Record<string, string | null>
     >({});
@@ -285,6 +298,24 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
     const roomMembers = currentRoomId
         ? membersByRoomId[currentRoomId] || []
         : [];
+    const currentPinnedMessages = currentRoomId
+        ? pinnedMessagesByRoomId[currentRoomId] || []
+        : [];
+    const pinnedMessageIds = useMemo(
+        () =>
+            new Map(
+                currentPinnedMessages.map((p) => [
+                    p.messageId,
+                    {
+                        pinnedByName: getDisplayName(
+                            p.pinnedBy,
+                            `User ${p.pinnedByUserId}`,
+                        ),
+                    },
+                ]),
+            ),
+        [currentPinnedMessages],
+    );
 
     const activeRooms =
         railView === "dm"
@@ -646,6 +677,23 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
                                         (current) => !current,
                                     );
                                 }}
+                                isPinnedPanelVisible={isPinnedPanelVisible}
+                                onTogglePinnedPanel={() => {
+                                    const next = !isPinnedPanelVisible;
+                                    setIsPinnedPanelVisible(next);
+                                    if (next && currentRoomId) {
+                                        void loadPinnedMessages(currentRoomId);
+                                    }
+                                }}
+                                pinnedMessages={currentPinnedMessages}
+                                isLoadingPinnedMessages={isLoadingPinnedMessages}
+                                onUnpinMessage={(pin) => {
+                                    void unpinMessage(pin.roomId, pin.messageId);
+                                }}
+                                onJumpToPinnedMessage={(pin) => {
+                                    setIsPinnedPanelVisible(false);
+                                    setFocusedMessageId(pin.messageId);
+                                }}
                                 onOpenNotification={(notification) => {
                                     void (async () => {
                                         if (
@@ -708,6 +756,23 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
                                 focusedMessageId={
                                     currentRoomId ? focusedMessageId : null
                                 }
+                                pinnedMessageIds={pinnedMessageIds}
+                                onPinMessage={(messageId) => {
+                                    if (currentRoomId) {
+                                        void pinMessage(
+                                            currentRoomId,
+                                            messageId,
+                                        );
+                                    }
+                                }}
+                                onUnpinMessage={(messageId) => {
+                                    if (currentRoomId) {
+                                        void unpinMessage(
+                                            currentRoomId,
+                                            messageId,
+                                        );
+                                    }
+                                }}
                                 onOpenThread={(rootMessageId) => {
                                     const rootFromTimeline = roomMessages.find(
                                         (message) =>

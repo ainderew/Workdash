@@ -1,14 +1,16 @@
 import React, { useEffect, useState } from "react";
-import { Ellipsis, Forward, Pencil, Plus, Reply, Trash2 } from "lucide-react";
+import { Ellipsis, Forward, Pencil, Pin, Plus, Reply, Trash2 } from "lucide-react";
 import { CHAT_REACTION_QUICK_EMOJIS } from "@/communication/chatV2/reactionCatalog";
 import ReactionPickerFlyout from "./ReactionPickerFlyout";
 
 type MessageHoverActionsProps = {
     canReply?: boolean;
     frequentEmojis?: string[];
+    isPinned?: boolean;
     onReply?: () => void;
     onReact: (emoji: string) => void;
     onUnsend?: () => void;
+    onTogglePin?: () => void;
     onFutureAction?: (label: string) => void;
     className?: string;
 };
@@ -50,9 +52,11 @@ function ReactionTriggerIcon() {
 function MessageHoverActions({
     canReply = false,
     frequentEmojis = [],
+    isPinned = false,
     onReply,
     onReact,
     onUnsend,
+    onTogglePin,
     onFutureAction,
     className,
 }: MessageHoverActionsProps) {
@@ -141,6 +145,19 @@ function MessageHoverActions({
                         data-message-more-actions="true"
                         className="absolute right-0 top-[calc(100%+8px)] z-[180] min-w-[160px] rounded-md border wd-border-subtle wd-bg-panel p-1 shadow-[0_10px_24px_rgba(0,0,0,0.4)]"
                     >
+                        {onTogglePin ? (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setIsMoreOpen(false);
+                                    onTogglePin();
+                                }}
+                                className="w-full rounded px-2 py-1.5 text-left text-sm wd-text-primary transition-colors hover:bg-[var(--wd-surface-elevated)] inline-flex items-center gap-2"
+                            >
+                                <Pin size={14} />
+                                {isPinned ? "Unpin message" : "Pin message"}
+                            </button>
+                        ) : null}
                         <button
                             type="button"
                             onClick={() => {
