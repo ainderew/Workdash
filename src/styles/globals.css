@@ -400,13 +400,13 @@ body {
     --sidebar-border-rgb: 63 66 73;
     --sidebar-ring-rgb: 88 101 242;
 
-    --wd-surface-base-rgb: 49 51 56;
-    --wd-surface-panel-rgb: 49 51 56;
-    --wd-surface-panel-2-rgb: 43 45 49;
-    --wd-surface-elevated-rgb: 64 68 75;
-    --wd-surface-overlay-rgb: 35 36 40;
+    --wd-surface-base-rgb: 18 18 20;
+    --wd-surface-panel-rgb: 18 18 20;
+    --wd-surface-panel-2-rgb: 26 26 30;
+    --wd-surface-elevated-rgb: 44 44 48;
+    --wd-surface-overlay-rgb: 18 18 20;
     --wd-surface-overlay-alpha: 0.96;
-    --wd-border-subtle-rgb: 63 66 73;
+    --wd-border-subtle-rgb: 44 44 48;
     --wd-border-strong-rgb: 78 82 91;
     --wd-text-primary-rgb: 255 255 255;
     --wd-text-secondary-rgb: 255 255 255;

@@ -1,15 +1,18 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
-import { Check, Loader2, Settings, X } from "lucide-react";
+import { Check, ImagePlus, Loader2, Settings, Trash2, X } from "lucide-react";
 import useUserStore from "@/common/store/useStore";
 import { CharacterEventBus } from "@/game/character/CharacterEventBus";
 import { getDisplayNameFromParts } from "@/common/utils/displayName";
 import { THEME_OPTIONS } from "@/common/theme/themeRegistry";
 import { ThemeId } from "@/common/theme/_types";
 import useThemeStore from "@/common/store/themeStore";
+import { CONFIG } from "@/common/utils/config";
 
 const MAX_NAME_LENGTH = 20;
 const MAX_NICKNAME_LENGTH = 20;
+const MAX_AVATAR_SIZE = 5 * 1024 * 1024;
+const ALLOWED_AVATAR_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"];
 
 interface UserSettingsModalProps {
     isOpen: boolean;
@@ -31,6 +34,12 @@ function UserSettingsModal({ isOpen, onClose }: UserSettingsModalProps) {
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+    const [avatarFile, setAvatarFile] = useState<File | null>(null);
+    const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+    const [isDeletingAvatar, setIsDeletingAvatar] = useState(false);
+    const avatarInputRef = useRef<HTMLInputElement>(null);
+
     useEffect(() => {
         if (!isOpen) return;
 
@@ -47,8 +56,90 @@ function UserSettingsModal({ isOpen, onClose }: UserSettingsModalProps) {
         setName(resolvedName);
         setNickname(resolvedNickname);
         setError(null);
+        setAvatarFile(null);
+        setAvatarPreview(null);
         clearThemeSyncError();
     }, [clearThemeSyncError, isOpen, session?.backendUser?.name, session?.backendUser?.nickname, session?.user?.name, user.name, user.nickname]);
+
+    useEffect(() => {
+        return () => {
+            if (avatarPreview && avatarPreview.startsWith("blob:")) {
+                URL.revokeObjectURL(avatarPreview);
+            }
+        };
+    }, [avatarPreview]);
+
+    const handleAvatarFileSelect = useCallback(
+        (event: React.ChangeEvent<HTMLInputElement>) => {
+            setError(null);
+            const file = event.target.files?.[0];
+            if (!file) return;
+
+            if (!ALLOWED_AVATAR_TYPES.includes(file.type)) {
+                setError("Invalid file type. Allowed: PNG, JPEG, WebP, GIF");
+                return;
+            }
+
+            if (file.size > MAX_AVATAR_SIZE) {
+                setError("File size exceeds 5MB limit");
+                return;
+            }
+
+            if (avatarPreview && avatarPreview.startsWith("blob:")) {
+                URL.revokeObjectURL(avatarPreview);
+            }
+
+            setAvatarFile(file);
+            setAvatarPreview(URL.createObjectURL(file));
+        },
+        [avatarPreview],
+    );
+
+    const handleDeleteAvatar = async () => {
+        const jwt = window.__BACKEND_JWT__;
+        if (!jwt) {
+            setError("Not authenticated");
+            return;
+        }
+
+        setIsDeletingAvatar(true);
+        setError(null);
+
+        try {
+            const response = await fetch(
+                `${CONFIG.SFU_SERVER_URL}/api/users/me/avatar`,
+                {
+                    method: "DELETE",
+                    headers: { Authorization: `Bearer ${jwt}` },
+                },
+            );
+
+            if (!response.ok) {
+                const body = await response.json().catch(() => ({}));
+                throw new Error(
+                    body?.error || `Delete failed: ${response.status}`,
+                );
+            }
+
+            updateUser({ image: undefined });
+            if (window.__BACKEND_USER__) {
+                window.__BACKEND_USER__ = {
+                    ...window.__BACKEND_USER__,
+                    image: undefined,
+                };
+            }
+            setAvatarFile(null);
+            setAvatarPreview(null);
+        } catch (deleteError) {
+            setError(
+                deleteError instanceof Error
+                    ? deleteError.message
+                    : "Failed to remove avatar",
+            );
+        } finally {
+            setIsDeletingAvatar(false);
+        }
+    };
 
     const previewName = useMemo(
         () => getDisplayNameFromParts(nickname, name, "You"),
@@ -87,6 +178,43 @@ function UserSettingsModal({ isOpen, onClose }: UserSettingsModalProps) {
         setError(null);
 
         try {
+            if (avatarFile) {
+                const jwt = window.__BACKEND_JWT__;
+                if (!jwt) throw new Error("Not authenticated");
+
+                setIsUploadingAvatar(true);
+                const formData = new FormData();
+                formData.append("image", avatarFile);
+
+                const avatarResponse = await fetch(
+                    `${CONFIG.SFU_SERVER_URL}/api/users/me/avatar`,
+                    {
+                        method: "POST",
+                        headers: { Authorization: `Bearer ${jwt}` },
+                        body: formData,
+                    },
+                );
+
+                const avatarBody = await avatarResponse.json().catch(() => ({}));
+                if (!avatarResponse.ok) {
+                    throw new Error(
+                        avatarBody?.error || `Avatar upload failed: ${avatarResponse.status}`,
+                    );
+                }
+
+                const avatarUrl: string = avatarBody.avatarUrl;
+                updateUser({ image: avatarUrl });
+                if (window.__BACKEND_USER__) {
+                    window.__BACKEND_USER__ = {
+                        ...window.__BACKEND_USER__,
+                        image: avatarUrl,
+                    };
+                }
+                setAvatarFile(null);
+                setAvatarPreview(null);
+                setIsUploadingAvatar(false);
+            }
+
             const response = await fetch("/api/user/profile", {
                 method: "PATCH",
                 headers: {
@@ -156,6 +284,7 @@ function UserSettingsModal({ isOpen, onClose }: UserSettingsModalProps) {
             );
         } finally {
             setIsSaving(false);
+            setIsUploadingAvatar(false);
         }
     };
 
@@ -196,6 +325,81 @@ function UserSettingsModal({ isOpen, onClose }: UserSettingsModalProps) {
                 </div>
 
                 <form onSubmit={handleSave} className="space-y-4 p-4">
+                    <div className="rounded-lg border wd-border-subtle wd-bg-panel-2 p-3">
+                        <p className="text-[11px] font-semibold uppercase tracking-wide wd-text-muted">
+                            Avatar
+                        </p>
+
+                        <div className="mt-3 flex items-center gap-4">
+                            <button
+                                type="button"
+                                onClick={() => avatarInputRef.current?.click()}
+                                disabled={isUploadingAvatar || isDeletingAvatar}
+                                className="group relative h-16 w-16 shrink-0 rounded-full wd-bg-elevated overflow-hidden border wd-border-subtle disabled:opacity-50"
+                            >
+                                {avatarPreview || user.image ? (
+                                    <img
+                                        src={avatarPreview || user.image || ""}
+                                        alt="Avatar"
+                                        className="h-full w-full object-cover"
+                                    />
+                                ) : (
+                                    <span className="inline-flex h-full w-full items-center justify-center text-lg font-bold wd-text-muted">
+                                        {(name || "U").charAt(0).toUpperCase()}
+                                    </span>
+                                )}
+                                <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
+                                    <ImagePlus size={18} className="text-white" />
+                                </span>
+                            </button>
+
+                            <div className="flex flex-col gap-2">
+                                <button
+                                    type="button"
+                                    disabled={isUploadingAvatar || isDeletingAvatar}
+                                    onClick={() => avatarInputRef.current?.click()}
+                                    className="inline-flex items-center gap-2 rounded-md border wd-border-subtle px-3 py-1.5 text-xs font-semibold wd-text-primary transition-colors hover:bg-[var(--wd-surface-elevated)] disabled:opacity-50"
+                                >
+                                    <ImagePlus size={14} />
+                                    {user.image || avatarPreview ? "Change Avatar" : "Upload Avatar"}
+                                </button>
+
+                                {user.image && !avatarPreview && (
+                                    <button
+                                        type="button"
+                                        disabled={isUploadingAvatar || isDeletingAvatar}
+                                        onClick={handleDeleteAvatar}
+                                        className="inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-xs font-semibold text-[#ff7b7b] transition-colors hover:bg-[rgba(255,123,123,0.1)] disabled:opacity-50"
+                                    >
+                                        {isDeletingAvatar ? (
+                                            <>
+                                                <Loader2 size={14} className="animate-spin" />
+                                                Removing...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Trash2 size={14} />
+                                                Remove Avatar
+                                            </>
+                                        )}
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+
+                        <input
+                            ref={avatarInputRef}
+                            type="file"
+                            accept="image/png,image/jpeg,image/webp,image/gif"
+                            className="hidden"
+                            onChange={handleAvatarFileSelect}
+                        />
+
+                        <p className="mt-2 text-[10px] wd-text-muted">
+                            PNG, JPEG, WebP, or GIF. Max 5MB.
+                        </p>
+                    </div>
+
                     <div className="rounded-lg border wd-border-subtle wd-bg-panel-2 p-3">
                         <p className="text-[11px] font-semibold uppercase tracking-wide wd-text-muted">
                             Profile Preview

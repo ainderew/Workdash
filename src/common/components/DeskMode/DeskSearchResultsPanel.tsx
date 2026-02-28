@@ -6,6 +6,7 @@ import type {
 } from "@/communication/chatV2/_types";
 import { ArrowUpDown } from "lucide-react";
 import ChannelHashIcon from "./ChannelHashIcon";
+import UserAvatar from "./UserAvatar";
 import { getDisplayName } from "@/common/utils/displayName";
 import { formatChatMessageTimestamp } from "@/common/utils/messageTimestamp";
 
@@ -71,7 +72,6 @@ function DeskSearchResultsPanel({
             message.sender,
             `User ${message.senderUserId}`,
         );
-        const senderInitial = senderName.charAt(0).toUpperCase();
         const senderImage = message.sender?.image?.trim();
         const hasImageAttachment = message.attachments.some((attachment) =>
             attachment.isImage,
@@ -85,19 +85,11 @@ function DeskSearchResultsPanel({
                 className="w-full text-left rounded-xl border wd-border-subtle wd-bg-elevated p-3 transition-colors hover:bg-[var(--wd-surface-base)]"
             >
                 <div className="flex gap-3">
-                    <div className="h-10 w-10 rounded-full overflow-hidden border wd-border-subtle wd-bg-panel-2 flex items-center justify-center shrink-0">
-                        {senderImage ? (
-                            <img
-                                src={senderImage}
-                                alt={`${senderName} avatar`}
-                                className="h-full w-full object-cover"
-                            />
-                        ) : (
-                            <span className="text-[0.85rem] font-semibold wd-text-primary">
-                                {senderInitial}
-                            </span>
-                        )}
-                    </div>
+                    <UserAvatar
+                        name={senderName}
+                        image={senderImage}
+                        size="lg"
+                    />
 
                     <div className="min-w-0">
                         <div className="flex items-center gap-2 min-w-0">

@@ -22,6 +22,7 @@ import useUserStore from "@/common/store/useStore";
 import { getDisplayName } from "@/common/utils/displayName";
 import ChannelHashIcon from "./ChannelHashIcon";
 import DeskModeControls from "./DeskModeControls";
+import UserAvatar from "./UserAvatar";
 import CreateCategoryModal from "./modals/CreateCategoryModal";
 import CreateRoomModal from "./modals/CreateRoomModal";
 import DeleteRoomModal from "./modals/DeleteRoomModal";
@@ -598,7 +599,7 @@ function ChannelSidebar({
     return (
         <aside
             id="category-aside"
-            className="w-80 wd-bg-panel border-r wd-border-subtle flex flex-col min-h-0"
+            className="w-75 wd-bg-panel border-r wd-border-subtle flex flex-col min-h-0"
         >
             <div className="px-4 h-14 border-b wd-border-subtle flex items-center justify-between gap-2 relative">
                 <button
@@ -989,8 +990,8 @@ function ChannelSidebar({
                                                                         isLockedRoom
                                                                             ? "wd-text-muted cursor-not-allowed"
                                                                             : isActiveRoom
-                                                                            ? "wd-text-primary bg-[var(--wd-surface-elevated)]"
-                                                                            : "wd-text-secondary hover:text-[var(--wd-text-primary)] hover:bg-[var(--wd-surface-elevated)]"
+                                                                              ? "wd-text-primary bg-[var(--wd-surface-elevated)]"
+                                                                              : "wd-text-secondary hover:text-[var(--wd-text-primary)] hover:bg-[var(--wd-surface-elevated)]"
                                                                     } ${
                                                                         isDraggingRoom
                                                                             ? "opacity-40"
@@ -1014,7 +1015,9 @@ function ChannelSidebar({
                                                                                 size={
                                                                                     14
                                                                                 }
-                                                                                strokeWidth={1}
+                                                                                strokeWidth={
+                                                                                    1
+                                                                                }
                                                                                 className="shrink-0 opacity-70"
                                                                             />
                                                                         ) : (
@@ -1079,26 +1082,13 @@ function ChannelSidebar({
             <footer className="border-t wd-border-subtle wd-bg-panel p-3">
                 <div className="flex items-center justify-between gap-2">
                     <div className="flex min-w-0 items-center gap-2">
-                        {spriteSheetDataUrl ? (
-                            <div
-                                className="h-9 w-9 rounded-full wd-bg-elevated wd-text-primary ring-1 wd-border-subtle bg-no-repeat"
-                                style={avatarSpriteStyles}
-                            />
-                        ) : showAvatarImage ? (
-                            <img
-                                src={avatarUrl}
-                                alt={`${displayName} avatar`}
-                                onError={() => setIsAvatarLoadFailed(true)}
-                                className="h-9 w-9 rounded-full object-cover ring-1 wd-border-subtle"
-                            />
-                        ) : (
-                            <div className="h-9 w-9 rounded-full wd-bg-elevated wd-text-primary text-sm font-semibold flex items-center justify-center">
-                                <div
-                                    className="h-full w-full rounded-full bg-no-repeat"
-                                    style={defaultSpriteStyles}
-                                />
-                            </div>
-                        )}
+                        <UserAvatar
+                            name={displayName}
+                            spriteStyle={spriteSheetDataUrl ? avatarSpriteStyles : (!showAvatarImage ? defaultSpriteStyles : null)}
+                            image={showAvatarImage ? avatarUrl : null}
+                            className="ring-1 wd-border-subtle"
+                            onImageError={() => setIsAvatarLoadFailed(true)}
+                        />
                         <div className="min-w-0">
                             <p className="truncate text-sm font-semibold wd-text-primary">
                                 {displayName}

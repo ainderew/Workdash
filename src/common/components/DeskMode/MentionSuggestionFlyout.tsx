@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import UserAvatar from './UserAvatar';
 
 export type MentionSuggestion = {
   userId: number;
@@ -57,7 +58,6 @@ function MentionSuggestionFlyout({
       </div>
       {suggestions.map((suggestion, index) => {
         const isSelected = index === selectedIndex;
-        const initial = (suggestion.name || 'U').charAt(0).toUpperCase();
         const hasSecondaryName =
           !!suggestion.nickname &&
           !!suggestion.fullName &&
@@ -80,17 +80,11 @@ function MentionSuggestionFlyout({
                 : 'wd-text-primary hover:bg-[var(--wd-surface-elevated)]'
             }`}
           >
-            <div className="h-7 w-7 shrink-0 rounded-full overflow-hidden border wd-border-subtle wd-bg-elevated inline-flex items-center justify-center text-xs font-semibold">
-              {suggestion.image ? (
-                <img
-                  src={suggestion.image}
-                  alt={`${suggestion.name} avatar`}
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <span className="wd-text-secondary">{initial}</span>
-              )}
-            </div>
+            <UserAvatar
+              name={suggestion.name || 'U'}
+              image={suggestion.image}
+              size="xs"
+            />
             <div className="min-w-0">
               <p className="truncate">{suggestion.name}</p>
               {hasSecondaryName && (

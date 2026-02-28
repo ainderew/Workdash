@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import type { ChatV2Friend } from "@/communication/chatV2/_types";
 import { getDisplayName } from "@/common/utils/displayName";
-import { useCharacterFaceAvatar } from "@/common/utils/characterFaceAvatar";
+import UserAvatar from "../UserAvatar";
 import DeskModalShell from "./DeskModalShell";
 
 interface NewConversationModalProps {
@@ -20,10 +20,6 @@ function FriendRow({
     onSelect: (userId: number) => void;
 }) {
     const name = getDisplayName(friend.peerUser, `User ${friend.peerUser.id}`);
-    const faceDataUrl = useCharacterFaceAvatar(
-        friend.peerUser.characterCustomization ?? null,
-    );
-    const imageUrl = friend.peerUser.image?.trim() || "";
 
     return (
         <button
@@ -31,24 +27,12 @@ function FriendRow({
             onClick={() => onSelect(friend.peerUser.id)}
             className="w-full px-3 py-2 rounded-lg text-left text-sm transition-colors hover:bg-[var(--wd-surface-elevated)] flex items-center gap-3"
         >
-            <div className="h-8 w-8 shrink-0 rounded-full wd-bg-elevated wd-text-secondary text-xs flex items-center justify-center font-semibold overflow-hidden border wd-border-subtle">
-                {faceDataUrl ? (
-                    <img
-                        src={faceDataUrl}
-                        alt={name}
-                        className="w-full h-full object-cover"
-                        style={{ imageRendering: "pixelated" }}
-                    />
-                ) : imageUrl ? (
-                    <img
-                        src={imageUrl}
-                        alt={name}
-                        className="w-full h-full object-cover"
-                    />
-                ) : (
-                    <span>{name.charAt(0).toUpperCase()}</span>
-                )}
-            </div>
+            <UserAvatar
+                name={name}
+                image={friend.peerUser.image}
+                characterCustomization={friend.peerUser.characterCustomization}
+                size="sm"
+            />
             <span className="truncate wd-text-primary">{name}</span>
         </button>
     );

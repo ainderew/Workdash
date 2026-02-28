@@ -36,6 +36,7 @@ import Composer from "./Composer";
 import MessageHoverActions from "./MessageHoverActions";
 import MentionHighlightedContent from "./MentionHighlightedContent";
 import MessageReactionChips from "./MessageReactionChips";
+import UserAvatar from "./UserAvatar";
 
 interface ThreadPanelProps {
     roomId: string | null;
@@ -311,28 +312,16 @@ function ThreadMessageRow({
             />
 
             <div className="flex items-start gap-3 pr-24">
-                <div className="h-8 w-8 shrink-0 rounded-full overflow-hidden border wd-border-subtle wd-bg-panel inline-flex items-center justify-center text-xs font-semibold wd-text-primary">
-                    {senderImage ? (
-                        senderImage.startsWith("data:") ? (
-                            <div
-                                className="h-full w-full bg-no-repeat"
-                                style={{
-                                    backgroundImage: `url('${senderImage}')`,
-                                    backgroundPosition: "center -20px",
-                                    imageRendering: "pixelated",
-                                }}
-                            />
-                        ) : (
-                            <img
-                                src={senderImage}
-                                alt={`${senderName} avatar`}
-                                className="h-full w-full object-cover"
-                            />
-                        )
-                    ) : (
-                        senderName.charAt(0).toUpperCase()
-                    )}
-                </div>
+                <UserAvatar
+                    name={senderName}
+                    spriteStyle={senderImage?.startsWith("data:") ? {
+                        backgroundImage: `url('${senderImage}')`,
+                        backgroundPosition: "center -20px",
+                        imageRendering: "pixelated",
+                    } : null}
+                    image={senderImage && !senderImage.startsWith("data:") ? senderImage : null}
+                    size="sm"
+                />
 
                 <div className="min-w-0 flex-1">
                     <div className="mb-1 flex items-center gap-2">

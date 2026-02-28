@@ -31,6 +31,7 @@ import {
     getMemberDisplayName,
 } from "@/communication/chatV2/mentionUtils";
 import MessageSkeleton from "./MessageSkeleton";
+import UserAvatar from "./UserAvatar";
 import MessageHoverActions from "./MessageHoverActions";
 import MessageReactionChips from "./MessageReactionChips";
 import MentionHighlightedContent from "./MentionHighlightedContent";
@@ -41,6 +42,8 @@ import {
     Ellipsis,
     ExternalLink,
     Flag,
+    ImagePlus,
+    Loader2,
     MessageSquare,
     Pencil,
     Pin,
@@ -50,6 +53,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { getDisplayName } from "@/common/utils/displayName";
+import { CONFIG } from "@/common/utils/config";
 import {
     formatChatDaySeparatorLabel,
     formatChatMessageTimestamp,
@@ -195,6 +199,10 @@ const getSenderAvatarForMessage = (
         input.localBackendUserId !== undefined &&
         message.senderUserId === input.localBackendUserId;
 
+    if (isLocalSender && input.localProfileImage) {
+        return { mode: "image", src: input.localProfileImage };
+    }
+
     if (isLocalSender && input.localSpriteSheet) {
         return {
             mode: "sprite",
@@ -229,10 +237,6 @@ const getSenderAvatarForMessage = (
         return { mode: "image", src: resolvedImage };
     }
 
-    if (isLocalSender && input.localProfileImage) {
-        return { mode: "image", src: input.localProfileImage };
-    }
-
     return { mode: "fallback" };
 };
 
@@ -259,6 +263,7 @@ function MessageList({
     const [showNewMessagesPill, setShowNewMessagesPill] = useState(false);
     const [isScrolledFarBack, setIsScrolledFarBack] = useState(false);
     const user = useUserStore((state) => state.user);
+    const updateUser = useUserStore((state) => state.updateUser);
     const friends = useChatV2Store((state) => state.friends);
     const friendRequests = useChatV2Store((state) => state.friendRequests);
     const requestFriend = useChatV2Store((state) => state.requestFriend);
@@ -304,6 +309,8 @@ function MessageList({
     const [isMoreOptionsOpen, setIsMoreOptionsOpen] = useState(false);
     const [isOpeningDm, setIsOpeningDm] = useState(false);
     const [isAddingFriend, setIsAddingFriend] = useState(false);
+    const [isUploadingPopoverAvatar, setIsUploadingPopoverAvatar] = useState(false);
+    const popoverAvatarInputRef = useRef<HTMLInputElement>(null);
     const [resolvedSenderImagesByUserId, setResolvedSenderImagesByUserId] =
         useState<Record<number, string>>({});
     const [
@@ -1598,24 +1605,14 @@ function MessageList({
                                             ? "Click to view profile. Right-click to add friend."
                                             : "Click to view profile"
                                     }
-                                    className="w-9 h-9 rounded-full wd-bg-elevated wd-text-secondary text-xs flex items-center justify-center font-semibold overflow-hidden border wd-border-subtle cursor-pointer"
+                                    className="cursor-pointer"
                                 >
-                                    {senderAvatar.mode === "sprite" ? (
-                                        <div
-                                            className="w-full h-full bg-no-repeat"
-                                            style={senderAvatar.style}
-                                        />
-                                    ) : senderAvatar.mode === "image" ? (
-                                        <img
-                                            src={senderAvatar.src}
-                                            alt={`${senderName} avatar`}
-                                            className="w-full h-full object-cover"
-                                        />
-                                    ) : (
-                                        <span>
-                                            {senderName.charAt(0).toUpperCase()}
-                                        </span>
-                                    )}
+                                    <UserAvatar
+                                        name={senderName}
+                                        spriteStyle={senderAvatar.mode === "sprite" ? senderAvatar.style : null}
+                                        image={senderAvatar.mode === "image" ? senderAvatar.src : null}
+                                        className="cursor-pointer"
+                                    />
                                 </div>
 
                                 <div className="min-w-0 flex-1 relative">
@@ -2239,26 +2236,102 @@ function MessageList({
                     </div>
 
                     <div className="px-4 pb-4 -mt-8">
-                        <div className="h-16 w-16 rounded-full border-4 wd-border-strong wd-bg-elevated overflow-hidden">
-                            {profilePopover.senderAvatar.mode === "sprite" ? (
-                                <div
-                                    className="h-full w-full bg-no-repeat"
-                                    style={profilePopover.senderAvatar.style}
+                        {activeUserProfile?.isSelf ? (
+                            <label className="group relative block w-16 h-16 cursor-pointer">
+                                <UserAvatar
+                                    name={profilePopover.senderName}
+                                    spriteStyle={profilePopover.senderAvatar.mode === "sprite" ? profilePopover.senderAvatar.style : null}
+                                    image={profilePopover.senderAvatar.mode === "image" ? profilePopover.senderAvatar.src : null}
+                                    size="xl"
+                                    className="border-4 wd-border-strong"
                                 />
-                            ) : profilePopover.senderAvatar.mode === "image" ? (
-                                <img
-                                    src={profilePopover.senderAvatar.src}
-                                    alt={`${profilePopover.senderName} avatar`}
-                                    className="h-full w-full object-cover"
+                                <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
+                                    {isUploadingPopoverAvatar ? (
+                                        <Loader2 size={18} className="text-white animate-spin" />
+                                    ) : (
+                                        <ImagePlus size={18} className="text-white" />
+                                    )}
+                                </span>
+                                <input
+                                    ref={popoverAvatarInputRef}
+                                    type="file"
+                                    accept="image/png,image/jpeg,image/webp,image/gif"
+                                    className="hidden"
+                                    disabled={isUploadingPopoverAvatar}
+                                    onChange={async (event) => {
+                                        const file = event.target.files?.[0];
+                                        if (!file) return;
+
+                                        const allowedTypes = ["image/png", "image/jpeg", "image/webp", "image/gif"];
+                                        if (!allowedTypes.includes(file.type)) {
+                                            toast("Invalid file type", { description: "Allowed: PNG, JPEG, WebP, GIF" });
+                                            return;
+                                        }
+                                        if (file.size > 5 * 1024 * 1024) {
+                                            toast("File too large", { description: "Max 5MB" });
+                                            return;
+                                        }
+
+                                        const jwt = window.__BACKEND_JWT__;
+                                        if (!jwt) {
+                                            toast("Not authenticated");
+                                            return;
+                                        }
+
+                                        setIsUploadingPopoverAvatar(true);
+                                        try {
+                                            const formData = new FormData();
+                                            formData.append("image", file);
+
+                                            const response = await fetch(
+                                                `${CONFIG.SFU_SERVER_URL}/api/users/me/avatar`,
+                                                {
+                                                    method: "POST",
+                                                    headers: { Authorization: `Bearer ${jwt}` },
+                                                    body: formData,
+                                                },
+                                            );
+
+                                            const body = await response.json().catch(() => ({}));
+                                            if (!response.ok) {
+                                                throw new Error(body?.error || `Upload failed: ${response.status}`);
+                                            }
+
+                                            const avatarUrl: string = body.avatarUrl;
+                                            updateUser({ image: avatarUrl });
+                                            if (window.__BACKEND_USER__) {
+                                                window.__BACKEND_USER__ = {
+                                                    ...window.__BACKEND_USER__,
+                                                    image: avatarUrl,
+                                                };
+                                            }
+                                            setProfilePopover({
+                                                ...profilePopover,
+                                                senderAvatar: { mode: "image", src: avatarUrl },
+                                            });
+                                            toast("Avatar updated");
+                                        } catch (uploadError) {
+                                            toast("Failed to upload avatar", {
+                                                description: uploadError instanceof Error ? uploadError.message : "Please try again",
+                                            });
+                                        } finally {
+                                            setIsUploadingPopoverAvatar(false);
+                                            if (popoverAvatarInputRef.current) {
+                                                popoverAvatarInputRef.current.value = "";
+                                            }
+                                        }
+                                    }}
                                 />
-                            ) : (
-                                <div className="h-full w-full inline-flex items-center justify-center text-xl font-semibold wd-text-primary">
-                                    {profilePopover.senderName
-                                        .charAt(0)
-                                        .toUpperCase()}
-                                </div>
-                            )}
-                        </div>
+                            </label>
+                        ) : (
+                            <UserAvatar
+                                name={profilePopover.senderName}
+                                spriteStyle={profilePopover.senderAvatar.mode === "sprite" ? profilePopover.senderAvatar.style : null}
+                                image={profilePopover.senderAvatar.mode === "image" ? profilePopover.senderAvatar.src : null}
+                                size="xl"
+                                className="border-4 wd-border-strong"
+                            />
+                        )}
 
                         <div className="mt-3">
                             <p className="text-xl font-semibold wd-text-primary truncate">

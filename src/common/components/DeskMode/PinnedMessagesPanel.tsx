@@ -2,6 +2,7 @@ import React from "react";
 import { Pin, X } from "lucide-react";
 import type { ChatV2PinnedMessage } from "@/communication/chatV2/_types";
 import { getDisplayName } from "@/common/utils/displayName";
+import UserAvatar from "./UserAvatar";
 
 interface PinnedMessagesPanelProps {
     pinnedMessages: ChatV2PinnedMessage[];
@@ -63,17 +64,12 @@ function PinnedMessagesPanel({
                                     tabIndex={0}
                                 >
                                     <div className="flex items-start justify-between gap-2">
-                                        <div className="w-7 h-7 shrink-0 rounded-full wd-bg-elevated wd-text-secondary text-[11px] flex items-center justify-center font-semibold overflow-hidden border wd-border-subtle mt-0.5">
-                                            {pin.message.sender?.image ? (
-                                                <img
-                                                    src={pin.message.sender.image}
-                                                    alt={`${senderName} avatar`}
-                                                    className="w-full h-full object-cover"
-                                                />
-                                            ) : (
-                                                <span>{senderName.charAt(0).toUpperCase()}</span>
-                                            )}
-                                        </div>
+                                        <UserAvatar
+                                            name={senderName}
+                                            image={pin.message.sender?.image}
+                                            size="xs"
+                                            className="mt-0.5"
+                                        />
                                         <div className="min-w-0 flex-1">
                                             <p className="text-xs font-semibold wd-text-primary truncate">
                                                 {senderName}
