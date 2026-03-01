@@ -257,7 +257,7 @@ function ChannelSidebar({
     const localBackendUserId =
         typeof window !== "undefined" ? window.__BACKEND_USER__?.id : undefined;
     const spriteSheetDataUrl = user.spriteSheetDataUrl?.trim() || "";
-    const avatarUrl = user.image?.trim() || "";
+    const avatarUrl = window.__BACKEND_USER__?.image?.trim() || "";
     const showAvatarImage = avatarUrl.length > 0 && !isAvatarLoadFailed;
 
     const avatarSpriteStyles = useMemo<React.CSSProperties>(() => {
@@ -1079,12 +1079,18 @@ function ChannelSidebar({
                 )}
             </div>
 
-            <footer className="border-t wd-border-subtle wd-bg-panel p-3">
-                <div className="flex items-center justify-between gap-2">
+            <footer className="border-t wd-border-subtle wd-bg-panel-2 p-3 wd-panel-height flex justify-center items-center">
+                <div className="flex-1 flex items-center justify-between gap-2">
                     <div className="flex min-w-0 items-center gap-2">
                         <UserAvatar
                             name={displayName}
-                            spriteStyle={spriteSheetDataUrl ? avatarSpriteStyles : (!showAvatarImage ? defaultSpriteStyles : null)}
+                            spriteStyle={
+                                showAvatarImage
+                                    ? null
+                                    : spriteSheetDataUrl
+                                      ? avatarSpriteStyles
+                                      : defaultSpriteStyles
+                            }
                             image={showAvatarImage ? avatarUrl : null}
                             className="ring-1 wd-border-subtle"
                             onImageError={() => setIsAvatarLoadFailed(true)}
@@ -1222,24 +1228,6 @@ function ChannelSidebar({
                         )}
                     </div>
                 </div>
-
-                {presentation === "desk" ? (
-                    <button
-                        type="button"
-                        onClick={() => setInteractionMode("world")}
-                        className="mt-3 w-full inline-flex h-8 items-center justify-center rounded-md border wd-border-subtle wd-bg-elevated px-3 text-xs font-semibold wd-text-primary transition-colors hover:bg-[var(--wd-surface-base)]"
-                    >
-                        2D Mode
-                    </button>
-                ) : (
-                    <button
-                        type="button"
-                        onClick={() => onClosePanel?.()}
-                        className="mt-3 w-full inline-flex h-8 items-center justify-center rounded-md border wd-border-subtle wd-bg-elevated px-3 text-xs font-semibold wd-text-primary transition-colors hover:bg-[var(--wd-surface-base)]"
-                    >
-                        Close Chat
-                    </button>
-                )}
             </footer>
             <UserSettingsModal
                 isOpen={isUserSettingsModalOpen}

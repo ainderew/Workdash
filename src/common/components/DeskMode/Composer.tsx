@@ -326,7 +326,7 @@ function Composer({
     );
 
     return (
-        <div className="relative border-t wd-border-subtle p-4 wd-bg-panel-2">
+        <div className="wd-panel-height relative border-t wd-border-subtle p-4 wd-bg-panel-2">
             {isMentionFlyoutOpen && (
                 <MentionSuggestionFlyout
                     suggestions={mentionSuggestions}

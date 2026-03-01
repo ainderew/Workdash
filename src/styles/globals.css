@@ -148,6 +148,8 @@ body {
     --wd-danger-soft: rgb(var(--wd-danger-rgb) / var(--wd-danger-soft-alpha));
     --wd-warning: rgb(var(--wd-warning-rgb) / 1);
     --wd-info: rgb(var(--wd-info-rgb) / 1);
+
+    --wd-panel-height: 5rem;
 }
 
 :root,
@@ -583,6 +585,10 @@ body {
     }
     .clip-path-polygon-sm {
         clip-path: polygon(90% 0, 100% 30%, 100% 100%, 10% 100%, 0% 70%, 0 0);
+    }
+
+    .wd-panel-height {
+        height: var(--wd-panel-height);
     }
 }
 

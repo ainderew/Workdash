@@ -81,7 +81,7 @@ function DirectMessageSidebar({
     const localBackendUserId =
         typeof window !== "undefined" ? window.__BACKEND_USER__?.id : undefined;
     const spriteSheetDataUrl = user.spriteSheetDataUrl?.trim() || "";
-    const avatarUrl = user.image?.trim() || "";
+    const avatarUrl = window.__BACKEND_USER__?.image?.trim() || "";
     const showAvatarImage = avatarUrl.length > 0 && !isAvatarLoadFailed;
 
     const avatarSpriteStyles = useMemo<React.CSSProperties>(() => {
@@ -374,7 +374,7 @@ function DirectMessageSidebar({
                         <div className="flex min-w-0 items-center gap-2">
                             <UserAvatar
                                 name={displayName}
-                                spriteStyle={spriteSheetDataUrl ? avatarSpriteStyles : (!showAvatarImage ? defaultSpriteStyles : null)}
+                                spriteStyle={showAvatarImage ? null : (spriteSheetDataUrl ? avatarSpriteStyles : defaultSpriteStyles)}
                                 image={showAvatarImage ? avatarUrl : null}
                                 className="ring-1 wd-border-subtle"
                                 onImageError={() => setIsAvatarLoadFailed(true)}

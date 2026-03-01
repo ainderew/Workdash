@@ -328,8 +328,7 @@ function MessageList({
         "",
     );
     const localSpriteSheet = user.spriteSheetDataUrl?.trim() || "";
-    const localProfileImage =
-        user.image?.trim() || window.__BACKEND_USER__?.image || "";
+    const localProfileImage = window.__BACKEND_USER__?.image?.trim() || "";
     const acceptedFriendUserIds = useMemo(
         () =>
             new Set(

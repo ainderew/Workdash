@@ -65,9 +65,10 @@ async function performBackendSync(email: string, name: string, image?: string) {
     }
 
     const data = await response.json();
+    const { avatarUrl, ...restUser } = data.user ?? {};
     return {
         token: data.token,
-        user: data.user,
+        user: { ...restUser, image: avatarUrl },
         character: data.character,
         // Set expiration to 25 days (less than the 30d server default)
         expiresAt: Date.now() + 25 * 24 * 60 * 60 * 1000,

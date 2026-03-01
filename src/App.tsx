@@ -2,6 +2,7 @@
 import Phaser from "phaser";
 import React, { useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/router";
 import { IRefPhaserGame, PhaserGame } from "./PhaserGame";
 import AudioElement from "./common/components/AudioElement";
 import UiControls from "./common/components/UiControls/UiControls";
@@ -27,11 +28,6 @@ import useUiStore, { InteractionMode } from "./common/store/uiStore";
 import DeskLayout from "./common/components/DeskMode/DeskLayout";
 import useThemeStore from "@/common/store/themeStore";
 
-
-
-
-
-
 function App() {
     const interactionMode = useUiStore((state) => state.interactionMode);
     const setInteractionMode = useUiStore((state) => state.setInteractionMode);
@@ -39,7 +35,8 @@ function App() {
     const [isInitialized, setIsInitialized] = useState(false);
     const [isGameReady, setIsGameReady] = useState(false);
     const { data: session, status } = useSession();
-	
+    const router = useRouter();
+
     useCommandPaletteHotkey();
 
     useEffect(() => {
@@ -60,11 +57,6 @@ function App() {
         const transport = MediaTransportService.getInstance(jwtToken);
         const reactionService = ReactionService.getInstance();
         const pollService = PollService.getInstance();
-
-        
-        
-        
-        
 
         const init = async () => {
             try {
@@ -95,7 +87,6 @@ function App() {
         return false;
     };
 
-    
     const handleGameReady = () => {
         setIsGameReady(true);
     };
@@ -118,7 +109,8 @@ function App() {
             if (urlMode === "desk" || urlMode === "world") return urlMode;
 
             const storedMode = localStorage.getItem("workdash:interactionMode");
-            if (storedMode === "desk" || storedMode === "world") return storedMode;
+            if (storedMode === "desk" || storedMode === "world")
+                return storedMode;
 
             return null;
         };
@@ -149,9 +141,6 @@ function App() {
         game.loop.wake();
     }, [interactionMode, isGameReady]);
 
-    
-
-    
     if (status === "loading") {
         return (
             <div className="w-full h-full flex items-center justify-center wd-bg-app wd-text-primary">
@@ -160,13 +149,9 @@ function App() {
         );
     }
 
-    
     if (status === "unauthenticated") {
-        return (
-            <div className="w-full h-full flex items-center justify-center wd-bg-app wd-text-primary">
-                Please log in to continue
-            </div>
-        );
+        void router.replace("/login");
+        return null;
     }
 
     if (!isInitialized) {

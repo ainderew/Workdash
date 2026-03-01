@@ -29,24 +29,24 @@ function UserAvatar({
     className,
     onImageError,
 }: UserAvatarProps) {
-    const faceDataUrl = useCharacterFaceAvatar(characterCustomization ?? null);
     const imageUrl = image?.trim() || "";
+    const faceDataUrl = useCharacterFaceAvatar(imageUrl ? null : (characterCustomization ?? null));
 
     return (
         <div
             className={`shrink-0 rounded-full wd-bg-elevated wd-text-secondary flex items-center justify-center font-semibold overflow-hidden border wd-border-subtle ${sizeClasses[size]} ${className ?? ""}`}
         >
-            {spriteStyle ? (
-                <div
-                    className="w-full h-full bg-no-repeat"
-                    style={spriteStyle}
-                />
-            ) : imageUrl ? (
+            {imageUrl ? (
                 <img
                     src={imageUrl}
                     alt={name}
                     className="w-full h-full object-cover"
                     onError={onImageError}
+                />
+            ) : spriteStyle ? (
+                <div
+                    className="w-full h-full bg-no-repeat"
+                    style={spriteStyle}
                 />
             ) : faceDataUrl ? (
                 <img
