@@ -13,6 +13,7 @@ import { CharacterCustomization } from "../character/_types";
 import { CharacterCompositor } from "../character/CharacterCompositor";
 import { CharacterAnimationManager } from "../character/CharacterAnimationManager";
 import useUserStore from "@/common/store/useStore";
+import useChatV2Store from "@/common/store/chatV2Store";
 import { EventBus } from "../EventBus";
 import { AudioZoneManager } from "../audioZoneManager/audioZoneManager";
 import { BackgroundMusicManager } from "../audio/BackgroundMusicManager";
@@ -84,11 +85,13 @@ export abstract class BaseGameScene extends Scene {
 
         EventBus.on("teleport", this.handleTeleportCommand, this);
 
-        
+        const workspaceId =
+            useChatV2Store.getState().selectedWorkspaceId ?? undefined;
         this.multiplayer.joinGame(
             this.spawnX,
             this.spawnY,
             this.currentSceneName,
+            workspaceId,
         );
         this.multiplayer.setCurrentScene(this.currentSceneName);
 

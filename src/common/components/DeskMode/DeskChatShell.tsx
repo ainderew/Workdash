@@ -6,6 +6,7 @@ import React, {
     useState,
 } from "react";
 import useChatV2Store from "@/common/store/chatV2Store";
+import useWorkspaceStore from "@/common/store/workspaceStore";
 import { ChatV2Service } from "@/communication/chatV2/chatV2Service";
 import type {
     ChatV2DirectRoom,
@@ -122,6 +123,20 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
     );
     const pinMessage = useChatV2Store((state) => state.pinMessage);
     const unpinMessage = useChatV2Store((state) => state.unpinMessage);
+    const reloadRoomStructure = useChatV2Store(
+        (state) => state.reloadRoomStructure,
+    );
+
+    const workspaces = useWorkspaceStore((state) => state.workspaces);
+    const fetchMyWorkspaces = useWorkspaceStore(
+        (state) => state.fetchMyWorkspaces,
+    );
+    const storeCreateWorkspace = useWorkspaceStore(
+        (state) => state.createWorkspace,
+    );
+    const updateWorkspaceLocal = useWorkspaceStore(
+        (state) => state.updateWorkspaceLocal,
+    );
 
     const [searchQuery, setSearchQuery] = useState("");
     const [searchFromUser, setSearchFromUser] =
@@ -164,7 +179,8 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
 
     useEffect(() => {
         void initialize();
-    }, [initialize]);
+        void fetchMyWorkspaces();
+    }, [initialize, fetchMyWorkspaces]);
 
     useEffect(() => {
         if (railView !== "dm") return;
@@ -198,33 +214,53 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
         );
     }, [rooms, selectedWorkspaceId]);
 
-    const workspaceOptions = useMemo(
-        () =>
-            Array.from(
-                new Map(
-                    rooms
-                        .filter((room) => room.type !== "DIRECT")
-                        .map((room) => [
-                            room.workspaceId,
-                            {
-                                id: room.workspaceId,
-                                name:
-                                    serverNameOverrides[room.workspaceId] ||
-                                    room.workspace?.name?.trim() ||
-                                    "Workspace",
-                                unreadCount: getWorkspaceUnreadTotal(
-                                    room.workspaceId,
-                                ),
-                                imageUrl:
-                                    serverImageOverrides[room.workspaceId] !== undefined
-                                        ? serverImageOverrides[room.workspaceId]
-                                        : (room.workspace?.imageUrl ?? null),
-                            },
-                        ]),
-                ).values(),
-            ),
-        [getWorkspaceUnreadTotal, rooms, serverImageOverrides, serverNameOverrides],
-    );
+    const workspaceOptions = useMemo(() => {
+        if (workspaces.length > 0) {
+            return workspaces.map((ws) => ({
+                id: ws.id,
+                name:
+                    serverNameOverrides[ws.id] ||
+                    ws.name?.trim() ||
+                    "Workspace",
+                unreadCount: getWorkspaceUnreadTotal(ws.id),
+                imageUrl:
+                    serverImageOverrides[ws.id] !== undefined
+                        ? serverImageOverrides[ws.id]
+                        : (ws.iconUrl ?? null),
+            }));
+        }
+
+        return Array.from(
+            new Map(
+                rooms
+                    .filter((room) => room.type !== "DIRECT")
+                    .map((room) => [
+                        room.workspaceId,
+                        {
+                            id: room.workspaceId,
+                            name:
+                                serverNameOverrides[room.workspaceId] ||
+                                room.workspace?.name?.trim() ||
+                                "Workspace",
+                            unreadCount: getWorkspaceUnreadTotal(
+                                room.workspaceId,
+                            ),
+                            imageUrl:
+                                serverImageOverrides[room.workspaceId] !==
+                                undefined
+                                    ? serverImageOverrides[room.workspaceId]
+                                    : (room.workspace?.imageUrl ?? null),
+                        },
+                    ]),
+            ).values(),
+        );
+    }, [
+        getWorkspaceUnreadTotal,
+        rooms,
+        serverImageOverrides,
+        serverNameOverrides,
+        workspaces,
+    ]);
 
     const categories = useMemo<ChatV2RoomCategory[]>(
         () =>
@@ -274,8 +310,9 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
                 ...current,
                 [serverId]: imageUrl,
             }));
+            updateWorkspaceLocal(serverId, { iconUrl: imageUrl });
         },
-        [],
+        [updateWorkspaceLocal],
     );
 
     const handleServerRenamed = useCallback(
@@ -284,9 +321,33 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
                 ...current,
                 [serverId]: name,
             }));
+            updateWorkspaceLocal(serverId, { name });
         },
-        [],
+        [updateWorkspaceLocal],
     );
+
+    const [isCreateWorkspaceOpen, setIsCreateWorkspaceOpen] = useState(false);
+    const [createWorkspaceName, setCreateWorkspaceName] = useState("");
+
+    const handleCreateWorkspace = useCallback(async () => {
+        const trimmed = createWorkspaceName.trim();
+        if (!trimmed) return;
+
+        const workspace = await storeCreateWorkspace(trimmed);
+        if (workspace) {
+            setCreateWorkspaceName("");
+            setIsCreateWorkspaceOpen(false);
+            setRailView("server");
+            setSelectedWorkspaceId(workspace.id);
+            await reloadRoomStructure();
+        }
+    }, [
+        createWorkspaceName,
+        storeCreateWorkspace,
+        setRailView,
+        setSelectedWorkspaceId,
+        reloadRoomStructure,
+    ]);
 
     const [serverSettingsTargetId, setServerSettingsTargetId] = useState<
         string | null
@@ -579,6 +640,9 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
                     }}
                     onChangeServerImage={(workspaceId) => {
                         setServerSettingsTargetId(workspaceId);
+                    }}
+                    onCreateWorkspace={() => {
+                        setIsCreateWorkspaceOpen(true);
                     }}
                 />
 
@@ -917,6 +981,53 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
                     setServerSettingsTargetId(null);
                 }}
             />
+
+            {isCreateWorkspaceOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+                    <div className="w-96 rounded-xl wd-bg-panel p-6 shadow-xl">
+                        <h2 className="text-lg font-semibold wd-text-primary mb-4">
+                            Create Workspace
+                        </h2>
+                        <input
+                            type="text"
+                            value={createWorkspaceName}
+                            onChange={(e) =>
+                                setCreateWorkspaceName(e.target.value)
+                            }
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                    void handleCreateWorkspace();
+                                }
+                            }}
+                            placeholder="Workspace name"
+                            className="w-full rounded-lg border wd-border-subtle wd-bg-elevated px-3 py-2 text-sm wd-text-primary placeholder:wd-text-secondary focus:outline-none focus:ring-1 focus:ring-[var(--wd-accent)]"
+                            autoFocus
+                        />
+                        <div className="mt-4 flex justify-end gap-2">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setIsCreateWorkspaceOpen(false);
+                                    setCreateWorkspaceName("");
+                                }}
+                                className="rounded-lg px-4 py-2 text-sm wd-text-secondary hover:wd-text-primary transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    void handleCreateWorkspace();
+                                }}
+                                disabled={!createWorkspaceName.trim()}
+                                className="rounded-lg bg-[var(--wd-accent)] px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+                            >
+                                Create
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </section>
     );
 }

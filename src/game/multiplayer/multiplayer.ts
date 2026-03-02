@@ -115,9 +115,14 @@ export class Multiplayer {
         this.socket.off("playerAction");
     }
 
-    public joinGame(x: number, y: number, sceneName: string) {
+    public joinGame(
+        x: number,
+        y: number,
+        sceneName: string,
+        workspaceId?: string,
+    ) {
         this.currentScene = sceneName;
-        this.send("playerJoin", { x, y, scene: sceneName });
+        this.send("playerJoin", { x, y, scene: sceneName, workspaceId });
     }
 
     public emitPlayerMovement(data: MovementPacket) {

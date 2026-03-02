@@ -1,5 +1,5 @@
 import React, { useRef, useState } from "react";
-import { MessageSquareMore, ImagePlus } from "lucide-react";
+import { MessageSquareMore, ImagePlus, Plus } from "lucide-react";
 import {
     Tooltip,
     TooltipContent,
@@ -21,6 +21,7 @@ interface GuildRailProps {
     onSelectWorkspace: (workspaceId: string) => void;
     onSelectDm: () => void;
     onChangeServerImage?: (workspaceId: string) => void;
+    onCreateWorkspace?: () => void;
 }
 
 const toInitials = (name: string) => {
@@ -59,7 +60,7 @@ function RailButton({
                     type="button"
                     onClick={onClick}
                     onContextMenu={onContextMenu}
-                    className="group relative w-11 h-11 rounded-lg wd-bg-elevated wd-text-primary transition-all duration-200 hover:bg-[var(--wd-accent-soft)] hover:wd-text-accent bg-cover bg-center"
+                    className="group relative w-11 h-11 rounded-xl wd-bg-elevated wd-text-primary transition-all duration-200 hover:bg-[var(--wd-accent-soft)] hover:wd-text-accent bg-cover bg-center"
                     style={
                         backgroundImageUrl
                             ? { backgroundImage: `url(${backgroundImageUrl})` }
@@ -103,6 +104,7 @@ function GuildRail({
     onSelectWorkspace,
     onSelectDm,
     onChangeServerImage,
+    onCreateWorkspace,
 }: GuildRailProps) {
     const primaryWorkspace = workspaces[0];
     const [contextMenu, setContextMenu] = useState<{
@@ -118,14 +120,8 @@ function GuildRail({
     ) => {
         if (!onChangeServerImage) return;
         event.preventDefault();
-        const maxX = Math.max(
-            8,
-            window.innerWidth - CONTEXT_MENU_WIDTH - 8,
-        );
-        const maxY = Math.max(
-            8,
-            window.innerHeight - CONTEXT_MENU_HEIGHT - 8,
-        );
+        const maxX = Math.max(8, window.innerWidth - CONTEXT_MENU_WIDTH - 8);
+        const maxY = Math.max(8, window.innerHeight - CONTEXT_MENU_HEIGHT - 8);
         setContextMenu({
             workspaceId,
             x: Math.min(event.clientX, maxX),
@@ -194,6 +190,16 @@ function GuildRail({
                     {renderWorkspaceButton(workspace)}
                 </React.Fragment>
             ))}
+
+            {onCreateWorkspace && (
+                <RailButton
+                    active={false}
+                    label="Create Workspace"
+                    onClick={onCreateWorkspace}
+                >
+                    <Plus size={18} />
+                </RailButton>
+            )}
 
             <div className="h-px w-10 bg-[var(--wd-border-subtle)] my-1" />
 

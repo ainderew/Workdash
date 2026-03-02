@@ -131,7 +131,20 @@ Open `http://localhost:8080` and sign in with Google.
 npm run dev        # next dev on :8080
 npm run lint       # eslint + autofix
 npm run build      # production build
+npm test           # run all tests (vitest)
 ```
+
+## Testing
+
+Tests use [Vitest](https://vitest.dev/) with jsdom. Run the full suite with:
+
+```bash
+npm test
+```
+
+Test files live alongside the source they cover (`*.test.ts` / `*.test.tsx`).
+
+**All tests must pass before committing.** If you add or change business logic, add or update the corresponding tests.
 
 ## Troubleshooting
 

@@ -15,6 +15,10 @@ const EXTENSIONS = new Set([".ts", ".tsx"]);
 const HEX_ALLOWLIST = new Set([
     "src/common/components/CharacterCreation/SpriteFramePreview.tsx",
     "src/common/components/DeskMode/ChannelSidebar.tsx",
+    "src/common/components/DeskMode/MessageList.tsx",
+    "src/common/components/DeskMode/modals/ChannelPermissionsModal.tsx",
+    "src/common/components/DeskMode/modals/ServerSettingsModal.tsx",
+    "src/common/components/DeskMode/modals/UserSettingsModal.tsx",
     "src/common/components/Google/GoogleCalendarButton.tsx",
     "src/common/components/Soccer/SkillSelectionOverlay.tsx",
     "src/common/components/Soccer/SkillsHud.tsx",

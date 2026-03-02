@@ -1,5 +1,6 @@
 import { MediaTransportService } from "@/communication/mediaTransportService/mediaTransportServive";
 import type {
+    ChannelOverwrite,
     ChatV2CreateAttachment,
     ChatV2DirectRoom,
     ChatV2Friend,
@@ -19,6 +20,11 @@ import type {
     ChatV2Thread,
     ChatV2UserNotification,
     ChatV2UserProfile,
+    Workspace,
+    WorkspaceInvite,
+    WorkspaceMap,
+    WorkspaceMember,
+    WorkspaceRole,
 } from "./_types";
 import { getStandaloneGifUrl } from "./gifUrl";
 
@@ -606,6 +612,7 @@ export class ChatV2Service {
         topic?: string;
         categoryId?: string | null;
         visibility?: "PUBLIC" | "PRIVATE" | "INVITE_ONLY";
+        workspaceId?: string;
     }): Promise<ChatV2Room> {
         const response = await this.emitWithAck<{ room: ChatV2Room }>(
             "chat:v2:room:create",
@@ -715,5 +722,293 @@ export class ChatV2Service {
             { roomId, userId },
         );
         return response.members;
+    }
+
+    // --- Workspace methods ---
+
+    async listWorkspaces(): Promise<Workspace[]> {
+        const response = await this.emitWithAck<{ workspaces: Workspace[] }>(
+            "workspace:list",
+        );
+        return response.workspaces;
+    }
+
+    async createWorkspace(input: {
+        name: string;
+        iconUrl?: string;
+    }): Promise<Workspace> {
+        const payload: { name: string; iconUrl?: string } = {
+            name: input.name,
+        };
+        if (input.iconUrl !== undefined) {
+            payload.iconUrl = input.iconUrl;
+        }
+        const response = await this.emitWithAck<{ workspace: Workspace }>(
+            "workspace:create",
+            payload,
+        );
+        return response.workspace;
+    }
+
+    async getWorkspace(workspaceId: string): Promise<Workspace> {
+        const response = await this.emitWithAck<{ workspace: Workspace }>(
+            "workspace:get",
+            { workspaceId },
+        );
+        return response.workspace;
+    }
+
+    async updateWorkspace(input: {
+        workspaceId: string;
+        name?: string;
+        iconUrl?: string | null;
+    }): Promise<Workspace> {
+        const payload: {
+            workspaceId: string;
+            name?: string;
+            iconUrl?: string | null;
+        } = { workspaceId: input.workspaceId };
+        if (input.name !== undefined) payload.name = input.name;
+        if (input.iconUrl !== undefined) payload.iconUrl = input.iconUrl;
+
+        const response = await this.emitWithAck<{ workspace: Workspace }>(
+            "workspace:update",
+            payload,
+        );
+        return response.workspace;
+    }
+
+    async joinWorkspace(workspaceId: string): Promise<WorkspaceMember> {
+        const response = await this.emitWithAck<{ member: WorkspaceMember }>(
+            "workspace:join",
+            { workspaceId },
+        );
+        return response.member;
+    }
+
+    async leaveWorkspace(workspaceId: string): Promise<void> {
+        await this.emitWithAck<{ success: boolean }>(
+            "workspace:leave",
+            { workspaceId },
+        );
+    }
+
+    async createWorkspaceInvite(input: {
+        workspaceId: string;
+        maxUses?: number;
+        expiresInHours?: number;
+    }): Promise<WorkspaceInvite> {
+        const payload: {
+            workspaceId: string;
+            maxUses?: number;
+            expiresInHours?: number;
+        } = { workspaceId: input.workspaceId };
+        if (input.maxUses !== undefined) payload.maxUses = input.maxUses;
+        if (input.expiresInHours !== undefined) payload.expiresInHours = input.expiresInHours;
+
+        const response = await this.emitWithAck<{ invite: WorkspaceInvite }>(
+            "workspace:invite:create",
+            payload,
+        );
+        return response.invite;
+    }
+
+    async joinWorkspaceByInvite(code: string): Promise<Workspace> {
+        const response = await this.emitWithAck<{ workspace: Workspace }>(
+            "workspace:invite:join",
+            { code },
+        );
+        return response.workspace;
+    }
+
+    async listWorkspaceMembers(workspaceId: string): Promise<WorkspaceMember[]> {
+        const response = await this.emitWithAck<{ members: WorkspaceMember[] }>(
+            "workspace:member:list",
+            { workspaceId },
+        );
+        return response.members;
+    }
+
+    // --- Workspace Map methods ---
+
+    async listWorkspaceMaps(workspaceId: string): Promise<WorkspaceMap[]> {
+        const response = await this.emitWithAck<{ maps: WorkspaceMap[] }>(
+            "workspace:map:list",
+            { workspaceId },
+        );
+        return response.maps;
+    }
+
+    async getWorkspaceMap(workspaceId: string, mapId: string): Promise<WorkspaceMap> {
+        const response = await this.emitWithAck<{ map: WorkspaceMap }>(
+            "workspace:map:get",
+            { workspaceId, mapId },
+        );
+        return response.map;
+    }
+
+    async getDefaultWorkspaceMap(workspaceId: string): Promise<WorkspaceMap> {
+        const response = await this.emitWithAck<{ map: WorkspaceMap }>(
+            "workspace:map:default",
+            { workspaceId },
+        );
+        return response.map;
+    }
+
+    // --- Workspace Role methods ---
+
+    async listWorkspaceRoles(workspaceId: string): Promise<WorkspaceRole[]> {
+        const response = await this.emitWithAck<{ roles: WorkspaceRole[] }>(
+            "workspace:role:list",
+            { workspaceId },
+        );
+        return response.roles;
+    }
+
+    async createWorkspaceRole(
+        workspaceId: string,
+        input: {
+            name: string;
+            permissions: string;
+            color?: number;
+            isHoisted?: boolean;
+            isMentionable?: boolean;
+        },
+    ): Promise<WorkspaceRole> {
+        const payload: {
+            workspaceId: string;
+            name: string;
+            permissions: string;
+            color?: number;
+            isHoisted?: boolean;
+            isMentionable?: boolean;
+        } = {
+            workspaceId,
+            name: input.name,
+            permissions: input.permissions,
+        };
+        if (input.color !== undefined) payload.color = input.color;
+        if (input.isHoisted !== undefined) payload.isHoisted = input.isHoisted;
+        if (input.isMentionable !== undefined) payload.isMentionable = input.isMentionable;
+
+        const response = await this.emitWithAck<{ role: WorkspaceRole }>(
+            "workspace:role:create",
+            payload,
+        );
+        return response.role;
+    }
+
+    async updateWorkspaceRole(
+        workspaceId: string,
+        roleId: string,
+        input: {
+            name?: string;
+            permissions?: string;
+            color?: number;
+            position?: number;
+            isHoisted?: boolean;
+            isMentionable?: boolean;
+        },
+    ): Promise<WorkspaceRole> {
+        const payload: {
+            workspaceId: string;
+            roleId: string;
+            name?: string;
+            permissions?: string;
+            color?: number;
+            position?: number;
+            isHoisted?: boolean;
+            isMentionable?: boolean;
+        } = { workspaceId, roleId };
+        if (input.name !== undefined) payload.name = input.name;
+        if (input.permissions !== undefined) payload.permissions = input.permissions;
+        if (input.color !== undefined) payload.color = input.color;
+        if (input.position !== undefined) payload.position = input.position;
+        if (input.isHoisted !== undefined) payload.isHoisted = input.isHoisted;
+        if (input.isMentionable !== undefined) payload.isMentionable = input.isMentionable;
+
+        const response = await this.emitWithAck<{ role: WorkspaceRole }>(
+            "workspace:role:update",
+            payload,
+        );
+        return response.role;
+    }
+
+    async deleteWorkspaceRole(workspaceId: string, roleId: string): Promise<void> {
+        await this.emitWithAck<{ success: boolean }>(
+            "workspace:role:delete",
+            { workspaceId, roleId },
+        );
+    }
+
+    async assignWorkspaceRole(
+        workspaceId: string,
+        userId: number,
+        roleId: string,
+    ): Promise<void> {
+        await this.emitWithAck<{ success: boolean }>(
+            "workspace:role:assign",
+            { workspaceId, targetUserId: userId, roleId },
+        );
+    }
+
+    async removeWorkspaceRole(
+        workspaceId: string,
+        userId: number,
+        roleId: string,
+    ): Promise<void> {
+        await this.emitWithAck<{ success: boolean }>(
+            "workspace:role:remove",
+            { workspaceId, targetUserId: userId, roleId },
+        );
+    }
+
+    // --- Channel Overwrite methods ---
+
+    async listChannelOverwrites(
+        workspaceId: string,
+        channelId: string,
+    ): Promise<ChannelOverwrite[]> {
+        const response = await this.emitWithAck<{ overwrites: ChannelOverwrite[] }>(
+            "workspace:channel:overwrite:list",
+            { workspaceId, channelId },
+        );
+        return response.overwrites;
+    }
+
+    async setChannelOverwrite(
+        workspaceId: string,
+        channelId: string,
+        input: {
+            targetId: string;
+            targetType: 0 | 1;
+            allow: string;
+            deny: string;
+        },
+    ): Promise<ChannelOverwrite> {
+        const response = await this.emitWithAck<{ overwrite: ChannelOverwrite }>(
+            "workspace:channel:overwrite:set",
+            {
+                workspaceId,
+                channelId,
+                targetId: input.targetId,
+                targetType: input.targetType,
+                allow: input.allow,
+                deny: input.deny,
+            },
+        );
+        return response.overwrite;
+    }
+
+    async deleteChannelOverwrite(
+        workspaceId: string,
+        channelId: string,
+        targetId: string,
+        targetType: 0 | 1,
+    ): Promise<void> {
+        await this.emitWithAck<{ success: boolean }>(
+            "workspace:channel:overwrite:delete",
+            { workspaceId, channelId, targetId, targetType },
+        );
     }
 }

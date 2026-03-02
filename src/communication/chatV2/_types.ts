@@ -288,3 +288,79 @@ export type ChatV2PinnedMessage = {
     };
     message: ChatV2Message;
 };
+
+// --- Workspace types ---
+
+export type Workspace = {
+    id: string;
+    name: string;
+    iconUrl: string | null;
+    ownerId: number;
+    createdAt: string | Date;
+    updatedAt: string | Date;
+    members?: WorkspaceMember[];
+    roles?: WorkspaceRole[];
+};
+
+export type WorkspaceMember = {
+    workspaceId: string;
+    userId: number;
+    joinedAt: string | Date;
+    user?: {
+        id: number;
+        name: string | null;
+        nickname?: string | null;
+        email?: string;
+        image: string | null;
+        characterCustomization?: ChatV2CharacterCustomization | null;
+    };
+    roles?: WorkspaceRole[];
+};
+
+export type WorkspaceRole = {
+    id: string;
+    workspaceId: string;
+    name: string;
+    permissions: string; // BigInt serialized as string
+    color: number;
+    position: number;
+    isEveryone: boolean;
+    isHoisted: boolean;
+    isMentionable: boolean;
+    createdAt: string | Date;
+    updatedAt: string | Date;
+};
+
+export type WorkspaceInvite = {
+    id: string;
+    workspaceId: string;
+    code: string;
+    createdByUserId: number;
+    maxUses: number | null;
+    uses: number;
+    expiresAt: string | Date | null;
+    createdAt: string | Date;
+};
+
+export type ChannelOverwrite = {
+    channelId: string;
+    targetId: string;
+    targetType: 0 | 1; // 0=role, 1=member
+    allow: string; // BigInt as string
+    deny: string;
+};
+
+export type WorkspaceMap = {
+    id: string;
+    workspaceId: string;
+    mapKey: string;
+    label: string | null;
+    spawnX: number;
+    spawnY: number;
+    width: number;
+    height: number;
+    tilemapUrl: string | null;
+    isDefault: boolean;
+    createdAt: string | Date;
+    updatedAt: string | Date;
+};

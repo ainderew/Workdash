@@ -511,6 +511,15 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
 
     setSelectedWorkspaceId: (workspaceId) => {
         set({ selectedWorkspaceId: workspaceId });
+        if (workspaceId) {
+            const chatV2Service = getChatV2Service();
+            chatV2Service.listCategories(workspaceId).then((categories) => {
+                set({
+                    categoriesById: toCategoriesById(categories),
+                    categoryOrder: toCategoryOrder(categories),
+                });
+            }).catch(() => {});
+        }
     },
 
     initialize: async () => {
@@ -682,14 +691,29 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
 
         try {
             const chatV2Service = getChatV2Service();
-            const [rooms, categories] = await Promise.all([
-                chatV2Service.listRooms(),
-                chatV2Service.listCategories(),
-            ]);
+            const wsId = get().selectedWorkspaceId ?? undefined;
+            const rooms = await chatV2Service.listRooms();
 
             const roomsById = toRoomsById(rooms);
             const roomOrder = toRoomOrder(rooms);
             const unreadByRoomId = toUnreadByRoomId(rooms);
+
+            // Determine workspace: use existing selection, or infer from rooms
+            const firstServerRoom = roomOrder
+                .map((roomId) => roomsById[roomId])
+                .find(
+                    (room) =>
+                        room?.type !== "DIRECT" && canUserEnterRoom(room),
+                );
+            const resolvedWsId = wsId
+                ?? firstServerRoom?.workspaceId
+                ?? undefined;
+
+            // Fetch categories for the resolved workspace
+            const categories = resolvedWsId
+                ? await chatV2Service.listCategories(resolvedWsId)
+                : [];
+
             const categoriesById = toCategoriesById(categories);
             const categoryOrder = toCategoryOrder(categories);
 
@@ -697,25 +721,9 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
                 const hasCurrentRoom =
                     state.currentRoomId
                     && canUserEnterRoom(roomsById[state.currentRoomId]);
-                const firstServerRoom = roomOrder
-                    .map((roomId) => roomsById[roomId])
-                    .find(
-                        (room) =>
-                            room?.type !== "DIRECT" && canUserEnterRoom(room),
-                    );
                 const firstSelectableRoom = roomOrder
                     .map((roomId) => roomsById[roomId])
                     .find((room) => canUserEnterRoom(room));
-                const hasSelectedWorkspace = state.selectedWorkspaceId
-                    && roomOrder.some((roomId) => {
-                        const room = roomsById[roomId];
-                        return (
-                            !!room
-                            && room.type !== "DIRECT"
-                            && canUserEnterRoom(room)
-                            && room.workspaceId === state.selectedWorkspaceId
-                        );
-                    });
 
                 return {
                     isLoadingRooms: false,
@@ -730,9 +738,7 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
                     currentRoomId: hasCurrentRoom
                         ? state.currentRoomId
                         : (firstServerRoom?.id ?? firstSelectableRoom?.id ?? null),
-                    selectedWorkspaceId: hasSelectedWorkspace
-                        ? state.selectedWorkspaceId
-                        : (firstServerRoom?.workspaceId ?? null),
+                    selectedWorkspaceId: resolvedWsId ?? null,
                 };
             });
         } catch (error) {
@@ -1427,12 +1433,22 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
 
         try {
             const chatV2Service = getChatV2Service();
-            const room = await chatV2Service.createRoom({
+            const payload: {
+                name: string;
+                topic?: string;
+                categoryId?: string | null;
+                visibility?: "PUBLIC" | "PRIVATE" | "INVITE_ONLY";
+                workspaceId?: string;
+            } = {
                 name,
-                topic: input.topic,
-                categoryId: input.categoryId,
-                visibility: input.visibility,
-            });
+            };
+            if (input.topic !== undefined) payload.topic = input.topic;
+            if (input.categoryId !== undefined) payload.categoryId = input.categoryId;
+            if (input.visibility !== undefined) payload.visibility = input.visibility;
+            const workspaceId = get().selectedWorkspaceId;
+            if (workspaceId) payload.workspaceId = workspaceId;
+
+            const room = await chatV2Service.createRoom(payload);
 
             await get().reloadRoomStructure();
             await get().selectRoom(room.id);
@@ -1457,7 +1473,8 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
 
         try {
             const chatV2Service = getChatV2Service();
-            await chatV2Service.createCategory(trimmedName);
+            const workspaceId = get().selectedWorkspaceId || undefined;
+            await chatV2Service.createCategory(trimmedName, workspaceId);
             await get().reloadRoomStructure();
 
             set({ isCreatingCategory: false });

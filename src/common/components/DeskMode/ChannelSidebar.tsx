@@ -15,9 +15,9 @@ import {
     MoreHorizontal,
     Plus,
     Settings,
+    Shield,
     UserPlus,
 } from "lucide-react";
-import useUiStore from "@/common/store/uiStore";
 import useUserStore from "@/common/store/useStore";
 import { getDisplayName } from "@/common/utils/displayName";
 import ChannelHashIcon from "./ChannelHashIcon";
@@ -28,13 +28,14 @@ import CreateRoomModal from "./modals/CreateRoomModal";
 import DeleteRoomModal from "./modals/DeleteRoomModal";
 import RenameCategoryModal from "./modals/RenameCategoryModal";
 import RenameRoomModal from "./modals/RenameRoomModal";
+import ChannelPermissionsModal from "./modals/ChannelPermissionsModal";
 import ServerSettingsModal from "./modals/ServerSettingsModal";
 import UserSettingsModal from "./modals/UserSettingsModal";
 
 const DEFAULT_CATEGORY_KEY = "__workspace_default__";
-const DEFAULT_CATEGORY_NAME = "W";
+const DEFAULT_CATEGORY_NAME = "Channels";
 const ROOM_CONTEXT_MENU_WIDTH = 180;
-const ROOM_CONTEXT_MENU_HEIGHT = 86;
+const ROOM_CONTEXT_MENU_HEIGHT = 122;
 
 type DragState = {
     roomId: string;
@@ -107,7 +108,6 @@ function ChannelSidebar({
     isArranging,
     isUpdatingRoom,
     presentation = "desk",
-    onClosePanel,
     onSelectRoom,
     onCreateRoom,
     onCreateCategory,
@@ -119,7 +119,7 @@ function ChannelSidebar({
     onServerImageChanged,
     onServerRenamed,
 }: ChannelSidebarProps) {
-    const setInteractionMode = useUiStore((state) => state.setInteractionMode);
+
     const user = useUserStore((state) => state.user);
     const [collapsedByCategoryKey, setCollapsedByCategoryKey] = useState<
         Record<string, boolean>
@@ -155,6 +155,8 @@ function ChannelSidebar({
         useState(false);
     const [isServerSettingsModalOpen, setIsServerSettingsModalOpen] =
         useState(false);
+    const [channelPermissionsRoomId, setChannelPermissionsRoomId] =
+        useState<string | null>(null);
     const [userIdCopyState, setUserIdCopyState] = useState<
         "idle" | "copied" | "failed"
     >("idle");
@@ -1316,6 +1318,18 @@ function ChannelSidebar({
                     <button
                         type="button"
                         onClick={() => {
+                            setChannelPermissionsRoomId(roomContextMenu.roomId);
+                            setRoomContextMenu(null);
+                            setCategoryContextMenu(null);
+                        }}
+                        className="w-full rounded px-2 py-1.5 text-left text-sm wd-text-primary transition-colors hover:bg-[var(--wd-surface-elevated)] inline-flex items-center gap-2"
+                    >
+                        <Shield size={14} className="wd-text-muted" />
+                        Edit Permissions
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => {
                             setDeleteRoomId(roomContextMenu.roomId);
                             setRoomContextMenu(null);
                             setCategoryContextMenu(null);
@@ -1361,6 +1375,16 @@ function ChannelSidebar({
                     onDeleteRoom(selectedDeleteRoom.id);
                     setDeleteRoomId(null);
                 }}
+            />
+
+            <ChannelPermissionsModal
+                isOpen={!!channelPermissionsRoomId}
+                workspaceId={serverId}
+                channelId={channelPermissionsRoomId}
+                channelName={
+                    rooms.find((r) => r.id === channelPermissionsRoomId)?.name ?? ""
+                }
+                onClose={() => setChannelPermissionsRoomId(null)}
             />
         </aside>
     );
