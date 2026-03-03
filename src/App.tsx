@@ -15,7 +15,7 @@ import { ReactionService } from "./communication/reaction/reaction";
 import ReactionToast from "./common/components/RaiseHandToast/RaiseHandToast";
 import { CharacterCustomizationButton } from "./common/components/UiControls/CharacterCustomizationButton";
 import CommandPalette from "./common/components/CommandPalette/CommandPalette";
-import { useCommandPaletteHotkey } from "./common/components/CommandPalette/useCommandPaletteHotkey";
+import { useKeyboardShortcuts } from "@/common/keyboard";
 import { PollService } from "./communication/poll/poll";
 import PollDisplay from "./common/components/Poll/PollDisplay";
 import PollNotification from "./common/components/Poll/PollNotification";
@@ -37,7 +37,7 @@ function App() {
     const { data: session, status } = useSession();
     const router = useRouter();
 
-    useCommandPaletteHotkey();
+    useKeyboardShortcuts();
 
     useEffect(() => {
         if (status !== "authenticated" || !session?.backendJwt) {
