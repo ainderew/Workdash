@@ -3,6 +3,8 @@ import { useSession } from "next-auth/react";
 import StartGame from "./game/main";
 import { EventBus } from "./game/EventBus";
 import { User } from "./common/store/_types";
+import useUserStore from "./common/store/useStore";
+import { CONFIG } from "./common/utils/config";
 import { BackendUser, BackendCharacter } from "./types/auth";
 import { Multiplayer } from "./game/multiplayer/multiplayer";
 
@@ -36,6 +38,12 @@ export const PhaserGame = forwardRef<IRefPhaserGame, IProps>(
                 window.__BACKEND_JWT__ = session.backendJwt;
                 window.__BACKEND_USER__ = session.backendUser;
                 window.__BACKEND_CHARACTER__ = session.backendCharacter;
+
+                // Hydrate Zustand with the session's avatar so components
+                // have a reactive source of truth from the very first render.
+                if (session.backendUser?.image) {
+                    useUserStore.getState().updateUser({ image: session.backendUser.image });
+                }
             } else {
                 console.warn("PhaserGame: No backendJwt in session yet");
             }
@@ -59,6 +67,39 @@ export const PhaserGame = forwardRef<IRefPhaserGame, IProps>(
                 }
             };
         }, [ref, session]);
+
+        useEffect(() => {
+            if (!session?.backendJwt) return;
+            let cancelled = false;
+
+            void (async () => {
+                try {
+                    const res = await fetch(`${CONFIG.SFU_SERVER_URL}/api/users/me`, {
+                        headers: { Authorization: `Bearer ${session.backendJwt}` },
+                    });
+                    if (!res.ok || cancelled) return;
+                    const data = await res.json();
+                    const freshImage = data.user?.avatarUrl?.trim() || "";
+
+                    if (cancelled) return;
+
+                    // Update both sources with fresh DB value
+                    if (window.__BACKEND_USER__) {
+                        window.__BACKEND_USER__ = {
+                            ...window.__BACKEND_USER__,
+                            image: freshImage || undefined,
+                        };
+                    }
+                    useUserStore.getState().updateUser({
+                        image: freshImage || undefined,
+                    });
+                } catch {
+                    // Best-effort — session data is the fallback
+                }
+            })();
+
+            return () => { cancelled = true; };
+        }, [session?.backendJwt]);
 
         useEffect(() => {
             EventBus.on(

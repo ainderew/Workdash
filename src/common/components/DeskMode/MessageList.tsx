@@ -57,6 +57,7 @@ import { CONFIG } from "@/common/utils/config";
 import {
     formatChatDaySeparatorLabel,
     formatChatMessageTimestamp,
+    formatGutterTimestamp,
     isSameMessageCalendarDay,
 } from "@/common/utils/messageTimestamp";
 import {
@@ -328,7 +329,7 @@ function MessageList({
         "",
     );
     const localSpriteSheet = user.spriteSheetDataUrl?.trim() || "";
-    const localProfileImage = window.__BACKEND_USER__?.image?.trim() || "";
+    const localProfileImage = user.image?.trim() || window.__BACKEND_USER__?.image?.trim() || "";
     const acceptedFriendUserIds = useMemo(
         () =>
             new Set(
@@ -1552,6 +1553,10 @@ function MessageList({
                             previousMessage.createdAt,
                             message.createdAt,
                         );
+                    const isConsecutive =
+                        !showDaySeparator &&
+                        previousMessage !== null &&
+                        previousMessage.senderUserId === message.senderUserId;
                     const daySeparatorLabel = showDaySeparator
                         ? formatChatDaySeparatorLabel(message.createdAt)
                         : "";
@@ -1572,7 +1577,7 @@ function MessageList({
                             )}
                             <div
                                 data-chat-message-id={message.id}
-                                className={`group flex gap-3 px-1 py-1 transition-colors ${
+                                className={`group flex gap-3 px-1 ${isConsecutive ? "py-0.5" : "py-1"} transition-colors ${
                                     highlightedMessageId === message.id ||
                                     isThreadHighlighted
                                         ? "rounded-md bg-[var(--wd-accent-soft)]"
@@ -1583,6 +1588,13 @@ function MessageList({
                                             : ""
                                 }`}
                             >
+                                {isConsecutive ? (
+                                    <div className="w-9 shrink-0 relative flex items-start justify-end pt-1">
+                                        <span className="absolute right-0 text-[10px] leading-none wd-text-muted opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                                            {formatGutterTimestamp(message.createdAt)}
+                                        </span>
+                                    </div>
+                                ) : (
                                 <div
                                     onClick={(event) =>
                                         openProfilePopover(
@@ -1613,6 +1625,7 @@ function MessageList({
                                         className="cursor-pointer"
                                     />
                                 </div>
+                                )}
 
                                 <div className="min-w-0 flex-1 relative">
                                 <MessageHoverActions
@@ -1656,6 +1669,7 @@ function MessageList({
                                     </div>
                                 )}
 
+                                {!isConsecutive && (
                                 <div className="flex items-center gap-2 mb-1">
                                     <span
                                         className={`text-sm font-semibold ${message.senderUserId === serverOwnerUserId ? "" : "wd-text-primary"}`}
@@ -1672,6 +1686,7 @@ function MessageList({
                                         </span>
                                     )}
                                 </div>
+                                )}
 
                                 {message.deletedAt ? (
                                     <div className="text-sm wd-text-muted italic">

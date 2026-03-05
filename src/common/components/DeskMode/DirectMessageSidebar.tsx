@@ -81,7 +81,7 @@ function DirectMessageSidebar({
     const localBackendUserId =
         typeof window !== "undefined" ? window.__BACKEND_USER__?.id : undefined;
     const spriteSheetDataUrl = user.spriteSheetDataUrl?.trim() || "";
-    const avatarUrl = window.__BACKEND_USER__?.image?.trim() || "";
+    const avatarUrl = user.image?.trim() || window.__BACKEND_USER__?.image?.trim() || "";
     const showAvatarImage = avatarUrl.length > 0 && !isAvatarLoadFailed;
 
     const avatarSpriteStyles = useMemo<React.CSSProperties>(() => {

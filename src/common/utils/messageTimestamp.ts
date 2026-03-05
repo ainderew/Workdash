@@ -69,6 +69,20 @@ export const formatChatMessageTimestamp = (
     return `${dateLabel} at ${timeLabel}`;
 };
 
+/**
+ * Short time-only format for the hover gutter on consecutive messages.
+ * Returns just "3:46 AM" — the day separator already provides date context.
+ */
+export const formatGutterTimestamp = (
+    value: MessageTimestampInput,
+): string => {
+    const messageDate = toValidDate(value);
+    if (!messageDate) {
+        return "";
+    }
+    return TIME_FORMATTER.format(messageDate);
+};
+
 export const formatChatDaySeparatorLabel = (
     value: MessageTimestampInput,
 ): string => {

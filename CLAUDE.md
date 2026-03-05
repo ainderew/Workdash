@@ -20,3 +20,7 @@ Mode is persisted to localStorage and URL query param (`?mode=desk|world`).
 - Utility classes prefixed `wd-*` (e.g., `wd-bg-panel`, `wd-text-muted`, `wd-btn-primary`)
 - shadcn/ui variables also present (standard `--background`, `--primary`, etc.)
 - Path alias: `@/*` maps to `./src/*`
+
+## Lessons Learned
+
+- **NEVER use `git stash` to test whether a build failure is pre-existing.** Stashing wipes all in-progress edits, and if the stash is auto-dropped (e.g. by hooks or lint fixers modifying files), the work is permanently lost. Instead, use `git diff > /tmp/patch.bak` to save changes, or run the comparison in an isolated worktree/subagent.
