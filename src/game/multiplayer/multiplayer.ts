@@ -147,6 +147,24 @@ export class Multiplayer {
         this.socket.emit("player:sceneChange", { newScene, x, y });
     }
 
+    public switchWorkspace(
+        newWorkspaceId: string,
+        spawnX: number,
+        spawnY: number,
+        sceneName: string,
+    ) {
+        // Leave current game state
+        this.socket.emit("playerLeave");
+
+        // Re-join with new workspace
+        this.send("playerJoin", {
+            x: spawnX,
+            y: spawnY,
+            scene: sceneName,
+            workspaceId: newWorkspaceId,
+        });
+    }
+
     public watchNewPlayers(
         createPlayer: (
             id: string,

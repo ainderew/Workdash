@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import useWorkspaceStore from "./workspaceStore";
 
 export type InteractionMode = "world" | "desk";
 
@@ -46,6 +47,10 @@ interface UiState {
     interactionMode: InteractionMode;
     setInteractionMode: (mode: InteractionMode) => void;
     toggleInteractionMode: () => void;
+
+    showWorkspaceSelector: boolean;
+    openWorkspaceSelector: () => void;
+    closeWorkspaceSelector: () => void;
 
     
     toggleChatWindow: () => void;
@@ -115,6 +120,7 @@ const useUiStore = create<UiState>((set) => ({
     isSoccerEndgameVisible: false,
     ping: null,
     interactionMode: "world",
+    showWorkspaceSelector: false,
 
     
     toggleChatWindow: () =>
@@ -206,6 +212,16 @@ const useUiStore = create<UiState>((set) => ({
         set((state) => ({
             interactionMode: state.interactionMode === "world" ? "desk" : "world",
         })),
+
+    openWorkspaceSelector: () => {
+        const { workspaces, isLoading, fetchMyWorkspaces } =
+            useWorkspaceStore.getState();
+        if (workspaces.length === 0 && !isLoading) {
+            void fetchMyWorkspaces();
+        }
+        set({ showWorkspaceSelector: true });
+    },
+    closeWorkspaceSelector: () => set({ showWorkspaceSelector: false }),
 }));
 
 export default useUiStore;

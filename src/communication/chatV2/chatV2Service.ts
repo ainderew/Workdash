@@ -829,6 +829,34 @@ export class ChatV2Service {
         return response.members;
     }
 
+    async kickWorkspaceMember(
+        workspaceId: string,
+        targetUserId: number,
+    ): Promise<void> {
+        await this.emitWithAck<{ success: boolean }>(
+            "workspace:member:kick",
+            { workspaceId, targetUserId },
+        );
+    }
+
+    async banWorkspaceMember(
+        workspaceId: string,
+        targetUserId: number,
+        reason?: string,
+    ): Promise<void> {
+        const payload: {
+            workspaceId: string;
+            targetUserId: number;
+            reason?: string;
+        } = { workspaceId, targetUserId };
+        if (reason !== undefined) payload.reason = reason;
+
+        await this.emitWithAck<{ success: boolean }>(
+            "workspace:member:ban",
+            payload,
+        );
+    }
+
     // --- Workspace Map methods ---
 
     async listWorkspaceMaps(workspaceId: string): Promise<WorkspaceMap[]> {

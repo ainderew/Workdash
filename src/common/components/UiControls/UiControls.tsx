@@ -28,6 +28,7 @@ import { SoccerStatsModal } from "./modal/SoccerStatsModal";
 import { SoccerGameControlModal } from "./modal/SoccerGameControlModal";
 import { MatchHistoryModal } from "./modal/MatchHistoryModal";
 import DeskChatDrawer from "../DeskMode/DeskChatDrawer";
+import { WorldWorkspaceSwitcher } from "./WorldWorkspaceSwitcher";
 
 interface UiControlsProps {
     isVisible?: boolean;
@@ -250,6 +251,12 @@ function UiControls({ isVisible = true }: UiControlsProps) {
                 </div>
 
                 <div className="chat-buttons-container items-center flex gap-4">
+                    {interactionMode === "world" && (
+                        <WorldWorkspaceSwitcher
+                            onOpenChatDrawer={toggleChatWindow}
+                        />
+                    )}
+
                     <UiControlsButton
                         onClick={toggleInteractionMode}
                         icon={interactionMode === "world" ? Monitor : Map}

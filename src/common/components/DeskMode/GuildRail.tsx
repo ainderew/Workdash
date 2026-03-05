@@ -1,10 +1,11 @@
 import React, { useRef, useState } from "react";
-import { MessageSquareMore, ImagePlus, Plus } from "lucide-react";
+import { MessageSquareMore, ImagePlus, Plus, Users } from "lucide-react";
 import {
     Tooltip,
     TooltipContent,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { toWorkspaceInitials } from "@/common/utils/workspaceDisplay";
 
 type GuildRailWorkspace = {
     id: string;
@@ -22,17 +23,11 @@ interface GuildRailProps {
     onSelectDm: () => void;
     onChangeServerImage?: (workspaceId: string) => void;
     onCreateWorkspace?: () => void;
+    onOpenMembers?: (workspaceId: string) => void;
 }
 
-const toInitials = (name: string) => {
-    const words = name.trim().split(/\s+/).filter(Boolean);
-    if (words.length === 0) return "W";
-    if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
-    return `${words[0][0]}${words[1][0]}`.toUpperCase();
-};
-
 const CONTEXT_MENU_WIDTH = 180;
-const CONTEXT_MENU_HEIGHT = 40;
+const CONTEXT_MENU_HEIGHT = 80;
 
 function RailButton({
     active,
@@ -105,6 +100,7 @@ function GuildRail({
     onSelectDm,
     onChangeServerImage,
     onCreateWorkspace,
+    onOpenMembers,
 }: GuildRailProps) {
     const primaryWorkspace = workspaces[0];
     const [contextMenu, setContextMenu] = useState<{
@@ -174,7 +170,7 @@ function GuildRail({
             >
                 {!workspace.imageUrl && (
                     <span className="text-sm font-bold">
-                        {toInitials(workspace.name)}
+                        {toWorkspaceInitials(workspace.name)}
                     </span>
                 )}
             </RailButton>
@@ -223,6 +219,19 @@ function GuildRail({
                         width: CONTEXT_MENU_WIDTH,
                     }}
                 >
+                    {onOpenMembers && (
+                        <button
+                            type="button"
+                            className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm wd-text-primary transition-colors hover:bg-[var(--wd-surface-elevated)]"
+                            onClick={() => {
+                                onOpenMembers(contextMenu.workspaceId);
+                                setContextMenu(null);
+                            }}
+                        >
+                            <Users size={15} className="wd-text-secondary" />
+                            <span>Members</span>
+                        </button>
+                    )}
                     <button
                         type="button"
                         className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm wd-text-primary transition-colors hover:bg-[var(--wd-surface-elevated)]"

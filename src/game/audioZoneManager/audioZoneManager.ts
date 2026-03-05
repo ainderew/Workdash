@@ -1,6 +1,7 @@
 import { Scene } from "phaser";
 import { Player } from "../player/player";
 import { MediaTransportService } from "@/communication/mediaTransportService/mediaTransportServive";
+import useChatV2Store from "@/common/store/chatV2Store";
 
 export class AudioZoneManager {
     private scene: Scene;
@@ -62,6 +63,7 @@ export class AudioZoneManager {
         if (this.currentZone !== zoneId) {
             const previousZone = this.currentZone;
             this.currentZone = zoneId;
+            const workspaceId = useChatV2Store.getState().selectedWorkspaceId;
 
             MediaTransportService.getInstance().socket.emit(
                 "player-zone-changed",
@@ -69,6 +71,7 @@ export class AudioZoneManager {
                     playerId: player.id,
                     fromZone: previousZone,
                     toZone: zoneId,
+                    workspaceId: workspaceId || undefined,
                 },
             );
         }
@@ -85,6 +88,7 @@ export class AudioZoneManager {
             if (this.currentZone && !zoneThisFrame) {
                 const previousZone = this.currentZone;
                 this.currentZone = null;
+                const workspaceId = useChatV2Store.getState().selectedWorkspaceId;
 
                 MediaTransportService.getInstance().socket.emit(
                     "player-zone-changed",
@@ -92,6 +96,7 @@ export class AudioZoneManager {
                         playerId: player.id,
                         fromZone: previousZone,
                         toZone: null,
+                        workspaceId: workspaceId || undefined,
                     },
                 );
             }

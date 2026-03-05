@@ -25,13 +25,21 @@ import SkillSelectionOverlay from "./common/components/Soccer/SkillSelectionOver
 import { SoccerGameControlButton } from "./common/components/SoccerGameControl/SoccerGameControlButton";
 import PingDisplay from "./common/components/PingDisplay/PingDisplay";
 import useUiStore, { InteractionMode } from "./common/store/uiStore";
+import useChatV2Store from "./common/store/chatV2Store";
 import DeskLayout from "./common/components/DeskMode/DeskLayout";
+import WorkspaceSelectorOverlay from "./common/components/WorkspaceSelector/WorkspaceSelectorOverlay";
 import useThemeStore from "@/common/store/themeStore";
 
 function App() {
     const interactionMode = useUiStore((state) => state.interactionMode);
     const setInteractionMode = useUiStore((state) => state.setInteractionMode);
+    const showWorkspaceSelector = useUiStore(
+        (state) => state.showWorkspaceSelector,
+    );
     const bootstrapTheme = useThemeStore((state) => state.bootstrapTheme);
+    const selectedWorkspaceId = useChatV2Store(
+        (state) => state.selectedWorkspaceId,
+    );
     const [isInitialized, setIsInitialized] = useState(false);
     const [isGameReady, setIsGameReady] = useState(false);
     const { data: session, status } = useSession();
@@ -105,6 +113,10 @@ function App() {
     useEffect(() => {
         const resolveModeFromStorage = (): InteractionMode | null => {
             const params = new URLSearchParams(window.location.search);
+
+            // Force desk mode when an invite link is opened
+            if (params.has("invite")) return "desk";
+
             const urlMode = params.get("mode");
             if (urlMode === "desk" || urlMode === "world") return urlMode;
 
@@ -141,6 +153,18 @@ function App() {
         game.loop.wake();
     }, [interactionMode, isGameReady]);
 
+    // Open workspace selector on first load if no workspace is selected
+    const openWorkspaceSelector = useUiStore(
+        (state) => state.openWorkspaceSelector,
+    );
+    useEffect(() => {
+        if (!isInitialized) return;
+        const selectedId = useChatV2Store.getState().selectedWorkspaceId;
+        if (!selectedId) {
+            openWorkspaceSelector();
+        }
+    }, [isInitialized, openWorkspaceSelector]);
+
     if (status === "loading") {
         return (
             <div className="w-full h-full flex items-center justify-center wd-bg-app wd-text-primary">
@@ -174,15 +198,19 @@ function App() {
             id="app"
             className="w-screen h-[100dvh] overflow-hidden flex flex-col items-center justify-end wd-bg-app relative"
         >
-            <PhaserGame
-                ref={phaserRef}
-                currentActiveScene={currentScene}
-                user={user}
-                onGameReady={handleGameReady}
-            />
+            {selectedWorkspaceId && (
+                <PhaserGame
+                    ref={phaserRef}
+                    currentActiveScene={currentScene}
+                    user={user}
+                    onGameReady={handleGameReady}
+                />
+            )}
             {interactionMode === "desk" && <DeskLayout />}
             <AudioElement />
-            {interactionMode === "world" && <UiControls />}
+            {interactionMode === "world" && !showWorkspaceSelector && (
+                <UiControls />
+            )}
 
             {}
             <ScreenShareUi isGameReady={isGameReady} />
@@ -198,6 +226,7 @@ function App() {
             <SkillSelectionOverlay />
             <SoccerGameControlButton />
             <PingDisplay />
+            <WorkspaceSelectorOverlay />
         </div>
     );
 }

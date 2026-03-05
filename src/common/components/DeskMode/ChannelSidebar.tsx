@@ -17,6 +17,7 @@ import {
     Settings,
     Shield,
     UserPlus,
+    Users,
 } from "lucide-react";
 import useUserStore from "@/common/store/useStore";
 import { getDisplayName } from "@/common/utils/displayName";
@@ -95,6 +96,8 @@ interface ChannelSidebarProps {
     onDeleteRoom: (roomId: string) => void;
     onServerImageChanged?: (serverId: string, imageUrl: string | null) => void;
     onServerRenamed?: (serverId: string, name: string) => void;
+    onOpenMembers?: () => void;
+    onInvitePeople?: () => void;
 }
 
 function ChannelSidebar({
@@ -120,6 +123,8 @@ function ChannelSidebar({
     onDeleteRoom,
     onServerImageChanged,
     onServerRenamed,
+    onOpenMembers,
+    onInvitePeople,
 }: ChannelSidebarProps) {
 
     const user = useUserStore((state) => state.user);
@@ -690,6 +695,43 @@ function ChannelSidebar({
                                 <span>Create Room</span>
                                 <Plus size={17} className="wd-text-secondary" />
                             </button>
+                        </div>
+
+                        <div className="my-1 h-px bg-[var(--wd-border-subtle)]" />
+
+                        <div className="space-y-1 py-1">
+                            {onInvitePeople && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        onInvitePeople();
+                                        setIsServerActionsMenuOpen(false);
+                                    }}
+                                    className="flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm wd-text-primary transition-colors hover:bg-[var(--wd-surface-elevated)]"
+                                >
+                                    <span>Invite People</span>
+                                    <UserPlus
+                                        size={17}
+                                        className="wd-text-secondary"
+                                    />
+                                </button>
+                            )}
+                            {onOpenMembers && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        onOpenMembers();
+                                        setIsServerActionsMenuOpen(false);
+                                    }}
+                                    className="flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm wd-text-primary transition-colors hover:bg-[var(--wd-surface-elevated)]"
+                                >
+                                    <span>Members</span>
+                                    <Users
+                                        size={17}
+                                        className="wd-text-secondary"
+                                    />
+                                </button>
+                            )}
                         </div>
 
                         <div className="my-1 h-px bg-[var(--wd-border-subtle)]" />

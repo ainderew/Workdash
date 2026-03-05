@@ -39,6 +39,7 @@ export abstract class BaseGameScene extends Scene {
     lastTick: number = 0;
     Hz: number = 1000 / 50;
     private wasAttacking: boolean = false;
+    private hasJoinedGame: boolean = false;
 
     protected audioZoneManager: AudioZoneManager;
     protected backgroundMusicManager: BackgroundMusicManager;
@@ -84,15 +85,19 @@ export abstract class BaseGameScene extends Scene {
         this.setupChatBlur();
 
         EventBus.on("teleport", this.handleTeleportCommand, this);
+        EventBus.on("workspace-switch", this.handleWorkspaceSwitch, this);
 
         const workspaceId =
             useChatV2Store.getState().selectedWorkspaceId ?? undefined;
-        this.multiplayer.joinGame(
-            this.spawnX,
-            this.spawnY,
-            this.currentSceneName,
-            workspaceId,
-        );
+        if (workspaceId) {
+            this.multiplayer.joinGame(
+                this.spawnX,
+                this.spawnY,
+                this.currentSceneName,
+                workspaceId,
+            );
+            this.hasJoinedGame = true;
+        }
         this.multiplayer.setCurrentScene(this.currentSceneName);
 
         EventBus.emit("current-scene-ready", this);
@@ -744,6 +749,44 @@ export abstract class BaseGameScene extends Scene {
         return window.__BACKEND_JWT__ || "";
     }
 
+    private handleWorkspaceSwitch(data: { workspaceId: string }) {
+        // Clear all remote players
+        for (const [id, player] of this.players) {
+            if (id !== this.localPlayerId) {
+                player.destroy();
+                this.players.delete(id);
+            }
+        }
+
+        // Reset audio zone state
+        this.audioZoneManager?.destroy?.();
+        this.audioZoneManager = new AudioZoneManager(this);
+        if (this.map) {
+            this.audioZoneManager.initializeZones(this.map, this.playersLayer);
+        }
+
+        // Join or switch workspace on the multiplayer connection
+        if (this.hasJoinedGame) {
+            this.multiplayer.switchWorkspace(
+                data.workspaceId,
+                this.spawnX,
+                this.spawnY,
+                this.currentSceneName,
+            );
+        } else {
+            this.multiplayer.joinGame(
+                this.spawnX,
+                this.spawnY,
+                this.currentSceneName,
+                data.workspaceId,
+            );
+            this.hasJoinedGame = true;
+        }
+
+        // Re-setup watchers to get new player list
+        this.setupMultiplayerWatchers();
+    }
+
     private handleTeleportCommand(data: {
         scene: string;
         x?: number;
@@ -767,6 +810,7 @@ export abstract class BaseGameScene extends Scene {
 
     shutdown() {
         EventBus.off("teleport", this.handleTeleportCommand, this);
+        EventBus.off("workspace-switch", this.handleWorkspaceSwitch, this);
         this.multiplayer?.removeAllGameListeners();
 
         for (const player of this.players.values()) {

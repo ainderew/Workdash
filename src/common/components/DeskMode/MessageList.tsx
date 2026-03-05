@@ -284,7 +284,8 @@ function MessageList({
         "",
     );
     const localSpriteSheet = user.spriteSheetDataUrl?.trim() || "";
-    const localProfileImage = user.image?.trim() || window.__BACKEND_USER__?.image?.trim() || "";
+    const localProfileImage =
+        user.image?.trim() || window.__BACKEND_USER__?.image?.trim() || "";
     const acceptedFriendUserIds = useMemo(
         () =>
             new Set(
@@ -311,11 +312,7 @@ function MessageList({
             if (acceptedFriendUserIds.has(targetUserId)) return "ACCEPTED";
             if (pendingFriendUserIds.has(targetUserId)) return "PENDING";
             return null;
-        }, [
-            acceptedFriendUserIds,
-            avatarContextMenu,
-            pendingFriendUserIds,
-        ]);
+        }, [acceptedFriendUserIds, avatarContextMenu, pendingFriendUserIds]);
     const avatarFriendActionMeta = useMemo(
         () => getFriendActionMeta(avatarContextFriendshipStatus),
         [avatarContextFriendshipStatus],
@@ -359,7 +356,9 @@ function MessageList({
         }
 
         const distanceFromBottom =
-            container.scrollHeight - container.scrollTop - container.clientHeight;
+            container.scrollHeight -
+            container.scrollTop -
+            container.clientHeight;
         const isNearBottom = distanceFromBottom < 100;
 
         if (isNearBottom) {
@@ -544,7 +543,13 @@ function MessageList({
         if (hasMoreMessages && !isLoadingOlderMessages) {
             onLoadOlderMessages?.();
         }
-    }, [focusedMessageId, messages, hasMoreMessages, isLoadingOlderMessages, onLoadOlderMessages]);
+    }, [
+        focusedMessageId,
+        messages,
+        hasMoreMessages,
+        isLoadingOlderMessages,
+        onLoadOlderMessages,
+    ]);
 
     useEffect(() => {
         const unresolvedAttachments: Array<{
@@ -577,10 +582,9 @@ function MessageList({
                 unresolvedAttachments.map(async (attachment) => {
                     try {
                         if (attachment.isImage) {
-                            const thumbnailUrl =
-                                await getChatFileThumbnailUrl(
-                                    attachment.fileId,
-                                );
+                            const thumbnailUrl = await getChatFileThumbnailUrl(
+                                attachment.fileId,
+                            );
                             if (thumbnailUrl) {
                                 return {
                                     fileId: attachment.fileId,
@@ -650,16 +654,16 @@ function MessageList({
             processedCharacterUserIds.current.add(message.senderUserId);
             const cc = message.sender!.characterCustomization!;
 
-            void generateCharacterFaceDataUrl(toCharacterCustomization(cc)).then(
-                (url) => {
-                    if (url) {
-                        setResolvedSenderImagesByUserId((prev) => ({
-                            ...prev,
-                            [message.senderUserId]: url,
-                        }));
-                    }
-                },
-            );
+            void generateCharacterFaceDataUrl(
+                toCharacterCustomization(cc),
+            ).then((url) => {
+                if (url) {
+                    setResolvedSenderImagesByUserId((prev) => ({
+                        ...prev,
+                        [message.senderUserId]: url,
+                    }));
+                }
+            });
         }
     }, [messages, localBackendUserId]);
 
@@ -726,7 +730,9 @@ function MessageList({
                         }));
                     } else if (profile.user.characterCustomization) {
                         const faceUrl = await generateCharacterFaceDataUrl(
-                            toCharacterCustomization(profile.user.characterCustomization),
+                            toCharacterCustomization(
+                                profile.user.characterCustomization,
+                            ),
                         );
                         if (cancelled) return;
                         if (faceUrl) {
@@ -1278,546 +1284,657 @@ function MessageList({
                 </div>
             ) : (
                 <>
-                <div ref={topSentinelRef} className="h-px" />
-                {isLoadingOlderMessages && (
-                    <MessageSkeleton count={3} />
-                )}
-                {!hasMoreMessages && !isLoadingOlderMessages && (
-                    <div className="pb-4 pt-2 text-center text-xs wd-text-muted">
-                        This is the beginning of the conversation
-                    </div>
-                )}
-                {groupedMessages.rootMessages.map((message, index) => {
-                    const threadReplies =
-                        groupedMessages.repliesByRootId.get(message.id) || [];
-                    const messageReplyPreviewUsers =
-                        message.replyPreviewUsers &&
-                        message.replyPreviewUsers.length > 0
-                            ? message.replyPreviewUsers
-                            : (() => {
-                                  const previewUsers = new Map<
-                                      number,
-                                      {
-                                          id: number;
-                                          name: string | null;
-                                          image: string | null;
+                    <div ref={topSentinelRef} className="h-px" />
+                    {isLoadingOlderMessages && <MessageSkeleton count={3} />}
+                    {!hasMoreMessages && !isLoadingOlderMessages && (
+                        <div className="pb-4 pt-2 text-center text-xs wd-text-muted">
+                            This is the beginning of the conversation
+                        </div>
+                    )}
+                    {groupedMessages.rootMessages.map((message, index) => {
+                        const threadReplies =
+                            groupedMessages.repliesByRootId.get(message.id) ||
+                            [];
+                        const messageReplyPreviewUsers =
+                            message.replyPreviewUsers &&
+                            message.replyPreviewUsers.length > 0
+                                ? message.replyPreviewUsers
+                                : (() => {
+                                      const previewUsers = new Map<
+                                          number,
+                                          {
+                                              id: number;
+                                              name: string | null;
+                                              image: string | null;
+                                          }
+                                      >();
+                                      for (
+                                          let index = threadReplies.length - 1;
+                                          index >= 0;
+                                          index -= 1
+                                      ) {
+                                          const reply = threadReplies[index];
+                                          if (!reply) continue;
+                                          if (
+                                              previewUsers.has(
+                                                  reply.senderUserId,
+                                              )
+                                          )
+                                              continue;
+                                          previewUsers.set(reply.senderUserId, {
+                                              id: reply.senderUserId,
+                                              name: getDisplayName(
+                                                  reply.sender,
+                                                  `User ${reply.senderUserId}`,
+                                              ),
+                                              image:
+                                                  reply.sender?.image || null,
+                                          });
+                                          if (previewUsers.size >= 3) break;
                                       }
-                                  >();
-                                  for (
-                                      let index = threadReplies.length - 1;
-                                      index >= 0;
-                                      index -= 1
-                                  ) {
-                                      const reply = threadReplies[index];
-                                      if (!reply) continue;
-                                      if (previewUsers.has(reply.senderUserId))
-                                          continue;
-                                      previewUsers.set(reply.senderUserId, {
-                                          id: reply.senderUserId,
-                                          name: getDisplayName(
-                                              reply.sender,
-                                              `User ${reply.senderUserId}`,
-                                          ),
-                                          image: reply.sender?.image || null,
-                                      });
-                                      if (previewUsers.size >= 3) break;
-                                  }
-                                  return Array.from(previewUsers.values());
-                              })();
-                    const totalReplies =
-                        message.replyCount ?? threadReplies.length;
-                    const isThreadHighlighted = threadReplies.some(
-                        (reply) => reply.id === highlightedMessageId,
-                    );
-                    const senderName = getSenderName(message);
-                    const senderAvatar = getSenderAvatar(message);
-                    const canOpenAvatarMenu = !(
-                        typeof localBackendUserId === "number" &&
-                        message.senderUserId === localBackendUserId
-                    );
-                    const standaloneGifUrl =
-                        message.messageType === "IMAGE" &&
-                        message.attachments.length === 0
-                            ? getStandaloneGifUrl(message.content)
-                            : null;
-                    const parsedMessageParts =
-                        message.content && !standaloneGifUrl
-                            ? parseMessageContent(message.content)
-                            : [];
-                    const parsedMessageLinks = parsedMessageParts.filter(
-                        (part) => part.type !== "text" && !!part.url,
-                    );
-                    const parsedMessageLinkUrls = new Set(
-                        parsedMessageLinks.map((part) => part.url as string),
-                    );
-                    const extractedUrls = Array.from(
-                        new Set(
-                            (
-                                message.content?.match(/https?:\/\/[^\s]+/gi) ||
-                                []
-                            ).map((url) => url.trim()),
-                        ),
-                    );
-                    const fallbackGenericUrls = extractedUrls.filter(
-                        (url) => !parsedMessageLinkUrls.has(url),
-                    );
-
-                    const effectiveMentionedUserIds =
-                        Array.isArray(message.mentionedUserIds) &&
-                        message.mentionedUserIds.length > 0
-                            ? message.mentionedUserIds
-                            : extractMentionedUserIds(
-                                  message.content || "",
-                                  memberNameMap,
-                              );
-                    const isCurrentUserMentioned =
-                        typeof localBackendUserId === "number" &&
-                        effectiveMentionedUserIds.includes(localBackendUserId);
-                    const hasMentions = effectiveMentionedUserIds.length > 0;
-                    const previousMessage =
-                        index > 0
-                            ? groupedMessages.rootMessages[index - 1]
-                            : null;
-                    const showDaySeparator =
-                        !previousMessage ||
-                        !isSameMessageCalendarDay(
-                            previousMessage.createdAt,
-                            message.createdAt,
+                                      return Array.from(previewUsers.values());
+                                  })();
+                        const totalReplies =
+                            message.replyCount ?? threadReplies.length;
+                        const isThreadHighlighted = threadReplies.some(
+                            (reply) => reply.id === highlightedMessageId,
                         );
-                    const isConsecutive =
-                        !showDaySeparator &&
-                        previousMessage !== null &&
-                        previousMessage.senderUserId === message.senderUserId;
-                    const daySeparatorLabel = showDaySeparator
-                        ? formatChatDaySeparatorLabel(message.createdAt)
-                        : "";
+                        const senderName = getSenderName(message);
+                        const senderAvatar = getSenderAvatar(message);
+                        const canOpenAvatarMenu = !(
+                            typeof localBackendUserId === "number" &&
+                            message.senderUserId === localBackendUserId
+                        );
+                        const standaloneGifUrl =
+                            message.messageType === "IMAGE" &&
+                            message.attachments.length === 0
+                                ? getStandaloneGifUrl(message.content)
+                                : null;
+                        const parsedMessageParts =
+                            message.content && !standaloneGifUrl
+                                ? parseMessageContent(message.content)
+                                : [];
+                        const parsedMessageLinks = parsedMessageParts.filter(
+                            (part) => part.type !== "text" && !!part.url,
+                        );
+                        const parsedMessageLinkUrls = new Set(
+                            parsedMessageLinks.map(
+                                (part) => part.url as string,
+                            ),
+                        );
+                        const extractedUrls = Array.from(
+                            new Set(
+                                (
+                                    message.content?.match(
+                                        /https?:\/\/[^\s]+/gi,
+                                    ) || []
+                                ).map((url) => url.trim()),
+                            ),
+                        );
+                        const fallbackGenericUrls = extractedUrls.filter(
+                            (url) => !parsedMessageLinkUrls.has(url),
+                        );
 
-                    return (
-                        <React.Fragment key={message.id}>
-                            {showDaySeparator && (
-                                <div
-                                    data-chat-day-separator={daySeparatorLabel}
-                                    className="my-1 flex items-center gap-3 px-1"
-                                >
-                                    <div className="flex-1 border-t wd-border-subtle" />
-                                    <span className="text-[11px] wd-text-muted">
-                                        {daySeparatorLabel}
-                                    </span>
-                                    <div className="flex-1 border-t wd-border-subtle" />
-                                </div>
-                            )}
-                            <div
-                                data-chat-message-id={message.id}
-                                className={`group flex gap-3 px-1 ${isConsecutive ? "py-0.5" : "py-1"} transition-colors ${
-                                    highlightedMessageId === message.id ||
-                                    isThreadHighlighted
-                                        ? "rounded-md bg-[var(--wd-accent-soft)]"
-                                        : isCurrentUserMentioned
-                                          ? "border-l-2 border-l-[rgb(240,185,11)] bg-[rgba(240,185,11,0.06)]"
-                                          : pinnedMessageIds?.has(message.id)
-                                            ? "border-l-2 border-l-[var(--wd-accent)]"
-                                            : ""
-                                }`}
-                            >
-                                {isConsecutive ? (
-                                    <div className="w-9 shrink-0 relative flex items-start justify-end pt-1">
-                                        <span className="absolute right-0 text-[10px] leading-none wd-text-muted opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-                                            {formatGutterTimestamp(message.createdAt)}
-                                        </span>
-                                    </div>
-                                ) : (
-                                <div
-                                    onClick={(event) =>
-                                        openProfilePopover(
-                                            event,
-                                            message,
-                                            senderName,
-                                            senderAvatar,
-                                        )
-                                    }
-                                    onContextMenu={(event) =>
-                                        openAvatarContextMenu(
-                                            event,
-                                            message,
-                                            senderName,
-                                        )
-                                    }
-                                    title={
-                                        canOpenAvatarMenu
-                                            ? "Click to view profile. Right-click to add friend."
-                                            : "Click to view profile"
-                                    }
-                                    className="cursor-pointer"
-                                >
-                                    <UserAvatar
-                                        name={senderName}
-                                        spriteStyle={senderAvatar.mode === "sprite" ? senderAvatar.style : null}
-                                        image={senderAvatar.mode === "image" ? senderAvatar.src : null}
-                                        className="cursor-pointer"
-                                    />
-                                </div>
-                                )}
+                        const effectiveMentionedUserIds =
+                            Array.isArray(message.mentionedUserIds) &&
+                            message.mentionedUserIds.length > 0
+                                ? message.mentionedUserIds
+                                : extractMentionedUserIds(
+                                      message.content || "",
+                                      memberNameMap,
+                                  );
+                        const isCurrentUserMentioned =
+                            typeof localBackendUserId === "number" &&
+                            effectiveMentionedUserIds.includes(
+                                localBackendUserId,
+                            );
+                        const hasMentions =
+                            effectiveMentionedUserIds.length > 0;
+                        const previousMessage =
+                            index > 0
+                                ? groupedMessages.rootMessages[index - 1]
+                                : null;
+                        const showDaySeparator =
+                            !previousMessage ||
+                            !isSameMessageCalendarDay(
+                                previousMessage.createdAt,
+                                message.createdAt,
+                            );
+                        const isConsecutive =
+                            !showDaySeparator &&
+                            previousMessage !== null &&
+                            previousMessage.senderUserId ===
+                                message.senderUserId;
+                        const daySeparatorLabel = showDaySeparator
+                            ? formatChatDaySeparatorLabel(message.createdAt)
+                            : "";
 
-                                <div className="min-w-0 flex-1 relative">
-                                <MessageHoverActions
-                                    canReply={!message.replyToMessageId}
-                                    frequentEmojis={frequentEmojis.map(
-                                        (entry) => entry.emoji,
-                                    )}
-                                    isPinned={pinnedMessageIds?.has(message.id) ?? false}
-                                    onReply={() => {
-                                        if (!message.replyToMessageId) {
-                                            onOpenThread?.(message.id);
-                                            return;
+                        return (
+                            <React.Fragment key={message.id}>
+                                {showDaySeparator && (
+                                    <div
+                                        data-chat-day-separator={
+                                            daySeparatorLabel
                                         }
-                                        handleFutureMessageAction("Reply");
-                                    }}
-                                    onReact={(emoji) => {
-                                        void toggleMessageReaction(
-                                            message.id,
-                                            emoji,
-                                        );
-                                    }}
-                                    onUnsend={
-                                        typeof localBackendUserId === "number" &&
-                                        message.senderUserId === localBackendUserId &&
-                                        !message.deletedAt &&
-                                        hasImageContent(message)
-                                            ? () => handleUnsendImage(message)
-                                            : undefined
-                                    }
-                                    onTogglePin={
-                                        pinnedMessageIds?.has(message.id)
-                                            ? () => onUnpinMessage?.(message.id)
-                                            : () => onPinMessage?.(message.id)
-                                    }
-                                    onFutureAction={handleFutureMessageAction}
-                                />
-
-                                {pinnedMessageIds?.has(message.id) && (
-                                    <div className="flex items-center gap-1 text-[11px] wd-text-muted mb-1">
-                                        <Pin size={11} /> Pinned by {pinnedMessageIds.get(message.id)?.pinnedByName ?? "unknown"}
-                                    </div>
-                                )}
-
-                                {!isConsecutive && (
-                                <div className="flex items-center gap-2 mb-1">
-                                    <span
-                                        className={`text-sm font-semibold ${memberRoleColors?.get(message.senderUserId) ? "" : "wd-text-primary"}`}
-                                        style={memberRoleColors?.get(message.senderUserId) ? { color: memberRoleColors.get(message.senderUserId) } : undefined}
+                                        className="my-1 flex items-center gap-3 px-1"
                                     >
-                                        {senderName}
-                                    </span>
-                                    <span className="text-xs wd-text-muted">
-                                        {formatChatMessageTimestamp(message.createdAt)}
-                                    </span>
-                                    {message.editedAt && (
-                                        <span className="text-[10px] uppercase tracking-wide wd-text-muted">
-                                            edited
+                                        <div className="flex-1 border-t wd-border-subtle" />
+                                        <span className="text-[11px] wd-text-muted">
+                                            {daySeparatorLabel}
                                         </span>
-                                    )}
-                                </div>
-                                )}
-
-                                {message.deletedAt ? (
-                                    <div className="text-sm wd-text-muted italic">
-                                        Message deleted
+                                        <div className="flex-1 border-t wd-border-subtle" />
                                     </div>
-                                ) : (
-                                    <div>
-                                        {standaloneGifUrl && (
-                                            <div className="mt-1">
-                                                <img
-                                                    src={standaloneGifUrl}
-                                                    alt="GIF"
-                                                    loading="lazy"
-                                                    className="rounded-md max-w-xs max-h-56 object-contain border wd-border-subtle"
-                                                />
+                                )}
+                                <div
+                                    data-chat-message-id={message.id}
+                                    className={`group flex gap-3 px-1 ${isConsecutive ? "py-0.5" : "py-1"} transition-colors ${
+                                        highlightedMessageId === message.id ||
+                                        isThreadHighlighted
+                                            ? "rounded-md bg-[var(--wd-accent-soft)]"
+                                            : isCurrentUserMentioned
+                                              ? "border-l-2 border-l-[rgb(240,185,11)] bg-[rgba(240,185,11,0.06)]"
+                                              : pinnedMessageIds?.has(
+                                                      message.id,
+                                                  )
+                                                ? "border-l-2 border-l-[var(--wd-accent)]"
+                                                : ""
+                                    }`}
+                                >
+                                    {isConsecutive ? (
+                                        <div className="w-9 shrink-0 relative flex items-start justify-end pt-1">
+                                            <span className="absolute right-0 text-[10px] leading-none wd-text-muted opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                                                {formatGutterTimestamp(
+                                                    message.createdAt,
+                                                )}
+                                            </span>
+                                        </div>
+                                    ) : (
+                                        <div
+                                            onClick={(event) =>
+                                                openProfilePopover(
+                                                    event,
+                                                    message,
+                                                    senderName,
+                                                    senderAvatar,
+                                                )
+                                            }
+                                            onContextMenu={(event) =>
+                                                openAvatarContextMenu(
+                                                    event,
+                                                    message,
+                                                    senderName,
+                                                )
+                                            }
+                                            title={
+                                                canOpenAvatarMenu
+                                                    ? "Click to view profile. Right-click to add friend."
+                                                    : "Click to view profile"
+                                            }
+                                            className="cursor-pointer"
+                                        >
+                                            <UserAvatar
+                                                name={senderName}
+                                                spriteStyle={
+                                                    senderAvatar.mode ===
+                                                    "sprite"
+                                                        ? senderAvatar.style
+                                                        : null
+                                                }
+                                                image={
+                                                    senderAvatar.mode ===
+                                                    "image"
+                                                        ? senderAvatar.src
+                                                        : null
+                                                }
+                                                className="cursor-pointer"
+                                            />
+                                        </div>
+                                    )}
+
+                                    <div className="min-w-0 flex-1 relative">
+                                        <MessageHoverActions
+                                            canReply={!message.replyToMessageId}
+                                            frequentEmojis={frequentEmojis.map(
+                                                (entry) => entry.emoji,
+                                            )}
+                                            isPinned={
+                                                pinnedMessageIds?.has(
+                                                    message.id,
+                                                ) ?? false
+                                            }
+                                            onReply={() => {
+                                                if (!message.replyToMessageId) {
+                                                    onOpenThread?.(message.id);
+                                                    return;
+                                                }
+                                                handleFutureMessageAction(
+                                                    "Reply",
+                                                );
+                                            }}
+                                            onReact={(emoji) => {
+                                                void toggleMessageReaction(
+                                                    message.id,
+                                                    emoji,
+                                                );
+                                            }}
+                                            onUnsend={
+                                                typeof localBackendUserId ===
+                                                    "number" &&
+                                                message.senderUserId ===
+                                                    localBackendUserId &&
+                                                !message.deletedAt &&
+                                                hasImageContent(message)
+                                                    ? () =>
+                                                          handleUnsendImage(
+                                                              message,
+                                                          )
+                                                    : undefined
+                                            }
+                                            onTogglePin={
+                                                pinnedMessageIds?.has(
+                                                    message.id,
+                                                )
+                                                    ? () =>
+                                                          onUnpinMessage?.(
+                                                              message.id,
+                                                          )
+                                                    : () =>
+                                                          onPinMessage?.(
+                                                              message.id,
+                                                          )
+                                            }
+                                            onFutureAction={
+                                                handleFutureMessageAction
+                                            }
+                                        />
+
+                                        {pinnedMessageIds?.has(message.id) && (
+                                            <div className="flex items-center gap-1 text-[11px] wd-text-muted mb-1">
+                                                <Pin size={11} /> Pinned by{" "}
+                                                {pinnedMessageIds.get(
+                                                    message.id,
+                                                )?.pinnedByName ?? "unknown"}
                                             </div>
                                         )}
 
-                                        {message.content &&
-                                            !standaloneGifUrl && (
-                                                <div>
-                                                    <div className="text-sm wd-text-secondary whitespace-pre-wrap break-words">
-                                                        {parsedMessageLinks.length >
-                                                        0 ? (
-                                                            parsedMessageParts.map(
-                                                                (
-                                                                    part,
-                                                                    index,
-                                                                ) => {
-                                                                    if (
-                                                                        part.type !==
-                                                                        "text"
-                                                                    )
-                                                                        return null;
-                                                                    if (
-                                                                        hasMentions &&
-                                                                        part.content
-                                                                    ) {
-                                                                        return (
-                                                                            <MentionHighlightedContent
-                                                                                key={`${message.id}-text-${index}`}
-                                                                                content={
-                                                                                    part.content
-                                                                                }
-                                                                                mentionedUserIds={
-                                                                                    effectiveMentionedUserIds
-                                                                                }
-                                                                                memberNameMap={
-                                                                                    memberNameMap
-                                                                                }
-                                                                                onClickMention={
-                                                                                    handleMentionClick
-                                                                                }
-                                                                            />
-                                                                        );
-                                                                    }
-                                                                    return (
-                                                                        <span
-                                                                            key={`${message.id}-text-${index}`}
-                                                                        >
-                                                                            {
-                                                                                part.content
-                                                                            }
-                                                                        </span>
-                                                                    );
-                                                                },
-                                                            )
-                                                        ) : hasMentions ? (
-                                                            <MentionHighlightedContent
-                                                                content={
-                                                                    message.content
-                                                                }
-                                                                mentionedUserIds={
-                                                                    effectiveMentionedUserIds
-                                                                }
-                                                                memberNameMap={
-                                                                    memberNameMap
-                                                                }
-                                                                onClickMention={
-                                                                    handleMentionClick
-                                                                }
-                                                            />
-                                                        ) : (
-                                                            message.content
-                                                        )}
+                                        {!isConsecutive && (
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <span
+                                                    className={`text-sm font-medium ${memberRoleColors?.get(message.senderUserId) ? "" : "wd-text-primary"}`}
+                                                    style={
+                                                        memberRoleColors?.get(
+                                                            message.senderUserId,
+                                                        )
+                                                            ? {
+                                                                  color: memberRoleColors.get(
+                                                                      message.senderUserId,
+                                                                  ),
+                                                              }
+                                                            : undefined
+                                                    }
+                                                >
+                                                    {senderName}
+                                                </span>
+                                                <span className="text-xs wd-text-muted">
+                                                    {formatChatMessageTimestamp(
+                                                        message.createdAt,
+                                                    )}
+                                                </span>
+                                                {message.editedAt && (
+                                                    <span className="text-[10px] uppercase tracking-wide wd-text-muted">
+                                                        edited
+                                                    </span>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {message.deletedAt ? (
+                                            <div className="text-sm wd-text-muted italic">
+                                                Message deleted
+                                            </div>
+                                        ) : (
+                                            <div>
+                                                {standaloneGifUrl && (
+                                                    <div className="mt-1">
+                                                        <img
+                                                            src={
+                                                                standaloneGifUrl
+                                                            }
+                                                            alt="GIF"
+                                                            loading="lazy"
+                                                            className="rounded-md max-w-xs max-h-56 object-contain border wd-border-subtle"
+                                                        />
                                                     </div>
+                                                )}
 
-                                                    {(parsedMessageLinks.length >
-                                                        0 ||
-                                                        fallbackGenericUrls.length >
-                                                            0) && (
-                                                        <div className="mt-2">
-                                                            {parsedMessageParts.map(
-                                                                (
-                                                                    part,
-                                                                    index,
-                                                                ) => {
-                                                                    const key = `${message.id}-preview-${index}`;
+                                                {message.content &&
+                                                    !standaloneGifUrl && (
+                                                        <div>
+                                                            <div className="text-sm wd-text-secondary whitespace-pre-wrap break-words">
+                                                                {parsedMessageLinks.length >
+                                                                0 ? (
+                                                                    parsedMessageParts.map(
+                                                                        (
+                                                                            part,
+                                                                            index,
+                                                                        ) => {
+                                                                            if (
+                                                                                part.type !==
+                                                                                "text"
+                                                                            )
+                                                                                return null;
+                                                                            if (
+                                                                                hasMentions &&
+                                                                                part.content
+                                                                            ) {
+                                                                                return (
+                                                                                    <MentionHighlightedContent
+                                                                                        key={`${message.id}-text-${index}`}
+                                                                                        content={
+                                                                                            part.content
+                                                                                        }
+                                                                                        mentionedUserIds={
+                                                                                            effectiveMentionedUserIds
+                                                                                        }
+                                                                                        memberNameMap={
+                                                                                            memberNameMap
+                                                                                        }
+                                                                                        onClickMention={
+                                                                                            handleMentionClick
+                                                                                        }
+                                                                                    />
+                                                                                );
+                                                                            }
+                                                                            return (
+                                                                                <span
+                                                                                    key={`${message.id}-text-${index}`}
+                                                                                >
+                                                                                    {
+                                                                                        part.content
+                                                                                    }
+                                                                                </span>
+                                                                            );
+                                                                        },
+                                                                    )
+                                                                ) : hasMentions ? (
+                                                                    <MentionHighlightedContent
+                                                                        content={
+                                                                            message.content
+                                                                        }
+                                                                        mentionedUserIds={
+                                                                            effectiveMentionedUserIds
+                                                                        }
+                                                                        memberNameMap={
+                                                                            memberNameMap
+                                                                        }
+                                                                        onClickMention={
+                                                                            handleMentionClick
+                                                                        }
+                                                                    />
+                                                                ) : (
+                                                                    message.content
+                                                                )}
+                                                            </div>
 
-                                                                    if (
-                                                                        part.type ===
-                                                                            "youtube" &&
-                                                                        part.youtubeId &&
-                                                                        part.url
-                                                                    ) {
-                                                                        return (
-                                                                            <YouTubePreview
-                                                                                key={
-                                                                                    key
-                                                                                }
-                                                                                videoId={
-                                                                                    part.youtubeId
-                                                                                }
-                                                                                url={
-                                                                                    part.url
-                                                                                }
-                                                                            />
-                                                                        );
-                                                                    }
+                                                            {(parsedMessageLinks.length >
+                                                                0 ||
+                                                                fallbackGenericUrls.length >
+                                                                    0) && (
+                                                                <div className="mt-2">
+                                                                    {parsedMessageParts.map(
+                                                                        (
+                                                                            part,
+                                                                            index,
+                                                                        ) => {
+                                                                            const key = `${message.id}-preview-${index}`;
 
-                                                                    if (
-                                                                        part.type ===
-                                                                            "twitter" &&
-                                                                        part.twitterUsername &&
-                                                                        part.twitterId &&
-                                                                        part.url
-                                                                    ) {
-                                                                        return (
-                                                                            <TwitterPreview
-                                                                                key={
-                                                                                    key
-                                                                                }
-                                                                                username={
-                                                                                    part.twitterUsername
-                                                                                }
-                                                                                twitterId={
-                                                                                    part.twitterId
-                                                                                }
-                                                                                url={
-                                                                                    part.url
-                                                                                }
-                                                                            />
-                                                                        );
-                                                                    }
+                                                                            if (
+                                                                                part.type ===
+                                                                                    "youtube" &&
+                                                                                part.youtubeId &&
+                                                                                part.url
+                                                                            ) {
+                                                                                return (
+                                                                                    <YouTubePreview
+                                                                                        key={
+                                                                                            key
+                                                                                        }
+                                                                                        videoId={
+                                                                                            part.youtubeId
+                                                                                        }
+                                                                                        url={
+                                                                                            part.url
+                                                                                        }
+                                                                                    />
+                                                                                );
+                                                                            }
 
-                                                                    if (
-                                                                        part.type ===
-                                                                            "github" &&
-                                                                        part.githubOwner &&
-                                                                        part.githubRepo &&
-                                                                        part.githubType &&
-                                                                        part.url
-                                                                    ) {
-                                                                        return (
-                                                                            <GitHubPreview
-                                                                                key={
-                                                                                    key
-                                                                                }
-                                                                                owner={
-                                                                                    part.githubOwner
-                                                                                }
-                                                                                repo={
-                                                                                    part.githubRepo
-                                                                                }
-                                                                                type={
-                                                                                    part.githubType
-                                                                                }
-                                                                                issueNumber={
-                                                                                    part.githubIssueNumber
-                                                                                }
-                                                                                url={
-                                                                                    part.url
-                                                                                }
-                                                                            />
-                                                                        );
-                                                                    }
+                                                                            if (
+                                                                                part.type ===
+                                                                                    "twitter" &&
+                                                                                part.twitterUsername &&
+                                                                                part.twitterId &&
+                                                                                part.url
+                                                                            ) {
+                                                                                return (
+                                                                                    <TwitterPreview
+                                                                                        key={
+                                                                                            key
+                                                                                        }
+                                                                                        username={
+                                                                                            part.twitterUsername
+                                                                                        }
+                                                                                        twitterId={
+                                                                                            part.twitterId
+                                                                                        }
+                                                                                        url={
+                                                                                            part.url
+                                                                                        }
+                                                                                    />
+                                                                                );
+                                                                            }
 
-                                                                    if (
-                                                                        part.type ===
-                                                                            "link" &&
-                                                                        part.url
-                                                                    ) {
-                                                                        return renderGenericLinkPreview(
-                                                                            part.url,
-                                                                            key,
-                                                                            linkPreviews[
-                                                                                part
-                                                                                    .url
-                                                                            ],
-                                                                        );
-                                                                    }
+                                                                            if (
+                                                                                part.type ===
+                                                                                    "github" &&
+                                                                                part.githubOwner &&
+                                                                                part.githubRepo &&
+                                                                                part.githubType &&
+                                                                                part.url
+                                                                            ) {
+                                                                                return (
+                                                                                    <GitHubPreview
+                                                                                        key={
+                                                                                            key
+                                                                                        }
+                                                                                        owner={
+                                                                                            part.githubOwner
+                                                                                        }
+                                                                                        repo={
+                                                                                            part.githubRepo
+                                                                                        }
+                                                                                        type={
+                                                                                            part.githubType
+                                                                                        }
+                                                                                        issueNumber={
+                                                                                            part.githubIssueNumber
+                                                                                        }
+                                                                                        url={
+                                                                                            part.url
+                                                                                        }
+                                                                                    />
+                                                                                );
+                                                                            }
 
-                                                                    return null;
-                                                                },
-                                                            )}
+                                                                            if (
+                                                                                part.type ===
+                                                                                    "link" &&
+                                                                                part.url
+                                                                            ) {
+                                                                                return renderGenericLinkPreview(
+                                                                                    part.url,
+                                                                                    key,
+                                                                                    linkPreviews[
+                                                                                        part
+                                                                                            .url
+                                                                                    ],
+                                                                                );
+                                                                            }
 
-                                                            {fallbackGenericUrls.map(
-                                                                (url, index) =>
-                                                                    renderGenericLinkPreview(
-                                                                        url,
-                                                                        `${message.id}-fallback-preview-${index}`,
-                                                                        linkPreviews[
-                                                                            url
-                                                                        ],
-                                                                    ),
+                                                                            return null;
+                                                                        },
+                                                                    )}
+
+                                                                    {fallbackGenericUrls.map(
+                                                                        (
+                                                                            url,
+                                                                            index,
+                                                                        ) =>
+                                                                            renderGenericLinkPreview(
+                                                                                url,
+                                                                                `${message.id}-fallback-preview-${index}`,
+                                                                                linkPreviews[
+                                                                                    url
+                                                                                ],
+                                                                            ),
+                                                                    )}
+                                                                </div>
                                                             )}
                                                         </div>
                                                     )}
-                                                </div>
-                                            )}
 
-                                        {message.attachments.length > 0 && (
-                                            <div className="mt-2 space-y-1">
-                                                {message.attachments.map(
-                                                    (attachment) => {
-                                                        const urlState =
-                                                            attachmentUrls[
-                                                                attachment.id
-                                                            ];
-                                                        const isPdfAttachment =
-                                                            attachment.mimeType ===
-                                                            "application/pdf";
-                                                        const isPreviewable =
-                                                            isPreviewableAttachment(
-                                                                attachment,
-                                                            );
+                                                {message.attachments.length >
+                                                    0 && (
+                                                    <div className="mt-2 space-y-1">
+                                                        {message.attachments.map(
+                                                            (attachment) => {
+                                                                const urlState =
+                                                                    attachmentUrls[
+                                                                        attachment
+                                                                            .id
+                                                                    ];
+                                                                const isPdfAttachment =
+                                                                    attachment.mimeType ===
+                                                                    "application/pdf";
+                                                                const isPreviewable =
+                                                                    isPreviewableAttachment(
+                                                                        attachment,
+                                                                    );
 
-                                                        if (
-                                                            isPreviewable &&
-                                                            !urlState
-                                                        ) {
-                                                            return (
-                                                                <div
-                                                                    key={attachment.id}
-                                                                    className="rounded-md max-w-xs h-32 animate-pulse wd-bg-elevated border wd-border-subtle"
-                                                                />
-                                                            );
-                                                        }
+                                                                if (
+                                                                    isPreviewable &&
+                                                                    !urlState
+                                                                ) {
+                                                                    return (
+                                                                        <div
+                                                                            key={
+                                                                                attachment.id
+                                                                            }
+                                                                            className="rounded-md max-w-xs h-32 animate-pulse wd-bg-elevated border wd-border-subtle"
+                                                                        />
+                                                                    );
+                                                                }
 
-                                                        if (
-                                                            attachment.isImage &&
-                                                            urlState
-                                                        ) {
-                                                            const showFull =
-                                                                urlState.showFull &&
-                                                                urlState.viewUrl;
-                                                            const imgSrc =
-                                                                showFull
-                                                                    ? urlState.viewUrl!
-                                                                    : (urlState.thumbnailUrl ??
-                                                                      urlState.viewUrl ??
-                                                                      "");
-                                                            const isThumbnail =
-                                                                !showFull &&
-                                                                !!urlState.thumbnailUrl;
+                                                                if (
+                                                                    attachment.isImage &&
+                                                                    urlState
+                                                                ) {
+                                                                    const showFull =
+                                                                        urlState.showFull &&
+                                                                        urlState.viewUrl;
+                                                                    const imgSrc =
+                                                                        showFull
+                                                                            ? urlState.viewUrl!
+                                                                            : (urlState.thumbnailUrl ??
+                                                                              urlState.viewUrl ??
+                                                                              "");
+                                                                    const isThumbnail =
+                                                                        !showFull &&
+                                                                        !!urlState.thumbnailUrl;
 
-                                                            return (
-                                                                <button
-                                                                    key={attachment.id}
-                                                                    type="button"
-                                                                    onClick={() =>
-                                                                        handleImageClick(
-                                                                            attachment.id,
-                                                                        )
-                                                                    }
-                                                                    className="relative block cursor-pointer group"
-                                                                >
-                                                                    <img
-                                                                        src={imgSrc}
-                                                                        alt={attachment.originalFileName}
-                                                                        loading="lazy"
-                                                                        className="rounded-md max-w-xs max-h-56 object-cover border wd-border-subtle"
-                                                                    />
-                                                                    {isThumbnail && (
-                                                                        <span className="absolute bottom-1 right-1 text-[10px] px-1.5 py-0.5 rounded bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                            Click
-                                                                            for
-                                                                            full
-                                                                            size
-                                                                        </span>
-                                                                    )}
-                                                                </button>
-                                                            );
-                                                        }
+                                                                    return (
+                                                                        <button
+                                                                            key={
+                                                                                attachment.id
+                                                                            }
+                                                                            type="button"
+                                                                            onClick={() =>
+                                                                                handleImageClick(
+                                                                                    attachment.id,
+                                                                                )
+                                                                            }
+                                                                            className="relative block cursor-pointer group"
+                                                                        >
+                                                                            <img
+                                                                                src={
+                                                                                    imgSrc
+                                                                                }
+                                                                                alt={
+                                                                                    attachment.originalFileName
+                                                                                }
+                                                                                loading="lazy"
+                                                                                className="rounded-md max-w-xs max-h-56 object-cover border wd-border-subtle"
+                                                                            />
+                                                                            {isThumbnail && (
+                                                                                <span className="absolute bottom-1 right-1 text-[10px] px-1.5 py-0.5 rounded bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                                    Click
+                                                                                    for
+                                                                                    full
+                                                                                    size
+                                                                                </span>
+                                                                            )}
+                                                                        </button>
+                                                                    );
+                                                                }
 
-                                                        if (
-                                                            isPdfAttachment &&
-                                                            urlState?.viewUrl
-                                                        ) {
-                                                            return (
-                                                                <div
-                                                                    key={attachment.id}
-                                                                    className="space-y-1"
-                                                                >
-                                                                    <iframe
-                                                                        src={urlState.viewUrl}
-                                                                        title={attachment.originalFileName}
-                                                                        className="h-64 w-full max-w-md rounded-md border wd-border-subtle"
-                                                                    />
+                                                                if (
+                                                                    isPdfAttachment &&
+                                                                    urlState?.viewUrl
+                                                                ) {
+                                                                    return (
+                                                                        <div
+                                                                            key={
+                                                                                attachment.id
+                                                                            }
+                                                                            className="space-y-1"
+                                                                        >
+                                                                            <iframe
+                                                                                src={
+                                                                                    urlState.viewUrl
+                                                                                }
+                                                                                title={
+                                                                                    attachment.originalFileName
+                                                                                }
+                                                                                className="h-64 w-full max-w-md rounded-md border wd-border-subtle"
+                                                                            />
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() =>
+                                                                                    handleDownloadAttachment(
+                                                                                        attachment.id,
+                                                                                        attachment.originalFileName,
+                                                                                    )
+                                                                                }
+                                                                                className="text-xs px-2 py-1 rounded wd-bg-elevated wd-text-accent truncate inline-flex items-center gap-1 border wd-border-subtle"
+                                                                            >
+                                                                                {
+                                                                                    attachment.originalFileName
+                                                                                }
+                                                                                <ExternalLink
+                                                                                    size={
+                                                                                        12
+                                                                                    }
+                                                                                />
+                                                                            </button>
+                                                                        </div>
+                                                                    );
+                                                                }
+
+                                                                return (
                                                                     <button
+                                                                        key={
+                                                                            attachment.id
+                                                                        }
                                                                         type="button"
                                                                         onClick={() =>
                                                                             handleDownloadAttachment(
@@ -1836,169 +1953,156 @@ function MessageList({
                                                                             }
                                                                         />
                                                                     </button>
-                                                                </div>
-                                                            );
-                                                        }
-
-                                                        return (
-                                                            <button
-                                                                key={attachment.id}
-                                                                type="button"
-                                                                onClick={() =>
-                                                                    handleDownloadAttachment(
-                                                                        attachment.id,
-                                                                        attachment.originalFileName,
-                                                                    )
-                                                                }
-                                                                className="text-xs px-2 py-1 rounded wd-bg-elevated wd-text-accent truncate inline-flex items-center gap-1 border wd-border-subtle"
-                                                            >
-                                                                {
-                                                                    attachment.originalFileName
-                                                                }
-                                                                <ExternalLink
-                                                                    size={12}
-                                                                />
-                                                            </button>
-                                                        );
-                                                    },
-                                                )}
-                                            </div>
-                                        )}
-
-                                        <MessageReactionChips
-                                            roomId={message.roomId}
-                                            messageId={message.id}
-                                            reactions={message.reactions || []}
-                                            onToggleReaction={(emoji) => {
-                                                void toggleMessageReaction(
-                                                    message.id,
-                                                    emoji,
-                                                );
-                                            }}
-                                        />
-
-                                        {totalReplies > 0 && (
-                                            <button
-                                                type="button"
-                                                onClick={() =>
-                                                    onOpenThread?.(message.id)
-                                                }
-                                                className="mt-2 ml-2 inline-flex items-center gap-2 rounded-md px-2 py-1 text-sm font-semibold wd-text-accent hover:bg-[var(--wd-accent-soft)]"
-                                            >
-                                                <span className="inline-flex items-center">
-                                                    {messageReplyPreviewUsers
-                                                        .slice(0, 3)
-                                                        .map(
-                                                            (
-                                                                previewUser,
-                                                                index,
-                                                            ) => {
-                                                                const previewDisplayName =
-                                                                    getDisplayName(
-                                                                        previewUser,
-                                                                        `User ${previewUser.id}`,
-                                                                    );
-                                                                return (
-                                                                    <span
-                                                                        key={`${message.id}-reply-preview-${previewUser.id}`}
-                                                                        className={`${
-                                                                            index ===
-                                                                            0
-                                                                                ? ""
-                                                                                : "-ml-1.5"
-                                                                        } h-5 w-5 rounded-full border wd-border-strong wd-bg-elevated overflow-hidden inline-flex items-center justify-center text-[10px] font-semibold wd-text-primary`}
-                                                                    >
-                                                                        {previewUser.image ? (
-                                                                            <img
-                                                                                src={
-                                                                                    previewUser.image
-                                                                                }
-                                                                                alt={
-                                                                                    previewDisplayName
-                                                                                }
-                                                                                loading="lazy"
-                                                                                className="h-full w-full object-cover"
-                                                                            />
-                                                                        ) : (
-                                                                            previewDisplayName
-                                                                                .charAt(
-                                                                                    0,
-                                                                                )
-                                                                                .toUpperCase()
-                                                                        )}
-                                                                    </span>
                                                                 );
                                                             },
                                                         )}
-                                                </span>
-                                                <span>
-                                                    {totalReplies}{" "}
-                                                    {totalReplies === 1
-                                                        ? "reply"
-                                                        : "replies"}
-                                                </span>
-                                            </button>
+                                                    </div>
+                                                )}
+
+                                                <MessageReactionChips
+                                                    roomId={message.roomId}
+                                                    messageId={message.id}
+                                                    reactions={
+                                                        message.reactions || []
+                                                    }
+                                                    onToggleReaction={(
+                                                        emoji,
+                                                    ) => {
+                                                        void toggleMessageReaction(
+                                                            message.id,
+                                                            emoji,
+                                                        );
+                                                    }}
+                                                />
+
+                                                {totalReplies > 0 && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            onOpenThread?.(
+                                                                message.id,
+                                                            )
+                                                        }
+                                                        className="mt-2 ml-2 inline-flex items-center gap-2 rounded-md px-2 py-1 text-sm font-semibold wd-text-accent hover:bg-[var(--wd-accent-soft)]"
+                                                    >
+                                                        <span className="inline-flex items-center">
+                                                            {messageReplyPreviewUsers
+                                                                .slice(0, 3)
+                                                                .map(
+                                                                    (
+                                                                        previewUser,
+                                                                        index,
+                                                                    ) => {
+                                                                        const previewDisplayName =
+                                                                            getDisplayName(
+                                                                                previewUser,
+                                                                                `User ${previewUser.id}`,
+                                                                            );
+                                                                        return (
+                                                                            <span
+                                                                                key={`${message.id}-reply-preview-${previewUser.id}`}
+                                                                                className={`${
+                                                                                    index ===
+                                                                                    0
+                                                                                        ? ""
+                                                                                        : "-ml-1.5"
+                                                                                } h-5 w-5 rounded-full border wd-border-strong wd-bg-elevated overflow-hidden inline-flex items-center justify-center text-[10px] font-semibold wd-text-primary`}
+                                                                            >
+                                                                                {previewUser.image ? (
+                                                                                    <img
+                                                                                        src={
+                                                                                            previewUser.image
+                                                                                        }
+                                                                                        alt={
+                                                                                            previewDisplayName
+                                                                                        }
+                                                                                        loading="lazy"
+                                                                                        className="h-full w-full object-cover"
+                                                                                    />
+                                                                                ) : (
+                                                                                    previewDisplayName
+                                                                                        .charAt(
+                                                                                            0,
+                                                                                        )
+                                                                                        .toUpperCase()
+                                                                                )}
+                                                                            </span>
+                                                                        );
+                                                                    },
+                                                                )}
+                                                        </span>
+                                                        <span>
+                                                            {totalReplies}{" "}
+                                                            {totalReplies === 1
+                                                                ? "reply"
+                                                                : "replies"}
+                                                        </span>
+                                                    </button>
+                                                )}
+                                            </div>
                                         )}
                                     </div>
-                                )}
                                 </div>
-                            </div>
-                        </React.Fragment>
-                    );
-                })}
-                {profilePopover && (
-                <ProfilePopover
-                    popover={profilePopover}
-                    onClose={() => setProfilePopover(null)}
-                    onAvatarUpdated={(newAvatar) => {
-                        setProfilePopover({
-                            ...profilePopover,
-                            senderAvatar: newAvatar,
-                        });
-                    }}
-                />
-            )}
-            {avatarContextMenu && (
-                <div
-                    data-avatar-context-menu="true"
-                    className="fixed z-[160] min-w-[210px] rounded-md border wd-border-strong wd-bg-panel shadow-[0_14px_36px_rgba(0,0,0,0.45)] p-1"
-                    style={{
-                        left: avatarContextMenu.x,
-                        top: avatarContextMenu.y,
-                    }}
-                >
-                    <button
-                        type="button"
-                        onClick={() => {
-                            void handleAddFriend(
-                                avatarContextMenu.senderUserId,
-                                avatarContextMenu.senderName,
-                                true,
-                            );
-                        }}
-                        disabled={
-                            isAddingFriend || avatarFriendActionMeta.isDisabled
-                        }
-                        title={avatarFriendActionMeta.tooltip}
-                        className="w-full rounded px-2 py-1.5 text-left text-sm wd-text-primary transition-colors hover:bg-[var(--wd-surface-elevated)] disabled:opacity-70 inline-flex items-center gap-2"
-                    >
-                        {avatarFriendActionMeta.isAccepted ? (
-                            <UserCheck size={14} className="text-emerald-400" />
-                        ) : (
-                            <UserRoundPlus
-                                size={14}
-                                className="wd-text-secondary"
-                            />
-                        )}
-                        <span>
-                            {isAddingFriend
-                                ? "Sending..."
-                                : avatarFriendActionMeta.label}
-                        </span>
-                    </button>
-                </div>
-            )}
-            </>
+                            </React.Fragment>
+                        );
+                    })}
+                    {profilePopover && (
+                        <ProfilePopover
+                            popover={profilePopover}
+                            onClose={() => setProfilePopover(null)}
+                            onAvatarUpdated={(newAvatar) => {
+                                setProfilePopover({
+                                    ...profilePopover,
+                                    senderAvatar: newAvatar,
+                                });
+                            }}
+                        />
+                    )}
+                    {avatarContextMenu && (
+                        <div
+                            data-avatar-context-menu="true"
+                            className="fixed z-[160] min-w-[210px] rounded-md border wd-border-strong wd-bg-panel shadow-[0_14px_36px_rgba(0,0,0,0.45)] p-1"
+                            style={{
+                                left: avatarContextMenu.x,
+                                top: avatarContextMenu.y,
+                            }}
+                        >
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    void handleAddFriend(
+                                        avatarContextMenu.senderUserId,
+                                        avatarContextMenu.senderName,
+                                        true,
+                                    );
+                                }}
+                                disabled={
+                                    isAddingFriend ||
+                                    avatarFriendActionMeta.isDisabled
+                                }
+                                title={avatarFriendActionMeta.tooltip}
+                                className="w-full rounded px-2 py-1.5 text-left text-sm wd-text-primary transition-colors hover:bg-[var(--wd-surface-elevated)] disabled:opacity-70 inline-flex items-center gap-2"
+                            >
+                                {avatarFriendActionMeta.isAccepted ? (
+                                    <UserCheck
+                                        size={14}
+                                        className="text-emerald-400"
+                                    />
+                                ) : (
+                                    <UserRoundPlus
+                                        size={14}
+                                        className="wd-text-secondary"
+                                    />
+                                )}
+                                <span>
+                                    {isAddingFriend
+                                        ? "Sending..."
+                                        : avatarFriendActionMeta.label}
+                                </span>
+                            </button>
+                        </div>
+                    )}
+                </>
             )}
             <div ref={endRef} />
             {showNewMessagesPill ? (
