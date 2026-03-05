@@ -52,6 +52,7 @@ function AccountPanel({ onClose }: AccountPanelProps) {
               <img
                 src={displayImage}
                 alt="Avatar"
+                loading="lazy"
                 className="h-full w-full object-cover"
               />
             ) : (

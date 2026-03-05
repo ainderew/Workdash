@@ -600,6 +600,7 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
                             <img
                                 src={serverImageUrl}
                                 alt=""
+                                loading="lazy"
                                 className="h-full w-full object-cover"
                             />
                         </span>

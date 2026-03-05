@@ -10,7 +10,6 @@ import type {
     ChatV2Attachment,
     ChatV2FriendshipStatus,
     ChatV2Message,
-    ChatV2UserProfile,
 } from "@/communication/chatV2/_types";
 import { ChatV2Service } from "@/communication/chatV2/chatV2Service";
 import { getStandaloneGifUrl } from "@/communication/chatV2/gifUrl";
@@ -37,23 +36,15 @@ import MessageReactionChips from "./MessageReactionChips";
 import MentionHighlightedContent from "./MentionHighlightedContent";
 import {
     ArrowDown,
-    Ban,
-    Copy,
-    Ellipsis,
     ExternalLink,
-    Flag,
-    ImagePlus,
-    Loader2,
-    MessageSquare,
-    Pencil,
     Pin,
-    Save,
     UserCheck,
     UserRoundPlus,
 } from "lucide-react";
 import { toast } from "sonner";
 import { getDisplayName } from "@/common/utils/displayName";
-import { CONFIG } from "@/common/utils/config";
+import { ProfilePopover } from "./profile-popover";
+import type { ProfilePopoverState, SenderAvatar } from "./profile-popover";
 import {
     formatChatDaySeparatorLabel,
     formatChatMessageTimestamp,
@@ -95,28 +86,7 @@ type AvatarContextMenuState = {
     senderName: string;
 };
 
-type SenderAvatar =
-    | {
-          mode: "sprite";
-          style: React.CSSProperties;
-      }
-    | {
-          mode: "image";
-          src: string;
-      }
-    | {
-          mode: "fallback";
-      };
-
-type ProfilePopoverState = {
-    x: number;
-    y: number;
-    senderUserId: number;
-    senderName: string;
-    senderAvatar: SenderAvatar;
-};
 const MAX_PREVIEW_RETRIES = 3;
-const MAX_BIO_LENGTH = 280;
 const isPreviewableAttachment = (attachment: ChatV2Attachment) =>
     attachment.isImage || attachment.mimeType === "application/pdf";
 const hasImageContent = (message: ChatV2Message) =>
@@ -264,13 +234,9 @@ function MessageList({
     const [showNewMessagesPill, setShowNewMessagesPill] = useState(false);
     const [isScrolledFarBack, setIsScrolledFarBack] = useState(false);
     const user = useUserStore((state) => state.user);
-    const updateUser = useUserStore((state) => state.updateUser);
     const friends = useChatV2Store((state) => state.friends);
     const friendRequests = useChatV2Store((state) => state.friendRequests);
     const requestFriend = useChatV2Store((state) => state.requestFriend);
-    const openDirectMessage = useChatV2Store(
-        (state) => state.openDirectMessage,
-    );
     const frequentEmojis = useChatV2Store((state) => state.frequentEmojis);
     const currentRoomId = useChatV2Store((state) => state.currentRoomId);
     const membersByRoomId = useChatV2Store((state) => state.membersByRoomId);
@@ -300,18 +266,7 @@ function MessageList({
         useState<AvatarContextMenuState | null>(null);
     const [profilePopover, setProfilePopover] =
         useState<ProfilePopoverState | null>(null);
-    const [activeUserProfile, setActiveUserProfile] =
-        useState<ChatV2UserProfile | null>(null);
-    const [isLoadingProfile, setIsLoadingProfile] = useState(false);
-    const [profileError, setProfileError] = useState<string | null>(null);
-    const [isSavingBio, setIsSavingBio] = useState(false);
-    const [bioDraft, setBioDraft] = useState("");
-    const [isBioEditing, setIsBioEditing] = useState(false);
-    const [isMoreOptionsOpen, setIsMoreOptionsOpen] = useState(false);
-    const [isOpeningDm, setIsOpeningDm] = useState(false);
     const [isAddingFriend, setIsAddingFriend] = useState(false);
-    const [isUploadingPopoverAvatar, setIsUploadingPopoverAvatar] = useState(false);
-    const popoverAvatarInputRef = useRef<HTMLInputElement>(null);
     const [resolvedSenderImagesByUserId, setResolvedSenderImagesByUserId] =
         useState<Record<number, string>>({});
     const [
@@ -348,28 +303,16 @@ function MessageList({
             ),
         [friendRequests],
     );
-    const profileFriendActionMeta = useMemo(
-        () => getFriendActionMeta(activeUserProfile?.friendshipStatus ?? null),
-        [activeUserProfile?.friendshipStatus],
-    );
     const avatarContextFriendshipStatus =
         useMemo<ChatV2FriendshipStatus | null>(() => {
             if (!avatarContextMenu) return null;
 
             const targetUserId = avatarContextMenu.senderUserId;
-            if (
-                activeUserProfile &&
-                activeUserProfile.user.id === targetUserId &&
-                !activeUserProfile.isSelf
-            ) {
-                return activeUserProfile.friendshipStatus;
-            }
             if (acceptedFriendUserIds.has(targetUserId)) return "ACCEPTED";
             if (pendingFriendUserIds.has(targetUserId)) return "PENDING";
             return null;
         }, [
             acceptedFriendUserIds,
-            activeUserProfile,
             avatarContextMenu,
             pendingFriendUserIds,
         ]);
@@ -523,10 +466,6 @@ function MessageList({
         const closeMenu = () => {
             setAvatarContextMenu(null);
             setProfilePopover(null);
-            setActiveUserProfile(null);
-            setProfileError(null);
-            setIsBioEditing(false);
-            setIsMoreOptionsOpen(false);
         };
 
         const onMouseDown = (event: MouseEvent) => {
@@ -606,48 +545,6 @@ function MessageList({
             onLoadOlderMessages?.();
         }
     }, [focusedMessageId, messages, hasMoreMessages, isLoadingOlderMessages, onLoadOlderMessages]);
-
-    useEffect(() => {
-        if (!profilePopover) {
-            setActiveUserProfile(null);
-            setProfileError(null);
-            setIsLoadingProfile(false);
-            setIsBioEditing(false);
-            setBioDraft("");
-            return;
-        }
-
-        let cancelled = false;
-        setIsLoadingProfile(true);
-        setProfileError(null);
-        setIsBioEditing(false);
-
-        void (async () => {
-            try {
-                const profile = await chatV2Service.getUserProfile(
-                    profilePopover.senderUserId,
-                );
-                if (cancelled) return;
-
-                setActiveUserProfile(profile);
-                setBioDraft(profile.user.bio || "");
-                setIsLoadingProfile(false);
-            } catch (error) {
-                if (cancelled) return;
-                setIsLoadingProfile(false);
-                setActiveUserProfile(null);
-                setProfileError(
-                    error instanceof Error
-                        ? error.message
-                        : "Failed to load user profile",
-                );
-            }
-        })();
-
-        return () => {
-            cancelled = true;
-        };
-    }, [chatV2Service, profilePopover]);
 
     useEffect(() => {
         const unresolvedAttachments: Array<{
@@ -1099,10 +996,6 @@ function MessageList({
         });
 
         setProfilePopover(null);
-        setActiveUserProfile(null);
-        setProfileError(null);
-        setIsBioEditing(false);
-        setIsMoreOptionsOpen(false);
     };
 
     const handleMentionClick = (
@@ -1146,7 +1039,6 @@ function MessageList({
             senderAvatar,
         });
         setAvatarContextMenu(null);
-        setIsMoreOptionsOpen(false);
     };
 
     const openProfilePopover = (
@@ -1180,7 +1072,6 @@ function MessageList({
             senderAvatar,
         });
         setAvatarContextMenu(null);
-        setIsMoreOptionsOpen(false);
     };
 
     const handleAddFriend = async (
@@ -1210,67 +1101,7 @@ function MessageList({
             if (closeMenus) {
                 setAvatarContextMenu(null);
                 setProfilePopover(null);
-                setIsMoreOptionsOpen(false);
             }
-        }
-    };
-
-    const handleOpenDirectMessage = async (
-        userId: number,
-        senderName: string,
-        closeMenus = false,
-    ) => {
-        if (isOpeningDm) {
-            return;
-        }
-
-        setIsOpeningDm(true);
-        try {
-            await openDirectMessage(userId);
-            toast("Private message opened", {
-                description: `You can now DM ${senderName}.`,
-            });
-            if (closeMenus) {
-                setProfilePopover(null);
-                setIsMoreOptionsOpen(false);
-            }
-        } catch (error) {
-            toast("Unable to open private message", {
-                description:
-                    error instanceof Error
-                        ? error.message
-                        : "Please try again.",
-            });
-        } finally {
-            setIsOpeningDm(false);
-        }
-    };
-
-    const handleSaveBio = async () => {
-        if (!activeUserProfile?.isSelf || isSavingBio) {
-            return;
-        }
-
-        setIsSavingBio(true);
-        try {
-            const profile = await chatV2Service.updateOwnUserProfile({
-                bio: bioDraft,
-            });
-            setActiveUserProfile(profile);
-            setBioDraft(profile.user.bio || "");
-            setIsBioEditing(false);
-            toast("Profile updated", {
-                description: "Your bio was saved.",
-            });
-        } catch (error) {
-            toast("Failed to update bio", {
-                description:
-                    error instanceof Error
-                        ? error.message
-                        : "Please try again.",
-            });
-        } finally {
-            setIsSavingBio(false);
         }
     };
 
@@ -1699,6 +1530,7 @@ function MessageList({
                                                 <img
                                                     src={standaloneGifUrl}
                                                     alt="GIF"
+                                                    loading="lazy"
                                                     className="rounded-md max-w-xs max-h-56 object-contain border wd-border-subtle"
                                                 />
                                             </div>
@@ -1956,6 +1788,7 @@ function MessageList({
                                                                     <img
                                                                         src={imgSrc}
                                                                         alt={attachment.originalFileName}
+                                                                        loading="lazy"
                                                                         className="rounded-md max-w-xs max-h-56 object-cover border wd-border-subtle"
                                                                     />
                                                                     {isThumbnail && (
@@ -2083,6 +1916,7 @@ function MessageList({
                                                                                 alt={
                                                                                     previewDisplayName
                                                                                 }
+                                                                                loading="lazy"
                                                                                 className="h-full w-full object-cover"
                                                                             />
                                                                         ) : (
@@ -2113,367 +1947,16 @@ function MessageList({
                     );
                 })}
                 {profilePopover && (
-                <div
-                    data-user-profile-popover="true"
-                    className="fixed z-[170] w-[360px] rounded-2xl border wd-border-strong wd-bg-panel shadow-[0_24px_56px_rgba(0,0,0,0.5)] overflow-hidden"
-                    style={{
-                        left: profilePopover.x,
-                        top: profilePopover.y,
+                <ProfilePopover
+                    popover={profilePopover}
+                    onClose={() => setProfilePopover(null)}
+                    onAvatarUpdated={(newAvatar) => {
+                        setProfilePopover({
+                            ...profilePopover,
+                            senderAvatar: newAvatar,
+                        });
                     }}
-                >
-                    <div className="relative h-24 bg-[linear-gradient(120deg,rgba(88,101,242,0.18),rgba(15,17,21,0.98))]">
-                        <div className="absolute right-3 top-3 flex items-center gap-2">
-                            {activeUserProfile && !activeUserProfile.isSelf && (
-                                <button
-                                    type="button"
-                                    disabled={
-                                        isAddingFriend ||
-                                        profileFriendActionMeta.isDisabled
-                                    }
-                                    onClick={() => {
-                                        void handleAddFriend(
-                                            profilePopover.senderUserId,
-                                            profilePopover.senderName,
-                                        );
-                                    }}
-                                    title={profileFriendActionMeta.tooltip}
-                                    className={`h-9 w-9 rounded-full border inline-flex items-center justify-center transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${
-                                        profileFriendActionMeta.isAccepted
-                                            ? "border-emerald-700 bg-emerald-950/50 text-emerald-300 hover:bg-emerald-900/60"
-                                            : "wd-border-subtle wd-bg-panel-2 wd-text-primary hover:bg-[var(--wd-surface-elevated)]"
-                                    }`}
-                                >
-                                    {profileFriendActionMeta.isAccepted ? (
-                                        <UserCheck size={15} />
-                                    ) : (
-                                        <UserRoundPlus size={15} />
-                                    )}
-                                </button>
-                            )}
-
-                            <div className="relative">
-                                <button
-                                    type="button"
-                                    onClick={() =>
-                                        setIsMoreOptionsOpen(
-                                            (current) => !current,
-                                        )
-                                    }
-                                    title="More options"
-                                    className="h-9 w-9 rounded-full border wd-border-subtle wd-bg-panel-2 wd-text-primary inline-flex items-center justify-center transition-colors hover:bg-[var(--wd-surface-elevated)]"
-                                >
-                                    <Ellipsis size={16} />
-                                </button>
-
-                                {isMoreOptionsOpen && (
-                                    <div
-                                        data-user-profile-more="true"
-                                        className="absolute right-0 top-[calc(100%+8px)] z-[175] w-56 rounded-xl border wd-border-strong wd-bg-panel shadow-[0_18px_42px_rgba(0,0,0,0.45)] p-1"
-                                    >
-                                        <button
-                                            type="button"
-                                            onClick={async () => {
-                                                try {
-                                                    await navigator.clipboard.writeText(
-                                                        String(
-                                                            profilePopover.senderUserId,
-                                                        ),
-                                                    );
-                                                    toast("User ID copied", {
-                                                        description: `Copied ${profilePopover.senderUserId}.`,
-                                                    });
-                                                } catch {
-                                                    toast(
-                                                        "Unable to copy user ID",
-                                                        {
-                                                            description:
-                                                                "Please try again.",
-                                                        },
-                                                    );
-                                                }
-                                                setIsMoreOptionsOpen(false);
-                                            }}
-                                            className="w-full rounded px-2 py-1.5 text-left text-sm wd-text-primary transition-colors hover:bg-[var(--wd-surface-elevated)] inline-flex items-center gap-2"
-                                        >
-                                            <Copy
-                                                size={14}
-                                                className="wd-text-secondary"
-                                            />
-                                            Copy User ID
-                                        </button>
-                                        {activeUserProfile &&
-                                            !activeUserProfile.isSelf && (
-                                                <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                        void handleOpenDirectMessage(
-                                                            profilePopover.senderUserId,
-                                                            profilePopover.senderName,
-                                                            true,
-                                                        );
-                                                    }}
-                                                    className="w-full rounded px-2 py-1.5 text-left text-sm wd-text-primary transition-colors hover:bg-[var(--wd-surface-elevated)] inline-flex items-center gap-2"
-                                                >
-                                                    <MessageSquare
-                                                        size={14}
-                                                        className="wd-text-secondary"
-                                                    />
-                                                    Send Private Message
-                                                </button>
-                                            )}
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                toast("Thanks for the report", {
-                                                    description:
-                                                        "Moderation review workflow is coming soon.",
-                                                });
-                                                setIsMoreOptionsOpen(false);
-                                            }}
-                                            className="w-full rounded px-2 py-1.5 text-left text-sm wd-text-danger transition-colors hover:bg-[var(--wd-surface-elevated)] inline-flex items-center gap-2"
-                                        >
-                                            <Flag size={14} />
-                                            Report User Profile
-                                        </button>
-                                        <button
-                                            type="button"
-                                            disabled
-                                            className="w-full rounded px-2 py-1.5 text-left text-sm wd-text-muted inline-flex items-center gap-2 opacity-70"
-                                        >
-                                            <Ban size={14} />
-                                            Block (Soon)
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="px-4 pb-4 -mt-8">
-                        {activeUserProfile?.isSelf ? (
-                            <label className="group relative block w-16 h-16 cursor-pointer">
-                                <UserAvatar
-                                    name={profilePopover.senderName}
-                                    spriteStyle={profilePopover.senderAvatar.mode === "sprite" ? profilePopover.senderAvatar.style : null}
-                                    image={profilePopover.senderAvatar.mode === "image" ? profilePopover.senderAvatar.src : null}
-                                    size="xl"
-                                    className="border-4 wd-border-strong"
-                                />
-                                <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
-                                    {isUploadingPopoverAvatar ? (
-                                        <Loader2 size={18} className="text-white animate-spin" />
-                                    ) : (
-                                        <ImagePlus size={18} className="text-white" />
-                                    )}
-                                </span>
-                                <input
-                                    ref={popoverAvatarInputRef}
-                                    type="file"
-                                    accept="image/png,image/jpeg,image/webp,image/gif"
-                                    className="hidden"
-                                    disabled={isUploadingPopoverAvatar}
-                                    onChange={async (event) => {
-                                        const file = event.target.files?.[0];
-                                        if (!file) return;
-
-                                        const allowedTypes = ["image/png", "image/jpeg", "image/webp", "image/gif"];
-                                        if (!allowedTypes.includes(file.type)) {
-                                            toast("Invalid file type", { description: "Allowed: PNG, JPEG, WebP, GIF" });
-                                            return;
-                                        }
-                                        if (file.size > 5 * 1024 * 1024) {
-                                            toast("File too large", { description: "Max 5MB" });
-                                            return;
-                                        }
-
-                                        const jwt = window.__BACKEND_JWT__;
-                                        if (!jwt) {
-                                            toast("Not authenticated");
-                                            return;
-                                        }
-
-                                        setIsUploadingPopoverAvatar(true);
-                                        try {
-                                            const formData = new FormData();
-                                            formData.append("image", file);
-
-                                            const response = await fetch(
-                                                `${CONFIG.SFU_SERVER_URL}/api/users/me/avatar`,
-                                                {
-                                                    method: "POST",
-                                                    headers: { Authorization: `Bearer ${jwt}` },
-                                                    body: formData,
-                                                },
-                                            );
-
-                                            const body = await response.json().catch(() => ({}));
-                                            if (!response.ok) {
-                                                throw new Error(body?.error || `Upload failed: ${response.status}`);
-                                            }
-
-                                            const avatarUrl: string = body.avatarUrl;
-                                            updateUser({ image: avatarUrl });
-                                            if (window.__BACKEND_USER__) {
-                                                window.__BACKEND_USER__ = {
-                                                    ...window.__BACKEND_USER__,
-                                                    image: avatarUrl,
-                                                };
-                                            }
-                                            setProfilePopover({
-                                                ...profilePopover,
-                                                senderAvatar: { mode: "image", src: avatarUrl },
-                                            });
-                                            toast("Avatar updated");
-                                        } catch (uploadError) {
-                                            toast("Failed to upload avatar", {
-                                                description: uploadError instanceof Error ? uploadError.message : "Please try again",
-                                            });
-                                        } finally {
-                                            setIsUploadingPopoverAvatar(false);
-                                            if (popoverAvatarInputRef.current) {
-                                                popoverAvatarInputRef.current.value = "";
-                                            }
-                                        }
-                                    }}
-                                />
-                            </label>
-                        ) : (
-                            <UserAvatar
-                                name={profilePopover.senderName}
-                                spriteStyle={profilePopover.senderAvatar.mode === "sprite" ? profilePopover.senderAvatar.style : null}
-                                image={profilePopover.senderAvatar.mode === "image" ? profilePopover.senderAvatar.src : null}
-                                size="xl"
-                                className="border-4 wd-border-strong"
-                            />
-                        )}
-
-                        <div className="mt-3">
-                            <p className="text-xl font-semibold wd-text-primary truncate">
-                                {profilePopover.senderName}
-                            </p>
-                            <p className="text-xs wd-text-muted">
-                                User ID: {profilePopover.senderUserId}
-                            </p>
-                        </div>
-
-                        {isLoadingProfile ? (
-                            <p className="mt-4 text-sm wd-text-muted">
-                                Loading profile...
-                            </p>
-                        ) : profileError ? (
-                            <p className="mt-4 text-sm wd-text-danger">
-                                {profileError}
-                            </p>
-                        ) : activeUserProfile ? (
-                            <div className="mt-4 space-y-3">
-                                <div className="rounded-lg border wd-border-subtle wd-bg-panel-2 p-3">
-                                    <div className="mb-2 flex items-center justify-between">
-                                        <p className="text-xs font-semibold uppercase tracking-wide wd-text-muted">
-                                            Bio
-                                        </p>
-                                        {activeUserProfile.isSelf &&
-                                            !isBioEditing && (
-                                                <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                        setIsBioEditing(true)
-                                                    }
-                                                    className="text-xs wd-text-secondary inline-flex items-center gap-1 hover:wd-text-primary"
-                                                >
-                                                    <Pencil size={12} />
-                                                    Edit
-                                                </button>
-                                            )}
-                                    </div>
-
-                                    {activeUserProfile.isSelf &&
-                                    isBioEditing ? (
-                                        <div className="space-y-2">
-                                            <textarea
-                                                value={bioDraft}
-                                                onChange={(event) =>
-                                                    setBioDraft(
-                                                        event.target.value.slice(
-                                                            0,
-                                                            MAX_BIO_LENGTH,
-                                                        ),
-                                                    )
-                                                }
-                                                rows={4}
-                                                placeholder="Write a short bio..."
-                                                className="w-full rounded-md border wd-border-subtle wd-bg-elevated p-2 text-sm wd-text-primary outline-none focus:border-[var(--wd-border-strong)]"
-                                            />
-                                            <div className="flex items-center justify-between">
-                                                <p className="text-[11px] wd-text-muted">
-                                                    {bioDraft.length}/
-                                                    {MAX_BIO_LENGTH}
-                                                </p>
-                                                <div className="flex items-center gap-2">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => {
-                                                            setIsBioEditing(
-                                                                false,
-                                                            );
-                                                            setBioDraft(
-                                                                activeUserProfile
-                                                                    .user.bio ||
-                                                                    "",
-                                                            );
-                                                        }}
-                                                        className="h-7 px-2 rounded-md border wd-border-subtle wd-bg-elevated text-xs wd-text-secondary transition-colors hover:wd-text-primary"
-                                                    >
-                                                        Cancel
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => {
-                                                            void handleSaveBio();
-                                                        }}
-                                                        disabled={isSavingBio}
-                                                        className="h-7 px-2 rounded-md bg-[var(--wd-accent)] text-white text-xs font-semibold inline-flex items-center gap-1 transition-colors hover:bg-[var(--wd-accent-hover)] disabled:opacity-70"
-                                                    >
-                                                        <Save size={12} />
-                                                        {isSavingBio
-                                                            ? "Saving..."
-                                                            : "Save"}
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <p className="text-sm wd-text-secondary whitespace-pre-wrap break-words">
-                                            {activeUserProfile.user.bio?.trim() ||
-                                                (activeUserProfile.isSelf
-                                                    ? "Set your bio to help others know you."
-                                                    : "No bio set yet.")}
-                                        </p>
-                                    )}
-                                </div>
-
-                                {!activeUserProfile.isSelf && (
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            void handleOpenDirectMessage(
-                                                profilePopover.senderUserId,
-                                                profilePopover.senderName,
-                                                true,
-                                            );
-                                        }}
-                                        disabled={isOpeningDm}
-                                        className="w-full h-9 rounded-md bg-[var(--wd-accent)] text-white text-sm font-semibold inline-flex items-center justify-center gap-2 transition-colors hover:bg-[var(--wd-accent-hover)] disabled:opacity-70"
-                                    >
-                                        <MessageSquare size={14} />
-                                        {isOpeningDm
-                                            ? "Opening..."
-                                            : `Send Private Message`}
-                                    </button>
-                                )}
-                            </div>
-                        ) : null}
-                    </div>
-                </div>
+                />
             )}
             {avatarContextMenu && (
                 <div

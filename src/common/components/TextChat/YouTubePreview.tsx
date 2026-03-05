@@ -35,6 +35,7 @@ export function YouTubePreview({
                     <img
                         src={thumbnailUrl}
                         alt="YouTube video thumbnail"
+                        loading="lazy"
                         className="w-full h-auto object-cover"
                         onError={(e) => {
                             

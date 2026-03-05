@@ -31,6 +31,8 @@ import RenameRoomModal from "./modals/RenameRoomModal";
 import ChannelPermissionsModal from "./modals/ChannelPermissionsModal";
 import ServerSettingsModal from "./modals/ServerSettingsModal";
 import UserSettingsModal from "./modals/UserSettingsModal";
+import { ProfilePopover } from "./profile-popover";
+import type { ProfilePopoverState, SenderAvatar } from "./profile-popover";
 
 const DEFAULT_CATEGORY_KEY = "__workspace_default__";
 const DEFAULT_CATEGORY_NAME = "Channels";
@@ -160,6 +162,8 @@ function ChannelSidebar({
     const [userIdCopyState, setUserIdCopyState] = useState<
         "idle" | "copied" | "failed"
     >("idle");
+    const [footerProfilePopover, setFooterProfilePopover] =
+        useState<ProfilePopoverState | null>(null);
     const roomNodeRefs = useRef<
         Record<string, Array<HTMLButtonElement | null>>
     >({});
@@ -620,6 +624,7 @@ function ChannelSidebar({
                             <img
                                 src={serverImageUrl}
                                 alt=""
+                                loading="lazy"
                                 className="h-full w-full object-cover"
                             />
                         </span>
@@ -1083,7 +1088,31 @@ function ChannelSidebar({
 
             <footer className="border-t wd-border-subtle wd-bg-panel-2 p-3 wd-panel-height flex justify-center items-center">
                 <div className="flex-1 flex items-center justify-between gap-2">
-                    <div className="flex min-w-0 items-center gap-2">
+                    <button
+                        type="button"
+                        className="flex min-w-0 items-center gap-2 rounded-md p-0.5 -m-0.5 transition-colors hover:bg-[var(--wd-surface-base)] cursor-pointer"
+                        title="Click to view profile"
+                        onClick={(event) => {
+                            if (typeof localBackendUserId !== "number") return;
+
+                            const senderAvatar: SenderAvatar = showAvatarImage
+                                ? { mode: "image", src: avatarUrl }
+                                : spriteSheetDataUrl
+                                  ? { mode: "sprite", style: avatarSpriteStyles }
+                                  : { mode: "fallback" };
+
+                            const rect = event.currentTarget.getBoundingClientRect();
+
+                            setFooterProfilePopover({
+                                x: rect.left,
+                                y: rect.top,
+                                anchorBottom: true,
+                                senderUserId: localBackendUserId,
+                                senderName: displayName,
+                                senderAvatar,
+                            });
+                        }}
+                    >
                         <UserAvatar
                             name={displayName}
                             spriteStyle={
@@ -1107,7 +1136,7 @@ function ChannelSidebar({
                                     : "2D mode"}
                             </p>
                         </div>
-                    </div>
+                    </button>
 
                     <div className="relative flex items-center gap-1.5">
                         <DeskModeControls
@@ -1231,6 +1260,18 @@ function ChannelSidebar({
                     </div>
                 </div>
             </footer>
+            {footerProfilePopover && (
+                <ProfilePopover
+                    popover={footerProfilePopover}
+                    onClose={() => setFooterProfilePopover(null)}
+                    onAvatarUpdated={(newAvatar) => {
+                        setFooterProfilePopover({
+                            ...footerProfilePopover,
+                            senderAvatar: newAvatar,
+                        });
+                    }}
+                />
+            )}
             <UserSettingsModal
                 isOpen={isUserSettingsModalOpen}
                 onClose={() => setIsUserSettingsModalOpen(false)}
