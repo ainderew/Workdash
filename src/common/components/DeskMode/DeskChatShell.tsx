@@ -24,6 +24,15 @@ import GuildRail from "./GuildRail";
 import MemberPanel from "./MemberPanel";
 import { getDisplayName } from "@/common/utils/displayName";
 import ServerSettingsModal from "./modals/ServerSettingsModal";
+import WorkspaceMembersModal from "./modals/WorkspaceMembersModal";
+import JoinByInviteModal from "./modals/JoinByInviteModal";
+import {
+    PERM,
+    computeEffectivePermissions,
+    hasPermission,
+} from "@/common/utils/workspacePermissions";
+import type { Workspace, WorkspaceMember } from "@/communication/chatV2/_types";
+import { buildMemberColorMap } from "@/common/utils/roleColor";
 import MessageList from "./MessageList";
 import RoomHeader from "./RoomHeader";
 import ThreadPanel from "./ThreadPanel";
@@ -353,6 +362,73 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
         string | null
     >(null);
 
+    const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
+    const [membersModalTab, setMembersModalTab] = useState<
+        "members" | "invites"
+    >("members");
+    const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
+    const [joinInviteCode, setJoinInviteCode] = useState<string | undefined>(
+        undefined,
+    );
+
+    const viewerUserId =
+        typeof window !== "undefined"
+            ? (window.__BACKEND_USER__?.id ?? 0)
+            : 0;
+
+    const selectedWorkspace = useMemo(
+        () => workspaces.find((ws) => ws.id === selectedWorkspaceId),
+        [workspaces, selectedWorkspaceId],
+    );
+
+    const isWorkspaceOwner = selectedWorkspace?.ownerId === viewerUserId && viewerUserId !== 0;
+
+    const viewerPermissions = useMemo(() => {
+        // Workspace owner has all permissions
+        if (isWorkspaceOwner) return ~BigInt(0);
+        const viewerMember = selectedWorkspace?.members?.find(
+            (m: WorkspaceMember) => m.userId === viewerUserId,
+        );
+        if (!viewerMember?.roles) return BigInt(0);
+        return computeEffectivePermissions(viewerMember.roles);
+    }, [selectedWorkspace, viewerUserId, isWorkspaceOwner]);
+
+    const [memberRoleColors, setMemberRoleColors] = useState<Map<number, string>>(new Map());
+
+    useEffect(() => {
+        if (!selectedWorkspaceId) {
+            setMemberRoleColors(new Map());
+            return;
+        }
+        let cancelled = false;
+        (async () => {
+            try {
+                const [members] = await Promise.all([
+                    chatV2Service.listWorkspaceMembers(selectedWorkspaceId),
+                ]);
+                if (cancelled) return;
+                const ownerUserId = selectedWorkspace?.ownerId ?? 0;
+                setMemberRoleColors(buildMemberColorMap(members, ownerUserId));
+            } catch {
+                // Non-critical — names just won't be colored
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [selectedWorkspaceId, chatV2Service, selectedWorkspace?.ownerId]);
+
+    // URL invite detection
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const inviteCode = params.get("invite");
+        if (inviteCode) {
+            setJoinInviteCode(inviteCode);
+            setIsJoinModalOpen(true);
+            const url = new URL(window.location.href);
+            url.searchParams.delete("invite");
+            window.history.replaceState({}, "", url.toString());
+        }
+    }, []);
+
     const roomMessages = currentRoomId
         ? messagesByRoomId[currentRoomId] || []
         : [];
@@ -645,6 +721,10 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
                     onCreateWorkspace={() => {
                         setIsCreateWorkspaceOpen(true);
                     }}
+                    onOpenMembers={() => {
+                        setMembersModalTab("members");
+                        setIsMembersModalOpen(true);
+                    }}
                 />
 
                 <div className="flex-1 min-w-0 pb-2">
@@ -702,6 +782,14 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
                                 }}
                                 onServerImageChanged={handleServerImageChanged}
                                 onServerRenamed={handleServerRenamed}
+                                onOpenMembers={() => {
+                                    setMembersModalTab("members");
+                                    setIsMembersModalOpen(true);
+                                }}
+                                onInvitePeople={() => {
+                                    setMembersModalTab("invites");
+                                    setIsMembersModalOpen(true);
+                                }}
                             />
                         ) : (
                             <DirectMessageSidebar
@@ -804,7 +892,7 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
                             <MessageList
                                 messages={roomMessages}
                                 isLoading={isLoadingMessages}
-                                serverOwnerUserId={currentRoom?.workspace?.ownerUserId}
+                                memberRoleColors={memberRoleColors}
                                 isLoadingOlderMessages={isLoadingOlderMessages}
                                 hasMoreMessages={
                                     currentRoomId
@@ -944,6 +1032,7 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
                         ) : isMemberPanelVisible ? (
                             <MemberPanel
                                 members={roomMembers}
+                                memberRoleColors={memberRoleColors}
                                 isLoading={isManagingMembers}
                                 onAddMember={(userId) => {
                                     void addRoomMember(userId);
@@ -980,6 +1069,35 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
                 onServerRenamed={(sid, name) => {
                     handleServerRenamed(sid, name);
                     setServerSettingsTargetId(null);
+                }}
+            />
+
+            <WorkspaceMembersModal
+                isOpen={isMembersModalOpen}
+                workspaceId={selectedWorkspaceId}
+                workspaceName={serverName}
+                workspaceOwnerId={selectedWorkspace?.ownerId ?? 0}
+                viewerUserId={viewerUserId}
+                viewerCanManageMembers={hasPermission(viewerPermissions, PERM.KICK_MEMBERS)}
+                viewerCanBanMembers={hasPermission(viewerPermissions, PERM.BAN_MEMBERS)}
+                viewerCanManageRoles={hasPermission(viewerPermissions, PERM.MANAGE_ROLES)}
+                viewerCanCreateInvite={hasPermission(viewerPermissions, PERM.CREATE_INVITE)}
+                initialTab={membersModalTab}
+                onClose={() => setIsMembersModalOpen(false)}
+            />
+
+            <JoinByInviteModal
+                isOpen={isJoinModalOpen}
+                prefillCode={joinInviteCode}
+                onClose={() => {
+                    setIsJoinModalOpen(false);
+                    setJoinInviteCode(undefined);
+                }}
+                onJoined={(workspace: Workspace) => {
+                    void fetchMyWorkspaces();
+                    setRailView("server");
+                    setSelectedWorkspaceId(workspace.id);
+                    void reloadRoomStructure();
                 }}
             />
 

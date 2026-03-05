@@ -28,6 +28,7 @@ const ROLE_LABELS: Record<ChatV2RoomMember["role"], string> = {
 
 interface MemberPanelProps {
     members: ChatV2RoomMember[];
+    memberRoleColors?: Map<number, string>;
     isLoading: boolean;
     onAddMember: (userId: number) => void;
     onRemoveMember: (userId: number) => void;
@@ -35,6 +36,7 @@ interface MemberPanelProps {
 
 function MemberPanel({
     members,
+    memberRoleColors,
     isLoading,
     onAddMember,
     onRemoveMember,
@@ -125,6 +127,7 @@ function MemberPanel({
                                                 <MemberRow
                                                     key={`${member.roomId}-${member.userId}`}
                                                     member={member}
+                                                    nameColor={memberRoleColors?.get(member.userId)}
                                                     onRemove={() =>
                                                         onRemoveMember(
                                                             member.userId,
@@ -156,9 +159,11 @@ function MemberPanel({
 
 function MemberRow({
     member,
+    nameColor,
     onRemove,
 }: {
     member: ChatV2RoomMember;
+    nameColor?: string;
     onRemove: () => void;
 }) {
     const displayName = getDisplayName(member.user, `User ${member.userId}`);
@@ -176,7 +181,10 @@ function MemberRow({
                 />
                 <span className="absolute -bottom-0.5 -right-0.5 block h-3 w-3 rounded-full border-2 border-[var(--wd-bg-panel)] bg-emerald-500" />
             </div>
-            <span className="text-sm wd-text-secondary truncate flex-1 group-hover:wd-text-primary transition-colors items-center">
+            <span
+                className={`text-sm truncate flex-1 transition-colors items-center ${nameColor ? "font-medium" : "wd-text-secondary group-hover:wd-text-primary"}`}
+                style={nameColor ? { color: nameColor } : undefined}
+            >
                 {displayName}
             </span>
             <Tooltip>

@@ -11,6 +11,7 @@ import ThreadPanel from "./ThreadPanel";
 import UserNotificationsPanel from "./UserNotificationsPanel";
 import { getDisplayName } from "@/common/utils/displayName";
 import { formatChatMessageTimestamp } from "@/common/utils/messageTimestamp";
+import { buildMemberColorMap } from "@/common/utils/roleColor";
 
 interface CompactChatShellProps {
     onClose: () => void;
@@ -107,6 +108,7 @@ function CompactChatShell({ onClose }: CompactChatShellProps) {
     const [threadReplies, setThreadReplies] = useState<ChatV2Message[]>([]);
     const [isLoadingThread, setIsLoadingThread] = useState(false);
     const [threadError, setThreadError] = useState<string | null>(null);
+    const [memberRoleColors, setMemberRoleColors] = useState<Map<number, string>>(new Map());
     const searchRequestIdRef = useRef(0);
     const roomPickerRef = useRef<HTMLDivElement | null>(null);
     const notificationsRef = useRef<HTMLDivElement | null>(null);
@@ -169,6 +171,25 @@ function CompactChatShell({ onClose }: CompactChatShellProps) {
     const roomMessages = currentRoomId
         ? messagesByRoomId[currentRoomId] || []
         : [];
+
+    useEffect(() => {
+        if (!selectedWorkspaceId) {
+            setMemberRoleColors(new Map());
+            return;
+        }
+        let cancelled = false;
+        (async () => {
+            try {
+                const members = await chatV2Service.listWorkspaceMembers(selectedWorkspaceId);
+                if (cancelled) return;
+                const ownerUserId = currentRoom?.workspace?.ownerUserId ?? 0;
+                setMemberRoleColors(buildMemberColorMap(members, ownerUserId));
+            } catch {
+                // Non-critical
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [selectedWorkspaceId, chatV2Service, currentRoom?.workspace?.ownerUserId]);
 
     useEffect(() => {
         if (currentRoomId) return;
@@ -876,7 +897,7 @@ function CompactChatShell({ onClose }: CompactChatShellProps) {
                             <MessageList
                                 messages={roomMessages}
                                 isLoading={isLoadingMessages}
-                                serverOwnerUserId={currentRoom?.workspace?.ownerUserId}
+                                memberRoleColors={memberRoleColors}
                                 focusedMessageId={focusedMessageId}
                                 onOpenThread={(rootMessageId) => {
                                     const rootFromTimeline = roomMessages.find(

@@ -64,7 +64,7 @@ interface MessageListProps {
     isLoadingOlderMessages?: boolean;
     hasMoreMessages?: boolean;
     onLoadOlderMessages?: () => void;
-    serverOwnerUserId?: number;
+    memberRoleColors?: Map<number, string>;
     pinnedMessageIds?: Map<string, { pinnedByName: string }>;
     onPinMessage?: (messageId: string) => void;
     onUnpinMessage?: (messageId: string) => void;
@@ -219,7 +219,7 @@ function MessageList({
     isLoadingOlderMessages = false,
     hasMoreMessages = true,
     onLoadOlderMessages,
-    serverOwnerUserId,
+    memberRoleColors,
     pinnedMessageIds,
     onPinMessage,
     onUnpinMessage,
@@ -1503,8 +1503,8 @@ function MessageList({
                                 {!isConsecutive && (
                                 <div className="flex items-center gap-2 mb-1">
                                     <span
-                                        className={`text-sm font-semibold ${message.senderUserId === serverOwnerUserId ? "" : "wd-text-primary"}`}
-                                        style={message.senderUserId === serverOwnerUserId ? { color: "#E91E63" } : undefined}
+                                        className={`text-sm font-semibold ${memberRoleColors?.get(message.senderUserId) ? "" : "wd-text-primary"}`}
+                                        style={memberRoleColors?.get(message.senderUserId) ? { color: memberRoleColors.get(message.senderUserId) } : undefined}
                                     >
                                         {senderName}
                                     </span>
