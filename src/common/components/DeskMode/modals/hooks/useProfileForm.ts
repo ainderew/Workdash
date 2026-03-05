@@ -7,7 +7,12 @@ import { getDisplayNameFromParts } from '@/common/utils/displayName';
 const MAX_NAME_LENGTH = 20;
 const MAX_NICKNAME_LENGTH = 20;
 
-export function useProfileForm(isOpen: boolean) {
+interface UseProfileFormOptions {
+  isActive: boolean;
+  onSuccess: () => void;
+}
+
+export function useProfileForm({ isActive, onSuccess }: UseProfileFormOptions) {
   const { data: session } = useSession();
   const user = useUserStore((state) => state.user);
   const updateUser = useUserStore((state) => state.updateUser);
@@ -18,7 +23,7 @@ export function useProfileForm(isOpen: boolean) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isActive) return;
 
     const resolvedName =
       user.name?.trim() ||
@@ -34,7 +39,7 @@ export function useProfileForm(isOpen: boolean) {
     setNickname(resolvedNickname);
     setError(null);
   }, [
-    isOpen,
+    isActive,
     session?.backendUser?.name,
     session?.backendUser?.nickname,
     session?.user?.name,
@@ -48,48 +53,41 @@ export function useProfileForm(isOpen: boolean) {
   );
 
   const handleSave = useCallback(
-    async (onAvatarUpload?: () => Promise<void>) => {
+    async (event: React.FormEvent) => {
+      event.preventDefault();
+
       const normalizedName = name.trim();
       const normalizedNickname = nickname.trim();
 
       if (!normalizedName) {
         setError('Full name cannot be empty.');
-        return false;
+        return;
       }
-
       if (normalizedName.length > MAX_NAME_LENGTH) {
         setError(`Full name must be ${MAX_NAME_LENGTH} characters or fewer.`);
-        return false;
+        return;
       }
-
       if (normalizedNickname.length > MAX_NICKNAME_LENGTH) {
         setError(
           `Nickname must be ${MAX_NICKNAME_LENGTH} characters or fewer.`,
         );
-        return false;
+        return;
       }
-
       if (!session?.backendJwt) {
         setError('You must be logged in to update your settings.');
-        return false;
+        return;
       }
 
       setIsSaving(true);
       setError(null);
 
       try {
-        // Upload avatar first if provided
-        if (onAvatarUpload) {
-          await onAvatarUpload();
-        }
-
         const response = await fetch('/api/user/profile', {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             name: normalizedName,
-            nickname:
-              normalizedNickname.length > 0 ? normalizedNickname : null,
+            nickname: normalizedNickname.length > 0 ? normalizedNickname : null,
           }),
         });
 
@@ -136,24 +134,21 @@ export function useProfileForm(isOpen: boolean) {
           multiplayer.emitNameUpdate(updatedName, updatedNickname);
         }
 
-        return true;
+        onSuccess();
       } catch (saveError) {
         setError(
           saveError instanceof Error
             ? saveError.message
             : 'Failed to update user settings',
         );
-        return false;
       } finally {
         setIsSaving(false);
       }
     },
-    [name, nickname, session?.backendJwt, updateUser],
+    [name, nickname, session?.backendJwt, updateUser, onSuccess],
   );
 
   const resetForm = useCallback(() => {
-    setName('');
-    setNickname('');
     setError(null);
   }, []);
 

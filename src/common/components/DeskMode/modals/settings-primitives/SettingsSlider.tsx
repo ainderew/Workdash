@@ -11,7 +11,7 @@ interface SettingsSliderProps {
   disabled?: boolean;
 }
 
-export function SettingsSlider({
+function SettingsSlider({
   label,
   value,
   min,
@@ -21,14 +21,14 @@ export function SettingsSlider({
   formatValue,
   disabled = false,
 }: SettingsSliderProps) {
+  const percentage = ((value - min) / (max - min)) * 100;
   const displayValue = formatValue ? formatValue(value) : String(value);
-  const percent = max > min ? ((value - min) / (max - min)) * 100 : 0;
 
   return (
-    <div className="py-2">
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-sm font-medium wd-text-primary">{label}</span>
-        <span className="text-xs font-semibold tabular-nums wd-text-muted min-w-[3ch] text-right">
+    <div className="py-1.5">
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="text-xs font-medium wd-text-primary">{label}</span>
+        <span className="text-[10px] font-medium wd-text-muted">
           {displayValue}
         </span>
       </div>
@@ -38,13 +38,15 @@ export function SettingsSlider({
         max={max}
         step={step}
         value={value}
-        disabled={disabled}
         onChange={(e) => onChange(parseFloat(e.target.value))}
-        className="w-full h-2 rounded-full appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+        disabled={disabled}
+        className="w-full h-1.5 rounded-lg appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-default"
         style={{
-          background: `linear-gradient(to right, var(--wd-accent) 0%, var(--wd-accent) ${percent}%, var(--wd-surface-elevated) ${percent}%, var(--wd-surface-elevated) 100%)`,
+          background: `linear-gradient(to right, rgba(88,101,242,0.7) 0%, rgba(88,101,242,0.7) ${percentage}%, var(--wd-surface-elevated) ${percentage}%, var(--wd-surface-elevated) 100%)`,
         }}
       />
     </div>
   );
 }
+
+export default SettingsSlider;

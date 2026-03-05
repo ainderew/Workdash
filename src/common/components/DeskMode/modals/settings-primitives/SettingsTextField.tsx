@@ -9,7 +9,7 @@ interface SettingsTextFieldProps {
   disabled?: boolean;
 }
 
-export function SettingsTextField({
+function SettingsTextField({
   label,
   value,
   onChange,
@@ -19,22 +19,9 @@ export function SettingsTextField({
 }: SettingsTextFieldProps) {
   return (
     <div>
-      <div className="flex items-baseline justify-between mb-1.5">
-        <label className="text-xs font-semibold uppercase tracking-wide wd-text-muted">
-          {label}
-        </label>
-        {maxLength && (
-          <span
-            className={`text-[10px] tabular-nums transition-colors ${
-              value.length >= maxLength
-                ? 'text-[var(--wd-danger)]'
-                : 'wd-text-muted'
-            }`}
-          >
-            {value.length}/{maxLength}
-          </span>
-        )}
-      </div>
+      <label className="text-xs font-semibold uppercase tracking-wide wd-text-muted">
+        {label}
+      </label>
       <input
         type="text"
         value={value}
@@ -42,8 +29,10 @@ export function SettingsTextField({
         placeholder={placeholder}
         maxLength={maxLength}
         disabled={disabled}
-        className="h-10 w-full rounded-lg border wd-border-subtle wd-bg-elevated px-3 text-sm wd-text-primary outline-none transition-colors focus:border-[var(--wd-accent)] focus:ring-1 focus:ring-[var(--wd-accent-soft)] disabled:opacity-50"
+        className="mt-1 h-10 w-full rounded-md border wd-border-subtle wd-bg-elevated px-3 text-sm wd-text-primary outline-none focus:border-[var(--wd-border-strong)] disabled:opacity-50"
       />
     </div>
   );
 }
+
+export default SettingsTextField;

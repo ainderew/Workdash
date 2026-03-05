@@ -1,11 +1,18 @@
 import { useCallback, useEffect, useState } from 'react';
 import useUiStore from '@/common/store/uiStore';
+import { AudioChat } from '@/communication/audioChat/audioChat';
+import { VideoChatService } from '@/communication/videoChat/videoChat';
 import { AudioSettingsService } from '@/game/audio/AudioSettingsService';
 import { EventBus } from '@/game/EventBus';
 
-export function useAudioVideoSettings(isOpen: boolean) {
+export function useAudioVideoSettings() {
+  const audioService = AudioChat.getInstance();
+  const videoCamService = VideoChatService.getInstance();
+  const settingsService = AudioSettingsService.getInstance();
+
+  // Mic state from store
   const isMuted = useUiStore((state) => state.isMuted);
-  const toggleMic = useUiStore((state) => state.toggleMic);
+  const toggleMicState = useUiStore((state) => state.toggleMic);
   const availableMicrophones = useUiStore(
     (state) => state.availableMicrophones,
   );
@@ -15,43 +22,64 @@ export function useAudioVideoSettings(isOpen: boolean) {
   const setSelectedMicrophoneId = useUiStore(
     (state) => state.setSelectedMicrophoneId,
   );
+
+  // Video state from store
   const isVideoOff = useUiStore((state) => state.isVideoOff);
-  const toggleVideo = useUiStore((state) => state.toggleVideoCam);
+  const toggleVideoCamState = useUiStore((state) => state.toggleVideoCam);
 
+  // Background music local state
   const [backgroundMusicEnabled, setBackgroundMusicEnabled] = useState(false);
-  const [musicVolume, setMusicVolume] = useState(0.3);
+  const [musicVolume, setMusicVolumeState] = useState(0.3);
 
-  const settingsService = AudioSettingsService.getInstance();
-
-  // Load audio settings on open
+  // Load background music settings when hook mounts
   useEffect(() => {
-    if (!isOpen) return;
     settingsService.getSettings().then((settings) => {
       setBackgroundMusicEnabled(settings.backgroundMusicEnabled ?? false);
-      setMusicVolume(settings.volume);
+      setMusicVolumeState(settings.volume);
     });
-  }, [isOpen, settingsService]);
+  }, [settingsService]);
 
-  const handleToggleBackgroundMusic = useCallback(async () => {
+  const toggleMic = useCallback(() => {
+    toggleMicState();
+    if (audioService.isMuted) {
+      audioService.unMuteMic();
+    } else {
+      audioService.muteMic();
+    }
+  }, [audioService, toggleMicState]);
+
+  const selectMicrophone = useCallback(
+    async (deviceId: string) => {
+      try {
+        setSelectedMicrophoneId(deviceId);
+        await audioService.switchMicrophone(deviceId);
+      } catch (error) {
+        console.error('Failed to switch microphone:', error);
+      }
+    },
+    [audioService, setSelectedMicrophoneId],
+  );
+
+  const toggleVideo = useCallback(() => {
+    toggleVideoCamState();
+    if (!isVideoOff) {
+      videoCamService.stopVideoChat();
+    }
+  }, [isVideoOff, toggleVideoCamState, videoCamService]);
+
+  const toggleBackgroundMusic = useCallback(async () => {
     const newValue = !backgroundMusicEnabled;
     setBackgroundMusicEnabled(newValue);
     await settingsService.setBackgroundMusicEnabled(newValue);
     EventBus.emit('background-music-toggle', newValue);
   }, [backgroundMusicEnabled, settingsService]);
 
-  const handleSetMusicVolume = useCallback(
+  const setMusicVolume = useCallback(
     (volume: number) => {
-      setMusicVolume(volume);
+      setMusicVolumeState(volume);
       EventBus.emit('background-music-volume', volume);
     },
     [],
-  );
-
-  const selectMicrophone = useCallback(
-    (id: string) => {
-      setSelectedMicrophoneId(id);
-    },
-    [setSelectedMicrophoneId],
   );
 
   return {
@@ -64,7 +92,7 @@ export function useAudioVideoSettings(isOpen: boolean) {
     toggleVideo,
     backgroundMusicEnabled,
     musicVolume,
-    toggleBackgroundMusic: handleToggleBackgroundMusic,
-    setMusicVolume: handleSetMusicVolume,
+    toggleBackgroundMusic,
+    setMusicVolume,
   };
 }

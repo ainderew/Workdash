@@ -4,7 +4,7 @@ interface SettingsErrorBannerProps {
   message: string | null;
 }
 
-export function SettingsErrorBanner({ message }: SettingsErrorBannerProps) {
+function SettingsErrorBanner({ message }: SettingsErrorBannerProps) {
   if (!message) return null;
 
   return (
@@ -13,3 +13,5 @@ export function SettingsErrorBanner({ message }: SettingsErrorBannerProps) {
     </p>
   );
 }
+
+export default SettingsErrorBanner;

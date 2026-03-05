@@ -10,9 +10,9 @@ const ALLOWED_AVATAR_TYPES = [
   'image/gif',
 ];
 
-export function useAvatarUpload(isOpen: boolean) {
-  const user = useUserStore((state) => state.user);
+export function useAvatarUpload() {
   const updateUser = useUserStore((state) => state.updateUser);
+  const currentImage = useUserStore((state) => state.user.image);
 
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -21,15 +21,6 @@ export function useAvatarUpload(isOpen: boolean) {
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Reset on modal open
-  useEffect(() => {
-    if (!isOpen) return;
-    setAvatarFile(null);
-    setAvatarPreview(null);
-    setError(null);
-  }, [isOpen]);
-
-  // Clean up blob URLs
   useEffect(() => {
     return () => {
       if (avatarPreview && avatarPreview.startsWith('blob:')) {
@@ -48,7 +39,6 @@ export function useAvatarUpload(isOpen: boolean) {
         setError('Invalid file type. Allowed: PNG, JPEG, WebP, GIF');
         return;
       }
-
       if (file.size > MAX_AVATAR_SIZE) {
         setError('File size exceeds 5MB limit');
         return;
@@ -64,8 +54,8 @@ export function useAvatarUpload(isOpen: boolean) {
     [avatarPreview],
   );
 
-  const handleUpload = useCallback(async () => {
-    if (!avatarFile) return;
+  const handleUpload = useCallback(async (): Promise<string | null> => {
+    if (!avatarFile) return null;
 
     const jwt = window.__BACKEND_JWT__;
     if (!jwt) throw new Error('Not authenticated');
@@ -101,8 +91,17 @@ export function useAvatarUpload(isOpen: boolean) {
           image: avatarUrl,
         };
       }
+
       setAvatarFile(null);
       setAvatarPreview(null);
+      return avatarUrl;
+    } catch (uploadError) {
+      setError(
+        uploadError instanceof Error
+          ? uploadError.message
+          : 'Failed to upload avatar',
+      );
+      return null;
     } finally {
       setIsUploading(false);
     }
@@ -153,20 +152,18 @@ export function useAvatarUpload(isOpen: boolean) {
   }, [updateUser]);
 
   const clearSelection = useCallback(() => {
-    if (avatarPreview && avatarPreview.startsWith('blob:')) {
-      URL.revokeObjectURL(avatarPreview);
-    }
     setAvatarFile(null);
     setAvatarPreview(null);
     setError(null);
-  }, [avatarPreview]);
-
-  const hasNewAvatar = !!avatarFile;
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  }, []);
 
   return {
+    currentImage,
     avatarPreview,
-    currentAvatar: user.image,
-    hasNewAvatar,
+    hasNewAvatar: !!avatarFile,
     isUploading,
     isDeleting,
     error,

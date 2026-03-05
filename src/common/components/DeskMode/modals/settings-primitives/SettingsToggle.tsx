@@ -8,7 +8,7 @@ interface SettingsToggleProps {
   disabled?: boolean;
 }
 
-export function SettingsToggle({
+function SettingsToggle({
   label,
   description,
   checked,
@@ -16,11 +16,11 @@ export function SettingsToggle({
   disabled = false,
 }: SettingsToggleProps) {
   return (
-    <div className="flex items-center justify-between py-2 group">
-      <div className="mr-4">
-        <span className="text-sm font-medium wd-text-primary">{label}</span>
+    <label className="flex items-center justify-between py-1.5 cursor-pointer group">
+      <div className="pr-3">
+        <span className="text-xs font-medium wd-text-primary">{label}</span>
         {description && (
-          <p className="text-xs wd-text-muted mt-0.5">{description}</p>
+          <p className="mt-0.5 text-[10px] wd-text-muted">{description}</p>
         )}
       </div>
       <button
@@ -29,18 +29,20 @@ export function SettingsToggle({
         aria-checked={checked}
         onClick={() => onChange(!checked)}
         disabled={disabled}
-        className={`relative h-6 w-11 shrink-0 rounded-full transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${
+        className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${
           checked
-            ? 'bg-[var(--wd-accent)]'
+            ? 'bg-[rgba(88,101,242,0.7)]'
             : 'bg-[var(--wd-surface-elevated)]'
-        }`}
+        } disabled:opacity-50`}
       >
         <span
-          className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${
-            checked ? 'left-[22px]' : 'left-0.5'
+          className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform ${
+            checked ? 'left-[18px]' : 'left-0.5'
           }`}
         />
       </button>
-    </div>
+    </label>
   );
 }
+
+export default SettingsToggle;

@@ -1,17 +1,12 @@
 import React from 'react';
-import { Mic, MicOff, Video, VideoOff } from 'lucide-react';
-import { useAudioVideoSettings } from '../hooks/useAudioVideoSettings';
 import {
   SettingsSection,
   SettingsToggle,
   SettingsSlider,
 } from '../settings-primitives';
+import { useAudioVideoSettings } from '../hooks/useAudioVideoSettings';
 
-interface AudioVideoPanelProps {
-  isOpen: boolean;
-}
-
-export function AudioVideoPanel({ isOpen }: AudioVideoPanelProps) {
+function AudioVideoPanel() {
   const {
     isMuted,
     toggleMic,
@@ -24,62 +19,26 @@ export function AudioVideoPanel({ isOpen }: AudioVideoPanelProps) {
     musicVolume,
     toggleBackgroundMusic,
     setMusicVolume,
-  } = useAudioVideoSettings(isOpen);
+  } = useAudioVideoSettings();
 
   return (
-    <div className="space-y-5">
-      {/* Microphone */}
+    <div className="space-y-4">
       <SettingsSection label="Microphone">
-        <div className="flex items-center justify-between py-2">
-          <div className="flex items-center gap-3">
-            <span
-              className={`inline-flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
-                isMuted
-                  ? 'bg-[var(--wd-danger-soft)] text-[var(--wd-danger)]'
-                  : 'bg-[var(--wd-accent-soft)] text-[var(--wd-accent)]'
-              }`}
-            >
-              {isMuted ? <MicOff size={16} /> : <Mic size={16} />}
-            </span>
-            <div>
-              <p className="text-sm font-medium wd-text-primary">
-                {isMuted ? 'Microphone Muted' : 'Microphone Active'}
-              </p>
-              <p className="text-xs wd-text-muted">
-                {isMuted
-                  ? 'Others cannot hear you'
-                  : 'Your microphone is live'}
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={!isMuted}
-            onClick={() => toggleMic()}
-            className={`relative h-6 w-11 shrink-0 rounded-full transition-colors duration-200 ${
-              !isMuted
-                ? 'bg-[var(--wd-accent)]'
-                : 'bg-[var(--wd-surface-elevated)]'
-            }`}
-          >
-            <span
-              className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${
-                !isMuted ? 'left-[22px]' : 'left-0.5'
-              }`}
-            />
-          </button>
-        </div>
-
+        <SettingsToggle
+          label="Microphone"
+          description={isMuted ? 'Currently muted' : 'Currently active'}
+          checked={!isMuted}
+          onChange={() => toggleMic()}
+        />
         {availableMicrophones.length > 0 && (
-          <div className="mt-3 pt-3 border-t wd-border-subtle">
-            <label className="text-xs font-semibold uppercase tracking-wide wd-text-muted">
+          <div className="mt-2">
+            <p className="text-[10px] font-semibold uppercase tracking-wide wd-text-muted mb-1">
               Input Device
-            </label>
+            </p>
             <select
               value={selectedMicrophoneId}
               onChange={(e) => selectMicrophone(e.target.value)}
-              className="mt-1.5 h-9 w-full rounded-lg border wd-border-subtle wd-bg-elevated px-3 text-xs wd-text-primary outline-none transition-colors focus:border-[var(--wd-accent)]"
+              className="h-9 w-full rounded-md border wd-border-subtle wd-bg-elevated px-2 text-xs wd-text-primary outline-none focus:border-[var(--wd-border-strong)]"
             >
               {availableMicrophones.map((mic) => (
                 <option key={mic.deviceId} value={mic.deviceId}>
@@ -91,59 +50,22 @@ export function AudioVideoPanel({ isOpen }: AudioVideoPanelProps) {
         )}
       </SettingsSection>
 
-      {/* Camera */}
       <SettingsSection label="Camera">
-        <div className="flex items-center justify-between py-2">
-          <div className="flex items-center gap-3">
-            <span
-              className={`inline-flex h-8 w-8 items-center justify-center rounded-lg transition-colors ${
-                isVideoOff
-                  ? 'bg-[var(--wd-danger-soft)] text-[var(--wd-danger)]'
-                  : 'bg-[var(--wd-accent-soft)] text-[var(--wd-accent)]'
-              }`}
-            >
-              {isVideoOff ? <VideoOff size={16} /> : <Video size={16} />}
-            </span>
-            <div>
-              <p className="text-sm font-medium wd-text-primary">
-                {isVideoOff ? 'Camera Off' : 'Camera On'}
-              </p>
-              <p className="text-xs wd-text-muted">
-                {isVideoOff
-                  ? 'Your camera is disabled'
-                  : 'Others can see your video'}
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={!isVideoOff}
-            onClick={() => toggleVideo()}
-            className={`relative h-6 w-11 shrink-0 rounded-full transition-colors duration-200 ${
-              !isVideoOff
-                ? 'bg-[var(--wd-accent)]'
-                : 'bg-[var(--wd-surface-elevated)]'
-            }`}
-          >
-            <span
-              className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200 ${
-                !isVideoOff ? 'left-[22px]' : 'left-0.5'
-              }`}
-            />
-          </button>
-        </div>
+        <SettingsToggle
+          label="Camera"
+          description={isVideoOff ? 'Camera is off' : 'Camera is on'}
+          checked={!isVideoOff}
+          onChange={() => toggleVideo()}
+        />
       </SettingsSection>
 
-      {/* Background Music */}
       <SettingsSection label="Background Music">
         <SettingsToggle
-          label="Enable Background Music"
-          description={backgroundMusicEnabled ? 'Music is playing' : 'Music is off'}
+          label="Background Music"
+          description={backgroundMusicEnabled ? 'Playing' : 'Muted'}
           checked={backgroundMusicEnabled}
           onChange={() => toggleBackgroundMusic()}
         />
-
         {backgroundMusicEnabled && (
           <div className="mt-2 pt-2 border-t wd-border-subtle">
             <SettingsSlider
@@ -161,3 +83,5 @@ export function AudioVideoPanel({ isOpen }: AudioVideoPanelProps) {
     </div>
   );
 }
+
+export default AudioVideoPanel;
