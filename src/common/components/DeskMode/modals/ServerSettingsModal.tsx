@@ -7,10 +7,20 @@ import {
     Settings,
     Shield,
     Trash2,
+    UserMinus,
     X,
 } from "lucide-react";
 import { CONFIG } from "@/common/utils/config";
-import type { WorkspaceRole } from "@/communication/chatV2/_types";
+import {
+    PERMISSIONS,
+    PERMISSION_CATEGORIES,
+} from "@/common/utils/workspacePermissions";
+
+const DEFAULT_ROLE_CATEGORIES = new Set(["General", "Text", "Voice"]);
+const DEFAULT_ROLE_PERMISSIONS = Object.values(PERMISSIONS)
+    .filter((p) => DEFAULT_ROLE_CATEGORIES.has(p.category))
+    .reduce((acc, p) => acc | p.bit, BigInt(0));
+import type { WorkspaceMember, WorkspaceRole } from "@/communication/chatV2/_types";
 import { ChatV2Service } from "@/communication/chatV2/chatV2Service";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
@@ -18,41 +28,6 @@ const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"];
 const MAX_SERVER_NAME_LENGTH = 100;
 
 type SettingsTab = "overview" | "roles";
-
-// Permission constants (mirrors backend P object)
-// Using BigInt() constructor since TS target is ES2017 (no bigint literals)
-const B1 = BigInt(1);
-const bit = (shift: number) => B1 << BigInt(shift);
-
-const PERMISSIONS: Record<
-    string,
-    { bit: bigint; label: string; category: string }
-> = {
-    VIEW_CHANNEL: { bit: bit(0), label: "View Channel", category: "General" },
-    SEND_MESSAGES: { bit: bit(1), label: "Send Messages", category: "Text" },
-    MANAGE_MESSAGES: { bit: bit(2), label: "Manage Messages", category: "Moderation" },
-    MANAGE_CHANNELS: { bit: bit(3), label: "Manage Channels", category: "Administration" },
-    MANAGE_WORKSPACE: { bit: bit(4), label: "Manage Workspace", category: "Administration" },
-    KICK_MEMBERS: { bit: bit(5), label: "Kick Members", category: "Moderation" },
-    BAN_MEMBERS: { bit: bit(6), label: "Ban Members", category: "Moderation" },
-    ADMINISTRATOR: { bit: bit(7), label: "Administrator", category: "Administration" },
-    MANAGE_ROLES: { bit: bit(8), label: "Manage Roles", category: "Administration" },
-    MENTION_EVERYONE: { bit: bit(9), label: "Mention Everyone", category: "Text" },
-    ADD_REACTIONS: { bit: bit(10), label: "Add Reactions", category: "Text" },
-    READ_HISTORY: { bit: bit(11), label: "Read History", category: "General" },
-    CONNECT: { bit: bit(12), label: "Connect", category: "Voice" },
-    SPEAK: { bit: bit(13), label: "Speak", category: "Voice" },
-    MUTE_MEMBERS: { bit: bit(14), label: "Mute Members", category: "Voice" },
-    MOVE_MEMBERS: { bit: bit(15), label: "Move Members", category: "Voice" },
-    MANAGE_CATEGORIES: { bit: bit(16), label: "Manage Categories", category: "Administration" },
-    CREATE_INVITE: { bit: bit(17), label: "Create Invite", category: "General" },
-    MANAGE_WORLD: { bit: bit(18), label: "Manage World", category: "Administration" },
-    MODERATE_MEMBERS: { bit: bit(19), label: "Moderate Members", category: "Moderation" },
-    ATTACH_FILES: { bit: bit(20), label: "Attach Files", category: "Text" },
-    EMBED_LINKS: { bit: bit(21), label: "Embed Links", category: "Text" },
-};
-
-const PERMISSION_CATEGORIES = ["General", "Text", "Voice", "Moderation", "Administration"] as const;
 
 const ROLE_COLORS = [
     0x5865F2, 0x57F287, 0xFEE75C, 0xEB459E, 0xED4245,
@@ -92,6 +67,11 @@ function RolesTab({ workspaceId }: { workspaceId: string }) {
     const [isSaving, setIsSaving] = useState(false);
     const [isRoleDeleting, setIsRoleDeleting] = useState(false);
 
+    // Member assignment state
+    const [members, setMembers] = useState<WorkspaceMember[]>([]);
+    const [showAddMember, setShowAddMember] = useState(false);
+    const [isAssigning, setIsAssigning] = useState(false);
+
     const service = ChatV2Service.getInstance();
 
     const loadRoles = useCallback(async () => {
@@ -111,6 +91,19 @@ function RolesTab({ workspaceId }: { workspaceId: string }) {
         loadRoles();
     }, [loadRoles]);
 
+    useEffect(() => {
+        let cancelled = false;
+        (async () => {
+            try {
+                const fetched = await service.listWorkspaceMembers(workspaceId);
+                if (!cancelled) setMembers(fetched);
+            } catch {
+                // Non-critical for member list
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [workspaceId, service]);
+
     const selectedRole = roles.find((r) => r.id === selectedRoleId) ?? null;
 
     useEffect(() => {
@@ -118,6 +111,7 @@ function RolesTab({ workspaceId }: { workspaceId: string }) {
             setEditName(selectedRole.name);
             setEditColor(selectedRole.color);
             setEditPermissions(BigInt(selectedRole.permissions));
+            setShowAddMember(false);
         }
     }, [selectedRole]);
 
@@ -127,7 +121,7 @@ function RolesTab({ workspaceId }: { workspaceId: string }) {
         try {
             const created = await service.createWorkspaceRole(workspaceId, {
                 name: "New Role",
-                permissions: "0",
+                permissions: DEFAULT_ROLE_PERMISSIONS.toString(),
                 color: 0x5865F2,
             });
             setRoles((prev) => [...prev, created]);
@@ -185,7 +179,53 @@ function RolesTab({ workspaceId }: { workspaceId: string }) {
         );
     };
 
-    const isBusy = isSaving || isRoleDeleting || isCreating;
+    const handleAssignRole = async (userId: number) => {
+        if (!selectedRole) return;
+        setIsAssigning(true);
+        try {
+            await service.assignWorkspaceRole(workspaceId, userId, selectedRole.id);
+            setMembers((prev) =>
+                prev.map((m) =>
+                    m.userId === userId
+                        ? { ...m, roles: [...(m.roles ?? []), selectedRole] }
+                        : m,
+                ),
+            );
+            setShowAddMember(false);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Failed to assign role");
+        } finally {
+            setIsAssigning(false);
+        }
+    };
+
+    const handleRemoveRole = async (userId: number) => {
+        if (!selectedRole) return;
+        setIsAssigning(true);
+        try {
+            await service.removeWorkspaceRole(workspaceId, userId, selectedRole.id);
+            setMembers((prev) =>
+                prev.map((m) =>
+                    m.userId === userId
+                        ? { ...m, roles: m.roles?.filter((r) => r.id !== selectedRole.id) }
+                        : m,
+                ),
+            );
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Failed to remove role");
+        } finally {
+            setIsAssigning(false);
+        }
+    };
+
+    const assignedMembers = selectedRole
+        ? members.filter((m) => m.roles?.some((r) => r.id === selectedRole.id))
+        : [];
+    const unassignedMembers = selectedRole
+        ? members.filter((m) => !m.roles?.some((r) => r.id === selectedRole.id))
+        : [];
+
+    const isBusy = isSaving || isRoleDeleting || isCreating || isAssigning;
 
     if (isLoading) {
         return (
@@ -293,6 +333,83 @@ function RolesTab({ workspaceId }: { workspaceId: string }) {
                         })}
                     </div>
                 </div>
+
+                {/* Member Assignment (non-@everyone roles only) */}
+                {!selectedRole.isEveryone && (
+                    <div className="rounded-lg border wd-border-subtle wd-bg-panel-2 p-3">
+                        <div className="flex items-center justify-between mb-2">
+                            <p className="text-[11px] font-semibold uppercase tracking-wide wd-text-muted">
+                                Members &middot; {assignedMembers.length}
+                            </p>
+                            <button
+                                type="button"
+                                onClick={() => setShowAddMember(!showAddMember)}
+                                disabled={isBusy}
+                                className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-semibold wd-text-secondary transition-colors hover:bg-[var(--wd-surface-elevated)] hover:wd-text-primary disabled:opacity-50"
+                            >
+                                <Plus size={12} />
+                                Add
+                            </button>
+                        </div>
+
+                        {showAddMember && unassignedMembers.length > 0 && (
+                            <div className="mb-2 max-h-32 overflow-y-auto rounded-md border wd-border-subtle wd-bg-elevated">
+                                {unassignedMembers.map((m) => (
+                                    <button
+                                        key={m.userId}
+                                        type="button"
+                                        onClick={() => handleAssignRole(m.userId)}
+                                        disabled={isBusy}
+                                        className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-xs wd-text-primary transition-colors hover:bg-[var(--wd-surface-elevated)] disabled:opacity-50"
+                                    >
+                                        <span className="h-5 w-5 shrink-0 rounded-full wd-bg-panel flex items-center justify-center text-[10px] font-bold wd-text-muted">
+                                            {(m.user?.nickname || m.user?.name || "?").charAt(0).toUpperCase()}
+                                        </span>
+                                        <span className="truncate">
+                                            {m.user?.nickname || m.user?.name || `User ${m.userId}`}
+                                        </span>
+                                        <Plus size={10} className="ml-auto shrink-0 wd-text-muted" />
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                        {showAddMember && unassignedMembers.length === 0 && (
+                            <p className="mb-2 rounded-md wd-bg-elevated px-2.5 py-2 text-[11px] wd-text-muted text-center">
+                                All members have this role
+                            </p>
+                        )}
+
+                        {assignedMembers.length > 0 ? (
+                            <div className="space-y-0.5 max-h-32 overflow-y-auto">
+                                {assignedMembers.map((m) => (
+                                    <div
+                                        key={m.userId}
+                                        className="flex items-center gap-2 rounded-md px-2.5 py-1.5 group"
+                                    >
+                                        <span className="h-5 w-5 shrink-0 rounded-full wd-bg-elevated flex items-center justify-center text-[10px] font-bold wd-text-muted">
+                                            {(m.user?.nickname || m.user?.name || "?").charAt(0).toUpperCase()}
+                                        </span>
+                                        <span className="text-xs wd-text-primary truncate">
+                                            {m.user?.nickname || m.user?.name || `User ${m.userId}`}
+                                        </span>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleRemoveRole(m.userId)}
+                                            disabled={isBusy}
+                                            className="ml-auto shrink-0 rounded p-0.5 text-[#ff7b7b] opacity-0 transition-opacity group-hover:opacity-100 hover:bg-[rgba(255,123,123,0.1)] disabled:opacity-50"
+                                        >
+                                            <UserMinus size={12} />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="text-[11px] wd-text-muted text-center py-2">
+                                No members have this role
+                            </p>
+                        )}
+                    </div>
+                )}
 
                 {error && (
                     <p className="rounded-md border border-[rgba(237,66,69,0.35)] bg-[rgba(237,66,69,0.12)] px-3 py-2 text-xs wd-text-danger">

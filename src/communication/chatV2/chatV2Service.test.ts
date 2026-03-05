@@ -118,6 +118,112 @@ describe('ChatV2Service', () => {
       expect(result).toEqual(role);
     });
 
+    it('listWorkspaceRoles emits "workspace:role:list" with workspaceId', async () => {
+      const roles = [
+        { id: 'role-1', name: '@everyone', permissions: '0', isEveryone: true },
+        { id: 'role-2', name: 'Mod', permissions: '32', isEveryone: false },
+      ];
+      simulateSuccess({ roles });
+      const service = ChatV2Service.getInstance();
+
+      const result = await service.listWorkspaceRoles('ws-1');
+
+      expect(mockEmit).toHaveBeenCalledWith(
+        'workspace:role:list',
+        { workspaceId: 'ws-1' },
+        expect.any(Function),
+      );
+      expect(result).toEqual(roles);
+    });
+
+    it('updateWorkspaceRole emits "workspace:role:update" with workspaceId, roleId, and update fields', async () => {
+      const role = { id: 'role-2', name: 'Admin', permissions: '255', isEveryone: false };
+      simulateSuccess({ role });
+      const service = ChatV2Service.getInstance();
+
+      const result = await service.updateWorkspaceRole('ws-1', 'role-2', {
+        name: 'Admin',
+        permissions: '255',
+        color: 0xED4245,
+      });
+
+      expect(mockEmit).toHaveBeenCalledWith(
+        'workspace:role:update',
+        {
+          workspaceId: 'ws-1',
+          roleId: 'role-2',
+          name: 'Admin',
+          permissions: '255',
+          color: 0xED4245,
+        },
+        expect.any(Function),
+      );
+      expect(result).toEqual(role);
+    });
+
+    it('deleteWorkspaceRole emits "workspace:role:delete" with workspaceId and roleId', async () => {
+      simulateSuccess({ success: true });
+      const service = ChatV2Service.getInstance();
+
+      await service.deleteWorkspaceRole('ws-1', 'role-2');
+
+      expect(mockEmit).toHaveBeenCalledWith(
+        'workspace:role:delete',
+        { workspaceId: 'ws-1', roleId: 'role-2' },
+        expect.any(Function),
+      );
+    });
+
+    it('assignWorkspaceRole emits "workspace:role:assign" with workspaceId, targetUserId, roleId', async () => {
+      simulateSuccess({ success: true });
+      const service = ChatV2Service.getInstance();
+
+      await service.assignWorkspaceRole('ws-1', 42, 'role-2');
+
+      expect(mockEmit).toHaveBeenCalledWith(
+        'workspace:role:assign',
+        { workspaceId: 'ws-1', targetUserId: 42, roleId: 'role-2' },
+        expect.any(Function),
+      );
+    });
+
+    it('removeWorkspaceRole emits "workspace:role:remove" with workspaceId, targetUserId, roleId', async () => {
+      simulateSuccess({ success: true });
+      const service = ChatV2Service.getInstance();
+
+      await service.removeWorkspaceRole('ws-1', 42, 'role-2');
+
+      expect(mockEmit).toHaveBeenCalledWith(
+        'workspace:role:remove',
+        { workspaceId: 'ws-1', targetUserId: 42, roleId: 'role-2' },
+        expect.any(Function),
+      );
+    });
+
+    it('createWorkspaceRole sends default permissions when provided', async () => {
+      const role = { id: 'role-3', name: 'New Role', permissions: '4194303', isEveryone: false };
+      simulateSuccess({ role });
+      const service = ChatV2Service.getInstance();
+
+      const result = await service.createWorkspaceRole('ws-1', {
+        name: 'New Role',
+        permissions: '4194303',
+        color: 0x5865F2,
+      });
+
+      expect(mockEmit).toHaveBeenCalledWith(
+        'workspace:role:create',
+        {
+          workspaceId: 'ws-1',
+          name: 'New Role',
+          permissions: '4194303',
+          color: 0x5865F2,
+        },
+        expect.any(Function),
+      );
+      expect(result).toEqual(role);
+    });
+
     it('setChannelOverwrite emits "workspace:channel:overwrite:set" with all fields', async () => {
       const overwrite = {
         id: 'ow-1',
