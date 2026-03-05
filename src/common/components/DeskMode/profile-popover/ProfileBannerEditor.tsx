@@ -38,7 +38,7 @@ export function ProfileBannerEditor({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   return (
-    <div className="px-3 py-2.5 space-y-2">
+    <div className="px-4 py-3 space-y-2.5">
       {/* Header */}
       <div className="flex items-center justify-between">
         <p className="text-[11px] font-semibold uppercase tracking-wide wd-text-muted">

@@ -40,7 +40,7 @@ export function ProfileBanner({
   children,
 }: ProfileBannerProps) {
   return (
-    <div className="relative h-24" style={getBannerStyle(banner)}>
+    <div className="relative h-[88px]" style={getBannerStyle(banner)}>
       {banner?.type === 'image' && (
         <div className="absolute inset-0 bg-black/10" aria-hidden="true" />
       )}
@@ -53,7 +53,7 @@ export function ProfileBanner({
           aria-label="Edit profile banner"
           className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition-all duration-200 hover:bg-black/40 hover:opacity-100 group cursor-pointer"
         >
-          <span className="inline-flex items-center gap-1.5 rounded-lg bg-black/60 px-3 py-1.5 text-xs font-medium text-white/90">
+          <span className="inline-flex items-center gap-1.5 rounded-md bg-black/50 backdrop-blur-sm px-2.5 py-1 text-[11px] font-medium text-white/80">
             <Pencil size={12} />
             Edit Banner
           </span>

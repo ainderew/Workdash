@@ -5,6 +5,7 @@ import {
   Ellipsis,
   Flag,
   MessageSquare,
+  SendHorizontal,
   UserCheck,
   UserRoundPlus,
 } from 'lucide-react';
@@ -101,17 +102,17 @@ export function ProfileActionButtons({
   };
 
   return (
-    <div className="absolute right-3 top-3 flex items-center gap-2">
+    <div className="absolute right-2.5 top-2.5 flex items-center gap-1.5">
       {!isSelf && (
         <button
           type="button"
           disabled={isAddingFriend || meta.isDisabled}
           onClick={handleAddFriend}
           title={meta.tooltip}
-          className={`h-9 w-9 rounded-full border inline-flex items-center justify-center transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${
+          className={`h-8 w-8 rounded-full inline-flex items-center justify-center transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed ${
             meta.isAccepted
-              ? 'border-emerald-700 bg-emerald-950/50 text-emerald-300 hover:bg-emerald-900/60'
-              : 'wd-border-subtle wd-bg-panel-2 wd-text-primary hover:bg-[var(--wd-surface-elevated)]'
+              ? 'bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25'
+              : 'bg-black/30 backdrop-blur-sm text-white/80 hover:bg-black/50 hover:text-white hover:scale-105'
           }`}
         >
           {meta.isAccepted ? (
@@ -127,7 +128,7 @@ export function ProfileActionButtons({
           type="button"
           onClick={() => setIsMoreOptionsOpen((c) => !c)}
           title="More options"
-          className="h-9 w-9 rounded-full border wd-border-subtle wd-bg-panel-2 wd-text-primary inline-flex items-center justify-center transition-colors hover:bg-[var(--wd-surface-elevated)]"
+          className="h-8 w-8 rounded-full bg-black/30 backdrop-blur-sm text-white/80 inline-flex items-center justify-center transition-all duration-150 hover:bg-black/50 hover:text-white hover:scale-105"
         >
           <Ellipsis size={16} />
         </button>
@@ -135,7 +136,7 @@ export function ProfileActionButtons({
         {isMoreOptionsOpen && (
           <div
             data-user-profile-more="true"
-            className="absolute right-0 top-[calc(100%+8px)] z-[175] w-56 rounded-xl border wd-border-strong wd-bg-panel shadow-[0_18px_42px_rgba(0,0,0,0.45)] p-1"
+            className="absolute right-0 top-[calc(100%+6px)] z-[175] w-52 rounded-lg border border-white/[0.06] wd-bg-panel backdrop-blur-xl shadow-[0_0_0_1px_rgba(0,0,0,0.3),0_8px_24px_rgba(0,0,0,0.4)] p-1"
           >
             <button
               type="button"
@@ -154,7 +155,7 @@ export function ProfileActionButtons({
                 }
                 setIsMoreOptionsOpen(false);
               }}
-              className="w-full rounded px-2 py-1.5 text-left text-sm wd-text-primary transition-colors hover:bg-[var(--wd-surface-elevated)] inline-flex items-center gap-2"
+              className="w-full rounded-md px-2.5 py-1.5 text-left text-[13px] wd-text-primary transition-colors duration-100 hover:bg-white/[0.06] inline-flex items-center gap-2"
             >
               <Copy size={14} className="wd-text-secondary" />
               Copy User ID
@@ -165,7 +166,7 @@ export function ProfileActionButtons({
                 onClick={() => {
                   void handleOpenDm();
                 }}
-                className="w-full rounded px-2 py-1.5 text-left text-sm wd-text-primary transition-colors hover:bg-[var(--wd-surface-elevated)] inline-flex items-center gap-2"
+                className="w-full rounded-md px-2.5 py-1.5 text-left text-[13px] wd-text-primary transition-colors duration-100 hover:bg-white/[0.06] inline-flex items-center gap-2"
               >
                 <MessageSquare size={14} className="wd-text-secondary" />
                 Send Private Message
@@ -180,7 +181,7 @@ export function ProfileActionButtons({
                 });
                 setIsMoreOptionsOpen(false);
               }}
-              className="w-full rounded px-2 py-1.5 text-left text-sm wd-text-danger transition-colors hover:bg-[var(--wd-surface-elevated)] inline-flex items-center gap-2"
+              className="w-full rounded-md px-2.5 py-1.5 text-left text-[13px] wd-text-danger transition-colors duration-100 hover:bg-white/[0.06] inline-flex items-center gap-2"
             >
               <Flag size={14} />
               Report User Profile
@@ -188,7 +189,7 @@ export function ProfileActionButtons({
             <button
               type="button"
               disabled
-              className="w-full rounded px-2 py-1.5 text-left text-sm wd-text-muted inline-flex items-center gap-2 opacity-70"
+              className="w-full rounded-md px-2.5 py-1.5 text-left text-[13px] wd-text-muted inline-flex items-center gap-2 opacity-70"
             >
               <Ban size={14} />
               Block (Soon)
@@ -200,44 +201,68 @@ export function ProfileActionButtons({
   );
 }
 
-export function ProfileDmButton({
+export function ProfileQuickMessage({
   senderUserId,
   senderName,
 }: Pick<ProfileActionsProps, 'senderUserId' | 'senderName'>) {
-  const openDirectMessage = useChatV2Store(
-    (state) => state.openDirectMessage,
-  );
-  const [isOpeningDm, setIsOpeningDm] = useState(false);
+  const [value, setValue] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  const inputRef = React.useRef<HTMLInputElement>(null);
 
-  const handleOpenDm = async () => {
-    if (isOpeningDm) return;
-    setIsOpeningDm(true);
+  const handleSend = async () => {
+    const trimmed = value.trim();
+    if (!trimmed || isSending) return;
+
+    setIsSending(true);
     try {
-      await openDirectMessage(senderUserId);
-      toast('Private message opened', {
-        description: `You can now DM ${senderName}.`,
+      const { ChatV2Service } = await import(
+        '@/communication/chatV2/chatV2Service'
+      );
+      const chatV2Service = ChatV2Service.getInstance();
+      const room = await chatV2Service.openDirectMessage(senderUserId);
+      await chatV2Service.createMessage(room.id, trimmed);
+      setValue('');
+      toast('Message sent', {
+        description: `Sent to ${senderName}.`,
       });
     } catch (err) {
-      toast('Unable to open private message', {
+      toast('Unable to send message', {
         description:
           err instanceof Error ? err.message : 'Please try again.',
       });
     } finally {
-      setIsOpeningDm(false);
+      setIsSending(false);
+      inputRef.current?.focus();
     }
   };
 
   return (
-    <button
-      type="button"
-      onClick={() => {
-        void handleOpenDm();
-      }}
-      disabled={isOpeningDm}
-      className="w-full h-9 rounded-md bg-[var(--wd-accent)] text-white text-sm font-semibold inline-flex items-center justify-center gap-2 transition-colors hover:bg-[var(--wd-accent-hover)] disabled:opacity-70"
-    >
-      <MessageSquare size={14} />
-      {isOpeningDm ? 'Opening...' : 'Send Private Message'}
-    </button>
+    <div className="flex items-center gap-2 rounded-lg border border-white/[0.04] wd-bg-panel-2 px-3 py-2.5 transition-colors duration-200 focus-within:border-white/[0.12] focus-within:bg-[var(--wd-surface-elevated)]">
+      <input
+        ref={inputRef}
+        type="text"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={(e) => {
+          e.stopPropagation();
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            void handleSend();
+          }
+        }}
+        disabled={isSending}
+        placeholder={`Message @${senderName}`}
+        className="min-w-0 flex-1 bg-transparent text-[13px] wd-text-primary placeholder:wd-text-muted placeholder:opacity-50 outline-none"
+      />
+      <button
+        type="button"
+        onClick={() => void handleSend()}
+        disabled={isSending || !value.trim()}
+        title={isSending ? 'Sending...' : 'Send message'}
+        className="h-7 w-7 shrink-0 rounded-full inline-flex items-center justify-center text-[var(--wd-text-muted)] transition-all duration-150 hover:text-white hover:bg-[var(--wd-accent)] hover:scale-110 active:scale-95 disabled:opacity-30 disabled:hover:scale-100 disabled:cursor-not-allowed"
+      >
+        <SendHorizontal size={14} />
+      </button>
+    </div>
   );
 }

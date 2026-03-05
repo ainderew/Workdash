@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Pencil, Save } from 'lucide-react';
+import { parseMessageContent } from '@/common/utils/linkParser';
 import { MAX_BIO_LENGTH } from './constants';
 
 interface ProfileBioSectionProps {
@@ -26,16 +27,16 @@ export function ProfileBioSection({
   onSaveBio,
 }: ProfileBioSectionProps) {
   return (
-    <div className="rounded-lg border wd-border-subtle wd-bg-panel-2 p-3">
-      <div className="mb-2 flex items-center justify-between">
-        <p className="text-xs font-semibold uppercase tracking-wide wd-text-muted">
-          Bio
+    <div className="rounded-lg border border-white/[0.04] wd-bg-panel-2/60 p-3.5">
+      <div className="mb-2.5 flex items-center justify-between">
+        <p className="text-[10px] font-semibold uppercase tracking-widest wd-text-muted">
+          About
         </p>
         {isSelf && !isBioEditing && (
           <button
             type="button"
             onClick={onStartEdit}
-            className="text-xs wd-text-secondary inline-flex items-center gap-1 hover:wd-text-primary"
+            className="text-[11px] wd-text-muted inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 transition-all duration-150 hover:wd-text-primary hover:bg-white/[0.06]"
           >
             <Pencil size={12} />
             Edit
@@ -50,7 +51,7 @@ export function ProfileBioSection({
             onChange={(e) => onBioChange(e.target.value)}
             rows={4}
             placeholder="Write a short bio..."
-            className="w-full rounded-md border wd-border-subtle wd-bg-elevated p-2 text-sm wd-text-primary outline-none focus:border-[var(--wd-border-strong)]"
+            className="w-full rounded-md border border-white/[0.06] wd-bg-elevated p-2.5 text-[13px] leading-relaxed wd-text-primary outline-none transition-colors duration-150 focus:border-[var(--wd-accent)]/40"
           />
           <div className="flex items-center justify-between">
             <p className="text-[11px] wd-text-muted">
@@ -77,13 +78,51 @@ export function ProfileBioSection({
           </div>
         </div>
       ) : (
-        <p className="text-sm wd-text-secondary whitespace-pre-wrap break-words">
-          {bio?.trim() ||
-            (isSelf
+        <BioText
+          bio={bio}
+          fallback={
+            isSelf
               ? 'Set your bio to help others know you.'
-              : 'No bio set yet.')}
-        </p>
+              : 'No bio set yet.'
+          }
+        />
       )}
     </div>
+  );
+}
+
+function BioText({ bio, fallback }: { bio: string | null; fallback: string }) {
+  const trimmed = bio?.trim();
+  const parts = useMemo(
+    () => (trimmed ? parseMessageContent(trimmed) : null),
+    [trimmed],
+  );
+
+  if (!parts) {
+    return (
+      <p className="text-[13px] leading-relaxed wd-text-secondary whitespace-pre-wrap break-words">
+        {fallback}
+      </p>
+    );
+  }
+
+  return (
+    <p className="text-[13px] leading-relaxed wd-text-secondary whitespace-pre-wrap break-words">
+      {parts.map((part, i) =>
+        part.url ? (
+          <a
+            key={i}
+            href={part.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[var(--wd-accent)] hover:underline"
+          >
+            {part.content}
+          </a>
+        ) : (
+          <React.Fragment key={i}>{part.content}</React.Fragment>
+        ),
+      )}
+    </p>
   );
 }

@@ -1,12 +1,12 @@
 export type { BannerConfig } from '@/communication/chatV2/_types';
 
 export const MAX_BIO_LENGTH = 280;
-export const POPOVER_WIDTH = 360;
+export const POPOVER_WIDTH = 340;
 export const POPOVER_HEIGHT = 420;
 export const SCREEN_MARGIN = 8;
 
 export const DEFAULT_BANNER_GRADIENT =
-  'linear-gradient(120deg,rgba(88,101,242,0.18),rgba(15,17,21,0.98))';
+  'linear-gradient(135deg,rgba(88,101,242,0.12) 0%,rgba(15,17,21,0.95) 60%,rgba(30,27,50,0.4) 100%)';
 
 export const BANNER_SOLID_PRESETS = [
   { label: 'Blurple', color: '#5865F2' },

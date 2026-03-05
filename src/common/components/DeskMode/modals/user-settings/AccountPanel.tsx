@@ -137,6 +137,23 @@ function AccountPanel({ onClose }: AccountPanelProps) {
         />
       </div>
 
+      <SettingsSection label="Bio" description="A short description visible on your profile">
+        <div className="space-y-1.5">
+          <textarea
+            value={profile.bio}
+            onChange={(e) => profile.handleBioChange(e.target.value)}
+            rows={3}
+            maxLength={profile.maxBioLength}
+            placeholder="Write a short bio..."
+            disabled={isBusy}
+            className="w-full rounded-md border wd-border-subtle wd-bg-elevated px-3 py-2 text-sm wd-text-primary outline-none resize-none focus:border-[var(--wd-border-strong)] disabled:opacity-50"
+          />
+          <p className="text-right text-[10px] wd-text-muted">
+            {profile.bio.length}/{profile.maxBioLength}
+          </p>
+        </div>
+      </SettingsSection>
+
       <SettingsErrorBanner message={combinedError} />
 
       <div className="flex items-center justify-end gap-2">

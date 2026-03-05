@@ -2,10 +2,12 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import useUserStore from '@/common/store/useStore';
 import { CharacterEventBus } from '@/game/character/CharacterEventBus';
+import { ChatV2Service } from '@/communication/chatV2/chatV2Service';
 import { getDisplayNameFromParts } from '@/common/utils/displayName';
 
 const MAX_NAME_LENGTH = 20;
 const MAX_NICKNAME_LENGTH = 20;
+const MAX_BIO_LENGTH = 280;
 
 interface UseProfileFormOptions {
   isActive: boolean;
@@ -19,6 +21,8 @@ export function useProfileForm({ isActive, onSuccess }: UseProfileFormOptions) {
 
   const [name, setName] = useState('');
   const [nickname, setNickname] = useState('');
+  const [bio, setBio] = useState('');
+  const [initialBio, setInitialBio] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,6 +42,18 @@ export function useProfileForm({ isActive, onSuccess }: UseProfileFormOptions) {
     setName(resolvedName);
     setNickname(resolvedNickname);
     setError(null);
+
+    const chatV2Service = ChatV2Service.getInstance();
+    const backendUserId = window.__BACKEND_USER__?.id;
+    if (backendUserId) {
+      void chatV2Service.getUserProfile(backendUserId).then((profile) => {
+        const currentBio = profile.user.bio?.trim() ?? '';
+        setBio(currentBio);
+        setInitialBio(currentBio);
+      }).catch(() => {
+        // Bio load failure is non-critical
+      });
+    }
   }, [
     isActive,
     session?.backendUser?.name,
@@ -122,6 +138,16 @@ export function useProfileForm({ isActive, onSuccess }: UseProfileFormOptions) {
           };
         }
 
+        // Save bio if changed
+        const trimmedBio = bio.trim();
+        if (trimmedBio !== initialBio) {
+          const chatV2Service = ChatV2Service.getInstance();
+          await chatV2Service.updateOwnUserProfile({
+            bio: trimmedBio || null,
+          });
+          setInitialBio(trimmedBio);
+        }
+
         const effectiveDisplayName = getDisplayNameFromParts(
           updatedNickname,
           updatedName,
@@ -145,8 +171,12 @@ export function useProfileForm({ isActive, onSuccess }: UseProfileFormOptions) {
         setIsSaving(false);
       }
     },
-    [name, nickname, session?.backendJwt, updateUser, onSuccess],
+    [name, nickname, bio, initialBio, session?.backendJwt, updateUser, onSuccess],
   );
+
+  const handleBioChange = useCallback((value: string) => {
+    setBio(value.slice(0, MAX_BIO_LENGTH));
+  }, []);
 
   const resetForm = useCallback(() => {
     setError(null);
@@ -157,6 +187,9 @@ export function useProfileForm({ isActive, onSuccess }: UseProfileFormOptions) {
     setName,
     nickname,
     setNickname,
+    bio,
+    handleBioChange,
+    maxBioLength: MAX_BIO_LENGTH,
     previewName,
     isSaving,
     error,

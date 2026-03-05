@@ -11,7 +11,7 @@ import { useBannerEditor } from './hooks/useBannerEditor';
 import { ProfileBanner, getBannerStyle } from './ProfileBanner';
 import { ProfileBannerEditor } from './ProfileBannerEditor';
 import { ProfileBioSection } from './ProfileBioSection';
-import { ProfileActionButtons, ProfileDmButton } from './ProfileActions';
+import { ProfileActionButtons, ProfileQuickMessage } from './ProfileActions';
 
 interface ProfilePopoverProps {
   popover: ProfilePopoverState;
@@ -126,14 +126,14 @@ export function ProfilePopover({
           : null
       }
       size="xl"
-      className="border-4 wd-border-strong"
+      className="border-[3px] border-[var(--wd-bg-panel)] ring-1 ring-white/[0.08]"
     />
   );
 
   return (
     <div
       data-user-profile-popover="true"
-      className="fixed z-[170] w-[360px] rounded-2xl border wd-border-strong wd-bg-panel shadow-[0_24px_56px_rgba(0,0,0,0.5)] overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+      className="fixed z-[170] w-[340px] rounded-xl border border-white/[0.06] wd-bg-panel backdrop-blur-xl shadow-[0_0_0_1px_rgba(0,0,0,0.3),0_4px_12px_rgba(0,0,0,0.2),0_16px_40px_rgba(0,0,0,0.4)] overflow-hidden animate-in fade-in zoom-in-95 duration-200"
       style={{
         left: popover.x,
         ...(popover.anchorBottom
@@ -179,7 +179,7 @@ export function ProfilePopover({
       )}
 
       {/* Identity: avatar + name + ID (inlined) */}
-      <div className={`px-4 pb-4 relative z-10 ${banner.isEditing ? 'mt-2' : '-mt-8'}`}>
+      <div className={`px-5 pb-3 relative z-10 ${banner.isEditing ? 'mt-2' : '-mt-8'}`}>
         {isSelf ? (
           <label className="group relative block w-16 h-16 cursor-pointer">
             {avatarElement}
@@ -206,24 +206,24 @@ export function ProfilePopover({
           avatarElement
         )}
 
-        <div className="mt-3">
-          <p className="text-xl font-semibold wd-text-primary truncate">
+        <div className="mt-2.5 space-y-0.5">
+          <p className="text-[17px] font-semibold tracking-[-0.01em] wd-text-primary truncate">
             {popover.senderName}
           </p>
-          <p className="text-xs wd-text-muted">
-            User ID: {popover.senderUserId}
+          <p className="text-[11px] font-mono wd-text-muted opacity-60">
+            ID {popover.senderUserId}
           </p>
         </div>
       </div>
 
       {/* Profile content */}
-      <div className="px-4 pb-4">
+      <div className="px-5 pb-5">
         {isLoading ? (
           <p className="text-sm wd-text-muted">Loading profile...</p>
         ) : error ? (
           <p className="text-sm wd-text-danger">{error}</p>
         ) : profile ? (
-          <div className="space-y-3">
+          <div className="space-y-3.5">
             <ProfileBioSection
               bio={profile.user.bio}
               isSelf={isSelf}
@@ -239,10 +239,12 @@ export function ProfilePopover({
             />
 
             {!isSelf && (
-              <ProfileDmButton
-                senderUserId={popover.senderUserId}
-                senderName={popover.senderName}
-              />
+              <div className="mt-1">
+                <ProfileQuickMessage
+                  senderUserId={popover.senderUserId}
+                  senderName={popover.senderName}
+                />
+              </div>
             )}
           </div>
         ) : null}
