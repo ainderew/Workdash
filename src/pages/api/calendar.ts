@@ -36,9 +36,10 @@ export default async function handler(
             maxResults: 50,
             singleEvents: true,
             orderBy: "startTime",
+            conferenceDataVersion: 1,
         });
 
-        return res.status(200).json(events.data.items);
+        return res.status(200).json(events.data.items ?? []);
     } catch (error) {
         console.error("Calendar API error:", error);
         return res.status(500).json({ error: "Failed to fetch calendar" });

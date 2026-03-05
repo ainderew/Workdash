@@ -8,20 +8,19 @@ import { ExtendedAccount } from "@/types/auth";
 
 async function refreshAccessToken(token: JWT) {
     try {
-        const url =
-            "https://oauth2.googleapis.com/token?" +
-            new URLSearchParams({
+        const url = "https://oauth2.googleapis.com/token";
+
+        const response = await fetch(url, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+            },
+            body: new URLSearchParams({
                 client_id: process.env.GOOGLE_CLIENT_ID!,
                 client_secret: process.env.GOOGLE_CLIENT_SECRET!,
                 grant_type: "refresh_token",
                 refresh_token: token.refreshToken as string,
-            });
-
-        const response = await fetch(url, {
-            headers: {
-                "Content-Type": "application/x-www-form-urlencoded",
-            },
-            method: "POST",
+            }),
         });
 
         const refreshedTokens = await response.json();
@@ -124,6 +123,7 @@ export const authOptions: AuthOptions = {
         }) {
             if (account) {
                 return {
+                    ...token,
                     accessToken: account.access_token,
                     accessTokenExpires: account.expires_at
                         ? account.expires_at * 1000
@@ -135,7 +135,6 @@ export const authOptions: AuthOptions = {
                     backendCharacter: account.backendCharacter,
                     nickname: account.backendUser?.nickname ?? null,
                     user: token.user,
-                    ...token,
                 };
             }
 
