@@ -10,6 +10,7 @@ import {
     TransportOptions,
 } from "mediasoup-client/types";
 import io from "socket.io-client";
+import { StatusClientService } from "@/communication/status/statusService";
 
 
 export class MediaTransportService {
@@ -48,6 +49,12 @@ export class MediaTransportService {
 
         this.socket.on("disconnect", (reason: string) => {
             console.log("MediaTransport socket disconnected:", reason);
+        });
+
+        this.socket.on("sfuInitialized", () => {
+            const statusClient = StatusClientService.init(this.socket);
+            statusClient.setupListeners();
+            statusClient.fetchDefinitions().catch(console.error);
         });
     }
 

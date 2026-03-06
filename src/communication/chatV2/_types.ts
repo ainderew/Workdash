@@ -315,6 +315,13 @@ export type WorkspaceMember = {
         characterCustomization?: ChatV2CharacterCustomization | null;
     };
     roles?: WorkspaceRole[];
+    presence?: {
+        statusId: string;
+        label: string;
+        color: string;
+        icon: string | null;
+        manualLock: boolean;
+    };
 };
 
 export type WorkspaceRole = {

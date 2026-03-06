@@ -27,6 +27,7 @@ import type {
     WorkspaceRole,
 } from "./_types";
 import { getStandaloneGifUrl } from "./gifUrl";
+import { usePresenceStore } from "@/common/store/presenceStore";
 
 type AckResponse<T> =
     | { ok: true; data: T }
@@ -826,6 +827,18 @@ export class ChatV2Service {
             "workspace:member:list",
             { workspaceId },
         );
+
+        // Hydrate presence store from workspace member list
+        const presenceEntries = response.members
+            .filter((m: WorkspaceMember) => m.presence)
+            .map((m: WorkspaceMember) => ({
+                userId: m.userId,
+                ...m.presence!,
+            }));
+        if (presenceEntries.length > 0) {
+            usePresenceStore.getState().bulkSetPresence(presenceEntries);
+        }
+
         return response.members;
     }
 

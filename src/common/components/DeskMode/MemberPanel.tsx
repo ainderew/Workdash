@@ -9,6 +9,7 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip";
 import UserAvatar from "./UserAvatar";
+import PresenceDot from "./PresenceDot";
 
 const ROLE_ORDER: ChatV2RoomMember["role"][] = [
     "OWNER",
@@ -179,7 +180,7 @@ function MemberRow({
                     }
                     size="xs"
                 />
-                <span className="absolute -bottom-0.5 -right-0.5 block h-3 w-3 rounded-full border-2 border-[var(--wd-bg-panel)] bg-emerald-500" />
+                <PresenceDot userId={member.userId} size="xs" />
             </div>
             <span
                 className={`text-sm truncate flex-1 transition-colors items-center ${nameColor ? "font-medium" : "wd-text-secondary group-hover:wd-text-primary"}`}

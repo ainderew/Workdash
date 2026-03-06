@@ -17,6 +17,7 @@ import type {
 import { ChatV2Service } from "@/communication/chatV2/chatV2Service";
 import { getDisplayName } from "@/common/utils/displayName";
 import UserAvatar from "../UserAvatar";
+import PresenceDot from "../PresenceDot";
 import WorkspaceMemberContextMenu from "../WorkspaceMemberContextMenu";
 
 function colorToHex(color: number): string {
@@ -251,7 +252,7 @@ function WorkspaceMemberRow({
                     characterCustomization={member.user?.characterCustomization ?? null}
                     size="xs"
                 />
-                <span className="absolute -bottom-0.5 -right-0.5 block h-3 w-3 rounded-full border-2 border-[var(--wd-surface-panel)] bg-[var(--wd-surface-elevated)]" />
+                <PresenceDot userId={member.userId} size="xs" />
             </div>
 
             <div className="flex-1 min-w-0">
