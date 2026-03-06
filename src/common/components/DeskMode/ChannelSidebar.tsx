@@ -24,6 +24,8 @@ import { getDisplayName } from "@/common/utils/displayName";
 import ChannelHashIcon from "./ChannelHashIcon";
 import DeskModeControls from "./DeskModeControls";
 import UserAvatar from "./UserAvatar";
+import PresenceDot from "./PresenceDot";
+import StatusLabel from "./StatusLabel";
 import CreateCategoryModal from "./modals/CreateCategoryModal";
 import CreateRoomModal from "./modals/CreateRoomModal";
 import DeleteRoomModal from "./modals/DeleteRoomModal";
@@ -1155,32 +1157,33 @@ function ChannelSidebar({
                             });
                         }}
                     >
-                        <UserAvatar
-                            name={displayName}
-                            spriteStyle={
-                                showAvatarImage
-                                    ? null
-                                    : spriteSheetDataUrl
-                                      ? avatarSpriteStyles
-                                      : defaultSpriteStyles
-                            }
-                            image={showAvatarImage ? avatarUrl : null}
-                            className="ring-1 wd-border-subtle"
-                            onImageError={() => setIsAvatarLoadFailed(true)}
-                        />
+                        <div className="relative shrink-0">
+                            <UserAvatar
+                                name={displayName}
+                                spriteStyle={
+                                    showAvatarImage
+                                        ? null
+                                        : spriteSheetDataUrl
+                                          ? avatarSpriteStyles
+                                          : defaultSpriteStyles
+                                }
+                                image={showAvatarImage ? avatarUrl : null}
+                                className="ring-1 wd-border-subtle"
+                                onImageError={() => setIsAvatarLoadFailed(true)}
+                            />
+                            {typeof localBackendUserId === "number" && (
+                                <PresenceDot userId={localBackendUserId} size="xs" />
+                            )}
+                        </div>
                         <div className="min-w-0">
                             <p className="truncate text-sm font-semibold wd-text-primary">
                                 {displayName}
                             </p>
-                            <p className="text-xs wd-text-muted">
-                                {presentation === "desk"
-                                    ? "Desk mode"
-                                    : "2D mode"}
-                            </p>
+                            <StatusLabel />
                         </div>
                     </button>
 
-                    <div className="relative flex items-center gap-1.5">
+                    <div className="relative flex items-center gap-1.5 shrink-0">
                         <DeskModeControls
                             compact
                             showMicrophoneSelector={false}

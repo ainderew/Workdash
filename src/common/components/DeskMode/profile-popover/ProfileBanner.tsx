@@ -40,7 +40,7 @@ export function ProfileBanner({
   children,
 }: ProfileBannerProps) {
   return (
-    <div className="relative h-[88px]" style={getBannerStyle(banner)}>
+    <div className="relative h-[88px] rounded-t-xl overflow-hidden" style={getBannerStyle(banner)}>
       {banner?.type === 'image' && (
         <div className="absolute inset-0 bg-black/10" aria-hidden="true" />
       )}

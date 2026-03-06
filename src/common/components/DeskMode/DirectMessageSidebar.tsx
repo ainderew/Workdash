@@ -26,6 +26,8 @@ import UserSettingsModal from "./modals/UserSettingsModal";
 import NewConversationModal from "./modals/NewConversationModal";
 import { getDisplayName } from "@/common/utils/displayName";
 import UserAvatar from "./UserAvatar";
+import PresenceDot from "./PresenceDot";
+import StatusLabel from "./StatusLabel";
 import {
     Tooltip,
     TooltipTrigger,
@@ -260,16 +262,19 @@ function DirectMessageSidebar({
                                             }
                                             className="w-full px-2 py-1.5 rounded-md text-left text-sm wd-text-primary transition-colors hover:bg-[var(--wd-surface-elevated)] flex items-center gap-4"
                                         >
-                                            <UserAvatar
-                                                name={getPeerDisplayName(
-                                                    entry.peerUser,
-                                                )}
-                                                image={entry.peerUser.image}
-                                                characterCustomization={
-                                                    entry.peerUser
-                                                        .characterCustomization
-                                                }
-                                            />
+                                            <div className="relative shrink-0">
+                                                <UserAvatar
+                                                    name={getPeerDisplayName(
+                                                        entry.peerUser,
+                                                    )}
+                                                    image={entry.peerUser.image}
+                                                    characterCustomization={
+                                                        entry.peerUser
+                                                            .characterCustomization
+                                                    }
+                                                />
+                                                <PresenceDot userId={entry.peerUser.id} size="xs" />
+                                            </div>
                                             <span className="truncate flex-1">
                                                 {getPeerDisplayName(
                                                     entry.peerUser,
@@ -339,16 +344,19 @@ function DirectMessageSidebar({
                                                     : "wd-text-secondary hover:wd-text-primary hover:bg-[var(--wd-surface-elevated)]"
                                             }`}
                                         >
-                                            <UserAvatar
-                                                name={getPeerDisplayName(
-                                                    entry.peerUser,
-                                                )}
-                                                image={entry.peerUser.image}
-                                                characterCustomization={
-                                                    entry.peerUser
-                                                        .characterCustomization
-                                                }
-                                            />
+                                            <div className="relative shrink-0">
+                                                <UserAvatar
+                                                    name={getPeerDisplayName(
+                                                        entry.peerUser,
+                                                    )}
+                                                    image={entry.peerUser.image}
+                                                    characterCustomization={
+                                                        entry.peerUser
+                                                            .characterCustomization
+                                                    }
+                                                />
+                                                <PresenceDot userId={entry.peerUser.id} size="xs" />
+                                            </div>
                                             <span className="truncate flex-1">
                                                 {getPeerDisplayName(
                                                     entry.peerUser,
@@ -372,22 +380,23 @@ function DirectMessageSidebar({
                 <footer className="border-t wd-border-subtle wd-bg-panel p-3">
                     <div className="flex items-center justify-between gap-2">
                         <div className="flex min-w-0 items-center gap-2">
-                            <UserAvatar
-                                name={displayName}
-                                spriteStyle={showAvatarImage ? null : (spriteSheetDataUrl ? avatarSpriteStyles : defaultSpriteStyles)}
-                                image={showAvatarImage ? avatarUrl : null}
-                                className="ring-1 wd-border-subtle"
-                                onImageError={() => setIsAvatarLoadFailed(true)}
-                            />
+                            <div className="relative shrink-0">
+                                <UserAvatar
+                                    name={displayName}
+                                    spriteStyle={showAvatarImage ? null : (spriteSheetDataUrl ? avatarSpriteStyles : defaultSpriteStyles)}
+                                    image={showAvatarImage ? avatarUrl : null}
+                                    className="ring-1 wd-border-subtle"
+                                    onImageError={() => setIsAvatarLoadFailed(true)}
+                                />
+                                {typeof localBackendUserId === "number" && (
+                                    <PresenceDot userId={localBackendUserId} size="xs" />
+                                )}
+                            </div>
                             <div className="min-w-0">
                                 <p className="truncate text-sm font-semibold wd-text-primary">
                                     {displayName}
                                 </p>
-                                <p className="text-xs wd-text-muted">
-                                    {presentation === "desk"
-                                        ? "Desk mode"
-                                        : "2D mode"}
-                                </p>
+                                <StatusLabel />
                             </div>
                         </div>
 

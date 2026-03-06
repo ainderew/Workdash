@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { ImagePlus, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import UserAvatar from '../UserAvatar';
+import PresenceDot from '../PresenceDot';
 import { CONFIG } from '@/common/utils/config';
 import useUserStore from '@/common/store/useStore';
 import type { ProfilePopoverState, SenderAvatar } from './types';
@@ -12,6 +13,7 @@ import { ProfileBanner, getBannerStyle } from './ProfileBanner';
 import { ProfileBannerEditor } from './ProfileBannerEditor';
 import { ProfileBioSection } from './ProfileBioSection';
 import { ProfileActionButtons, ProfileQuickMessage } from './ProfileActions';
+import { ProfileStatusPicker } from './ProfileStatusPicker';
 
 interface ProfilePopoverProps {
   popover: ProfilePopoverState;
@@ -133,7 +135,7 @@ export function ProfilePopover({
   return (
     <div
       data-user-profile-popover="true"
-      className="fixed z-[170] w-[340px] rounded-xl border border-white/[0.06] wd-bg-panel backdrop-blur-xl shadow-[0_0_0_1px_rgba(0,0,0,0.3),0_4px_12px_rgba(0,0,0,0.2),0_16px_40px_rgba(0,0,0,0.4)] overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+      className="fixed z-[170] w-[340px] rounded-xl border border-white/[0.06] wd-bg-panel backdrop-blur-xl shadow-[0_0_0_1px_rgba(0,0,0,0.3),0_4px_12px_rgba(0,0,0,0.2),0_16px_40px_rgba(0,0,0,0.4)] animate-in fade-in zoom-in-95 duration-200"
       style={{
         left: popover.x,
         ...(popover.anchorBottom
@@ -145,7 +147,7 @@ export function ProfilePopover({
       {banner.isEditing ? (
         <div>
           <div
-            className="h-24 transition-all duration-200"
+            className="h-24 rounded-t-xl overflow-hidden transition-all duration-200"
             style={getBannerStyle(banner.displayBanner)}
           />
           <div className="border-b wd-border-subtle max-h-[180px] overflow-y-auto">
@@ -183,6 +185,7 @@ export function ProfilePopover({
         {isSelf ? (
           <label className="group relative block w-16 h-16 cursor-pointer">
             {avatarElement}
+            <PresenceDot userId={popover.senderUserId} size="xl" />
             <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
               {isUploadingAvatar ? (
                 <Loader2
@@ -203,7 +206,10 @@ export function ProfilePopover({
             />
           </label>
         ) : (
-          avatarElement
+          <div className="relative w-16 h-16">
+            {avatarElement}
+            <PresenceDot userId={popover.senderUserId} size="xl" />
+          </div>
         )}
 
         <div className="mt-2.5 space-y-0.5">
@@ -249,6 +255,13 @@ export function ProfilePopover({
           </div>
         ) : null}
       </div>
+
+      {isSelf && !isLoading && !error && profile && (
+        <div className="border-t border-white/[0.06] py-1">
+          <ProfileStatusPicker />
+        </div>
+      )}
     </div>
   );
 }
+
