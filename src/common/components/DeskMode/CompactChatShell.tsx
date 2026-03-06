@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Bell, ChevronDown, Search, UserRoundPlus, X } from "lucide-react";
 import useChatV2Store from "@/common/store/chatV2Store";
+import { useShallow } from "zustand/react/shallow";
 import ChannelHashIcon from "./ChannelHashIcon";
 import { ChatV2Service } from "@/communication/chatV2/chatV2Service";
 import type { ChatV2DirectRoom, ChatV2Message, ChatV2Room } from "@/communication/chatV2/_types";
@@ -62,7 +63,7 @@ function CompactChatShell({ onClose }: CompactChatShellProps) {
     const reloadDirectRooms = useChatV2Store((state) => state.reloadDirectRooms);
     const reloadFriends = useChatV2Store((state) => state.reloadFriends);
     const openDirectMessage = useChatV2Store((state) => state.openDirectMessage);
-    const unreadByRoomId = useChatV2Store((state) => state.unreadByRoomId);
+    const unreadByRoomId = useChatV2Store(useShallow((state) => state.unreadByRoomId));
     const getWorkspaceUnreadTotal = useChatV2Store((state) => state.getWorkspaceUnreadTotal);
     const getDirectUnreadTotal = useChatV2Store((state) => state.getDirectUnreadTotal);
     const friendRequests = useChatV2Store((state) => state.friendRequests);
@@ -561,11 +562,11 @@ function CompactChatShell({ onClose }: CompactChatShellProps) {
                                                 `User ${entry.peerUser.id}`,
                                             )}
                                         </span>
-                                        {!isActive && (unreadByRoomId[entry.room.id] ?? entry.room.unreadCount ?? 0) > 0 ? (
+                                        {(() => { const c = unreadByRoomId[entry.room.id] ?? entry.room.unreadCount ?? 0; return !isActive && c > 0 ? (
                                             <span className="h-4 min-w-4 px-1 rounded-full bg-[var(--wd-danger)] text-white text-[10px] font-bold inline-flex items-center justify-center">
-                                                {unreadByRoomId[entry.room.id] ?? entry.room.unreadCount ?? 0}
+                                                {c > 99 ? "99+" : c}
                                             </span>
-                                        ) : null}
+                                        ) : null; })()}
                                     </button>
                                 );
                             })
@@ -591,11 +592,11 @@ function CompactChatShell({ onClose }: CompactChatShellProps) {
                                     }`}
                                 >
                                     <span className="truncate inline-flex items-center gap-1"><ChannelHashIcon size={14} className="shrink-0 opacity-60" />{room.name}</span>
-                                    {!isActive && (unreadByRoomId[room.id] ?? 0) > 0 ? (
+                                    {(() => { const c = unreadByRoomId[room.id] ?? 0; return !isActive && c > 0 ? (
                                         <span className="h-4 min-w-4 px-1 rounded-full bg-[var(--wd-danger)] text-white text-[10px] font-bold inline-flex items-center justify-center">
-                                            {unreadByRoomId[room.id]}
+                                            {c > 99 ? "99+" : c}
                                         </span>
-                                    ) : null}
+                                    ) : null; })()}
                                 </button>
                             );
                         })

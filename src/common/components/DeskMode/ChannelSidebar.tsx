@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import useUserStore from "@/common/store/useStore";
 import useChatV2Store from "@/common/store/chatV2Store";
+import { useShallow } from "zustand/react/shallow";
 import { getDisplayName } from "@/common/utils/displayName";
 import ChannelHashIcon from "./ChannelHashIcon";
 import DeskModeControls from "./DeskModeControls";
@@ -131,7 +132,7 @@ function ChannelSidebar({
 }: ChannelSidebarProps) {
 
     const user = useUserStore((state) => state.user);
-    const unreadByRoomId = useChatV2Store((state) => state.unreadByRoomId);
+    const unreadByRoomId = useChatV2Store(useShallow((state) => state.unreadByRoomId));
     const [collapsedByCategoryKey, setCollapsedByCategoryKey] = useState<
         Record<string, boolean>
     >({});

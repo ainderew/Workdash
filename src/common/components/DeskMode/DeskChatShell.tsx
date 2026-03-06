@@ -6,6 +6,7 @@ import React, {
     useState,
 } from "react";
 import useChatV2Store from "@/common/store/chatV2Store";
+import { useShallow } from "zustand/react/shallow";
 import useWorkspaceStore from "@/common/store/workspaceStore";
 import { ChatV2Service } from "@/communication/chatV2/chatV2Service";
 import type {
@@ -116,7 +117,7 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
     const toggleMessageReaction = useChatV2Store(
         (state) => state.toggleMessageReaction,
     );
-    const unreadByRoomId = useChatV2Store((state) => state.unreadByRoomId);
+    const unreadByRoomId = useChatV2Store(useShallow((state) => state.unreadByRoomId));
     const getWorkspaceUnreadTotal = useChatV2Store(
         (state) => state.getWorkspaceUnreadTotal,
     );
