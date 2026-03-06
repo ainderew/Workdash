@@ -23,6 +23,7 @@ import DirectMessageSidebar from "./DirectMessageSidebar";
 import GuildRail from "./GuildRail";
 import MemberPanel from "./MemberPanel";
 import { getDisplayName } from "@/common/utils/displayName";
+import { useChatNotificationSound } from "@/common/hooks/useChatNotificationSound";
 import ServerSettingsModal from "./modals/ServerSettingsModal";
 import WorkspaceMembersModal from "./modals/WorkspaceMembersModal";
 import JoinByInviteModal from "./modals/JoinByInviteModal";
@@ -45,6 +46,7 @@ interface DeskChatShellProps {
 }
 
 function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
+    useChatNotificationSound();
     const chatV2Service = useMemo(() => ChatV2Service.getInstance(), []);
     const initialize = useChatV2Store((state) => state.initialize);
     const roomOrder = useChatV2Store((state) => state.roomOrder);
@@ -111,10 +113,10 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
     const openDirectMessage = useChatV2Store(
         (state) => state.openDirectMessage,
     );
-    const frequentEmojis = useChatV2Store((state) => state.frequentEmojis);
     const toggleMessageReaction = useChatV2Store(
         (state) => state.toggleMessageReaction,
     );
+    const unreadByRoomId = useChatV2Store((state) => state.unreadByRoomId);
     const getWorkspaceUnreadTotal = useChatV2Store(
         (state) => state.getWorkspaceUnreadTotal,
     );
@@ -269,6 +271,7 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
         serverImageOverrides,
         serverNameOverrides,
         workspaces,
+        unreadByRoomId,
     ]);
 
     const categories = useMemo<ChatV2RoomCategory[]>(
@@ -975,9 +978,6 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
                                     if (!activeThreadRootId) return;
                                     void loadThread(activeThreadRootId);
                                 }}
-                                frequentEmojis={frequentEmojis.map(
-                                    (entry) => entry.emoji,
-                                )}
                                 onSendReply={async (
                                     content,
                                     attachments,

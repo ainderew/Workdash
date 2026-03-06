@@ -730,8 +730,8 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
                     roomsById,
                     roomOrder,
                     unreadByRoomId: {
-                        ...state.unreadByRoomId,
                         ...unreadByRoomId,
+                        ...state.unreadByRoomId,
                     },
                     categoriesById,
                     categoryOrder,
@@ -802,8 +802,8 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
                     roomsById: nextRoomsById,
                     roomOrder: nextRoomOrder,
                     unreadByRoomId: {
-                        ...state.unreadByRoomId,
                         ...unreadByRoomId,
+                        ...state.unreadByRoomId,
                     },
                 };
             });
