@@ -18,12 +18,11 @@ import {
     getChatFilePreviewUrl,
     getChatFileThumbnailUrl,
 } from "@/communication/chatV2/uploadService";
-import { extractDomain, parseMessageContent } from "@/common/utils/linkParser";
+import { parseMessageContent } from "@/common/utils/linkParser";
 import useUserStore from "@/common/store/useStore";
 import useChatV2Store from "@/common/store/chatV2Store";
-import { GitHubPreview } from "@/common/components/TextChat/GitHubPreview";
-import { TwitterPreview } from "@/common/components/TextChat/TwitterPreview";
-import { YouTubePreview } from "@/common/components/TextChat/YouTubePreview";
+import { UnifiedLinkPreview } from "@/common/components/TextChat/UnifiedLinkPreview";
+import { useLinkPreviews } from "@/common/hooks/useLinkPreviews";
 import {
     buildMemberNameMap,
     extractMentionedUserIds,
@@ -70,15 +69,6 @@ interface MessageListProps {
     onUnpinMessage?: (messageId: string) => void;
 }
 
-type LinkPreviewMetadata = {
-    url: string;
-    domain?: string;
-    title?: string;
-    description?: string;
-    image?: string;
-    siteName?: string;
-};
-
 type AvatarContextMenuState = {
     x: number;
     y: number;
@@ -86,7 +76,6 @@ type AvatarContextMenuState = {
     senderName: string;
 };
 
-const MAX_PREVIEW_RETRIES = 3;
 const isPreviewableAttachment = (attachment: ChatV2Attachment) =>
     attachment.isImage || attachment.mimeType === "application/pdf";
 const hasImageContent = (message: ChatV2Message) =>
@@ -130,32 +119,6 @@ const getFriendActionMeta = (
         isAccepted: false,
     };
 };
-
-const isFacebookVideoUrl = (value: string) => {
-    try {
-        const parsed = new URL(value);
-        const normalizedHost = parsed.hostname
-            .toLowerCase()
-            .replace(/^www\./, "");
-        const normalizedPath = parsed.pathname.toLowerCase();
-
-        if (normalizedHost === "fb.watch") return true;
-        if (!normalizedHost.endsWith("facebook.com")) return false;
-        if (normalizedPath.includes("/reel/")) return true;
-        if (normalizedPath.includes("/videos/")) return true;
-        if (normalizedPath === "/watch/") return true;
-        if (normalizedPath === "/watch") return true;
-
-        return false;
-    } catch {
-        return false;
-    }
-};
-
-const getFacebookEmbedUrl = (value: string) =>
-    `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(
-        value,
-    )}&show_text=false&width=560`;
 
 const getSenderAvatarForMessage = (
     message: ChatV2Message,
@@ -253,12 +216,7 @@ function MessageList({
             }
         >
     >({});
-    const [linkPreviews, setLinkPreviews] = useState<
-        Record<string, LinkPreviewMetadata | null>
-    >({});
-    const [previewRetryCounts, setPreviewRetryCounts] = useState<
-        Record<string, number>
-    >({});
+    const linkPreviews = useLinkPreviews(messages);
     const [highlightedMessageId, setHighlightedMessageId] = useState<
         string | null
     >(null);
@@ -765,116 +723,6 @@ function MessageList({
         resolvedSenderImagesByUserId,
     ]);
 
-    useEffect(() => {
-        const unresolvedUrls = new Set<string>();
-
-        for (const message of messages) {
-            if (!message.content || message.deletedAt) continue;
-            if (getStandaloneGifUrl(message.content)) continue;
-
-            const parsedParts = parseMessageContent(message.content);
-            const parsedUrls = new Set(
-                parsedParts
-                    .filter((part) => part.type !== "text" && !!part.url)
-                    .map((part) => part.url as string),
-            );
-            const genericUrlsFromParser = parsedParts
-                .filter((part) => part.type === "link" && !!part.url)
-                .map((part) => part.url as string);
-            const extractedUrls = Array.from(
-                new Set(
-                    (message.content.match(/https?:\/\/[^\s]+/gi) || []).map(
-                        (url) => url.trim(),
-                    ),
-                ),
-            );
-            const genericUrls = new Set<string>([
-                ...genericUrlsFromParser,
-                ...extractedUrls.filter((url) => !parsedUrls.has(url)),
-            ]);
-
-            for (const url of genericUrls) {
-                const existingPreview = linkPreviews[url];
-                const isWeakPreview =
-                    !!existingPreview &&
-                    !existingPreview.title &&
-                    !existingPreview.description &&
-                    !existingPreview.image;
-                const retryCount = previewRetryCounts[url] || 0;
-                const shouldRetryWeakPreview =
-                    isWeakPreview && retryCount < MAX_PREVIEW_RETRIES;
-                const shouldRetryFailedPreview =
-                    existingPreview === null &&
-                    retryCount < MAX_PREVIEW_RETRIES;
-
-                if (
-                    existingPreview === undefined ||
-                    shouldRetryWeakPreview ||
-                    shouldRetryFailedPreview
-                ) {
-                    unresolvedUrls.add(url);
-                }
-            }
-        }
-
-        if (unresolvedUrls.size === 0) return;
-
-        let cancelled = false;
-
-        void (async () => {
-            const resolvedEntries = await Promise.all(
-                Array.from(unresolvedUrls).map(async (url) => {
-                    try {
-                        const response = await fetch(
-                            `/api/link-preview?url=${encodeURIComponent(url)}`,
-                        );
-                        if (!response.ok) {
-                            return [url, null] as const;
-                        }
-                        const payload =
-                            (await response.json()) as LinkPreviewMetadata;
-                        return [url, payload] as const;
-                    } catch {
-                        return [url, null] as const;
-                    }
-                }),
-            );
-
-            if (cancelled) return;
-
-            setPreviewRetryCounts((previous) => {
-                const next = { ...previous };
-                for (const [url, metadata] of resolvedEntries) {
-                    const isWeakPreview =
-                        !!metadata &&
-                        !metadata.title &&
-                        !metadata.description &&
-                        !metadata.image;
-                    const shouldRetry = metadata === null || isWeakPreview;
-
-                    if (shouldRetry) {
-                        next[url] = (next[url] || 0) + 1;
-                    } else {
-                        delete next[url];
-                    }
-                }
-                return next;
-            });
-
-            setLinkPreviews((previous) => {
-                const next = { ...previous };
-                for (const [url, metadata] of resolvedEntries) {
-                    next[url] = metadata;
-                }
-                return next;
-            });
-        })();
-
-        return () => {
-            cancelled = true;
-        };
-    }, [linkPreviews, messages, previewRetryCounts]);
-
     const orderedMessages = useMemo(
         () =>
             [...messages].sort((a, b) => {
@@ -1148,127 +996,6 @@ function MessageList({
                 });
             }
         })();
-    };
-
-    const renderGenericLinkPreview = (
-        url: string,
-        key: string,
-        metadata?: LinkPreviewMetadata | null,
-    ) => {
-        const isFacebookVideo = isFacebookVideoUrl(url);
-        const hasRichMetadata = !!(
-            metadata?.title ||
-            metadata?.description ||
-            metadata?.image
-        );
-
-        if (hasRichMetadata && !isFacebookVideo) {
-            const displayDomain =
-                metadata?.domain || extractDomain(metadata?.url || url);
-            const displayTitle =
-                metadata?.title || metadata?.siteName || displayDomain;
-            const displayDescription =
-                metadata?.description ||
-                metadata?.siteName ||
-                metadata?.url ||
-                url;
-            const displayUrl = metadata?.url || url;
-            const previewImageSrc = metadata?.image;
-
-            return (
-                <a
-                    key={key}
-                    href={displayUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-2 block max-w-md overflow-hidden rounded-md border wd-border-subtle wd-bg-elevated transition-colors hover:bg-[var(--wd-surface-base)]"
-                >
-                    {previewImageSrc && (
-                        <img
-                            src={previewImageSrc}
-                            alt={displayTitle}
-                            className="h-36 w-full object-cover border-b wd-border-subtle"
-                        />
-                    )}
-                    <div className="px-3 py-2">
-                        <p className="text-xs wd-text-muted truncate">
-                            {displayDomain}
-                        </p>
-                        <p className="mt-1 text-sm wd-text-primary font-medium line-clamp-2">
-                            {displayTitle}
-                        </p>
-                        <p className="mt-1 text-xs wd-text-secondary line-clamp-3">
-                            {displayDescription}
-                        </p>
-                    </div>
-                </a>
-            );
-        }
-
-        if (isFacebookVideo) {
-            const displayUrl = metadata?.url || url;
-            const displayDomain = metadata?.domain || extractDomain(displayUrl);
-            const displayTitle = metadata?.title || "Facebook video";
-            const displayDescription =
-                metadata?.description || "Open on Facebook";
-
-            return (
-                <div
-                    key={key}
-                    className="mt-2 block max-w-md overflow-hidden rounded-md border wd-border-subtle wd-bg-elevated"
-                >
-                    <div className="aspect-video w-full bg-black">
-                        <iframe
-                            src={getFacebookEmbedUrl(displayUrl)}
-                            title={displayTitle}
-                            className="h-full w-full border-0"
-                            loading="lazy"
-                            allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
-                            allowFullScreen
-                        />
-                    </div>
-                    <a
-                        href={displayUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block px-3 py-2 transition-colors hover:bg-[var(--wd-surface-base)]"
-                    >
-                        <p className="text-xs wd-text-muted truncate">
-                            {displayDomain}
-                        </p>
-                        <p className="mt-1 text-sm wd-text-primary font-medium line-clamp-2">
-                            {displayTitle}
-                        </p>
-                        <p className="mt-1 text-xs wd-text-secondary line-clamp-2">
-                            {displayDescription}
-                        </p>
-                    </a>
-                </div>
-            );
-        }
-
-        return (
-            <a
-                key={key}
-                href={url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-2 block max-w-md rounded-md border wd-border-subtle wd-bg-elevated px-3 py-2 transition-colors hover:bg-[var(--wd-surface-base)]"
-            >
-                <div className="flex items-center justify-between gap-3">
-                    <div className="min-w-0">
-                        <p className="text-xs wd-text-muted truncate">
-                            {extractDomain(url)}
-                        </p>
-                        <p className="text-sm wd-text-accent truncate">{url}</p>
-                    </div>
-                    <ExternalLink
-                        size={14}
-                        className="shrink-0 wd-text-secondary"
-                    />
-                </div>
-            </a>
-        );
     };
 
     return (
@@ -1619,8 +1346,23 @@ function MessageList({
                                                                             index,
                                                                         ) => {
                                                                             if (
-                                                                                part.type !==
-                                                                                "text"
+                                                                                part.type !== "text" &&
+                                                                                part.url
+                                                                            ) {
+                                                                                return (
+                                                                                    <a
+                                                                                        key={`${message.id}-link-${index}`}
+                                                                                        href={part.url}
+                                                                                        target="_blank"
+                                                                                        rel="noopener noreferrer"
+                                                                                        className="wd-text-accent hover:underline break-all"
+                                                                                    >
+                                                                                        {part.content}
+                                                                                    </a>
+                                                                                );
+                                                                            }
+                                                                            if (
+                                                                                part.type !== "text"
                                                                             )
                                                                                 return null;
                                                                             if (
@@ -1681,122 +1423,40 @@ function MessageList({
                                                                 fallbackGenericUrls.length >
                                                                     0) && (
                                                                 <div className="mt-2">
-                                                                    {parsedMessageParts.map(
-                                                                        (
-                                                                            part,
-                                                                            index,
-                                                                        ) => {
-                                                                            const key = `${message.id}-preview-${index}`;
-
-                                                                            if (
-                                                                                part.type ===
-                                                                                    "youtube" &&
-                                                                                part.youtubeId &&
-                                                                                part.url
-                                                                            ) {
-                                                                                return (
-                                                                                    <YouTubePreview
-                                                                                        key={
-                                                                                            key
-                                                                                        }
-                                                                                        videoId={
-                                                                                            part.youtubeId
-                                                                                        }
-                                                                                        url={
-                                                                                            part.url
-                                                                                        }
-                                                                                    />
-                                                                                );
-                                                                            }
-
-                                                                            if (
-                                                                                part.type ===
-                                                                                    "twitter" &&
-                                                                                part.twitterUsername &&
-                                                                                part.twitterId &&
-                                                                                part.url
-                                                                            ) {
-                                                                                return (
-                                                                                    <TwitterPreview
-                                                                                        key={
-                                                                                            key
-                                                                                        }
-                                                                                        username={
-                                                                                            part.twitterUsername
-                                                                                        }
-                                                                                        twitterId={
-                                                                                            part.twitterId
-                                                                                        }
-                                                                                        url={
-                                                                                            part.url
-                                                                                        }
-                                                                                    />
-                                                                                );
-                                                                            }
-
-                                                                            if (
-                                                                                part.type ===
-                                                                                    "github" &&
-                                                                                part.githubOwner &&
-                                                                                part.githubRepo &&
-                                                                                part.githubType &&
-                                                                                part.url
-                                                                            ) {
-                                                                                return (
-                                                                                    <GitHubPreview
-                                                                                        key={
-                                                                                            key
-                                                                                        }
-                                                                                        owner={
-                                                                                            part.githubOwner
-                                                                                        }
-                                                                                        repo={
-                                                                                            part.githubRepo
-                                                                                        }
-                                                                                        type={
-                                                                                            part.githubType
-                                                                                        }
-                                                                                        issueNumber={
-                                                                                            part.githubIssueNumber
-                                                                                        }
-                                                                                        url={
-                                                                                            part.url
-                                                                                        }
-                                                                                    />
-                                                                                );
-                                                                            }
-
-                                                                            if (
-                                                                                part.type ===
-                                                                                    "link" &&
-                                                                                part.url
-                                                                            ) {
-                                                                                return renderGenericLinkPreview(
-                                                                                    part.url,
-                                                                                    key,
-                                                                                    linkPreviews[
-                                                                                        part
-                                                                                            .url
-                                                                                    ],
-                                                                                );
-                                                                            }
-
-                                                                            return null;
-                                                                        },
-                                                                    )}
+                                                                    {parsedMessageParts
+                                                                        .filter(
+                                                                            (part) =>
+                                                                                part.type !== "text" &&
+                                                                                !!part.url,
+                                                                        )
+                                                                        .map(
+                                                                            (part, i) => (
+                                                                                <UnifiedLinkPreview
+                                                                                    key={`${message.id}-preview-${i}`}
+                                                                                    url={part.url!}
+                                                                                    platform={
+                                                                                        part.type === "link"
+                                                                                            ? "generic"
+                                                                                            : part.type as "youtube" | "twitter" | "github" | "instagram" | "facebook"
+                                                                                    }
+                                                                                    metadata={linkPreviews[part.url!]}
+                                                                                    platformHints={{
+                                                                                        youtubeId: part.youtubeId,
+                                                                                        githubType: part.githubType,
+                                                                                    }}
+                                                                                />
+                                                                            ),
+                                                                        )}
 
                                                                     {fallbackGenericUrls.map(
-                                                                        (
-                                                                            url,
-                                                                            index,
-                                                                        ) =>
-                                                                            renderGenericLinkPreview(
-                                                                                url,
-                                                                                `${message.id}-fallback-preview-${index}`,
-                                                                                linkPreviews[
-                                                                                    url
-                                                                                ],
-                                                                            ),
+                                                                        (url, index) => (
+                                                                            <UnifiedLinkPreview
+                                                                                key={`${message.id}-fallback-preview-${index}`}
+                                                                                url={url}
+                                                                                platform="generic"
+                                                                                metadata={linkPreviews[url]}
+                                                                            />
+                                                                        ),
                                                                     )}
                                                                 </div>
                                                             )}
