@@ -1,25 +1,11 @@
+import emojiRegex from 'emoji-regex';
+
 export const CHAT_REACTION_QUICK_EMOJIS = ["😂", "❤️", "👍"] as const;
 
-export const CHAT_REACTION_EMOJI_CATALOG = [
-    "😂",
-    "❤️",
-    "👍",
-    "🔥",
-    "🎉",
-    "😮",
-    "😢",
-    "😡",
-    "👏",
-    "🙏",
-    "💯",
-    "🚀",
-    "👀",
-    "✅",
-    "🤝",
-    "🙌",
-] as const;
+const fullEmojiRegex = emojiRegex();
 
-const CATALOG_SET = new Set<string>(CHAT_REACTION_EMOJI_CATALOG);
-
-export const isSupportedReactionEmoji = (emoji: string) =>
-    CATALOG_SET.has(emoji);
+export const isSupportedReactionEmoji = (input: string): boolean => {
+    if (!input || input.length > 32) return false;
+    const matches = input.match(fullEmojiRegex);
+    return matches !== null && matches.length === 1 && matches[0] === input;
+};

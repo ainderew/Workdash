@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { Plus } from "lucide-react";
 import { getDisplayName } from "@/common/utils/displayName";
 import ReactionPickerFlyout from "./ReactionPickerFlyout";
+import TwemojiSpan from "./TwemojiSpan";
 
 type MessageReactionChipsProps = {
     roomId: string;
@@ -66,7 +67,6 @@ function MessageReactionChips({
     const listReactionReactors = useChatV2Store(
         (state) => state.listReactionReactors,
     );
-    const frequentEmojis = useChatV2Store((state) => state.frequentEmojis);
     const [tooltip, setTooltip] = useState<TooltipState | null>(null);
     const [isPickerOpen, setIsPickerOpen] = useState(false);
     const hideTimeoutRef = useRef<number | null>(null);
@@ -199,10 +199,14 @@ function MessageReactionChips({
                     onClick={() => onToggleReaction?.(reaction.emoji)}
                     onMouseEnter={(event) => openTooltip(event, reaction.emoji)}
                     onMouseLeave={closeTooltipSoon}
-                    className="inline-flex cursor-pointer items-center gap-1 rounded-full border wd-border-subtle wd-bg-elevated px-2.5 py-1 text-xs wd-text-secondary transition-all duration-150 hover:-translate-y-[1px] hover:wd-text-primary hover:bg-[var(--wd-surface-elevated)] hover:shadow-[0_6px_14px_rgba(0,0,0,0.28)] active:translate-y-0"
+                    className={`inline-flex cursor-pointer items-center gap-1 rounded-full border px-2.5 py-1 text-xs transition-all duration-150 hover:-translate-y-[1px] hover:wd-text-primary hover:bg-[var(--wd-surface-elevated)] hover:shadow-[0_6px_14px_rgba(0,0,0,0.28)] active:translate-y-0 ${
+                        reaction.viewerReacted
+                            ? 'border-[var(--wd-accent)] bg-[var(--wd-accent)]/10 wd-text-primary'
+                            : 'wd-border-subtle wd-bg-elevated wd-text-secondary'
+                    }`}
                     title={`${reaction.count} reacted with ${reaction.emoji}`}
                 >
-                    <span className="text-base leading-none">{reaction.emoji}</span>
+                    <TwemojiSpan emoji={reaction.emoji} size={16} />
                     <span className="text-sm font-semibold">{reaction.count}</span>
                 </button>
             ))}
@@ -220,12 +224,12 @@ function MessageReactionChips({
 
                 {isPickerOpen ? (
                     <ReactionPickerFlyout
-                        className="absolute left-0 bottom-[calc(100%+8px)] z-[190]"
-                        frequentEmojis={frequentEmojis.map((entry) => entry.emoji)}
+                        className="absolute left-0 top-[calc(100%+8px)] z-[190]"
                         onSelectEmoji={(emoji) => {
                             onToggleReaction?.(emoji);
                             setIsPickerOpen(false);
                         }}
+                        onClose={() => setIsPickerOpen(false)}
                     />
                 ) : null}
             </div>
@@ -244,7 +248,7 @@ function MessageReactionChips({
                     >
                         <div className="min-w-[240px] max-w-[320px] rounded-xl border wd-border-strong wd-bg-panel p-3 shadow-[0_20px_45px_rgba(0,0,0,0.55)]">
                             <div className="flex items-center justify-center pb-2">
-                                <span className="text-3xl leading-none">{tooltip.emoji}</span>
+                                <TwemojiSpan emoji={tooltip.emoji} size={32} />
                             </div>
 
                             {tooltip.loading ? (

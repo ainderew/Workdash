@@ -200,7 +200,6 @@ function MessageList({
     const friends = useChatV2Store((state) => state.friends);
     const friendRequests = useChatV2Store((state) => state.friendRequests);
     const requestFriend = useChatV2Store((state) => state.requestFriend);
-    const frequentEmojis = useChatV2Store((state) => state.frequentEmojis);
     const currentRoomId = useChatV2Store((state) => state.currentRoomId);
     const membersByRoomId = useChatV2Store((state) => state.membersByRoomId);
     const toggleMessageReaction = useChatV2Store(
@@ -1221,9 +1220,6 @@ function MessageList({
                                     <div className="min-w-0 flex-1 relative">
                                         <MessageHoverActions
                                             canReply={!message.replyToMessageId}
-                                            frequentEmojis={frequentEmojis.map(
-                                                (entry) => entry.emoji,
-                                            )}
                                             isPinned={
                                                 pinnedMessageIds?.has(
                                                     message.id,

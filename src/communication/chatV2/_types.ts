@@ -57,6 +57,7 @@ export type ChatV2MessageReaction = {
     count: number;
     firstReactedAt: string | Date;
     lastReactedAt: string | Date;
+    viewerReacted?: boolean;
 };
 
 export type ChatV2CreateAttachment = {

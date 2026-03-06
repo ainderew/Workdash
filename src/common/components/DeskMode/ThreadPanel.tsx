@@ -48,7 +48,6 @@ interface ThreadPanelProps {
     members?: ChatV2RoomMember[];
     onClose: () => void;
     onRetry?: () => void;
-    frequentEmojis: string[];
     onSendReply: (
         content: string,
         attachments?: ChatV2CreateAttachment[],
@@ -75,7 +74,6 @@ type ThreadMessageRowProps = {
     isRootMessage: boolean;
     attachmentUrls: Record<string, string>;
     linkPreviews: Record<string, import("@/common/hooks/useLinkPreviews").LinkPreviewMetadata | null>;
-    frequentEmojis: string[];
     onToggleReaction: (messageId: string, emoji: string) => Promise<void> | void;
     canUnsendImage: boolean;
     onUnsendImage: (message: ChatV2Message) => void;
@@ -89,7 +87,6 @@ function ThreadMessageRow({
     isRootMessage,
     attachmentUrls,
     linkPreviews,
-    frequentEmojis,
     onToggleReaction,
     canUnsendImage,
     onUnsendImage,
@@ -155,7 +152,6 @@ function ThreadMessageRow({
             <MessageHoverActions
                 className="right-3"
                 canReply={isRootMessage}
-                frequentEmojis={frequentEmojis}
                 onReply={
                     isRootMessage
                         ? () =>
@@ -404,7 +400,6 @@ function ThreadPanel({
     members,
     onClose,
     onRetry,
-    frequentEmojis,
     onSendReply,
     onToggleReaction,
 }: ThreadPanelProps) {
@@ -736,7 +731,6 @@ function ThreadPanel({
                             isRootMessage
                             attachmentUrls={attachmentUrls}
                             linkPreviews={linkPreviews}
-                            frequentEmojis={frequentEmojis}
                             onToggleReaction={onToggleReaction}
                             canUnsendImage={
                                 typeof localBackendUserId === "number" &&
@@ -774,7 +768,6 @@ function ThreadPanel({
                                         isRootMessage={false}
                                         attachmentUrls={attachmentUrls}
                                         linkPreviews={linkPreviews}
-                                        frequentEmojis={frequentEmojis}
                                         onToggleReaction={onToggleReaction}
                                         canUnsendImage={
                                             typeof localBackendUserId === "number" &&
