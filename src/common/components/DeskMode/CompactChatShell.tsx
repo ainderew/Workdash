@@ -562,11 +562,15 @@ function CompactChatShell({ onClose }: CompactChatShellProps) {
                                                 `User ${entry.peerUser.id}`,
                                             )}
                                         </span>
-                                        {(() => { const c = unreadByRoomId[entry.room.id] ?? entry.room.unreadCount ?? 0; return !isActive && c > 0 ? (
-                                            <span className="h-4 min-w-4 px-1 rounded-full bg-[var(--wd-danger)] text-white text-[10px] font-bold inline-flex items-center justify-center">
-                                                {c > 99 ? "99+" : c}
-                                            </span>
-                                        ) : null; })()}
+                                        {(() => {
+                                            const c = unreadByRoomId[entry.room.id] ?? entry.room.unreadCount ?? 0;
+                                            if (isActive || c === 0) return null;
+                                            return (
+                                                <span className="h-4 min-w-4 px-1 rounded-full bg-[var(--wd-danger)] text-white text-[10px] font-bold inline-flex items-center justify-center">
+                                                    {c > 99 ? "99+" : c}
+                                                </span>
+                                            );
+                                        })()}
                                     </button>
                                 );
                             })
@@ -592,11 +596,15 @@ function CompactChatShell({ onClose }: CompactChatShellProps) {
                                     }`}
                                 >
                                     <span className="truncate inline-flex items-center gap-1"><ChannelHashIcon size={14} className="shrink-0 opacity-60" />{room.name}</span>
-                                    {(() => { const c = unreadByRoomId[room.id] ?? 0; return !isActive && c > 0 ? (
-                                        <span className="h-4 min-w-4 px-1 rounded-full bg-[var(--wd-danger)] text-white text-[10px] font-bold inline-flex items-center justify-center">
-                                            {c > 99 ? "99+" : c}
-                                        </span>
-                                    ) : null; })()}
+                                    {(() => {
+                                        const c = unreadByRoomId[room.id] ?? 0;
+                                        if (isActive || c === 0) return null;
+                                        return (
+                                            <span className="h-4 min-w-4 px-1 rounded-full bg-[var(--wd-danger)] text-white text-[10px] font-bold inline-flex items-center justify-center">
+                                                {c > 99 ? "99+" : c}
+                                            </span>
+                                        );
+                                    })()}
                                 </button>
                             );
                         })

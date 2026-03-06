@@ -81,7 +81,7 @@ export function useChatNotificationSound() {
       if (roomId === currentRoomId) continue;
       // Only notify for rooms in the active workspace (or DMs)
       const room = roomsById[roomId];
-      if (room && room.type !== 'DIRECT' && room.workspaceId !== selectedWorkspaceId) continue;
+      if (!room || (room.type !== 'DIRECT' && room.workspaceId !== selectedWorkspaceId)) continue;
       const current = unreadByRoomId[roomId] ?? 0;
       const previous = prev[roomId] ?? 0;
       if (current > previous) {
