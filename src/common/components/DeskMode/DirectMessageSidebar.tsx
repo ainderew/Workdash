@@ -22,7 +22,6 @@ import type {
 import useUiStore from "@/common/store/uiStore";
 import useUserStore from "@/common/store/useStore";
 import useChatV2Store from "@/common/store/chatV2Store";
-import { useShallow } from "zustand/react/shallow";
 import DeskModeControls from "./DeskModeControls";
 import UserSettingsModal from "./modals/UserSettingsModal";
 import NewConversationModal from "./modals/NewConversationModal";
@@ -61,7 +60,7 @@ function DirectMessageSidebar({
 }: DirectMessageSidebarProps) {
     const setInteractionMode = useUiStore((state) => state.setInteractionMode);
     const user = useUserStore((state) => state.user);
-    const unreadByRoomId = useChatV2Store(useShallow((state) => state.unreadByRoomId));
+    const unreadByRoomId = useChatV2Store((state) => state.unreadByRoomId);
     const [query, setQuery] = useState("");
     const [isAvatarLoadFailed, setIsAvatarLoadFailed] = useState(false);
     const [isUserIdExpanded, setIsUserIdExpanded] = useState(false);

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { extractDomain, getYouTubeThumbnail } from "@/common/utils/linkParser";
 import type { LinkPreviewMetadata } from "@/common/hooks/useLinkPreviews";
 import {
@@ -115,6 +115,9 @@ export function UnifiedLinkPreview({
         );
     }
 
+    const [imgFailed, setImgFailed] = useState(false);
+    const showImage = !!imageSrc && !imgFailed;
+
     return (
         <a
             href={displayUrl}
@@ -122,26 +125,16 @@ export function UnifiedLinkPreview({
             rel="noopener noreferrer"
             className="relative mt-2 block max-w-md overflow-hidden rounded-md border wd-border-subtle wd-bg-elevated transition-colors hover:bg-[var(--wd-surface-base)]  before:absolute before:left-0 before:top-0 before:bottom-0 before:w-1 before:bg-amber-500 before:content-['']"
         >
-            {imageSrc ? (
+            {showImage ? (
                 <img
                     src={imageSrc}
                     alt={title || domain}
                     loading="lazy"
                     className="h-56 w-full object-contain border-b wd-border-subtle"
-                    onError={(e) => {
-                        e.currentTarget.style.display = "none";
-                        const fallback = e.currentTarget
-                            .nextElementSibling as HTMLElement | null;
-                        if (fallback) fallback.style.display = "";
-                    }}
+                    onError={() => setImgFailed(true)}
                 />
             ) : (
                 <ImageFallback platform={platform} />
-            )}
-            {imageSrc && (
-                <div style={{ display: "none" }}>
-                    <ImageFallback platform={platform} />
-                </div>
             )}
             <div className="px-3 py-2">
                 <div className="flex items-center gap-1.5">

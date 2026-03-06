@@ -4,7 +4,16 @@ import { usePresenceStore } from '@/common/store/presenceStore';
 
 const SILENT_STATUSES = new Set(['focus', 'offline']);
 
-let activeInstanceCount = 0;
+// Singleton state stored on window to survive HMR module reloads
+function getSingletonState() {
+  const w = window as Window & {
+    __chatNotifSingleton?: { count: number; audio: HTMLAudioElement | null; enabled: boolean };
+  };
+  if (!w.__chatNotifSingleton) {
+    w.__chatNotifSingleton = { count: 0, audio: null, enabled: false };
+  }
+  return w.__chatNotifSingleton;
+}
 
 /**
  * Plays a notification sound when a new unread message arrives
@@ -13,8 +22,6 @@ let activeInstanceCount = 0;
  * Only the first mounted instance plays sound (singleton guard).
  */
 export function useChatNotificationSound() {
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const audioEnabledRef = useRef(false);
   const prevUnreadRef = useRef<Record<string, number> | null>(null);
   const isOwnerRef = useRef(false);
 
@@ -26,23 +33,24 @@ export function useChatNotificationSound() {
 
   // Prime the audio element on first user interaction (singleton)
   useEffect(() => {
-    activeInstanceCount++;
-    isOwnerRef.current = activeInstanceCount === 1;
+    const singleton = getSingletonState();
+    singleton.count++;
+    isOwnerRef.current = singleton.count === 1;
 
     if (!isOwnerRef.current) return;
 
-    audioRef.current = new Audio('/assets/sounds/notification.mp3');
-    audioRef.current.volume = 0.3;
-    audioRef.current.preload = 'auto';
+    singleton.audio = new Audio('/assets/sounds/notification.mp3');
+    singleton.audio.volume = 0.3;
+    singleton.audio.preload = 'auto';
 
     const enableAudio = () => {
-      if (!audioEnabledRef.current && audioRef.current) {
-        audioRef.current
+      if (!singleton.enabled && singleton.audio) {
+        singleton.audio
           .play()
           .then(() => {
-            audioRef.current?.pause();
-            audioRef.current!.currentTime = 0;
-            audioEnabledRef.current = true;
+            singleton.audio?.pause();
+            singleton.audio!.currentTime = 0;
+            singleton.enabled = true;
           })
           .catch(() => {});
       }
@@ -52,15 +60,15 @@ export function useChatNotificationSound() {
     window.addEventListener('keydown', enableAudio, { once: true });
 
     return () => {
-      activeInstanceCount--;
+      singleton.count--;
       window.removeEventListener('click', enableAudio);
       window.removeEventListener('keydown', enableAudio);
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.src = '';
-        audioRef.current = null;
+      if (singleton.audio) {
+        singleton.audio.pause();
+        singleton.audio.src = '';
+        singleton.audio = null;
       }
-      audioEnabledRef.current = false;
+      singleton.enabled = false;
     };
   }, []);
 
@@ -92,9 +100,10 @@ export function useChatNotificationSound() {
 
     prevUnreadRef.current = { ...unreadByRoomId };
 
-    if (shouldPlay && !SILENT_STATUSES.has(myStatusId) && audioEnabledRef.current && audioRef.current) {
-      audioRef.current.currentTime = 0;
-      audioRef.current.play().catch(() => {});
+    const singleton = getSingletonState();
+    if (shouldPlay && !SILENT_STATUSES.has(myStatusId) && singleton.enabled && singleton.audio) {
+      singleton.audio.currentTime = 0;
+      singleton.audio.play().catch(() => {});
     }
   }, [unreadByRoomId, currentRoomId, myStatusId, selectedWorkspaceId, roomsById]);
 }

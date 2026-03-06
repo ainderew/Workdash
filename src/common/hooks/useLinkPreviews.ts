@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ChatV2Message } from "@/communication/chatV2/_types";
 import { getStandaloneGifUrl } from "@/communication/chatV2/gifUrl";
 import { parseMessageContent } from "@/common/utils/linkParser";
@@ -39,61 +39,64 @@ async function fetchYouTubeOembed(url: string): Promise<LinkPreviewMetadata | nu
     }
 }
 
+function collectUnresolvedUrls(
+    messages: ChatV2Message[],
+    previews: Record<string, LinkPreviewMetadata | null>,
+    retryCounts: Record<string, number>,
+): Set<string> {
+    const unresolvedUrls = new Set<string>();
+
+    for (const message of messages) {
+        if (!message.content || message.deletedAt) continue;
+        if (getStandaloneGifUrl(message.content)) continue;
+
+        const parsedParts = parseMessageContent(message.content);
+        const allUrls = new Set(
+            parsedParts
+                .filter((part) => part.type !== "text" && !!part.url)
+                .map((part) => part.url as string),
+        );
+        const extractedUrls = Array.from(
+            new Set(
+                (message.content.match(/https?:\/\/[^\s]+/gi) || []).map(
+                    (url) => url.trim(),
+                ),
+            ),
+        );
+        for (const url of extractedUrls) {
+            allUrls.add(url);
+        }
+
+        for (const url of allUrls) {
+            const existingPreview = previews[url];
+            const retryCount = retryCounts[url] || 0;
+            const shouldRetry =
+                (existingPreview === null || isWeakMetadata(existingPreview)) &&
+                retryCount < MAX_PREVIEW_RETRIES;
+
+            if (existingPreview === undefined || shouldRetry) {
+                unresolvedUrls.add(url);
+            }
+        }
+    }
+
+    return unresolvedUrls;
+}
+
 export function useLinkPreviews(messages: ChatV2Message[]) {
     const [linkPreviews, setLinkPreviews] = useState<
         Record<string, LinkPreviewMetadata | null>
     >({});
-    const [previewRetryCounts, setPreviewRetryCounts] = useState<
-        Record<string, number>
-    >({});
+    const previewsRef = useRef(linkPreviews);
+    previewsRef.current = linkPreviews;
+    const retryCountsRef = useRef<Record<string, number>>({});
 
     useEffect(() => {
-        const unresolvedUrls = new Set<string>();
-
-        for (const message of messages) {
-            if (!message.content || message.deletedAt) continue;
-            if (getStandaloneGifUrl(message.content)) continue;
-
-            const parsedParts = parseMessageContent(message.content);
-            const allUrls = new Set(
-                parsedParts
-                    .filter((part) => part.type !== "text" && !!part.url)
-                    .map((part) => part.url as string),
-            );
-            const extractedUrls = Array.from(
-                new Set(
-                    (message.content.match(/https?:\/\/[^\s]+/gi) || []).map(
-                        (url) => url.trim(),
-                    ),
-                ),
-            );
-            for (const url of extractedUrls) {
-                allUrls.add(url);
-            }
-
-            for (const url of allUrls) {
-                const existingPreview = linkPreviews[url];
-                const isWeakPreview =
-                    !!existingPreview &&
-                    !existingPreview.title &&
-                    !existingPreview.description &&
-                    !existingPreview.image;
-                const retryCount = previewRetryCounts[url] || 0;
-                const shouldRetryWeakPreview =
-                    isWeakPreview && retryCount < MAX_PREVIEW_RETRIES;
-                const shouldRetryFailedPreview =
-                    existingPreview === null &&
-                    retryCount < MAX_PREVIEW_RETRIES;
-
-                if (
-                    existingPreview === undefined ||
-                    shouldRetryWeakPreview ||
-                    shouldRetryFailedPreview
-                ) {
-                    unresolvedUrls.add(url);
-                }
-            }
-        }
+        const unresolvedUrls = collectUnresolvedUrls(
+            messages,
+            previewsRef.current,
+            retryCountsRef.current,
+        );
 
         if (unresolvedUrls.size === 0) return;
 
@@ -126,24 +129,16 @@ export function useLinkPreviews(messages: ChatV2Message[]) {
 
             if (cancelled) return;
 
-            setPreviewRetryCounts((previous) => {
-                const next = { ...previous };
-                for (const [url, metadata] of resolvedEntries) {
-                    const isWeakPreview =
-                        !!metadata &&
-                        !metadata.title &&
-                        !metadata.description &&
-                        !metadata.image;
-                    const shouldRetry = metadata === null || isWeakPreview;
-
-                    if (shouldRetry) {
-                        next[url] = (next[url] || 0) + 1;
-                    } else {
-                        delete next[url];
-                    }
+            const nextRetryCounts = { ...retryCountsRef.current };
+            for (const [url, metadata] of resolvedEntries) {
+                const shouldRetry = metadata === null || isWeakMetadata(metadata);
+                if (shouldRetry) {
+                    nextRetryCounts[url] = (nextRetryCounts[url] || 0) + 1;
+                } else {
+                    delete nextRetryCounts[url];
                 }
-                return next;
-            });
+            }
+            retryCountsRef.current = nextRetryCounts;
 
             setLinkPreviews((previous) => {
                 const next = { ...previous };
@@ -157,7 +152,7 @@ export function useLinkPreviews(messages: ChatV2Message[]) {
         return () => {
             cancelled = true;
         };
-    }, [linkPreviews, messages, previewRetryCounts]);
+    }, [messages]);
 
     return linkPreviews;
 }

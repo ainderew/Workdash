@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Bell, ChevronDown, Search, UserRoundPlus, X } from "lucide-react";
 import useChatV2Store from "@/common/store/chatV2Store";
-import { useShallow } from "zustand/react/shallow";
 import ChannelHashIcon from "./ChannelHashIcon";
 import { ChatV2Service } from "@/communication/chatV2/chatV2Service";
 import type { ChatV2DirectRoom, ChatV2Message, ChatV2Room } from "@/communication/chatV2/_types";
@@ -63,7 +62,7 @@ function CompactChatShell({ onClose }: CompactChatShellProps) {
     const reloadDirectRooms = useChatV2Store((state) => state.reloadDirectRooms);
     const reloadFriends = useChatV2Store((state) => state.reloadFriends);
     const openDirectMessage = useChatV2Store((state) => state.openDirectMessage);
-    const unreadByRoomId = useChatV2Store(useShallow((state) => state.unreadByRoomId));
+    const unreadByRoomId = useChatV2Store((state) => state.unreadByRoomId);
     const getWorkspaceUnreadTotal = useChatV2Store((state) => state.getWorkspaceUnreadTotal);
     const getDirectUnreadTotal = useChatV2Store((state) => state.getDirectUnreadTotal);
     const friendRequests = useChatV2Store((state) => state.friendRequests);
@@ -543,6 +542,8 @@ function CompactChatShell({ onClose }: CompactChatShellProps) {
                         ) : (
                             directRooms.map((entry) => {
                                 const isActive = currentRoomId === entry.room.id;
+                                const dmUnreadCount = unreadByRoomId[entry.room.id] ?? entry.room.unreadCount ?? 0;
+                                const hasDmUnread = !isActive && dmUnreadCount > 0;
                                 return (
                                     <button
                                         key={entry.directRoomId}
@@ -562,15 +563,11 @@ function CompactChatShell({ onClose }: CompactChatShellProps) {
                                                 `User ${entry.peerUser.id}`,
                                             )}
                                         </span>
-                                        {(() => {
-                                            const c = unreadByRoomId[entry.room.id] ?? entry.room.unreadCount ?? 0;
-                                            if (isActive || c === 0) return null;
-                                            return (
-                                                <span className="h-4 min-w-4 px-1 rounded-full bg-[var(--wd-danger)] text-white text-[10px] font-bold inline-flex items-center justify-center">
-                                                    {c > 99 ? "99+" : c}
-                                                </span>
-                                            );
-                                        })()}
+                                        {hasDmUnread ? (
+                                            <span className="h-4 min-w-4 px-1 rounded-full bg-[var(--wd-danger)] text-white text-[10px] font-bold inline-flex items-center justify-center">
+                                                {dmUnreadCount > 99 ? "99+" : dmUnreadCount}
+                                            </span>
+                                        ) : null}
                                     </button>
                                 );
                             })
@@ -582,6 +579,8 @@ function CompactChatShell({ onClose }: CompactChatShellProps) {
                     ) : (
                         serverRooms.map((room) => {
                             const isActive = currentRoomId === room.id;
+                            const roomUnreadCount = unreadByRoomId[room.id] ?? 0;
+                            const hasRoomUnread = !isActive && roomUnreadCount > 0;
                             return (
                                 <button
                                     key={room.id}
@@ -596,15 +595,11 @@ function CompactChatShell({ onClose }: CompactChatShellProps) {
                                     }`}
                                 >
                                     <span className="truncate inline-flex items-center gap-1"><ChannelHashIcon size={14} className="shrink-0 opacity-60" />{room.name}</span>
-                                    {(() => {
-                                        const c = unreadByRoomId[room.id] ?? 0;
-                                        if (isActive || c === 0) return null;
-                                        return (
-                                            <span className="h-4 min-w-4 px-1 rounded-full bg-[var(--wd-danger)] text-white text-[10px] font-bold inline-flex items-center justify-center">
-                                                {c > 99 ? "99+" : c}
-                                            </span>
-                                        );
-                                    })()}
+                                    {hasRoomUnread ? (
+                                        <span className="h-4 min-w-4 px-1 rounded-full bg-[var(--wd-danger)] text-white text-[10px] font-bold inline-flex items-center justify-center">
+                                            {roomUnreadCount > 99 ? "99+" : roomUnreadCount}
+                                        </span>
+                                    ) : null}
                                 </button>
                             );
                         })

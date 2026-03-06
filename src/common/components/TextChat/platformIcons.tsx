@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useId } from "react";
 
 export function YouTubeIcon({ size = 16 }: { size?: number }) {
     return (
@@ -43,15 +43,16 @@ export function GitHubIcon({ size = 16 }: { size?: number }) {
 }
 
 export function InstagramIcon({ size = 16 }: { size?: number }) {
+    const gradientId = useId();
     return (
         <svg
             width={size}
             height={size}
             viewBox="0 0 24 24"
-            fill="url(#instagram-gradient)"
+            fill={`url(#${gradientId})`}
         >
             <defs>
-                <linearGradient id="instagram-gradient" x1="0%" y1="100%" x2="100%" y2="0%">
+                <linearGradient id={gradientId} x1="0%" y1="100%" x2="100%" y2="0%">
                     <stop offset="0%" stopColor="#FEDA77" />
                     <stop offset="25%" stopColor="#F58529" />
                     <stop offset="50%" stopColor="#DD2A7B" />
