@@ -33,7 +33,7 @@ function TwemojiSpan({ emoji, size = 18, className }: TwemojiSpanProps) {
             if (cancelled || !ref.current) return;
             const el = new (Emoji as unknown as new (props: Record<string, unknown>) => HTMLElement)({
                 native: emoji,
-                set: 'native',
+                set: 'twitter',
                 size,
             });
             ref.current.innerHTML = '';
