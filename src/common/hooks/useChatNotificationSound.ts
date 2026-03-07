@@ -61,14 +61,17 @@ export function useChatNotificationSound() {
 
     return () => {
       singleton.count--;
-      window.removeEventListener('click', enableAudio);
-      window.removeEventListener('keydown', enableAudio);
-      if (singleton.audio) {
-        singleton.audio.pause();
-        singleton.audio.src = '';
-        singleton.audio = null;
+      if (isOwnerRef.current) {
+        window.removeEventListener('click', enableAudio);
+        window.removeEventListener('keydown', enableAudio);
+        if (singleton.audio) {
+          singleton.audio.pause();
+          singleton.audio.src = '';
+          singleton.audio = null;
+        }
+        singleton.enabled = false;
+        isOwnerRef.current = false;
       }
-      singleton.enabled = false;
     };
   }, []);
 

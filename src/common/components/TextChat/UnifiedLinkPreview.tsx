@@ -68,6 +68,8 @@ export function UnifiedLinkPreview({
     const description = metadata?.description;
     const Icon = getPlatformIcon(platform);
 
+    const [imgFailed, setImgFailed] = useState(false);
+
     const isFbVideo = platform === "facebook" || isFacebookVideoUrl(url);
 
     let imageSrc = metadata?.image;
@@ -115,7 +117,6 @@ export function UnifiedLinkPreview({
         );
     }
 
-    const [imgFailed, setImgFailed] = useState(false);
     const showImage = !!imageSrc && !imgFailed;
 
     return (
