@@ -48,7 +48,7 @@ function EmojiPicker({ onSelect, onClose }: EmojiPickerProps) {
 
             const picker = new (Picker as unknown as new (props: Record<string, unknown>) => HTMLElement)({
                 data,
-                set: 'twitter',
+                set: 'native',
                 theme: 'dark',
                 maxFrequentRows: 0,
                 searchPosition: 'sticky',
