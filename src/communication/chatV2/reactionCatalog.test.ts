@@ -1,27 +1,47 @@
-import {
-  CHAT_REACTION_EMOJI_CATALOG,
-  isSupportedReactionEmoji,
-} from './reactionCatalog';
+import { isSupportedReactionEmoji } from './reactionCatalog';
 
 describe('isSupportedReactionEmoji', () => {
-  it('returns true for emojis in the catalog', () => {
+  it('accepts standard emoji', () => {
     expect(isSupportedReactionEmoji('😂')).toBe(true);
     expect(isSupportedReactionEmoji('🔥')).toBe(true);
     expect(isSupportedReactionEmoji('🚀')).toBe(true);
+    expect(isSupportedReactionEmoji('👍')).toBe(true);
   });
 
-  it('returns false for emojis and strings not in the catalog', () => {
-    expect(isSupportedReactionEmoji('🦄')).toBe(false);
+  it('accepts emoji that were previously outside the catalog', () => {
+    expect(isSupportedReactionEmoji('🦄')).toBe(true);
+    expect(isSupportedReactionEmoji('🐶')).toBe(true);
+    expect(isSupportedReactionEmoji('🌮')).toBe(true);
+  });
+
+  it('accepts flag emoji', () => {
+    expect(isSupportedReactionEmoji('🇺🇸')).toBe(true);
+    expect(isSupportedReactionEmoji('🇯🇵')).toBe(true);
+  });
+
+  it('accepts skin-toned emoji', () => {
+    expect(isSupportedReactionEmoji('👍🏽')).toBe(true);
+    expect(isSupportedReactionEmoji('👋🏿')).toBe(true);
+  });
+
+  it('accepts ZWJ sequences', () => {
+    expect(isSupportedReactionEmoji('👨‍👩‍👧‍👦')).toBe(true);
+    expect(isSupportedReactionEmoji('🏳️‍🌈')).toBe(true);
+  });
+
+  it('rejects non-emoji strings', () => {
     expect(isSupportedReactionEmoji('abc')).toBe(false);
-    expect(isSupportedReactionEmoji('')).toBe(false);
+    expect(isSupportedReactionEmoji('123')).toBe(false);
+    expect(isSupportedReactionEmoji('hello')).toBe(false);
   });
-});
 
-describe('CHAT_REACTION_EMOJI_CATALOG', () => {
-  it('contains 16 entries with no duplicates', () => {
-    expect(CHAT_REACTION_EMOJI_CATALOG).toHaveLength(16);
+  it('rejects empty and overly long strings', () => {
+    expect(isSupportedReactionEmoji('')).toBe(false);
+    expect(isSupportedReactionEmoji('a'.repeat(33))).toBe(false);
+  });
 
-    const unique = new Set(CHAT_REACTION_EMOJI_CATALOG);
-    expect(unique.size).toBe(CHAT_REACTION_EMOJI_CATALOG.length);
+  it('rejects multiple emoji (must be exactly one)', () => {
+    expect(isSupportedReactionEmoji('😂🔥')).toBe(false);
+    expect(isSupportedReactionEmoji('👍👍')).toBe(false);
   });
 });

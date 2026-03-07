@@ -44,10 +44,10 @@ describe('readFrequentEmojiLocal', () => {
     expect(result[1].usageCount).toBe(3);
   });
 
-  it('filters out unsupported emojis', () => {
+  it('filters out non-emoji strings', () => {
     const entries = [
       { emoji: '👍', usageCount: 3, lastUsedAt: '2026-01-01T00:00:00.000Z' },
-      { emoji: '🦄', usageCount: 10, lastUsedAt: '2026-01-01T00:00:00.000Z' },
+      { emoji: 'notanemoji', usageCount: 10, lastUsedAt: '2026-01-01T00:00:00.000Z' },
     ];
     window.localStorage.setItem(
       getFrequentEmojiCacheKey(1),
@@ -140,8 +140,8 @@ describe('bumpFrequentEmojiLocal', () => {
     expect(entry!.lastUsedAt).toBe(at.toISOString());
   });
 
-  it('returns an empty array for an unsupported emoji', () => {
-    const result = bumpFrequentEmojiLocal(1, '🦄');
+  it('returns an empty array for a non-emoji string', () => {
+    const result = bumpFrequentEmojiLocal(1, 'notanemoji');
     expect(result).toEqual([]);
   });
 });

@@ -11,8 +11,11 @@ const TWITTER_REGEX = /(?:twitter\.com|x\.com)\/([^/]+)\/status\/(\d+)/;
 const GITHUB_REPO_REGEX = /github\.com\/([^/]+)\/([^/\s]+)(?:\/)?$/;
 const GITHUB_ISSUE_REGEX = /github\.com\/([^/]+)\/([^/]+)\/(?:issues|pull)\/(\d+)/;
 
+const INSTAGRAM_REGEX = /(?:instagram\.com|instagr\.am)\//;
+const FACEBOOK_REGEX = /(?:facebook\.com|fb\.com|fb\.watch)\//;
+
 export interface ParsedMessage {
-    type: 'text' | 'link' | 'youtube' | 'twitter' | 'github';
+    type: 'text' | 'link' | 'youtube' | 'twitter' | 'github' | 'instagram' | 'facebook';
     content: string;
     url?: string;
     youtubeId?: string;
@@ -75,8 +78,19 @@ export function parseMessageContent(message: string): ParsedMessage[] {
                     githubRepo: githubRepoMatch[2],
                     githubType: 'repo',
                 });
+            } else if (segment.match(INSTAGRAM_REGEX)) {
+                parts.push({
+                    type: 'instagram',
+                    content: segment,
+                    url: segment,
+                });
+            } else if (segment.match(FACEBOOK_REGEX)) {
+                parts.push({
+                    type: 'facebook',
+                    content: segment,
+                    url: segment,
+                });
             } else {
-                
                 parts.push({
                     type: 'link',
                     content: segment,

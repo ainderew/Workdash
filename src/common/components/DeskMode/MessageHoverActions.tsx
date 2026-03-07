@@ -2,10 +2,10 @@ import React, { useEffect, useState } from "react";
 import { Ellipsis, Forward, Pencil, Pin, Plus, Reply, Trash2 } from "lucide-react";
 import { CHAT_REACTION_QUICK_EMOJIS } from "@/communication/chatV2/reactionCatalog";
 import ReactionPickerFlyout from "./ReactionPickerFlyout";
+import TwemojiSpan from "./TwemojiSpan";
 
 type MessageHoverActionsProps = {
     canReply?: boolean;
-    frequentEmojis?: string[];
     isPinned?: boolean;
     onReply?: () => void;
     onReact: (emoji: string) => void;
@@ -51,7 +51,6 @@ function ReactionTriggerIcon() {
 
 function MessageHoverActions({
     canReply = false,
-    frequentEmojis = [],
     isPinned = false,
     onReply,
     onReact,
@@ -93,7 +92,7 @@ function MessageHoverActions({
                         title={`React ${emoji}`}
                         className={emojiButtonClassName}
                     >
-                        {emoji}
+                        <TwemojiSpan emoji={emoji} size={18} />
                     </button>
                 ))}
 
@@ -187,12 +186,12 @@ function MessageHoverActions({
 
                 {isPickerOpen ? (
                     <ReactionPickerFlyout
-                        className="absolute right-0 bottom-[calc(100%+8px)] z-[180]"
-                        frequentEmojis={frequentEmojis}
+                        className="absolute right-0 top-[calc(100%+8px)] z-[180]"
                         onSelectEmoji={(emoji) => {
                             onReact(emoji);
                             setIsPickerOpen(false);
                         }}
+                        onClose={() => setIsPickerOpen(false)}
                     />
                 ) : null}
             </div>

@@ -20,6 +20,7 @@ import {
     Users,
 } from "lucide-react";
 import useUserStore from "@/common/store/useStore";
+import useChatV2Store from "@/common/store/chatV2Store";
 import { getDisplayName } from "@/common/utils/displayName";
 import ChannelHashIcon from "./ChannelHashIcon";
 import DeskModeControls from "./DeskModeControls";
@@ -130,6 +131,7 @@ function ChannelSidebar({
 }: ChannelSidebarProps) {
 
     const user = useUserStore((state) => state.user);
+    const unreadByRoomId = useChatV2Store((state) => state.unreadByRoomId);
     const [collapsedByCategoryKey, setCollapsedByCategoryKey] = useState<
         Record<string, boolean>
     >({});
@@ -957,6 +959,10 @@ function ChannelSidebar({
                                                         const isDraggingRoom =
                                                             dragState?.roomId ===
                                                             room.id;
+                                                        const roomUnreadCount =
+                                                            unreadByRoomId[room.id] ?? 0;
+                                                        const hasUnread =
+                                                            !isActiveRoom && roomUnreadCount > 0;
 
                                                         return (
                                                             <React.Fragment
@@ -1060,7 +1066,7 @@ function ChannelSidebar({
                                                                                 : 400,
                                                                     }}
                                                                 >
-                                                                    <span className="inline-flex min-w-0 items-center gap-1">
+                                                                    <span className="inline-flex min-w-0 w-full items-center gap-1">
                                                                         {isLockedRoom ? (
                                                                             <LockKeyhole
                                                                                 size={
@@ -1080,10 +1086,10 @@ function ChannelSidebar({
                                                                             />
                                                                         )}
                                                                         <span
-                                                                            className="truncate"
+                                                                            className="truncate flex-1"
                                                                             style={{
                                                                                 fontWeight:
-                                                                                    isActiveRoom
+                                                                                    isActiveRoom || hasUnread
                                                                                         ? 500
                                                                                         : 400,
                                                                             }}
@@ -1092,6 +1098,13 @@ function ChannelSidebar({
                                                                                 room.name
                                                                             }
                                                                         </span>
+                                                                        {hasUnread ? (
+                                                                            <span className="h-5 min-w-5 px-1 rounded-full bg-[var(--wd-danger)] text-white text-[10px] font-bold inline-flex items-center justify-center shrink-0">
+                                                                                {roomUnreadCount > 99
+                                                                                    ? "99+"
+                                                                                    : roomUnreadCount}
+                                                                            </span>
+                                                                        ) : null}
                                                                     </span>
                                                                 </button>
                                                                 {renderInsertionIndicator(
