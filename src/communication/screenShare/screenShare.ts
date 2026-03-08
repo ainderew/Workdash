@@ -1,5 +1,7 @@
 import { Producer } from "mediasoup-client/types";
 import { MediaTransportService } from "../mediaTransportService/mediaTransportServive";
+import { CallSignalingService } from "../callSignaling/callSignalingService";
+import useCallStore from "@/common/store/callStore";
 
 export class ScreenShareService {
     private sfuService: MediaTransportService;
@@ -68,10 +70,6 @@ export class ScreenShareService {
             kind: "video",
         });
 
-        this.sfuService.socket.emit("endScreenShare", {
-            producerId: producerId,
-        });
-
         if (this.currentStream) {
             this.currentStream.getTracks().forEach((track) => {
                 track.stop();
@@ -79,9 +77,15 @@ export class ScreenShareService {
             this.currentStream = null;
         }
 
-        if (this.screenProducer) {
-            this.screenProducer.close();
-            this.screenProducer = null;
+        this.screenProducer.close();
+        this.screenProducer = null;
+
+        // Notify call participants that screen share stopped
+        const currentCall = useCallStore.getState().currentCall;
+        if (currentCall) {
+            CallSignalingService.getInstance().setMedia(currentCall.channelId, {
+                screen: false,
+            });
         }
     }
 }

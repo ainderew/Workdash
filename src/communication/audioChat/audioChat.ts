@@ -52,6 +52,7 @@ export class AudioChat {
 
     private producerToConsumerMap: Map<string, string> = new Map();
     private socketToProducersMap: Map<string, string[]> = new Map();
+    private watchingNewProducers = false;
 
     constructor() {
         console.log("initializeAudioChat");
@@ -310,6 +311,8 @@ export class AudioChat {
     }
 
     public async watchNewProducers() {
+        if (this.watchingNewProducers) return;
+        this.watchingNewProducers = true;
         this.sfuService.socket.on(
             "newProducer",
             async (data: {
@@ -337,6 +340,11 @@ export class AudioChat {
     private async consumeProducer(producerId: string) {
         if (this.producerToConsumerMap.has(producerId)) {
             console.log(`Already consuming producer ${producerId}`);
+            return;
+        }
+
+        if (!this.sfuService.device || !this.sfuService.recvTransport) {
+            console.error("Cannot consume audio — SFU not initialized");
             return;
         }
 
@@ -491,6 +499,19 @@ export class AudioChat {
         }
     }
 
+    /** Close the audio producer and stop the mic track (for leaving calls) */
+    public stopMic() {
+        if (this.audioProducer && !this.audioProducer.closed) {
+            this.audioProducer.close();
+            this.audioProducer = undefined;
+        }
+        if (this.currentStream) {
+            this.currentStream.getTracks().forEach((track) => track.stop());
+            this.currentStream = null;
+        }
+        this.isMuted = true;
+    }
+
     public async unMuteMic() {
         if (this.audioProducer) {
             // Resume AudioContexts on unmute (Firefox autoplay policy)
@@ -530,8 +551,9 @@ export class AudioChat {
                 socketId: string;
             }) => {
                 const playerMap = usePlayersStore.getState().playerMap;
-                console.log(playerMap);
-                playerMap[data.playerId].changePlayerAvailabilityStatus(
+                const player = playerMap[data.playerId];
+                if (!player) return;
+                player.changePlayerAvailabilityStatus(
                     data.isInFocusMode
                         ? AvailabilityStatus.FOCUS
                         : AvailabilityStatus.ONLINE,
@@ -549,6 +571,13 @@ export class AudioChat {
     }
 
     public async cleanup() {
+        // Remove socket listeners to prevent duplicates on re-init
+        this.sfuService.socket.off("zone-players");
+        this.sfuService.socket.off("player-left-zone");
+        this.sfuService.socket.off("player-joined-zone");
+        this.sfuService.socket.off("newProducer");
+        this.sfuService.socket.off("playerFocusModeChanged");
+
         if (this.currentStream) {
             this.currentStream.getTracks().forEach((track) => track.stop());
             this.currentStream = null;

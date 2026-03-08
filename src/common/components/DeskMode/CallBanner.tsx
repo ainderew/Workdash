@@ -1,65 +1,9 @@
-import React from "react";
+import React, { useState } from "react";
 import { Phone, Video } from "lucide-react";
 import useCallStore from "@/common/store/callStore";
-import useChatV2Store from "@/common/store/chatV2Store";
-import { useCharacterFaceAvatar } from "@/common/utils/characterFaceAvatar";
 import { CallSignalingService } from "@/communication/callSignaling/callSignalingService";
 import CallView from "./CallView";
-
-function ParticipantAvatar({
-  userId,
-  displayName,
-  channelId,
-}: {
-  userId: number;
-  displayName: string;
-  channelId: string;
-}) {
-  const members = useChatV2Store((s) => s.membersByRoomId[channelId]);
-  const member = members?.find((m) => m.userId === userId);
-  const profileImage = member?.user?.image;
-  const characterCustomization = member?.user?.characterCustomization ?? null;
-  const spriteAvatar = useCharacterFaceAvatar(characterCustomization);
-
-  const sharedClass =
-    "inline-flex items-center justify-center h-5 w-5 rounded-full border wd-border-subtle";
-
-  if (profileImage) {
-    return (
-      <img
-        src={profileImage}
-        alt={displayName}
-        title={displayName}
-        className={`${sharedClass} object-cover`}
-      />
-    );
-  }
-
-  if (spriteAvatar) {
-    return (
-      <img
-        src={spriteAvatar}
-        alt={displayName}
-        title={displayName}
-        className={sharedClass}
-        style={{ imageRendering: "pixelated" }}
-      />
-    );
-  }
-
-  return (
-    <span
-      className={`${sharedClass} text-[9px] font-bold`}
-      style={{
-        backgroundColor: "var(--wd-surface-elevated)",
-        color: "var(--wd-text-primary)",
-      }}
-      title={displayName}
-    >
-      {displayName.charAt(0).toUpperCase()}
-    </span>
-  );
-}
+import CallAvatar from "./CallAvatar";
 
 interface CallBannerProps {
   channelId: string;
@@ -68,6 +12,7 @@ interface CallBannerProps {
 export default function CallBanner({ channelId }: CallBannerProps) {
   const call = useCallStore((s) => s.activeCallsByChannel[channelId]);
   const currentCall = useCallStore((s) => s.currentCall);
+  const [isJoining, setIsJoining] = useState(false);
 
   if (!call) return null;
 
@@ -76,11 +21,15 @@ export default function CallBanner({ channelId }: CallBannerProps) {
     currentCall !== null && currentCall.channelId !== channelId;
 
   const handleJoin = async () => {
+    if (isJoining) return;
+    setIsJoining(true);
     try {
       const service = CallSignalingService.getInstance();
       await service.joinCall(channelId);
     } catch (err) {
       console.error("Failed to join call:", err);
+    } finally {
+      setIsJoining(false);
     }
   };
 
@@ -124,7 +73,7 @@ export default function CallBanner({ channelId }: CallBannerProps) {
 
         <div className="flex -space-x-1.5 shrink-0">
           {call.participants.slice(0, 5).map((p) => (
-            <ParticipantAvatar
+            <CallAvatar
               key={p.userId}
               userId={p.userId}
               displayName={p.displayName}
@@ -142,7 +91,7 @@ export default function CallBanner({ channelId }: CallBannerProps) {
       <button
         type="button"
         onClick={handleJoin}
-        disabled={isInAnotherCall}
+        disabled={isInAnotherCall || isJoining}
         className="wd-btn-primary text-xs px-3 h-7 shrink-0"
         title={
           isInAnotherCall
@@ -150,7 +99,7 @@ export default function CallBanner({ channelId }: CallBannerProps) {
             : "Join call"
         }
       >
-        Join
+        {isJoining ? "Joining..." : "Join"}
       </button>
     </div>
   );

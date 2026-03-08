@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useMemo } from 'react';
 import { Mic, MicOff, Video, Monitor } from 'lucide-react';
 import type { CallParticipant } from '@/common/store/callStore';
 import useCallStore from '@/common/store/callStore';
@@ -29,8 +29,15 @@ export default function CallParticipantTile({
   // Generate sprite face avatar as fallback
   const spriteAvatar = useCharacterFaceAvatar(characterCustomization);
 
-  // Producer → userId reverse lookup for remote video
+  // Producer → userId reverse lookup for remote video (narrowed to this participant only)
   const producerUserMap = useCallStore((s) => s.producerUserMap);
+  const producerId = useMemo(
+    () =>
+      Object.entries(producerUserMap).find(
+        ([, uid]) => uid === participant.userId,
+      )?.[0],
+    [producerUserMap, participant.userId],
+  );
 
   // Mount video element into the tile
   useEffect(() => {
@@ -65,37 +72,52 @@ export default function CallParticipantTile({
         videoEl.remove();
       };
     } else {
-      // Remote video — find producerId for this user
-      const producerId = Object.entries(producerUserMap).find(
-        ([, uid]) => uid === participant.userId,
-      )?.[0];
-
       if (!producerId) return;
 
-      const viewer = VideoChatViewer.instance;
-      const videoEl = viewer?.videoElements.get(producerId);
-      if (!videoEl) return;
+      let cancelled = false;
+      let retryTimer: number | undefined;
+      let mounted: HTMLVideoElement | null = null;
+      let attempts = 0;
+      const MAX_ATTEMPTS = 25; // 5 seconds total (25 × 200ms)
 
-      // Clone the video element so we don't steal it from old location
-      const clone = videoEl.cloneNode(true) as HTMLVideoElement;
-      clone.style.width = '100%';
-      clone.style.height = '100%';
-      clone.style.objectFit = 'cover';
-      clone.style.backgroundColor = 'transparent';
+      const attach = () => {
+        if (cancelled) return;
 
-      // Re-attach the stream from the original
-      if (videoEl.srcObject) {
-        clone.srcObject = videoEl.srcObject;
-      }
+        const viewer = VideoChatViewer.getInstance();
+        const sourceEl = viewer.videoElements.get(producerId);
 
-      container.appendChild(clone);
+        if (sourceEl?.srcObject) {
+          const videoEl = document.createElement('video');
+          videoEl.srcObject = sourceEl.srcObject;
+          videoEl.autoplay = true;
+          videoEl.playsInline = true;
+          videoEl.muted = true;
+          videoEl.style.width = '100%';
+          videoEl.style.height = '100%';
+          videoEl.style.objectFit = 'cover';
+          mounted = videoEl;
+          container.appendChild(videoEl);
+          return;
+        }
+
+        // Video element not ready yet — retry (consumeProducer is async)
+        if (++attempts < MAX_ATTEMPTS) {
+          retryTimer = window.setTimeout(attach, 200);
+        }
+      };
+
+      attach();
 
       return () => {
-        clone.srcObject = null;
-        clone.remove();
+        cancelled = true;
+        if (retryTimer != null) clearTimeout(retryTimer);
+        if (mounted) {
+          mounted.srcObject = null;
+          mounted.remove();
+        }
       };
     }
-  }, [participant.media.video, participant.userId, isLocal, producerUserMap]);
+  }, [participant.media.video, participant.userId, isLocal, producerId]);
 
   const initials = participant.displayName
     .split(' ')

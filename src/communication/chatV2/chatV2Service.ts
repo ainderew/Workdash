@@ -779,6 +779,12 @@ export class ChatV2Service {
         return response.workspace;
     }
 
+    /** Notify the SFU server which workspace the client is currently viewing.
+     *  Sets socketWorkspaces + joins the socket.io workspace room. */
+    selectWorkspace(workspaceId: string): void {
+        this.transport.socket.emit("workspace:select", { workspaceId }, () => {});
+    }
+
     async joinWorkspace(workspaceId: string): Promise<WorkspaceMember> {
         const response = await this.emitWithAck<{ member: WorkspaceMember }>(
             "workspace:join",

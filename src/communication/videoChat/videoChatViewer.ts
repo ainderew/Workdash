@@ -1,6 +1,7 @@
 import useUserStore from "@/common/store/useStore";
 import usePlayersStore from "@/common/store/playerStore";
 import useCallStore from "@/common/store/callStore";
+import useUiStore from "@/common/store/uiStore";
 import { MediaTransportService } from "../mediaTransportService/mediaTransportServive";
 import { ConsumerData } from "../screenShare/_types";
 import { Consumer } from "mediasoup-client/types";
@@ -59,6 +60,11 @@ export class VideoChatViewer {
 
     private async consumeProducer(producerId: string): Promise<void> {
         try {
+            if (!this.sfuService.device || !this.sfuService.recvTransport) {
+                console.error("Cannot consume video — SFU not initialized");
+                return;
+            }
+
             const consumerData = await new Promise<ConsumerData>((resolve) => {
                 this.sfuService.socket.emit(
                     "consume",
@@ -71,6 +77,11 @@ export class VideoChatViewer {
                     resolve,
                 );
             });
+
+            if ((consumerData as unknown as { error: string }).error) {
+                console.error("Server rejected video consume:", consumerData);
+                return;
+            }
 
             const consumer = await this.sfuService.recvTransport!.consume({
                 id: consumerData.id,
@@ -100,13 +111,16 @@ export class VideoChatViewer {
             if (consumerData.kind === "video") {
                 this.displayVideo(producerId, consumer);
             }
-        } catch {
-            alert("something went wrong");
+        } catch (err) {
+            console.error("Failed to consume producer:", err);
         }
     }
 
     public async loadExistingProducers(): Promise<void> {
-        await this.waitForPlayers();
+        // In desk mode there are no Phaser players; skip the wait.
+        if (useUiStore.getState().interactionMode !== "desk") {
+            await this.waitForPlayers();
+        }
 
         const producers = await new Promise<
             {
@@ -160,8 +174,6 @@ export class VideoChatViewer {
     }
 
     private displayVideo(producerId: string, consumer: Consumer): void {
-        if (!this.updateComponentStateCallback) return;
-
         if (consumer.track.readyState !== "live") {
             consumer.close();
             this.consumers.delete(producerId);
@@ -171,6 +183,8 @@ export class VideoChatViewer {
         const videoEl = document.createElement("video") as HTMLVideoElement;
         videoEl.srcObject = new MediaStream([consumer.track]);
         videoEl.autoplay = true;
+        videoEl.muted = true;
+        videoEl.playsInline = true;
         videoEl.controls = false;
         videoEl.style.width = "100%";
         videoEl.dataset.producerId = producerId;
@@ -198,7 +212,7 @@ export class VideoChatViewer {
         };
 
         this.videoElements.set(producerId, videoEl);
-        this.updateComponentStateCallback!();
+        this.updateComponentStateCallback?.();
     }
 
     public removeScreenShareVideo(producerId: string) {

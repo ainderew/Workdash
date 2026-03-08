@@ -51,15 +51,16 @@ export class VideoChatService {
     }
 
     public stopVideoChat() {
+        if (!this.producer) return;
+
         this.sfuService.socket.emit("producerClosed", {
-            producerId: this.producer!.id,
+            producerId: this.producer.id,
             kind: "video",
         });
 
-        if (this.producer) {
-            this.producer.close();
-            this.producer = null;
-        }
+        this.producer.close();
+        this.producer = null;
+
         if (this.currentStream) {
             this.currentStream.getTracks().forEach((track) => track.stop());
             this.currentStream = null;

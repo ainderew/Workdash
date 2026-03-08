@@ -24,6 +24,17 @@ export interface CallPresence {
 }
 
 // ----------------------------------------------------------------
+// Floating window types
+// ----------------------------------------------------------------
+
+export interface FloatingPosition {
+  x: number;
+  y: number;
+}
+
+export type FloatingWindowState = 'expanded' | 'collapsed';
+
+// ----------------------------------------------------------------
 // Store
 // ----------------------------------------------------------------
 
@@ -42,6 +53,12 @@ interface CallState {
   /** Maps producerId → userId for video tile association */
   producerUserMap: Record<string, number>;
 
+  /** Floating call window position (null = default bottom-right) */
+  floatingPosition: FloatingPosition | null;
+
+  /** Floating call window state */
+  floatingWindowState: FloatingWindowState;
+
   // Actions driven by socket events
   handleCallStarted: (call: CallPresence) => void;
   handleCallEnded: (channelId: string) => void;
@@ -55,7 +72,7 @@ interface CallState {
     userId: number,
     media: CallParticipantMedia,
   ) => void;
-  handleBulkCallState: (calls: CallPresence[]) => void;
+  handleBulkCallState: (calls: CallPresence[], queriedChannelIds?: string[]) => void;
 
   // Producer → userId mapping
   setProducerUser: (producerId: string, userId: number) => void;
@@ -64,6 +81,14 @@ interface CallState {
   // User actions
   setCurrentCall: (channelId: string | null) => void;
   setLocalMedia: (media: Partial<CallParticipantMedia>) => void;
+
+  // Floating window actions
+  setFloatingPosition: (pos: FloatingPosition) => void;
+  setFloatingWindowState: (state: FloatingWindowState) => void;
+
+  /** Clear workspace-specific state (calls map, producers) but preserve currentCall & media */
+  resetForWorkspaceSwitch: () => void;
+
   reset: () => void;
 }
 
@@ -78,6 +103,8 @@ const useCallStore = create<CallState>((set) => ({
   currentCall: null,
   localMedia: { ...initialLocalMedia },
   producerUserMap: {},
+  floatingPosition: null,
+  floatingWindowState: 'expanded' as FloatingWindowState,
 
   handleCallStarted: (call) =>
     set((state) => ({
@@ -131,6 +158,14 @@ const useCallStore = create<CallState>((set) => ({
       const existing = state.activeCallsByChannel[channelId];
       if (!existing) return state;
 
+      // Clean up producerUserMap entries for the leaving user
+      const nextProducerUserMap = { ...state.producerUserMap };
+      for (const [producerId, uid] of Object.entries(nextProducerUserMap)) {
+        if (uid === userId) {
+          delete nextProducerUserMap[producerId];
+        }
+      }
+
       return {
         activeCallsByChannel: {
           ...state.activeCallsByChannel,
@@ -141,6 +176,7 @@ const useCallStore = create<CallState>((set) => ({
             ),
           },
         },
+        producerUserMap: nextProducerUserMap,
       };
     }),
 
@@ -162,9 +198,18 @@ const useCallStore = create<CallState>((set) => ({
       };
     }),
 
-  handleBulkCallState: (calls) =>
-    set(() => {
-      const map: Record<string, CallPresence> = {};
+  handleBulkCallState: (calls, queriedChannelIds) =>
+    set((state) => {
+      const map = { ...state.activeCallsByChannel };
+      // Remove stale entries for channels that were queried but have no active call
+      if (queriedChannelIds) {
+        const activeChannelIds = new Set(calls.map((c) => c.channelId));
+        for (const id of queriedChannelIds) {
+          if (!activeChannelIds.has(id)) {
+            delete map[id];
+          }
+        }
+      }
       for (const call of calls) {
         map[call.channelId] = call;
       }
@@ -186,12 +231,24 @@ const useCallStore = create<CallState>((set) => ({
   setCurrentCall: (channelId) =>
     set(() => ({
       currentCall: channelId ? { channelId } : null,
-      localMedia: channelId ? { audio: true, video: false, screen: false } : { ...initialLocalMedia },
+      localMedia: channelId ? { audio: false, video: false, screen: false } : { ...initialLocalMedia },
     })),
 
   setLocalMedia: (media) =>
     set((state) => ({
       localMedia: { ...state.localMedia, ...media },
+    })),
+
+  setFloatingPosition: (pos) =>
+    set(() => ({ floatingPosition: pos })),
+
+  setFloatingWindowState: (windowState) =>
+    set(() => ({ floatingWindowState: windowState })),
+
+  resetForWorkspaceSwitch: () =>
+    set(() => ({
+      activeCallsByChannel: {},
+      producerUserMap: {},
     })),
 
   reset: () =>
@@ -200,6 +257,8 @@ const useCallStore = create<CallState>((set) => ({
       currentCall: null,
       localMedia: { ...initialLocalMedia },
       producerUserMap: {},
+      floatingPosition: null,
+      floatingWindowState: 'expanded' as FloatingWindowState,
     })),
 }));
 

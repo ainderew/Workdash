@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { Phone, Video } from "lucide-react";
 import useCallStore from "@/common/store/callStore";
 import { CallSignalingService } from "@/communication/callSignaling/callSignalingService";
+import { VideoChatService } from "@/communication/videoChat/videoChat";
+import useUiStore from "@/common/store/uiStore";
 
 interface StartCallButtonProps {
   channelId: string;
@@ -24,6 +26,19 @@ export default function StartCallButton({ channelId }: StartCallButtonProps) {
     try {
       const service = CallSignalingService.getInstance();
       await service.startCall(channelId, type);
+
+      // Auto-start video when starting a video call
+      if (type === "video") {
+        try {
+          await VideoChatService.getInstance().startVideoChat();
+          useUiStore.getState().setIsVideoOff(false);
+          CallSignalingService.getInstance().setMedia(channelId, {
+            video: true,
+          });
+        } catch (err) {
+          console.error("Failed to start video stream:", err);
+        }
+      }
     } catch (err) {
       console.error("Failed to start call:", err);
     } finally {

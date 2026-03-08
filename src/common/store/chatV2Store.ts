@@ -513,6 +513,8 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
         set({ selectedWorkspaceId: workspaceId });
         if (workspaceId) {
             const chatV2Service = getChatV2Service();
+            // Notify SFU server so socketWorkspaces is set for mediasoup isolation
+            chatV2Service.selectWorkspace(workspaceId);
             chatV2Service.listCategories(workspaceId).then((categories) => {
                 set({
                     categoriesById: toCategoriesById(categories),
@@ -716,6 +718,11 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
 
             const categoriesById = toCategoriesById(categories);
             const categoryOrder = toCategoryOrder(categories);
+
+            // Notify SFU server so socketWorkspaces is set for mediasoup isolation
+            if (resolvedWsId) {
+                chatV2Service.selectWorkspace(resolvedWsId);
+            }
 
             set((state) => {
                 const hasCurrentRoom =

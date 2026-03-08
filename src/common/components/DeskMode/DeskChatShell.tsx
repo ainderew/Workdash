@@ -38,6 +38,7 @@ import MessageList from "./MessageList";
 import RoomHeader from "./RoomHeader";
 import ThreadPanel from "./ThreadPanel";
 import CallBanner from "./CallBanner";
+import FloatingCallWindow from "./FloatingCallWindow";
 import { CallSignalingService } from "@/communication/callSignaling/callSignalingService";
 import useCallStore from "@/common/store/callStore";
 
@@ -232,7 +233,7 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
     const serverRoomCount = serverRooms.length;
     useEffect(() => {
         if (serverRoomCount === 0) return;
-        useCallStore.getState().reset();
+        useCallStore.getState().resetForWorkspaceSwitch();
         const channelIds = serverRooms.map((r) => r.id);
         CallSignalingService.getInstance().fetchActiveCallsForChannels(channelIds);
     }, [selectedWorkspaceId, serverRoomCount]);
@@ -1061,6 +1062,8 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
                     </div>
                 </div>
             </div>
+
+            <FloatingCallWindow />
 
             <ServerSettingsModal
                 isOpen={!!serverSettingsTargetId}

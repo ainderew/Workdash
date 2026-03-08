@@ -1,6 +1,7 @@
 import React from "react";
 import { Mic, MicOff, ScreenShare, Video, VideoOff } from "lucide-react";
 import useUiControls from "@/common/components/UiControls/hooks/useUiControls";
+import useCallStore from "@/common/store/callStore";
 import { ScreenShareService } from "@/communication/screenShare/screenShare";
 import { VideoChatService } from "@/communication/videoChat/videoChat";
 
@@ -9,7 +10,7 @@ interface DeskModeControlsProps {
     showMicrophoneSelector?: boolean;
 }
 
-function DeskModeControls({
+function DeskModeControlsInner({
     compact = false,
     showMicrophoneSelector = true,
 }: DeskModeControlsProps) {
@@ -25,7 +26,7 @@ function DeskModeControls({
     const handleScreenShare = async () => {
         try {
             const screenShare = ScreenShareService.getInstance();
-            screenShare.startScreenShare();
+            await screenShare.startScreenShare();
         } catch (error) {
             console.error("Screen share error:", error);
         }
@@ -35,7 +36,10 @@ function DeskModeControls({
         try {
             if (isVideoOff) {
                 const videoChat = VideoChatService.getInstance();
-                videoChat.startVideoChat();
+                await videoChat.startVideoChat();
+            } else {
+                const videoChat = VideoChatService.getInstance();
+                videoChat.stopVideoChat();
             }
             toggleVideoCam();
         } catch (error) {
@@ -113,6 +117,12 @@ function DeskModeControls({
             )}
         </div>
     );
+}
+
+function DeskModeControls(props: DeskModeControlsProps) {
+    const currentCall = useCallStore((s) => s.currentCall);
+    if (!currentCall) return null;
+    return <DeskModeControlsInner {...props} />;
 }
 
 export default DeskModeControls;

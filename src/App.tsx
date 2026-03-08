@@ -218,7 +218,9 @@ function App() {
 
             {}
             <ScreenShareUi isGameReady={isGameReady} />
-            <VideoChatUi isGameReady={isGameReady} />
+            {interactionMode === "world" && (
+                <VideoChatUi isGameReady={isGameReady} />
+            )}
 
             <ReactionToast />
             <CharacterCustomizationButton />

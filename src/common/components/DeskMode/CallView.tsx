@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { Mic, MicOff, Video, VideoOff, Monitor, PhoneOff } from 'lucide-react';
+import { Phone } from 'lucide-react';
 import useCallStore from '@/common/store/callStore';
 import useChatV2Store from '@/common/store/chatV2Store';
 import { CallSignalingService } from '@/communication/callSignaling/callSignalingService';
@@ -7,7 +7,10 @@ import { VideoChatService } from '@/communication/videoChat/videoChat';
 import { ScreenShareService } from '@/communication/screenShare/screenShare';
 import { AudioChat } from '@/communication/audioChat/audioChat';
 import useUiStore from '@/common/store/uiStore';
+import { VideoChatViewer } from '@/communication/videoChat/videoChatViewer';
 import CallParticipantTile from './CallParticipantTile';
+import CallAvatar from './CallAvatar';
+import CallControlBar from './CallControlBar';
 
 interface CallViewProps {
   channelId: string;
@@ -28,6 +31,9 @@ export default function CallView({ channelId, onLeave }: CallViewProps) {
   const membersByRoomId = useChatV2Store((s) => s.membersByRoomId);
   const loadRoomMembers = useChatV2Store((s) => s.loadRoomMembers);
 
+  const isScreenSharing = useCallStore((s) => s.localMedia.screen);
+
+  const [collapsed, setCollapsed] = useState(false);
   const [height, setHeight] = useState(DEFAULT_HEIGHT);
   const dragging = useRef(false);
   const startY = useRef(0);
@@ -53,6 +59,17 @@ export default function CallView({ channelId, onLeave }: CallViewProps) {
     dragging.current = false;
   }, []);
 
+  // Eagerly initialise media viewers so `newProducer` listeners are active
+  // before any tiles render, and fetch any producers we may have missed.
+  useEffect(() => {
+    const viewer = VideoChatViewer.getInstance();
+    viewer.loadExistingProducers();
+
+    const audio = AudioChat.getInstance();
+    audio.watchNewProducers();
+    audio.loadExistingProducers();
+  }, []);
+
   useEffect(() => {
     if (!membersByRoomId[channelId]) {
       loadRoomMembers(channelId);
@@ -63,21 +80,27 @@ export default function CallView({ channelId, onLeave }: CallViewProps) {
 
   const handleToggleMic = () => {
     const audio = AudioChat.getInstance();
-    if (isMuted) {
+    const willBeUnmuted = isMuted;
+    if (willBeUnmuted) {
       audio.unMuteMic();
     } else {
       audio.muteMic();
     }
     useUiStore.getState().toggleMic();
     CallSignalingService.getInstance().setMedia(channelId, {
-      audio: isMuted,
+      audio: willBeUnmuted,
     });
   };
 
-  const handleToggleVideo = () => {
+  const handleToggleVideo = async () => {
     const videoService = VideoChatService.getInstance();
     if (isVideoOff) {
-      videoService.startVideoChat();
+      try {
+        await videoService.startVideoChat();
+      } catch (err) {
+        console.error('Failed to start video:', err);
+        return;
+      }
     } else {
       videoService.stopVideoChat();
     }
@@ -89,8 +112,14 @@ export default function CallView({ channelId, onLeave }: CallViewProps) {
 
   const handleScreenShare = async () => {
     const service = ScreenShareService.getInstance();
+    if (isScreenSharing) {
+      service.stopScreenShare();
+      useCallStore.getState().setLocalMedia({ screen: false });
+      return;
+    }
     try {
       await service.startScreenShare();
+      useCallStore.getState().setLocalMedia({ screen: true });
       CallSignalingService.getInstance().setMedia(channelId, {
         screen: true,
       });
@@ -98,6 +127,54 @@ export default function CallView({ channelId, onLeave }: CallViewProps) {
       // User cancelled or error
     }
   };
+
+  if (collapsed) {
+    return (
+      <div className="flex items-center justify-between gap-2 px-3 py-1.5 border-b wd-border-subtle wd-bg-panel">
+        {/* Left: avatars + participant count */}
+        <div className="flex items-center gap-2 min-w-0">
+          <span
+            className="inline-flex items-center justify-center h-5 w-5 rounded-full shrink-0 animate-pulse"
+            style={{ backgroundColor: 'var(--wd-success)' }}
+          >
+            <Phone size={11} color="#fff" />
+          </span>
+
+          <div className="flex -space-x-1.5 shrink-0">
+            {call.participants.slice(0, 4).map((p) => (
+              <CallAvatar key={p.userId} userId={p.userId} displayName={p.displayName} channelId={channelId} />
+            ))}
+            {call.participants.length > 4 && (
+              <span
+                className="inline-flex items-center justify-center h-5 w-5 rounded-full text-[8px] font-bold border wd-border-subtle"
+                style={{ backgroundColor: 'var(--wd-surface-elevated)', color: 'var(--wd-text-muted)' }}
+              >
+                +{call.participants.length - 4}
+              </span>
+            )}
+          </div>
+
+          <span className="text-xs wd-text-muted truncate">
+            {call.participants.length} in call
+          </span>
+        </div>
+
+        {/* Right: compact controls */}
+        <CallControlBar
+          isMuted={isMuted}
+          isVideoOff={isVideoOff}
+          isScreenSharing={isScreenSharing}
+          onToggleMic={handleToggleMic}
+          onToggleVideo={handleToggleVideo}
+          onToggleScreenShare={handleScreenShare}
+          onLeave={onLeave}
+          onToggleCollapse={() => setCollapsed(false)}
+          isCollapsed
+          size="sm"
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col border-b wd-border-subtle">
@@ -132,65 +209,17 @@ export default function CallView({ channelId, onLeave }: CallViewProps) {
 
       {/* Controls bar */}
       <div className="flex items-center justify-center gap-2 px-3 py-2 wd-bg-panel">
-        <button
-          type="button"
-          onClick={handleToggleMic}
-          className={`inline-flex items-center justify-center h-8 w-8 rounded-full border transition-colors ${
-            isMuted
-              ? 'border-[var(--wd-danger)] text-[var(--wd-danger)]'
-              : 'wd-border-subtle wd-text-secondary hover:wd-text-primary'
-          }`}
-          style={
-            isMuted
-              ? { backgroundColor: 'color-mix(in srgb, var(--wd-danger) 12%, transparent)' }
-              : undefined
-          }
-          title={isMuted ? 'Unmute' : 'Mute'}
-        >
-          {isMuted ? <MicOff size={15} /> : <Mic size={15} />}
-        </button>
-
-        <button
-          type="button"
-          onClick={handleToggleVideo}
-          className={`inline-flex items-center justify-center h-8 w-8 rounded-full border transition-colors ${
-            isVideoOff
-              ? 'wd-border-subtle wd-text-secondary hover:wd-text-primary'
-              : 'border-[var(--wd-success)] text-[var(--wd-success)]'
-          }`}
-          style={
-            !isVideoOff
-              ? { backgroundColor: 'color-mix(in srgb, var(--wd-success) 12%, transparent)' }
-              : undefined
-          }
-          title={isVideoOff ? 'Turn on camera' : 'Turn off camera'}
-        >
-          {isVideoOff ? <VideoOff size={15} /> : <Video size={15} />}
-        </button>
-
-        <button
-          type="button"
-          onClick={handleScreenShare}
-          className="inline-flex items-center justify-center h-8 w-8 rounded-full border wd-border-subtle wd-text-secondary hover:wd-text-primary transition-colors"
-          title="Share screen"
-        >
-          <Monitor size={15} />
-        </button>
-
-        <div className="w-px h-5 mx-1" style={{ backgroundColor: 'var(--wd-border-subtle)' }} />
-
-        <button
-          type="button"
-          onClick={onLeave}
-          className="inline-flex items-center justify-center h-8 w-8 rounded-full transition-colors"
-          style={{
-            backgroundColor: 'var(--wd-danger)',
-            color: '#fff',
-          }}
-          title="Leave call"
-        >
-          <PhoneOff size={15} />
-        </button>
+        <CallControlBar
+          isMuted={isMuted}
+          isVideoOff={isVideoOff}
+          isScreenSharing={isScreenSharing}
+          onToggleMic={handleToggleMic}
+          onToggleVideo={handleToggleVideo}
+          onToggleScreenShare={handleScreenShare}
+          onLeave={onLeave}
+          onToggleCollapse={() => setCollapsed(true)}
+          isCollapsed={false}
+        />
       </div>
     </div>
   );

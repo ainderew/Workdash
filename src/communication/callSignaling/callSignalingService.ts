@@ -1,6 +1,9 @@
 import { MediaTransportService } from "@/communication/mediaTransportService/mediaTransportServive";
 import useCallStore from "@/common/store/callStore";
 import type { CallParticipant, CallParticipantMedia, CallPresence } from "@/common/store/callStore";
+import { AudioChat } from "@/communication/audioChat/audioChat";
+import { VideoChatService } from "@/communication/videoChat/videoChat";
+import { ScreenShareService } from "@/communication/screenShare/screenShare";
 
 // ----------------------------------------------------------------
 // Types (server response shapes)
@@ -87,6 +90,16 @@ export class CallSignalingService {
     );
   }
 
+  teardown(): void {
+    if (!this.listening) return;
+    this.socket.off("call:started");
+    this.socket.off("call:ended");
+    this.socket.off("call:participant_joined");
+    this.socket.off("call:participant_left");
+    this.socket.off("call:media_changed");
+    this.listening = false;
+  }
+
   // ----------------------------------------------------------------
   // Emit helpers (request-response via ack callbacks)
   // ----------------------------------------------------------------
@@ -129,6 +142,12 @@ export class CallSignalingService {
         { channelId },
         (res: AckResponse) => {
           if (res.error) return reject(new Error(res.error));
+
+          // Stop all media producers after server confirms the leave
+          VideoChatService.getInstance().stopVideoChat();
+          ScreenShareService.getInstance().stopScreenShare();
+          AudioChat.getInstance().stopMic();
+
           useCallStore.getState().setCurrentCall(null);
           resolve();
         },
@@ -167,7 +186,7 @@ export class CallSignalingService {
           if (res.calls) {
             useCallStore
               .getState()
-              .handleBulkCallState(res.calls as unknown as CallPresence[]);
+              .handleBulkCallState(res.calls as unknown as CallPresence[], channelIds);
           }
           resolve();
         },
