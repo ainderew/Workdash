@@ -8,10 +8,12 @@ import useUiStore from '@/common/store/uiStore';
  * Visible when:
  * 1. User is in an active call (currentCall !== null)
  * 2. User is NOT currently viewing the call's channel (navigated away)
+ *    — OR user manually triggered floating/PiP mode
  * 3. App is in desk mode
  */
 export function useFloatingCallVisibility() {
   const currentCall = useCallStore((s) => s.currentCall);
+  const manualFloating = useCallStore((s) => s.manualFloating);
   const currentRoomId = useChatV2Store((s) => s.currentRoomId);
   const interactionMode = useUiStore((s) => s.interactionMode);
   const callPresence = useCallStore((s) =>
@@ -22,7 +24,7 @@ export function useFloatingCallVisibility() {
   const isViewingCallChannel = currentCall?.channelId === currentRoomId;
   const isDeskMode = interactionMode === 'desk';
 
-  const shouldShow = isInCall && !isViewingCallChannel && isDeskMode;
+  const shouldShow = isInCall && (!isViewingCallChannel || manualFloating) && isDeskMode;
 
   return {
     shouldShow,

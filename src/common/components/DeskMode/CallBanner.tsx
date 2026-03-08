@@ -12,6 +12,7 @@ interface CallBannerProps {
 export default function CallBanner({ channelId }: CallBannerProps) {
   const call = useCallStore((s) => s.activeCallsByChannel[channelId]);
   const currentCall = useCallStore((s) => s.currentCall);
+  const manualFloating = useCallStore((s) => s.manualFloating);
   const [isJoining, setIsJoining] = useState(false);
 
   if (!call) return null;
@@ -42,9 +43,16 @@ export default function CallBanner({ channelId }: CallBannerProps) {
     }
   };
 
-  // User is in this call — show full call view
+  // User is in this call — show full call view (unless manually popped out to floating)
   if (isInThisCall) {
-    return <CallView channelId={channelId} onLeave={handleLeave} />;
+    if (manualFloating) return null;
+    return (
+      <CallView
+        channelId={channelId}
+        onLeave={handleLeave}
+        onPictureInPicture={() => useCallStore.getState().setManualFloating(true)}
+      />
+    );
   }
 
   // User is viewing a channel with an active call they haven't joined

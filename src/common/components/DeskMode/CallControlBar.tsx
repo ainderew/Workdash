@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   Mic, MicOff, Video, VideoOff, Monitor, MonitorOff,
-  PhoneOff, Maximize2, Minimize2,
+  PhoneOff, Maximize2, Minimize2, PictureInPicture2,
 } from 'lucide-react';
 
 export type CallControlSize = 'sm' | 'md';
@@ -19,6 +19,8 @@ interface CallControlBarProps {
   isCollapsed?: boolean;
   /** Navigate back to the call's channel */
   onExpandToChannel?: () => void;
+  /** Pop out to floating PiP window */
+  onPictureInPicture?: () => void;
   size?: CallControlSize;
 }
 
@@ -38,6 +40,7 @@ export default function CallControlBar({
   onToggleCollapse,
   isCollapsed,
   onExpandToChannel,
+  onPictureInPicture,
   size = 'md',
 }: CallControlBarProps) {
   const { btn, icon, gap } = sizeConfig[size];
@@ -100,6 +103,18 @@ export default function CallControlBar({
       >
         {isScreenSharing ? <MonitorOff size={icon} /> : <Monitor size={icon} />}
       </button>
+
+      {/* Picture-in-picture (pop out to floating window) */}
+      {onPictureInPicture && (
+        <button
+          type="button"
+          onClick={onPictureInPicture}
+          className={`inline-flex items-center justify-center ${btn} rounded-full border wd-border-subtle wd-text-secondary hover:wd-text-primary transition-colors`}
+          title="Pop out to floating window"
+        >
+          <PictureInPicture2 size={icon} />
+        </button>
+      )}
 
       {/* Expand to channel */}
       {onExpandToChannel && (

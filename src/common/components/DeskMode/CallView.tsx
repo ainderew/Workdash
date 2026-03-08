@@ -15,13 +15,14 @@ import CallControlBar from './CallControlBar';
 interface CallViewProps {
   channelId: string;
   onLeave: () => void;
+  onPictureInPicture?: () => void;
 }
 
 const MIN_HEIGHT = 80;
 const MAX_HEIGHT = 500;
 const DEFAULT_HEIGHT = 140;
 
-export default function CallView({ channelId, onLeave }: CallViewProps) {
+export default function CallView({ channelId, onLeave, onPictureInPicture }: CallViewProps) {
   const call = useCallStore((s) => s.activeCallsByChannel[channelId]);
   const userId = window.__BACKEND_USER__?.id ?? 0;
   const isMuted = useUiStore((s) => s.isMuted);
@@ -169,6 +170,7 @@ export default function CallView({ channelId, onLeave }: CallViewProps) {
           onToggleScreenShare={handleScreenShare}
           onLeave={onLeave}
           onToggleCollapse={() => setCollapsed(false)}
+          onPictureInPicture={onPictureInPicture}
           isCollapsed
           size="sm"
         />
@@ -218,6 +220,7 @@ export default function CallView({ channelId, onLeave }: CallViewProps) {
           onToggleScreenShare={handleScreenShare}
           onLeave={onLeave}
           onToggleCollapse={() => setCollapsed(true)}
+          onPictureInPicture={onPictureInPicture}
           isCollapsed={false}
         />
       </div>

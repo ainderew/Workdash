@@ -53,6 +53,9 @@ interface CallState {
   /** Maps producerId → userId for video tile association */
   producerUserMap: Record<string, number>;
 
+  /** User manually triggered floating PiP while on the call's channel */
+  manualFloating: boolean;
+
   /** Floating call window position (null = default bottom-right) */
   floatingPosition: FloatingPosition | null;
 
@@ -83,6 +86,7 @@ interface CallState {
   setLocalMedia: (media: Partial<CallParticipantMedia>) => void;
 
   // Floating window actions
+  setManualFloating: (value: boolean) => void;
   setFloatingPosition: (pos: FloatingPosition) => void;
   setFloatingWindowState: (state: FloatingWindowState) => void;
 
@@ -103,6 +107,7 @@ const useCallStore = create<CallState>((set) => ({
   currentCall: null,
   localMedia: { ...initialLocalMedia },
   producerUserMap: {},
+  manualFloating: false,
   floatingPosition: null,
   floatingWindowState: 'expanded' as FloatingWindowState,
 
@@ -239,6 +244,9 @@ const useCallStore = create<CallState>((set) => ({
       localMedia: { ...state.localMedia, ...media },
     })),
 
+  setManualFloating: (value) =>
+    set(() => ({ manualFloating: value })),
+
   setFloatingPosition: (pos) =>
     set(() => ({ floatingPosition: pos })),
 
@@ -257,6 +265,7 @@ const useCallStore = create<CallState>((set) => ({
       currentCall: null,
       localMedia: { ...initialLocalMedia },
       producerUserMap: {},
+      manualFloating: false,
       floatingPosition: null,
       floatingWindowState: 'expanded' as FloatingWindowState,
     })),

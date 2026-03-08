@@ -148,14 +148,9 @@ export default function FloatingCallWindow() {
     dragging.current = false;
     setIsDragging(false);
 
-    // Snap to nearest corner on release
+    // Keep window where the user dropped it (clamped to viewport)
     if (lastPos.current && hasMoved.current) {
-      const snapped = snapToNearestCorner(
-        lastPos.current,
-        WINDOW_WIDTH,
-        currentHeight,
-      );
-      setFloatingPosition(snapped);
+      setFloatingPosition(clampPosition(lastPos.current, WINDOW_WIDTH, currentHeight));
     }
   }, [currentHeight, setFloatingPosition]);
 
@@ -224,6 +219,7 @@ export default function FloatingCallWindow() {
 
   const handleExpandToChannel = useCallback(() => {
     if (!channelId) return;
+    useCallStore.getState().setManualFloating(false);
     void selectRoom(channelId);
   }, [channelId, selectRoom]);
 
