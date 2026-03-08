@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { Mic, MicOff, Video, VideoOff, Monitor, PhoneOff } from 'lucide-react';
 import useCallStore from '@/common/store/callStore';
 import useChatV2Store from '@/common/store/chatV2Store';
@@ -14,11 +14,9 @@ interface CallViewProps {
   onLeave: () => void;
 }
 
-function getContainerHeight(count: number): string {
-  if (count <= 2) return '120px';
-  if (count <= 4) return '160px';
-  return '200px';
-}
+const MIN_HEIGHT = 80;
+const MAX_HEIGHT = 500;
+const DEFAULT_HEIGHT = 140;
 
 export default function CallView({ channelId, onLeave }: CallViewProps) {
   const call = useCallStore((s) => s.activeCallsByChannel[channelId]);
@@ -29,6 +27,31 @@ export default function CallView({ channelId, onLeave }: CallViewProps) {
   // Load room members so tiles can resolve profile images + character data
   const membersByRoomId = useChatV2Store((s) => s.membersByRoomId);
   const loadRoomMembers = useChatV2Store((s) => s.loadRoomMembers);
+
+  const [height, setHeight] = useState(DEFAULT_HEIGHT);
+  const dragging = useRef(false);
+  const startY = useRef(0);
+  const startH = useRef(0);
+
+  const onPointerDown = useCallback(
+    (e: React.PointerEvent) => {
+      dragging.current = true;
+      startY.current = e.clientY;
+      startH.current = height;
+      (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    },
+    [height],
+  );
+
+  const onPointerMove = useCallback((e: React.PointerEvent) => {
+    if (!dragging.current) return;
+    const delta = e.clientY - startY.current;
+    setHeight(Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, startH.current + delta)));
+  }, []);
+
+  const onPointerUp = useCallback(() => {
+    dragging.current = false;
+  }, []);
 
   useEffect(() => {
     if (!membersByRoomId[channelId]) {
@@ -78,10 +101,10 @@ export default function CallView({ channelId, onLeave }: CallViewProps) {
 
   return (
     <div className="flex flex-col border-b wd-border-subtle">
-      {/* Participant tiles — fixed-height row, tiles share width equally */}
+      {/* Participant tiles — resizable container, tiles maintain aspect ratio */}
       <div
-        className="flex gap-2 p-3 wd-bg-panel-2 overflow-hidden"
-        style={{ height: getContainerHeight(call.participants.length) }}
+        className="flex items-center justify-center gap-2 p-3 wd-bg-panel-2 overflow-hidden"
+        style={{ height }}
       >
         {call.participants.map((p) => (
           <CallParticipantTile
@@ -91,6 +114,20 @@ export default function CallView({ channelId, onLeave }: CallViewProps) {
             isLocal={p.userId === userId}
           />
         ))}
+      </div>
+
+      {/* Drag handle */}
+      <div
+        className="h-3 cursor-row-resize flex items-center justify-center group"
+        style={{ backgroundColor: 'var(--wd-surface-panel)' }}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+      >
+        <div
+          className="w-12 h-1 rounded-full transition-colors group-hover:opacity-100 opacity-60"
+          style={{ backgroundColor: 'var(--wd-text-muted)' }}
+        />
       </div>
 
       {/* Controls bar */}

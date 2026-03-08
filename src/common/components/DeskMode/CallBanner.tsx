@@ -1,8 +1,65 @@
 import React from "react";
 import { Phone, Video } from "lucide-react";
 import useCallStore from "@/common/store/callStore";
+import useChatV2Store from "@/common/store/chatV2Store";
+import { useCharacterFaceAvatar } from "@/common/utils/characterFaceAvatar";
 import { CallSignalingService } from "@/communication/callSignaling/callSignalingService";
 import CallView from "./CallView";
+
+function ParticipantAvatar({
+  userId,
+  displayName,
+  channelId,
+}: {
+  userId: number;
+  displayName: string;
+  channelId: string;
+}) {
+  const members = useChatV2Store((s) => s.membersByRoomId[channelId]);
+  const member = members?.find((m) => m.userId === userId);
+  const profileImage = member?.user?.image;
+  const characterCustomization = member?.user?.characterCustomization ?? null;
+  const spriteAvatar = useCharacterFaceAvatar(characterCustomization);
+
+  const sharedClass =
+    "inline-flex items-center justify-center h-5 w-5 rounded-full border wd-border-subtle";
+
+  if (profileImage) {
+    return (
+      <img
+        src={profileImage}
+        alt={displayName}
+        title={displayName}
+        className={`${sharedClass} object-cover`}
+      />
+    );
+  }
+
+  if (spriteAvatar) {
+    return (
+      <img
+        src={spriteAvatar}
+        alt={displayName}
+        title={displayName}
+        className={sharedClass}
+        style={{ imageRendering: "pixelated" }}
+      />
+    );
+  }
+
+  return (
+    <span
+      className={`${sharedClass} text-[9px] font-bold`}
+      style={{
+        backgroundColor: "var(--wd-surface-elevated)",
+        color: "var(--wd-text-primary)",
+      }}
+      title={displayName}
+    >
+      {displayName.charAt(0).toUpperCase()}
+    </span>
+  );
+}
 
 interface CallBannerProps {
   channelId: string;
@@ -67,17 +124,12 @@ export default function CallBanner({ channelId }: CallBannerProps) {
 
         <div className="flex -space-x-1.5 shrink-0">
           {call.participants.slice(0, 5).map((p) => (
-            <span
+            <ParticipantAvatar
               key={p.userId}
-              className="inline-flex items-center justify-center h-5 w-5 rounded-full text-[9px] font-bold border wd-border-subtle"
-              style={{
-                backgroundColor: "var(--wd-surface-elevated)",
-                color: "var(--wd-text-primary)",
-              }}
-              title={p.displayName}
-            >
-              {p.displayName.charAt(0).toUpperCase()}
-            </span>
+              userId={p.userId}
+              displayName={p.displayName}
+              channelId={channelId}
+            />
           ))}
           {call.participants.length > 5 && (
             <span className="inline-flex items-center justify-center h-5 w-5 rounded-full text-[9px] font-bold wd-bg-elevated wd-text-muted">
