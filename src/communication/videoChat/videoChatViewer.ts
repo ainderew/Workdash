@@ -1,5 +1,6 @@
 import useUserStore from "@/common/store/useStore";
 import usePlayersStore from "@/common/store/playerStore";
+import useCallStore from "@/common/store/callStore";
 import { MediaTransportService } from "../mediaTransportService/mediaTransportServive";
 import { ConsumerData } from "../screenShare/_types";
 import { Consumer } from "mediasoup-client/types";
@@ -30,15 +31,20 @@ export class VideoChatViewer {
             async ({
                 producerId,
                 userName,
+                userId,
                 source,
             }: {
                 producerId: string;
                 userName: string;
+                userId?: number;
                 source: string;
             }) => {
                 if (source !== "camera") return;
 
                 this.videoChatOwnerMap[producerId] = userName;
+                if (userId != null) {
+                    useCallStore.getState().setProducerUser(producerId, userId);
+                }
                 await this.consumeProducer(producerId);
             },
         );
@@ -108,6 +114,7 @@ export class VideoChatViewer {
                 socketId: string;
                 source: string;
                 userName?: string;
+                userId?: number;
             }[]
         >((resolve) => {
             this.sfuService.socket.emit("getProducers", {}, resolve);
@@ -129,6 +136,9 @@ export class VideoChatViewer {
                     this.videoChatOwnerMap[producer.producerId] =
                         "Unknown User";
                 }
+            }
+            if (producer.userId != null) {
+                useCallStore.getState().setProducerUser(producer.producerId, producer.userId);
             }
             await this.consumeProducer(producer.producerId);
         }
@@ -204,6 +214,7 @@ export class VideoChatViewer {
             this.videoElements.delete(producerId);
         }
         delete this.videoChatOwnerMap[producerId];
+        useCallStore.getState().removeProducer(producerId);
         const currentProducerIds =
             useUserStore.getState().user.producerIds ?? [];
         const updatedProducerIds = currentProducerIds.filter(
