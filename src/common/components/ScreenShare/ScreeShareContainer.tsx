@@ -38,8 +38,8 @@ function ScreeShareContainer({
 
                     ${
                         isExpanded
-                            ? "fixed w-[80vw] h-[85vh] right-20 top-1/2  -translate-y-1/2 z-50 border-4 border-blue-500 shadow-2xl"
-                            : "relative w-48 h-32 cursor-pointer left-0 border-2 border-white/70 hover:border-blue-400 hover:scale-105"
+                            ? "fixed w-[80vw] h-[85vh] right-20 top-1/2  -translate-y-1/2 z-50 border-4 border-[var(--wd-accent)] shadow-2xl"
+                            : "relative w-48 h-32 cursor-pointer left-0 border-2 wd-border-strong hover:border-[var(--wd-accent)] hover:scale-105"
                     }
                 `}
             >
@@ -65,7 +65,7 @@ function ScreeShareContainer({
                     <div className="flex gap-2">
                         <button
                             onClick={handleClick}
-                            className="text-white bg-black/30 hover:bg-blue-600 p-2 rounded-md transition-colors"
+                            className="text-white bg-black/30 hover:bg-[var(--wd-accent)] p-2 rounded-md transition-colors"
                             title={isExpanded ? "Minimize" : "Maximize"}
                         >
                             {isExpanded ? (
@@ -78,7 +78,7 @@ function ScreeShareContainer({
                         {isExpanded && (
                             <button
                                 onClick={handleClick}
-                                className="text-white bg-black/30 hover:bg-red-600 p-2 rounded-md transition-colors"
+                                className="text-white bg-black/30 hover:bg-[var(--wd-danger)] p-2 rounded-md transition-colors"
                                 title="Minimize"
                             >
                                 <X size={18} />

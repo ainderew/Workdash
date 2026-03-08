@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect } from 'react';
 import { Mic, MicOff, Video, VideoOff, Monitor, PhoneOff } from 'lucide-react';
 import useCallStore from '@/common/store/callStore';
 import useChatV2Store from '@/common/store/chatV2Store';
@@ -14,11 +14,10 @@ interface CallViewProps {
   onLeave: () => void;
 }
 
-function getGridCols(count: number): number {
-  if (count <= 1) return 1;
-  if (count <= 4) return 2;
-  if (count <= 9) return 3;
-  return 4;
+function getContainerHeight(count: number): string {
+  if (count <= 2) return '120px';
+  if (count <= 4) return '160px';
+  return '200px';
 }
 
 export default function CallView({ channelId, onLeave }: CallViewProps) {
@@ -36,11 +35,6 @@ export default function CallView({ channelId, onLeave }: CallViewProps) {
       loadRoomMembers(channelId);
     }
   }, [channelId, membersByRoomId, loadRoomMembers]);
-
-  const gridCols = useMemo(
-    () => getGridCols(call?.participants.length ?? 0),
-    [call?.participants.length],
-  );
 
   if (!call) return null;
 
@@ -84,13 +78,10 @@ export default function CallView({ channelId, onLeave }: CallViewProps) {
 
   return (
     <div className="flex flex-col border-b wd-border-subtle">
-      {/* Participant tile grid — capped at 40vh so chat stays visible */}
+      {/* Participant tiles — fixed-height row, tiles share width equally */}
       <div
-        className="grid gap-2 p-3 wd-bg-panel-2 overflow-y-auto"
-        style={{
-          gridTemplateColumns: `repeat(${gridCols}, minmax(0, 1fr))`,
-          maxHeight: '40vh',
-        }}
+        className="flex gap-2 p-3 wd-bg-panel-2 overflow-hidden"
+        style={{ height: getContainerHeight(call.participants.length) }}
       >
         {call.participants.map((p) => (
           <CallParticipantTile

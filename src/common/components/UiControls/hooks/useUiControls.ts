@@ -2,6 +2,8 @@ import { AudioChat } from "@/communication/audioChat/audioChat";
 import { VideoChatService } from "@/communication/videoChat/videoChat";
 import { useEffect, useCallback } from "react";
 import useUiStore from "@/common/store/uiStore";
+import useCallStore from "@/common/store/callStore";
+import { CallSignalingService } from "@/communication/callSignaling/callSignalingService";
 
 function useUiControls() {
     const audioService = AudioChat.getInstance();
@@ -67,6 +69,13 @@ function useUiControls() {
             } else {
                 audioService.muteMic();
             }
+
+            const call = useCallStore.getState().currentCall;
+            if (call) {
+                CallSignalingService.getInstance().setMedia(call.channelId, {
+                    audio: audioService.isMuted, // was muted, now unmuted
+                });
+            }
         }
 
         return {
@@ -109,6 +118,13 @@ function useUiControls() {
             toggleVideoCamState();
             if (!isVideoOff) {
                 videoCamService.stopVideoChat();
+            }
+
+            const call = useCallStore.getState().currentCall;
+            if (call) {
+                CallSignalingService.getInstance().setMedia(call.channelId, {
+                    video: isVideoOff, // was off, now on
+                });
             }
         }
 

@@ -37,6 +37,9 @@ import { buildMemberColorMap } from "@/common/utils/roleColor";
 import MessageList from "./MessageList";
 import RoomHeader from "./RoomHeader";
 import ThreadPanel from "./ThreadPanel";
+import CallBanner from "./CallBanner";
+import { CallSignalingService } from "@/communication/callSignaling/callSignalingService";
+import useCallStore from "@/common/store/callStore";
 
 export type DeskChatShellMode = "desk" | "drawer";
 
@@ -224,6 +227,15 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
             (room) => room.workspaceId === selectedWorkspaceId,
         );
     }, [rooms, selectedWorkspaceId]);
+
+    // Fetch active calls when workspace rooms are loaded/changed, and reset on workspace switch
+    const serverRoomCount = serverRooms.length;
+    useEffect(() => {
+        if (serverRoomCount === 0) return;
+        useCallStore.getState().reset();
+        const channelIds = serverRooms.map((r) => r.id);
+        CallSignalingService.getInstance().fetchActiveCallsForChannels(channelIds);
+    }, [selectedWorkspaceId, serverRoomCount]);
 
     const workspaceOptions = useMemo(() => {
         if (workspaces.length > 0) {
@@ -890,6 +902,10 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
                                 <div className="px-5 py-2 text-xs wd-text-warning wd-bg-warning-soft border-b wd-border-subtle">
                                     {error}
                                 </div>
+                            )}
+
+                            {currentRoomId && (
+                                <CallBanner channelId={currentRoomId} />
                             )}
 
                             <MessageList

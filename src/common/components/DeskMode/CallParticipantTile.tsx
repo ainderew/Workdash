@@ -106,11 +106,8 @@ export default function CallParticipantTile({
 
   return (
     <div
-      className="relative overflow-hidden rounded-lg border wd-border-subtle"
-      style={{
-        aspectRatio: '4 / 3',
-        backgroundColor: 'var(--wd-surface-panel)',
-      }}
+      className="relative overflow-hidden rounded-lg border wd-border-subtle flex-1 min-w-0"
+      style={{ backgroundColor: 'var(--wd-surface-panel)' }}
     >
       {/* Background layer: profile pic → sprite → initials */}
       {!participant.media.video && (

@@ -53,8 +53,8 @@ function DeskModeControls({
                 title={isMuted ? "Unmute microphone" : "Mute microphone"}
                 className={`inline-flex ${controlButtonSize} items-center justify-center rounded-md border transition-colors ${
                     isMuted
-                        ? "border-red-700 bg-red-950/60 text-red-300 hover:bg-red-900/70"
-                        : "border-emerald-700 bg-emerald-950/60 text-emerald-300 hover:bg-emerald-900/70"
+                        ? "border-[var(--wd-danger)] text-[var(--wd-danger)] hover:bg-[color-mix(in_srgb,var(--wd-danger)_18%,transparent)]"
+                        : "border-[var(--wd-success)] text-[var(--wd-success)] hover:bg-[color-mix(in_srgb,var(--wd-success)_18%,transparent)]"
                 }`}
             >
                 {isMuted ? <MicOff size={16} /> : <Mic size={16} />}
@@ -68,8 +68,8 @@ function DeskModeControls({
                 title={isVideoOff ? "Start camera" : "Stop camera"}
                 className={`inline-flex ${controlButtonSize} items-center justify-center rounded-md border transition-colors ${
                     isVideoOff
-                        ? "border-red-700 bg-red-950/60 text-red-300 hover:bg-red-900/70"
-                        : "border-emerald-700 bg-emerald-950/60 text-emerald-300 hover:bg-emerald-900/70"
+                        ? "border-[var(--wd-danger)] text-[var(--wd-danger)] hover:bg-[color-mix(in_srgb,var(--wd-danger)_18%,transparent)]"
+                        : "border-[var(--wd-success)] text-[var(--wd-success)] hover:bg-[color-mix(in_srgb,var(--wd-success)_18%,transparent)]"
                 }`}
             >
                 {isVideoOff ? <VideoOff size={16} /> : <Video size={16} />}

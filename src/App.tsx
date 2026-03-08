@@ -18,6 +18,7 @@ import CommandPalette from "./common/components/CommandPalette/CommandPalette";
 import { useKeyboardShortcuts } from "@/common/keyboard";
 import { PollService } from "./communication/poll/poll";
 import PollDisplay from "./common/components/Poll/PollDisplay";
+import { CallSignalingService } from "./communication/callSignaling/callSignalingService";
 import PollNotification from "./common/components/Poll/PollNotification";
 import SoccerScoreboard from "./common/components/Soccer/SoccerScoreboard";
 import SkillsHud from "./common/components/Soccer/SkillsHud";
@@ -77,6 +78,9 @@ function App() {
                 };
 
                 pollService.setupPollListeners();
+
+                const callService = CallSignalingService.getInstance();
+                callService.setupListeners();
 
                 setIsInitialized(true);
             } catch (error) {

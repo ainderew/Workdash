@@ -55,8 +55,8 @@ function VideoChatContainer({
                     bg-black
                     ${
                         isExpanded
-                            ? "fixed w-[80vw] h-[85vh] top-1/2  -translate-y-1/2 z-50 border-4 border-blue-500 shadow-2xl"
-                            : "relative w-48 h-32 cursor-pointer border-2 border-white/70 hover:border-blue-400 hover:scale-105"
+                            ? "fixed w-[80vw] h-[85vh] top-1/2  -translate-y-1/2 z-50 border-4 border-[var(--wd-accent)] shadow-2xl"
+                            : "relative w-48 h-32 cursor-pointer border-2 wd-border-strong hover:border-[var(--wd-accent)] hover:scale-105"
                     }
                     ${hasMoreThanOneSharing ? "right-20" : "left-1/2 -translate-x-1/2"}
                 `}
@@ -82,7 +82,7 @@ function VideoChatContainer({
                     <div className="flex gap-2">
                         <button
                             onClick={handleClick}
-                            className="text-white bg-black/30 hover:bg-blue-600 p-2 rounded-md transition-colors"
+                            className="text-white bg-black/30 hover:bg-[var(--wd-accent)] p-2 rounded-md transition-colors"
                             title={isExpanded ? "Minimize" : "Maximize"}
                         >
                             {isExpanded ? (
@@ -95,7 +95,7 @@ function VideoChatContainer({
                         {isExpanded && (
                             <button
                                 onClick={handleClick}
-                                className="text-white bg-black/30 hover:bg-red-600 p-2 rounded-md transition-colors"
+                                className="text-white bg-black/30 hover:bg-[var(--wd-danger)] p-2 rounded-md transition-colors"
                                 title="Minimize"
                             >
                                 <X size={18} />
@@ -113,7 +113,7 @@ function VideoChatContainer({
                 )}
 
                 <div className="absolute flex gap-2 items-center bottom-3 left-2 bg-black/60 backdrop-blur-sm px-2 py-1 rounded text-white text-xs font-mono z-50">
-                    <div className="green w-2 h-2 bg-green-500 rounded-full"></div>
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: "var(--wd-success)" }} />
                     {isCurrentUserOwner ? "You" : ownerName}
                 </div>
 

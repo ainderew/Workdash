@@ -11,6 +11,7 @@ import { getDisplayName } from "@/common/utils/displayName";
 import ChannelHashIcon from "./ChannelHashIcon";
 import PinnedMessagesPanel from "./PinnedMessagesPanel";
 import UserNotificationsPanel from "./UserNotificationsPanel";
+import StartCallButton from "./StartCallButton";
 
 interface RoomHeaderProps {
     room: ChatV2Room | null;
@@ -304,6 +305,8 @@ function RoomHeader({
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
+                {room && <StartCallButton channelId={room.id} />}
+
                 <div className="relative shrink-0" ref={notificationsContainerRef}>
                     <button
                         type="button"

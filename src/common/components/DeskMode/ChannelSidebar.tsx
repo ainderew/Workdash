@@ -24,6 +24,7 @@ import useChatV2Store from "@/common/store/chatV2Store";
 import { getDisplayName } from "@/common/utils/displayName";
 import ChannelHashIcon from "./ChannelHashIcon";
 import DeskModeControls from "./DeskModeControls";
+import ChannelCallIndicator from "./ChannelCallIndicator";
 import UserAvatar from "./UserAvatar";
 import PresenceDot from "./PresenceDot";
 import StatusLabel from "./StatusLabel";
@@ -1105,6 +1106,7 @@ function ChannelSidebar({
                                                                                     : roomUnreadCount}
                                                                             </span>
                                                                         ) : null}
+                                                                        <ChannelCallIndicator channelId={room.id} />
                                                                     </span>
                                                                 </button>
                                                                 {renderInsertionIndicator(

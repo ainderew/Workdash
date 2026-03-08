@@ -120,7 +120,7 @@ function ScreenShareUi({ isGameReady }: ScreenShareUiProps) {
             </div>
 
             {hasExpandedVideo && collapsedVideos.length > 0 && (
-                <div className="fixed bottom-28 left-1/2 -translate-x-1/2 bg-black/70 backdrop-blur-sm px-4 py-2 rounded-full text-white text-sm font-medium z-90 border border-white/20">
+                <div className="fixed bottom-28 left-1/2 -translate-x-1/2 backdrop-blur-sm px-4 py-2 rounded-full text-sm font-medium z-90 border wd-border-subtle wd-text-primary" style={{ backgroundColor: "var(--wd-surface-overlay)" }}>
                     {collapsedVideos.length} more{" "}
                     {collapsedVideos.length === 1 ? "share" : "shares"}
                 </div>
