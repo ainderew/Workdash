@@ -6,6 +6,7 @@ import React, {
     useRef,
     useState,
 } from "react";
+import Image from "next/image";
 import type {
     ChatV2Attachment,
     ChatV2FriendshipStatus,
@@ -197,6 +198,7 @@ function MessageList({
     const [showNewMessagesPill, setShowNewMessagesPill] = useState(false);
     const [isScrolledFarBack, setIsScrolledFarBack] = useState(false);
     const user = useUserStore((state) => state.user);
+    const backendUser = useUserStore((s) => s.backendUser);
     const friends = useChatV2Store((state) => state.friends);
     const friendRequests = useChatV2Store((state) => state.friendRequests);
     const requestFriend = useChatV2Store((state) => state.requestFriend);
@@ -230,19 +232,18 @@ function MessageList({
         avatarImageLookupStatusByUserId,
         setAvatarImageLookupStatusByUserId,
     ] = useState<Record<number, "pending" | "done">>({});
-    const localBackendUserId =
-        typeof window !== "undefined" ? window.__BACKEND_USER__?.id : undefined;
+    const localBackendUserId = backendUser?.id;
     const localDisplayName = getDisplayName(
         {
             nickname:
-                user.nickname ?? window.__BACKEND_USER__?.nickname ?? null,
-            name: user.name || window.__BACKEND_USER__?.name || null,
+                user.nickname ?? backendUser?.nickname ?? null,
+            name: user.name || backendUser?.name || null,
         },
         "",
     );
     const localSpriteSheet = user.spriteSheetDataUrl?.trim() || "";
     const localProfileImage =
-        user.image?.trim() || window.__BACKEND_USER__?.image?.trim() || "";
+        user.image?.trim() || backendUser?.image?.trim() || "";
     const acceptedFriendUserIds = useMemo(
         () =>
             new Set(
@@ -1319,12 +1320,14 @@ function MessageList({
                                             <div>
                                                 {standaloneGifUrl && (
                                                     <div className="mt-1">
-                                                        <img
+                                                        <Image
                                                             src={
                                                                 standaloneGifUrl
                                                             }
                                                             alt="GIF"
-                                                            loading="lazy"
+                                                            width={320}
+                                                            height={224}
+                                                            unoptimized
                                                             className="rounded-md max-w-xs max-h-56 object-contain border wd-border-subtle"
                                                         />
                                                     </div>
@@ -1521,14 +1524,16 @@ function MessageList({
                                                                             }
                                                                             className="relative block cursor-pointer group"
                                                                         >
-                                                                            <img
+                                                                            <Image
                                                                                 src={
                                                                                     imgSrc
                                                                                 }
                                                                                 alt={
                                                                                     attachment.originalFileName
                                                                                 }
-                                                                                loading="lazy"
+                                                                                width={320}
+                                                                                height={224}
+                                                                                unoptimized
                                                                                 className="rounded-md max-w-xs max-h-56 object-cover border wd-border-subtle"
                                                                             />
                                                                             {isThumbnail && (
@@ -1665,14 +1670,16 @@ function MessageList({
                                                                                 } h-5 w-5 rounded-full border wd-border-strong wd-bg-elevated overflow-hidden inline-flex items-center justify-center text-[10px] font-semibold wd-text-primary`}
                                                                             >
                                                                                 {previewUser.image ? (
-                                                                                    <img
+                                                                                    <Image
                                                                                         src={
                                                                                             previewUser.image
                                                                                         }
                                                                                         alt={
                                                                                             previewDisplayName
                                                                                         }
-                                                                                        loading="lazy"
+                                                                                        width={20}
+                                                                                        height={20}
+                                                                                        unoptimized
                                                                                         className="h-full w-full object-cover"
                                                                                     />
                                                                                 ) : (

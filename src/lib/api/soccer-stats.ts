@@ -1,4 +1,5 @@
 import { CONFIG } from "@/common/utils/config";
+import { tokenStore } from "@/common/utils/tokenStore";
 
 export interface SoccerStats {
   id: number;
@@ -33,7 +34,7 @@ export interface MatchHistory {
 }
 
 function getToken(): string | undefined {
-  return window.__BACKEND_JWT__;
+  return tokenStore.getJwt() || undefined;
 }
 
 export async function getSoccerStats(): Promise<SoccerStats | null> {

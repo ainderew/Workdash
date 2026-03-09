@@ -5,14 +5,11 @@ import { EventBus } from "./game/EventBus";
 import { User } from "./common/store/_types";
 import useUserStore from "./common/store/useStore";
 import { CONFIG } from "./common/utils/config";
-import { BackendUser, BackendCharacter } from "./types/auth";
 import { Multiplayer } from "./game/multiplayer/multiplayer";
+import { tokenStore } from "./common/utils/tokenStore";
 
 declare global {
     interface Window {
-        __BACKEND_JWT__?: string;
-        __BACKEND_USER__?: BackendUser;
-        __BACKEND_CHARACTER__?: BackendCharacter;
         __MULTIPLAYER__?: Multiplayer;
     }
 }
@@ -35,12 +32,14 @@ export const PhaserGame = forwardRef<IRefPhaserGame, IProps>(
 
         useLayoutEffect(() => {
             if (session?.backendJwt) {
-                window.__BACKEND_JWT__ = session.backendJwt;
-                window.__BACKEND_USER__ = session.backendUser;
-                window.__BACKEND_CHARACTER__ = session.backendCharacter;
+                tokenStore.setJwt(session.backendJwt);
+                if (session.backendUser) tokenStore.setUser(session.backendUser);
+                if (session.backendCharacter) tokenStore.setCharacter(session.backendCharacter);
 
-                // Hydrate Zustand with the session's avatar so components
-                // have a reactive source of truth from the very first render.
+                // Hydrate Zustand with the backend user from session
+                if (session.backendUser) {
+                    useUserStore.getState().setBackendUser(session.backendUser);
+                }
                 if (session.backendUser?.image) {
                     useUserStore.getState().updateUser({ image: session.backendUser.image });
                 }
@@ -83,13 +82,11 @@ export const PhaserGame = forwardRef<IRefPhaserGame, IProps>(
 
                     if (cancelled) return;
 
-                    // Update both sources with fresh DB value
-                    if (window.__BACKEND_USER__) {
-                        window.__BACKEND_USER__ = {
-                            ...window.__BACKEND_USER__,
-                            image: freshImage || undefined,
-                        };
-                    }
+                    // Update all sources with fresh DB value
+                    tokenStore.updateUser({ image: freshImage || undefined });
+                    useUserStore.getState().updateBackendUser({
+                        image: freshImage || undefined,
+                    });
                     useUserStore.getState().updateUser({
                         image: freshImage || undefined,
                     });

@@ -2,6 +2,7 @@
 import io from "socket.io-client";
 import { MovementPacket, PlayerDto } from "./_types";
 import { CONFIG } from "@/common/utils/config";
+import { logger } from "@/common/utils/logger";
 import usePlayersStore from "@/common/store/playerStore";
 import { AvailabilityStatus } from "../player/_enums";
 import { CharacterCustomization } from "../character/_types";
@@ -35,7 +36,7 @@ export class Multiplayer {
 
     private setupLifecycleEvents() {
         this.socket.on("connect", () => {
-            console.log("Socket Connected (Waiting for Logic Init...)");
+            logger.log("Socket Connected (Waiting for Logic Init...)");
             this.startPingLoop();
         });
 
@@ -130,7 +131,7 @@ export class Multiplayer {
     }
 
     public emitCharacterUpdate(data: CharacterCustomization) {
-        console.log("Emitting character update to backend:", data);
+        logger.log("Emitting character update to backend:", data);
         this.send("updateCharacter", data);
     }
 
@@ -190,7 +191,7 @@ export class Multiplayer {
         this.socket.on(
             "currentPlayers",
             (playersData: PlayerDto[] | Record<string, PlayerDto>) => {
-                console.log("Received currentPlayers:", playersData);
+                logger.log("Received currentPlayers:", playersData);
                 const playerList = Array.isArray(playersData)
                     ? playersData
                     : Object.values(playersData);
@@ -207,7 +208,7 @@ export class Multiplayer {
                 data: { playerId: string; playerState: PlayerDto } | PlayerDto,
             ) => {
                 const player = "playerState" in data ? data.playerState : data;
-                console.log("New player joined:", player);
+                logger.log("New player joined:", player);
                 this.handlePlayerSync(
                     player as PlayerDto,
                     createPlayer,
@@ -244,7 +245,7 @@ export class Multiplayer {
 
         
         if (player.currentScene && player.currentScene !== this.currentScene) {
-            console.log(
+            logger.log(
                 `Ignoring player ${player.name} - they are in ${player.currentScene}, we are in ${this.currentScene}`,
             );
             return;
@@ -321,7 +322,7 @@ export class Multiplayer {
         this.socket.on(
             "characterUpdated",
             (data: { playerId: string; character: CharacterCustomization }) => {
-                console.log(
+                logger.log(
                     "Character updated for player:",
                     data.playerId,
                     data.character,
@@ -343,7 +344,7 @@ export class Multiplayer {
     }
 
     public emitNameUpdate(newName: string, nickname?: string | null) {
-        console.log("Emitting name update to backend:", newName, nickname);
+        logger.log("Emitting name update to backend:", newName, nickname);
         this.send("updateName", { name: newName, nickname });
     }
 
@@ -358,7 +359,7 @@ export class Multiplayer {
                 nickname?: string | null;
                 displayName?: string;
             }) => {
-                console.log(
+                logger.log(
                     "Name updated for player:",
                     data.playerId,
                     data.name,
@@ -400,7 +401,7 @@ export class Multiplayer {
         this.socket.on(
             "playerAction",
             (data: { playerId: string; action: string }) => {
-                console.log(
+                logger.log(
                     "Player action received:",
                     data.playerId,
                     data.action,

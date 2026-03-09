@@ -50,7 +50,9 @@ vi.mock('next-auth/react', () => ({
 vi.mock('@/common/store/useStore', () => {
   const store = {
     user: { name: 'Test User', nickname: null, image: null },
+    backendUser: { id: 1, name: 'Test User', nickname: null, image: null },
     updateUser: vi.fn(),
+    updateBackendUser: vi.fn(),
   };
   const useUserStore = (selector: (s: typeof store) => unknown) =>
     selector(store);

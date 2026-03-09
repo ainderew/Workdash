@@ -10,13 +10,12 @@ import {
     ArrowRightIcon,
 } from "lucide-react";
 import { signIn, signOut, useSession } from "next-auth/react";
-import { useRouter } from "next/router";
+import Link from "next/link";
 
 export default function AuthPage() {
     const [isLogin, setIsLogin] = useState(true);
     const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
     const { status } = useSession();
-    const router = useRouter();
 
     
     useEffect(() => {
@@ -58,12 +57,12 @@ export default function AuthPage() {
                         </p>
                     </div>
                     <div className="flex flex-col gap-3 pt-4">
-                        <button
-                            onClick={() => router.push("/app")}
-                            className="w-full px-6 py-3 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-lg transition-all transform active:scale-[0.98]"
+                        <Link
+                            href="/app"
+                            className="w-full px-6 py-3 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-lg transition-all transform active:scale-[0.98] text-center block"
                         >
                             Continue to office
-                        </button>
+                        </Link>
                         <button
                             onClick={() => signOut({ callbackUrl: "/login" })}
                             className="w-full px-6 py-3 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium rounded-lg transition-all"

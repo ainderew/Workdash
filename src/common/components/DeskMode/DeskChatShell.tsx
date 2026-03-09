@@ -5,6 +5,7 @@ import React, {
     useRef,
     useState,
 } from "react";
+import Image from "next/image";
 import useChatV2Store from "@/common/store/chatV2Store";
 import useWorkspaceStore from "@/common/store/workspaceStore";
 import { ChatV2Service } from "@/communication/chatV2/chatV2Service";
@@ -41,6 +42,7 @@ import CallBanner from "./CallBanner";
 import FloatingCallWindow from "./FloatingCallWindow";
 import { CallSignalingService } from "@/communication/callSignaling/callSignalingService";
 import useCallStore from "@/common/store/callStore";
+import useUserStore from "@/common/store/useStore";
 
 export type DeskChatShellMode = "desk" | "drawer";
 
@@ -51,6 +53,7 @@ interface DeskChatShellProps {
 
 function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
     useChatNotificationSound();
+    const backendUser = useUserStore((s) => s.backendUser);
     const chatV2Service = useMemo(() => ChatV2Service.getInstance(), []);
     const initialize = useChatV2Store((state) => state.initialize);
     const roomOrder = useChatV2Store((state) => state.roomOrder);
@@ -387,10 +390,7 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
         undefined,
     );
 
-    const viewerUserId =
-        typeof window !== "undefined"
-            ? (window.__BACKEND_USER__?.id ?? 0)
-            : 0;
+    const viewerUserId = backendUser?.id ?? 0;
 
     const selectedWorkspace = useMemo(
         () => workspaces.find((ws) => ws.id === selectedWorkspaceId),
@@ -689,10 +689,12 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
                 <div className="flex-1 min-w-0 wd-bg-app flex items-center justify-center gap-1.5 px-4">
                     {serverImageUrl && (
                         <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center overflow-hidden rounded">
-                            <img
+                            <Image
                                 src={serverImageUrl}
                                 alt=""
-                                loading="lazy"
+                                width={16}
+                                height={16}
+                                unoptimized
                                 className="h-full w-full object-cover"
                             />
                         </span>

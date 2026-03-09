@@ -6,6 +6,7 @@ import { CharacterPersistence } from "@/game/character/CharacterPersistence";
 import { CharacterEventBus } from "@/game/character/CharacterEventBus";
 import useStore from "@/common/store/useStore";
 import { CONFIG } from "@/common/utils/config";
+import { logger } from "@/common/utils/logger";
 
 interface CharacterCustomizationMenuProps {
     isOpen: boolean;
@@ -43,7 +44,7 @@ export function CharacterCustomizationMenu({
                 typeof multiplayer.emitCharacterUpdate === "function"
             ) {
                 multiplayer.emitCharacterUpdate(customization);
-                console.log("Character update emitted to backend via socket");
+                logger.log("Character update emitted to backend via socket");
             } else {
                 console.warn(
                     "Multiplayer instance not available for character update broadcast",
@@ -74,7 +75,7 @@ export function CharacterCustomizationMenu({
                     );
                 }
 
-                console.log("Character saved to server successfully");
+                logger.log("Character saved to server successfully");
             }
 
             onClose();

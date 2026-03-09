@@ -3,10 +3,12 @@ import { ChatV2Service } from './chatV2Service';
 const mockEmit = vi.fn();
 const mockOn = vi.fn();
 const mockOff = vi.fn();
+const mockOnce = vi.fn();
 const mockSocket = {
   emit: mockEmit,
   on: mockOn,
   off: mockOff,
+  once: mockOnce,
   connected: true,
 };
 
@@ -324,14 +326,24 @@ describe('ChatV2Service', () => {
       await expect(service.listWorkspaces()).rejects.toThrow('Permission denied');
     });
 
-    it('emitWithAck rejects when socket is not connected', async () => {
+    it('emitWithAck waits for connect when socket is disconnected', async () => {
       mockSocket.connected = false;
+      simulateSuccess([]);
       const service = ChatV2Service.getInstance();
 
-      await expect(service.listWorkspaces()).rejects.toThrow(
-        'Socket is not connected',
-      );
+      // Should register a 'connect' listener instead of rejecting
+      const promise = service.listWorkspaces();
+      expect(mockOnce).toHaveBeenCalledWith('connect', expect.any(Function));
       expect(mockEmit).not.toHaveBeenCalled();
+
+      // Simulate the socket connecting
+      const connectCb = mockOnce.mock.calls.find(
+        (c: unknown[]) => c[0] === 'connect',
+      )?.[1] as () => void;
+      connectCb();
+
+      await promise;
+      expect(mockEmit).toHaveBeenCalled();
     });
   });
 

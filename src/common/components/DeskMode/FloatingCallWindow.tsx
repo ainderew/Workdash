@@ -3,6 +3,7 @@ import { Phone, Minus, ArrowUpRight, Pause, ArrowLeft } from 'lucide-react';
 import useCallStore from '@/common/store/callStore';
 import useChatV2Store from '@/common/store/chatV2Store';
 import useUiStore from '@/common/store/uiStore';
+import useUserStore from '@/common/store/useStore';
 import { useFloatingCallVisibility } from '@/common/hooks/useFloatingCallVisibility';
 import { CallSignalingService } from '@/communication/callSignaling/callSignalingService';
 import { VideoChatService } from '@/communication/videoChat/videoChat';
@@ -25,22 +26,6 @@ function getDefaultPosition() {
     x: window.innerWidth - WINDOW_WIDTH - EDGE_INSET,
     y: window.innerHeight - WINDOW_HEIGHT_EXPANDED - EDGE_INSET,
   };
-}
-
-function snapToNearestCorner(
-  pos: { x: number; y: number },
-  width: number,
-  height: number,
-) {
-  const centerX = pos.x + width / 2;
-  const centerY = pos.y + height / 2;
-  const midX = window.innerWidth / 2;
-  const midY = window.innerHeight / 2;
-
-  const snapX = centerX < midX ? EDGE_INSET : window.innerWidth - width - EDGE_INSET;
-  const snapY = centerY < midY ? EDGE_INSET : window.innerHeight - height - EDGE_INSET;
-
-  return { x: snapX, y: snapY };
 }
 
 function clampPosition(
@@ -66,7 +51,8 @@ export default function FloatingCallWindow() {
   const isScreenSharing = useCallStore((s) => s.localMedia.screen);
   const roomsById = useChatV2Store((s) => s.roomsById);
   const selectRoom = useChatV2Store((s) => s.selectRoom);
-  const userId = typeof window !== 'undefined' ? (window.__BACKEND_USER__?.id ?? 0) : 0;
+  const backendUser = useUserStore((s) => s.backendUser);
+  const userId = backendUser?.id ?? 0;
 
   const [isVisible, setIsVisible] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -416,7 +402,7 @@ export default function FloatingCallWindow() {
                     Call paused
                   </p>
                   <p className="text-[10px] wd-text-muted mt-0.5">
-                    You're in another workspace
+                    You&apos;re in another workspace
                   </p>
                 </div>
                 <button

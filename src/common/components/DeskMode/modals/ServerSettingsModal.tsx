@@ -11,6 +11,7 @@ import {
     X,
 } from "lucide-react";
 import { CONFIG } from "@/common/utils/config";
+import { tokenStore } from "@/common/utils/tokenStore";
 import {
     PERMISSIONS,
     PERMISSION_CATEGORIES,
@@ -22,6 +23,7 @@ const DEFAULT_ROLE_PERMISSIONS = Object.values(PERMISSIONS)
     .reduce((acc, p) => acc | p.bit, BigInt(0));
 import type { WorkspaceMember, WorkspaceRole } from "@/communication/chatV2/_types";
 import { ChatV2Service } from "@/communication/chatV2/chatV2Service";
+import { colorToHex } from "@/common/utils/roleColor";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"];
@@ -34,10 +36,6 @@ const ROLE_COLORS = [
     0xE67E22, 0x1ABC9C, 0x3498DB, 0x9B59B6, 0xE91E63,
     0x11806A, 0x206694, 0x71368A, 0xAD1457, 0xF1C40F,
 ];
-
-function colorToHex(color: number): string {
-    return `#${color.toString(16).padStart(6, "0")}`;
-}
 
 interface ServerSettingsModalProps {
     isOpen: boolean;
@@ -607,7 +605,7 @@ function ServerSettingsModal({
         setError(null);
 
         try {
-            const jwt = window.__BACKEND_JWT__;
+            const jwt = tokenStore.getJwt();
             if (!jwt) throw new Error("Not authenticated");
 
             const formData = new FormData();
@@ -649,7 +647,7 @@ function ServerSettingsModal({
         setError(null);
 
         try {
-            const jwt = window.__BACKEND_JWT__;
+            const jwt = tokenStore.getJwt();
             if (!jwt) throw new Error("Not authenticated");
 
             const response = await fetch(
@@ -689,7 +687,7 @@ function ServerSettingsModal({
         setError(null);
 
         try {
-            const jwt = window.__BACKEND_JWT__;
+            const jwt = tokenStore.getJwt();
             if (!jwt) throw new Error("Not authenticated");
 
             const response = await fetch(

@@ -1,4 +1,5 @@
 import React from "react";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import { PlayIcon, Gamepad2Icon } from "lucide-react";
 export function DemoSection() {
@@ -39,10 +40,11 @@ export function DemoSection() {
                     </div>
 
                     <div className="relative aspect-video group cursor-pointer">
-                        <img
+                        <Image
                             src="https://camo.githubusercontent.com/5d8964ce817418a7658dc7228a2d2a603bba41a970f96183af33d7324a07100e/68747470733a2f2f63646e2e737461746963616c6c792e696f2f67682f61696e64657265772f61696e6465726577406d61737465722f776f726b646173682e706e67"
                             alt="Game Interface"
-                            className="w-full h-full object-cover opacity-80 group-hover:opacity-40 transition-opacity duration-500"
+                            fill
+                            className="object-cover opacity-80 group-hover:opacity-40 transition-opacity duration-500"
                         />
 
                         <div className="absolute inset-0 flex items-center justify-center">

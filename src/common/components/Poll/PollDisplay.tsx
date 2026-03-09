@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { X, CheckCircle } from "lucide-react";
 import usePollStore from "@/common/store/pollStore";
+import useUserStore from "@/common/store/useStore";
+import { logger } from "@/common/utils/logger";
 import { PollService } from "@/communication/poll/poll";
 import { MediaTransportService } from "@/communication/mediaTransportService/mediaTransportServive";
 import PollOption from "./PollOption";
@@ -11,10 +13,11 @@ export default function PollDisplay() {
     const setActivePoll = usePollStore((state) => state.setActivePoll);
     const hasUserVoted = usePollStore((state) => state.hasUserVoted);
 
+    const backendUser = useUserStore((s) => s.backendUser);
     const [selectedOptionIds, setSelectedOptionIds] = useState<string[]>([]);
     const overlayRef = useRef<HTMLDivElement>(null);
 
-    const backendUserId = window.__BACKEND_USER__?.id;
+    const backendUserId = backendUser?.id;
     const currentUserId = backendUserId
         ? String(backendUserId)
         : MediaTransportService.getInstance().socket.id || "";
@@ -24,7 +27,7 @@ export default function PollDisplay() {
 
     useEffect(() => {
         if (activePoll) {
-            console.log("Poll creator check:", {
+            logger.log("Poll creator check:", {
                 pollCreatorId: activePoll.creatorId,
                 currentUserId,
                 isCreator,

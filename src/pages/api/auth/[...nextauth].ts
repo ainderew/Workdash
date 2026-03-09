@@ -45,16 +45,15 @@ async function refreshAccessToken(token: JWT) {
     }
 }
 
-async function performBackendSync(email: string, name: string, image?: string) {
+async function performBackendSync(idToken: string) {
     const backendUrl = `${CONFIG.SFU_SERVER_URL}/api/auth/google-sync`;
-    console.log("Syncing with backend:", backendUrl);
 
     const response = await fetch(backendUrl, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email, name, image }),
+        body: JSON.stringify({ idToken }),
     });
 
     if (!response.ok) {
@@ -70,6 +69,33 @@ async function performBackendSync(email: string, name: string, image?: string) {
         user: { ...restUser, image: avatarUrl },
         character: data.character,
         // Set expiration to 25 days (less than the 30d server default)
+        expiresAt: Date.now() + 25 * 24 * 60 * 60 * 1000,
+    };
+}
+
+async function refreshBackendToken(existingJwt: string) {
+    const backendUrl = `${CONFIG.SFU_SERVER_URL}/api/auth/refresh`;
+
+    const response = await fetch(backendUrl, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${existingJwt}`,
+        },
+    });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Failed to refresh backend token", response.status, errorText);
+        throw new Error("BackendRefreshError");
+    }
+
+    const data = await response.json();
+    const { avatarUrl, ...restUser } = data.user ?? {};
+    return {
+        token: data.token,
+        user: { ...restUser, image: avatarUrl },
+        character: data.character,
         expiresAt: Date.now() + 25 * 24 * 60 * 60 * 1000,
     };
 }
@@ -91,14 +117,10 @@ export const authOptions: AuthOptions = {
         }),
     ],
     callbacks: {
-        async signIn({ user, account }) {
-            if (account?.provider === "google") {
+        async signIn({ account }) {
+            if (account?.provider === "google" && account.id_token) {
                 try {
-                    const syncData = await performBackendSync(
-                        user.email!,
-                        user.name!,
-                        user.image!
-                    );
+                    const syncData = await performBackendSync(account.id_token);
 
                     const extendedAccount = account as ExtendedAccount;
                     extendedAccount.backendJwt = syncData.token;
@@ -148,15 +170,10 @@ export const authOptions: AuthOptions = {
                 newToken = await refreshAccessToken(newToken);
             }
 
-            if (isBackendTokenExpired || isAccessTokenExpired) {
-                // Refresh backend token if it's expired OR if we just refreshed the google token
-                // (refreshing on google refresh keeps them somewhat in sync)
+            if ((isBackendTokenExpired || isAccessTokenExpired) && newToken.backendJwt) {
+                // Refresh backend token using existing JWT (no raw email sent)
                 try {
-                    const syncData = await performBackendSync(
-                        newToken.email!,
-                        newToken.name!,
-                        newToken.picture! // token has picture instead of image
-                    );
+                    const syncData = await refreshBackendToken(newToken.backendJwt as string);
                     newToken.backendJwt = syncData.token;
                     newToken.backendJwtExpiresAt = syncData.expiresAt;
                     newToken.backendUser = syncData.user;

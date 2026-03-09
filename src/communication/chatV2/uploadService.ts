@@ -1,5 +1,6 @@
 import type { ChatV2CreateAttachment } from "@/communication/chatV2/_types";
 import { CONFIG } from "@/common/utils/config";
+import { tokenStore } from "@/common/utils/tokenStore";
 import { getCachedUrl, setCachedUrl } from "./urlCacheService";
 
 type UploadUrlResponse = {
@@ -23,7 +24,7 @@ const COMPRESSION_QUALITY = 0.8;
 const SKIP_THRESHOLD_BYTES = 200 * 1024; // 200KB
 
 const getBackendJwt = (): string => {
-    const jwt = window.__BACKEND_JWT__;
+    const jwt = tokenStore.getJwt();
     if (!jwt) {
         throw new Error("Missing backend auth token");
     }

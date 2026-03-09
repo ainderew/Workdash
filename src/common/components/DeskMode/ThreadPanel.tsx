@@ -35,6 +35,7 @@ import Composer from "./Composer";
 import MessageHoverActions from "./MessageHoverActions";
 import MentionHighlightedContent from "./MentionHighlightedContent";
 import MessageReactionChips from "./MessageReactionChips";
+import useUserStore from "@/common/store/useStore";
 import UserAvatar from "./UserAvatar";
 
 interface ThreadPanelProps {
@@ -135,8 +136,8 @@ function ThreadMessageRow({
         });
     };
 
-    const localBackendUserId =
-        typeof window !== "undefined" ? window.__BACKEND_USER__?.id : undefined;
+    const backendUser = useUserStore((s) => s.backendUser);
+    const localBackendUserId = backendUser?.id;
     const isCurrentUserMentioned =
         typeof localBackendUserId === "number"
         && hasMentions
@@ -412,8 +413,8 @@ function ThreadPanel({
     >({});
     const [avatarImageLookupStatusByUserId, setAvatarImageLookupStatusByUserId] =
         useState<Record<number, "pending" | "done">>({});
-    const localBackendUserId =
-        typeof window !== "undefined" ? window.__BACKEND_USER__?.id : undefined;
+    const backendUser = useUserStore((s) => s.backendUser);
+    const localBackendUserId = backendUser?.id;
 
     const memberNameMap = useMemo(
         () => buildMemberNameMap(members || []),

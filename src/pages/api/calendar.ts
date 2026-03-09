@@ -29,17 +29,16 @@ export default async function handler(
         const timeMin = startOfDay(targetDate).toISOString();
         const timeMax = endOfDay(targetDate).toISOString();
 
-        const events = await calendar.events.list({
+        const response = await calendar.events.list({
             calendarId: "primary",
             timeMin: timeMin,
             timeMax: timeMax,
             maxResults: 50,
             singleEvents: true,
             orderBy: "startTime",
-            conferenceDataVersion: 1,
         });
 
-        return res.status(200).json(events.data.items ?? []);
+        return res.status(200).json(response.data.items ?? []);
     } catch (error) {
         console.error("Calendar API error:", error);
         return res.status(500).json({ error: "Failed to fetch calendar" });

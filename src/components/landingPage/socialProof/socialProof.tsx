@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 const npcs = [
     {
@@ -108,10 +109,11 @@ export function SocialProof() {
                   relative overflow-hidden
                 "
                             >
-                                <img
+                                <Image
                                     src={npc.logo}
                                     alt={npc.name}
-                                    className="w-full h-full object-cover"
+                                    fill
+                                    className="object-cover"
                                 />
 
                                 {}

@@ -229,6 +229,7 @@ export type ChatV2UserProfile = {
         nickname?: string | null;
         image: string | null;
         bio: string | null;
+        banner?: BannerConfig;
         characterCustomization?: ChatV2CharacterCustomization | null;
     };
     isSelf: boolean;
@@ -372,3 +373,9 @@ export type WorkspaceMap = {
     createdAt: string | Date;
     updatedAt: string | Date;
 };
+
+export type BannerConfig =
+    | { type: 'solid'; color: string }
+    | { type: 'gradient'; gradient: string }
+    | { type: 'image'; url: string }
+    | null;

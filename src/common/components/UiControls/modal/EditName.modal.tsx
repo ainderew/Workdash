@@ -4,6 +4,7 @@ import useUserStore from "@/common/store/useStore";
 import { X, Loader2 } from "lucide-react";
 import { CharacterEventBus } from "@/game/character/CharacterEventBus";
 import { getDisplayNameFromParts } from "@/common/utils/displayName";
+import { logger } from "@/common/utils/logger";
 
 interface EditNameModalProps {
     isOpen: boolean;
@@ -101,7 +102,7 @@ export function EditNameModal({
                 typeof multiplayer.emitNameUpdate === "function"
             ) {
                 multiplayer.emitNameUpdate(updatedName, updatedNickname);
-                console.log("Name update emitted to backend via socket");
+                logger.log("Name update emitted to backend via socket");
             } else {
                 console.warn(
                     "Multiplayer instance not available for name update broadcast",

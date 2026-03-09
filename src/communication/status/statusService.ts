@@ -1,5 +1,6 @@
 import { usePresenceStore } from "@/common/store/presenceStore";
 import type { StatusDefinition } from "@/common/store/presenceStore";
+import useUserStore from "@/common/store/useStore";
 
 export class StatusClientService {
     private static instance: StatusClientService;
@@ -47,7 +48,7 @@ export class StatusClientService {
                 };
                 usePresenceStore.getState().setPresence(payload.userId, presence);
 
-                const currentUserId = window.__BACKEND_USER__?.id;
+                const currentUserId = useUserStore.getState().backendUser?.id;
                 if (
                     typeof currentUserId === "number" &&
                     payload.userId === currentUserId
@@ -75,7 +76,7 @@ export class StatusClientService {
                         store.setDefinitions(response.data.definitions);
 
                         const defs = usePresenceStore.getState().definitions;
-                        const currentUserId = window.__BACKEND_USER__?.id;
+                        const currentUserId = useUserStore.getState().backendUser?.id;
                         const existingPresence =
                             typeof currentUserId === "number"
                                 ? store.presenceMap[currentUserId]
@@ -120,7 +121,7 @@ export class StatusClientService {
             };
             store.setMyStatus(newPresence);
 
-            const currentUserId = window.__BACKEND_USER__?.id;
+            const currentUserId = useUserStore.getState().backendUser?.id;
             if (typeof currentUserId === "number") {
                 store.setPresence(currentUserId, newPresence);
             }
@@ -136,7 +137,7 @@ export class StatusClientService {
                         usePresenceStore
                             .getState()
                             .setMyStatus(previousStatus);
-                        const currentUserId = window.__BACKEND_USER__?.id;
+                        const currentUserId = useUserStore.getState().backendUser?.id;
                         if (typeof currentUserId === "number") {
                             usePresenceStore
                                 .getState()

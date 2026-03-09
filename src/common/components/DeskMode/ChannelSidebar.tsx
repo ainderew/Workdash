@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
 import type {
     ChatV2Room,
     ChatV2RoomCategory,
@@ -116,6 +117,7 @@ function ChannelSidebar({
     isCreatingCategory,
     isArranging,
     isUpdatingRoom,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     presentation = "desk",
     onSelectRoom,
     onCreateRoom,
@@ -132,6 +134,7 @@ function ChannelSidebar({
 }: ChannelSidebarProps) {
 
     const user = useUserStore((state) => state.user);
+    const backendUser = useUserStore((s) => s.backendUser);
     const unreadByRoomId = useChatV2Store((state) => state.unreadByRoomId);
     const [collapsedByCategoryKey, setCollapsedByCategoryKey] = useState<
         Record<string, boolean>
@@ -264,16 +267,15 @@ function ChannelSidebar({
     const displayName = getDisplayName(
         {
             nickname:
-                user.nickname ?? window.__BACKEND_USER__?.nickname ?? null,
-            name: user.name || window.__BACKEND_USER__?.name || null,
+                user.nickname ?? backendUser?.nickname ?? null,
+            name: user.name || backendUser?.name || null,
         },
         "You",
     );
     const normalizedServerName = serverName.trim() || "Workdash Server";
-    const localBackendUserId =
-        typeof window !== "undefined" ? window.__BACKEND_USER__?.id : undefined;
+    const localBackendUserId = backendUser?.id;
     const spriteSheetDataUrl = user.spriteSheetDataUrl?.trim() || "";
-    const avatarUrl = user.image?.trim() || window.__BACKEND_USER__?.image?.trim() || "";
+    const avatarUrl = user.image?.trim() || backendUser?.image?.trim() || "";
     const showAvatarImage = avatarUrl.length > 0 && !isAvatarLoadFailed;
 
     const avatarSpriteStyles = useMemo<React.CSSProperties>(() => {
@@ -631,10 +633,12 @@ function ChannelSidebar({
                 >
                     {serverImageUrl && (
                         <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center overflow-hidden rounded">
-                            <img
+                            <Image
                                 src={serverImageUrl}
                                 alt=""
-                                loading="lazy"
+                                width={20}
+                                height={20}
+                                unoptimized
                                 className="h-full w-full object-cover"
                             />
                         </span>

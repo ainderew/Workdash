@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import useUserStore from '@/common/store/useStore';
 import { CONFIG } from '@/common/utils/config';
+import { tokenStore } from '@/common/utils/tokenStore';
 
 const MAX_AVATAR_SIZE = 5 * 1024 * 1024;
 const ALLOWED_AVATAR_TYPES = [
@@ -57,7 +58,7 @@ export function useAvatarUpload() {
   const handleUpload = useCallback(async (): Promise<string | null> => {
     if (!avatarFile) return null;
 
-    const jwt = window.__BACKEND_JWT__;
+    const jwt = tokenStore.getJwt();
     if (!jwt) throw new Error('Not authenticated');
 
     setIsUploading(true);
@@ -85,12 +86,8 @@ export function useAvatarUpload() {
 
       const avatarUrl: string = body.avatarUrl;
       updateUser({ image: avatarUrl });
-      if (window.__BACKEND_USER__) {
-        window.__BACKEND_USER__ = {
-          ...window.__BACKEND_USER__,
-          image: avatarUrl,
-        };
-      }
+      tokenStore.updateUser({ image: avatarUrl });
+      useUserStore.getState().updateBackendUser({ image: avatarUrl });
 
       setAvatarFile(null);
       setAvatarPreview(null);
@@ -108,7 +105,7 @@ export function useAvatarUpload() {
   }, [avatarFile, updateUser]);
 
   const handleDelete = useCallback(async () => {
-    const jwt = window.__BACKEND_JWT__;
+    const jwt = tokenStore.getJwt();
     if (!jwt) {
       setError('Not authenticated');
       return;
@@ -132,12 +129,8 @@ export function useAvatarUpload() {
       }
 
       updateUser({ image: undefined });
-      if (window.__BACKEND_USER__) {
-        window.__BACKEND_USER__ = {
-          ...window.__BACKEND_USER__,
-          image: undefined,
-        };
-      }
+      tokenStore.updateUser({ image: undefined });
+      useUserStore.getState().updateBackendUser({ image: undefined });
       setAvatarFile(null);
       setAvatarPreview(null);
     } catch (deleteError) {

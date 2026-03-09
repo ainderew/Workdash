@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import { Building2, Check, Link, Loader2, Plus, X } from "lucide-react";
 import useWorkspaceStore from "@/common/store/workspaceStore";
 import useChatV2Store from "@/common/store/chatV2Store";
@@ -289,7 +290,7 @@ function WorkspaceCard({
 }) {
     const viewerUserId = (
         typeof window !== "undefined"
-            ? (window as Record<string, unknown>).__BACKEND_USER__
+            ? (window as unknown as Record<string, unknown>).__BACKEND_USER__
             : null
     ) as { id: number } | null;
     const isOwner = viewerUserId?.id === workspace.ownerId;
@@ -316,9 +317,12 @@ function WorkspaceCard({
             {/* Avatar */}
             <div className="w-14 h-14 rounded-[14px] wd-bg-elevated flex items-center justify-center text-xl font-bold wd-text-primary overflow-hidden shrink-0">
                 {workspace.iconUrl ? (
-                    <img
+                    <Image
                         src={workspace.iconUrl}
                         alt=""
+                        width={56}
+                        height={56}
+                        unoptimized
                         className="w-full h-full object-cover"
                     />
                 ) : (

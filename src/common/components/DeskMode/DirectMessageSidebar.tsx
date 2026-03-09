@@ -60,6 +60,7 @@ function DirectMessageSidebar({
 }: DirectMessageSidebarProps) {
     const setInteractionMode = useUiStore((state) => state.setInteractionMode);
     const user = useUserStore((state) => state.user);
+    const backendUser = useUserStore((s) => s.backendUser);
     const unreadByRoomId = useChatV2Store((state) => state.unreadByRoomId);
     const [query, setQuery] = useState("");
     const [isAvatarLoadFailed, setIsAvatarLoadFailed] = useState(false);
@@ -77,15 +78,14 @@ function DirectMessageSidebar({
     const displayName = getDisplayName(
         {
             nickname:
-                user.nickname ?? window.__BACKEND_USER__?.nickname ?? null,
-            name: user.name || window.__BACKEND_USER__?.name || null,
+                user.nickname ?? backendUser?.nickname ?? null,
+            name: user.name || backendUser?.name || null,
         },
         "You",
     );
-    const localBackendUserId =
-        typeof window !== "undefined" ? window.__BACKEND_USER__?.id : undefined;
+    const localBackendUserId = backendUser?.id;
     const spriteSheetDataUrl = user.spriteSheetDataUrl?.trim() || "";
-    const avatarUrl = user.image?.trim() || window.__BACKEND_USER__?.image?.trim() || "";
+    const avatarUrl = user.image?.trim() || backendUser?.image?.trim() || "";
     const showAvatarImage = avatarUrl.length > 0 && !isAvatarLoadFailed;
 
     const avatarSpriteStyles = useMemo<React.CSSProperties>(() => {

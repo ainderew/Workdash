@@ -25,6 +25,7 @@ const mockService = {
   createCategory: vi.fn(),
   listRoomMembers: vi.fn().mockResolvedValue([]),
   listPinnedMessages: vi.fn().mockResolvedValue([]),
+  selectWorkspace: vi.fn(),
 };
 
 vi.mock('@/communication/chatV2/chatV2Service', () => ({
@@ -208,6 +209,7 @@ beforeEach(() => {
   mockService.updateReadCursor.mockResolvedValue(undefined);
   mockService.listRoomMembers.mockResolvedValue([]);
   mockService.listPinnedMessages.mockResolvedValue([]);
+  mockService.selectWorkspace.mockReturnValue(undefined);
 });
 
 // ---------------------------------------------------------------------------
@@ -241,6 +243,7 @@ describe('useChatV2Store', () => {
       ];
       mockService.listRooms.mockResolvedValue(rooms);
 
+      useChatV2Store.setState({ selectedWorkspaceId: 'ws-1' });
       await useChatV2Store.getState().reloadRoomStructure();
 
       const state = useChatV2Store.getState();
@@ -257,6 +260,7 @@ describe('useChatV2Store', () => {
       mockService.listRooms.mockResolvedValue([newRoom]);
       mockService.joinRoom.mockResolvedValue(newRoom);
 
+      useChatV2Store.setState({ selectedWorkspaceId: 'ws-1' });
       await useChatV2Store.getState().createRoom({ name: 'new-channel' });
 
       const state = useChatV2Store.getState();
@@ -477,6 +481,7 @@ describe('useChatV2Store', () => {
     it('sets error when initialization fails', async () => {
       mockService.listRooms.mockRejectedValue(new Error('Network failure'));
 
+      useChatV2Store.setState({ selectedWorkspaceId: 'ws-1' });
       await useChatV2Store.getState().initialize();
 
       const state = useChatV2Store.getState();
@@ -577,6 +582,7 @@ describe('useChatV2Store', () => {
       const room1 = makeRoom({ id: 'room-1', name: 'general', position: 0 });
       const room2 = makeRoom({ id: 'room-2', name: 'random', position: 1 });
       useChatV2Store.setState({
+        selectedWorkspaceId: 'ws-1',
         roomsById: { 'room-1': room1, 'room-2': room2 },
         roomOrder: ['room-1', 'room-2'],
         currentRoomId: 'room-1',
@@ -606,6 +612,7 @@ describe('useChatV2Store', () => {
     it('renameRoom updates room name in roomsById', async () => {
       const room = makeRoom({ id: 'room-1', name: 'old-name' });
       useChatV2Store.setState({
+        selectedWorkspaceId: 'ws-1',
         roomsById: { 'room-1': room },
         roomOrder: ['room-1'],
       });

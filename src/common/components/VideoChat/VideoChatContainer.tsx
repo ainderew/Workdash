@@ -21,14 +21,15 @@ function VideoChatContainer({
     }
 
     const user = useUserStore((state) => state.user);
+    const backendUser = useUserStore((s) => s.backendUser);
     const localNameAliases = getNameAliases({
-        nickname: user.nickname ?? window.__BACKEND_USER__?.nickname ?? null,
-        name: user.name || window.__BACKEND_USER__?.name || null,
+        nickname: user.nickname ?? backendUser?.nickname ?? null,
+        name: user.name || backendUser?.name || null,
     });
     const localDisplayName = getDisplayName(
         {
-            nickname: user.nickname ?? window.__BACKEND_USER__?.nickname ?? null,
-            name: user.name || window.__BACKEND_USER__?.name || null,
+            nickname: user.nickname ?? backendUser?.nickname ?? null,
+            name: user.name || backendUser?.name || null,
         },
         "",
     );

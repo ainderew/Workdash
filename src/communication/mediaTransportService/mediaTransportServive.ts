@@ -1,5 +1,6 @@
 import useUserStore from "@/common/store/useStore";
 import { CONFIG } from "@/common/utils/config";
+import { logger } from "@/common/utils/logger";
 import { Device } from "mediasoup-client";
 import {
     DtlsParameters,
@@ -15,7 +16,7 @@ import { StatusClientService } from "@/communication/status/statusService";
 
 export class MediaTransportService {
     private static instance: MediaTransportService | null = null;
-    public socket: SocketIOClient.Socket;
+    public socket: ReturnType<typeof io>;
     public device: Device | null = null;
 
     public recvTransport: Transport | null = null;
@@ -48,7 +49,7 @@ export class MediaTransportService {
         });
 
         this.socket.on("disconnect", (reason: string) => {
-            console.log("MediaTransport socket disconnected:", reason);
+            logger.log("MediaTransport socket disconnected:", reason);
         });
 
         this.socket.on("sfuInitialized", () => {
@@ -60,12 +61,14 @@ export class MediaTransportService {
 
     public setAuthToken(jwtToken: string) {
         const token = jwtToken.trim();
-        const auth = (
-            this.socket.auth ?? {}
-        ) as { token?: string; chatProtocolVersion?: number };
+        // socket.io-client v4 supports `auth` at runtime but types omit it
+        const sock = this.socket as unknown as {
+            auth: { token?: string; chatProtocolVersion?: number };
+        };
+        const auth = sock.auth ?? {};
         auth.token = token;
         auth.chatProtocolVersion = 2;
-        this.socket.auth = auth;
+        sock.auth = auth;
     }
 
     public connect() {

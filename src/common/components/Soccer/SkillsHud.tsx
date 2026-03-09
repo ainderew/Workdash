@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useState } from "react";
+import Image from "next/image";
 import useUiStore from "@/common/store/uiStore";
 import useSoccerStore from "@/common/store/soccerStore";
 import usePlayersStore from "@/common/store/playerStore";
@@ -236,9 +237,11 @@ function SkillIcon({
                 }}
             >
                 {/* Skill icon image */}
-                <img
+                <Image
                     src={getSkillIconPath()}
                     alt={skill.name}
+                    width={64}
+                    height={64}
                     className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-200 ${
                         isOnCooldown ? "opacity-30" : "opacity-100"
                     }`}

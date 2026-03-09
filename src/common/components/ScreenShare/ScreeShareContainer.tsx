@@ -1,6 +1,7 @@
 import React from "react";
 import { X, Maximize2, Minimize2 } from "lucide-react";
 import { ScreenShareViewer } from "@/communication/screenShare/screenShareViewer";
+import { logger } from "@/common/utils/logger";
 
 function ScreeShareContainer({
     producerId,
@@ -15,7 +16,7 @@ function ScreeShareContainer({
 }) {
     function handleClick(e: React.MouseEvent) {
         e.stopPropagation();
-        console.log("🖱️ Clicked video:", producerId, "isExpanded:", isExpanded);
+        logger.log("🖱️ Clicked video:", producerId, "isExpanded:", isExpanded);
         handleExpand(producerId);
     }
 

@@ -11,10 +11,7 @@ import {
 } from "lucide-react";
 import type { WorkspaceMember, WorkspaceRole } from "@/communication/chatV2/_types";
 import { getDisplayName } from "@/common/utils/displayName";
-
-function colorToHex(color: number): string {
-    return `#${color.toString(16).padStart(6, "0")}`;
-}
+import { colorToHex } from "@/common/utils/roleColor";
 
 interface WorkspaceMemberContextMenuProps {
     member: WorkspaceMember;

@@ -16,13 +16,10 @@ import type {
 } from "@/communication/chatV2/_types";
 import { ChatV2Service } from "@/communication/chatV2/chatV2Service";
 import { getDisplayName } from "@/common/utils/displayName";
+import { colorToHex } from "@/common/utils/roleColor";
 import UserAvatar from "../UserAvatar";
 import PresenceDot from "../PresenceDot";
 import WorkspaceMemberContextMenu from "../WorkspaceMemberContextMenu";
-
-function colorToHex(color: number): string {
-    return `#${color.toString(16).padStart(6, "0")}`;
-}
 
 // ================================================================
 // Types

@@ -19,6 +19,7 @@ import { useKeyboardShortcuts } from "@/common/keyboard";
 import { PollService } from "./communication/poll/poll";
 import PollDisplay from "./common/components/Poll/PollDisplay";
 import { CallSignalingService } from "./communication/callSignaling/callSignalingService";
+import { tokenStore } from "./common/utils/tokenStore";
 import PollNotification from "./common/components/Poll/PollNotification";
 import SoccerScoreboard from "./common/components/Soccer/SoccerScoreboard";
 import SkillsHud from "./common/components/Soccer/SkillsHud";
@@ -30,6 +31,7 @@ import useChatV2Store from "./common/store/chatV2Store";
 import DeskLayout from "./common/components/DeskMode/DeskLayout";
 import WorkspaceSelectorOverlay from "./common/components/WorkspaceSelector/WorkspaceSelectorOverlay";
 import useThemeStore from "@/common/store/themeStore";
+import { EventBus } from "@/game/EventBus";
 
 function App() {
     const interactionMode = useUiStore((state) => state.interactionMode);
@@ -61,7 +63,7 @@ function App() {
             return;
         }
 
-        const jwtToken = session.backendJwt || window.__BACKEND_JWT__ || "";
+        const jwtToken = session.backendJwt || tokenStore.getJwt();
 
         const transport = MediaTransportService.getInstance(jwtToken);
         const reactionService = ReactionService.getInstance();
@@ -105,10 +107,14 @@ function App() {
 
     const setUser = useUserStore((state: UserStore) => state.setUser);
     useEffect(() => {
-        const storedUser = localStorage.getItem("user");
-        if (storedUser) {
-            const user: User = JSON.parse(storedUser);
-            setUser(user);
+        try {
+            const storedUser = localStorage.getItem("user");
+            if (storedUser) {
+                const user: User = JSON.parse(storedUser);
+                setUser(user);
+            }
+        } catch {
+            localStorage.removeItem("user");
         }
     }, [setUser]);
 
@@ -165,7 +171,16 @@ function App() {
         if (!isInitialized) return;
         const selectedId = useChatV2Store.getState().selectedWorkspaceId;
         if (!selectedId) {
-            openWorkspaceSelector();
+            const storedDefault = localStorage.getItem('workdash:defaultWorkspaceId');
+            if (storedDefault) {
+                useChatV2Store.getState().setSelectedWorkspaceId(storedDefault);
+                EventBus.emit('workspace-switch', { workspaceId: storedDefault });
+                // Trigger room reload since initialize() may have already
+                // run (child effects fire before parent) with no workspace set
+                void useChatV2Store.getState().reloadRoomStructure();
+            } else {
+                openWorkspaceSelector();
+            }
         }
     }, [isInitialized, openWorkspaceSelector]);
 

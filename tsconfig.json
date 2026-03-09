@@ -16,7 +16,7 @@
     "isolatedModules": true,
     "jsx": "preserve",
     "incremental": true,
-    "strictPropertyInitialization": false,
+    "strictPropertyInitialization": true,
     "paths": {
       "@/*": [
         "./src/*"
@@ -30,6 +30,8 @@
     "**/*.tsx"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "**/*.test.ts",
+    "**/*.test.tsx"
   ]
 }

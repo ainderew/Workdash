@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
+import Image from "next/image";
 import { ChevronDown, Plus, MessageSquareMore } from "lucide-react";
 import useChatV2Store from "@/common/store/chatV2Store";
 import useWorkspaceStore from "@/common/store/workspaceStore";
@@ -97,9 +98,12 @@ export function WorldWorkspaceSwitcher({
                     <>
                         <span className="w-7 h-7 rounded-lg wd-bg-elevated flex items-center justify-center text-xs font-bold shrink-0 overflow-hidden">
                             {activeWorkspace.iconUrl ? (
-                                <img
+                                <Image
                                     src={activeWorkspace.iconUrl}
                                     alt=""
+                                    width={28}
+                                    height={28}
+                                    unoptimized
                                     className="w-full h-full object-cover"
                                 />
                             ) : (
@@ -153,9 +157,12 @@ export function WorldWorkspaceSwitcher({
                                     )}
                                     <span className="w-8 h-8 rounded-lg wd-bg-elevated flex items-center justify-center text-xs font-bold shrink-0 overflow-hidden">
                                         {ws.iconUrl ? (
-                                            <img
+                                            <Image
                                                 src={ws.iconUrl}
                                                 alt=""
+                                                width={32}
+                                                height={32}
+                                                unoptimized
                                                 className="w-full h-full object-cover"
                                             />
                                         ) : (

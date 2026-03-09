@@ -6,6 +6,7 @@ import {
     PHYSICS_CONSTANTS,
     PhysicsState,
 } from "./shared-physics";
+import { logger } from "@/common/utils/logger";
 
 
 interface ServerBallState {
@@ -531,7 +532,7 @@ export class Ball extends Phaser.GameObjects.Sprite {
 
     private debugLog(message?: unknown, ...optionalParams: unknown[]) {
         if (!this.DEBUG_LOGS) return;
-        console.log(message, ...optionalParams);
+        logger.log(message, ...optionalParams);
     }
 
     private debugWarn(message?: unknown, ...optionalParams: unknown[]) {

@@ -10,6 +10,7 @@ import {
     calculateKickVelocity,
     PHYSICS_CONSTANTS,
 } from "../soccer/shared-physics";
+import { logger } from "@/common/utils/logger";
 
 export interface SkillConfig {
     id: string;
@@ -35,7 +36,7 @@ export interface SkillConfig {
 export class SoccerMap extends BaseGameScene {
     public mapKey = "soccer_map";
     public worldBounds = { width: 3520, height: 1600 };
-    private ball: Ball;
+    private ball!: Ball;
     private floorMarkingsLayer: Phaser.Tilemaps.TilemapLayer | null = null;
     private floorLayer: Phaser.Tilemaps.TilemapLayer | null = null;
     private goalsLayer: Phaser.Tilemaps.TilemapLayer | null = null;
@@ -301,7 +302,7 @@ export class SoccerMap extends BaseGameScene {
         });
 
         socket.on("goal:scored", (data: any) => {
-            console.log(`GOAL! ${data.scoringTeam} scored!`);
+            logger.log(`GOAL! ${data.scoringTeam} scored!`);
             this.sound.play("soccer_cheer", { volume: 0.2 });
             this.ball.setPosition(PHYSICS_CONSTANTS.WORLD_WIDTH / 2, PHYSICS_CONSTANTS.WORLD_HEIGHT / 2);
         });

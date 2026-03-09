@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import UserAvatar from '../UserAvatar';
 import PresenceDot from '../PresenceDot';
 import { CONFIG } from '@/common/utils/config';
+import { tokenStore } from '@/common/utils/tokenStore';
 import useUserStore from '@/common/store/useStore';
 import type { ProfilePopoverState, SenderAvatar } from './types';
 import { useProfilePopover } from './hooks/useProfilePopover';
@@ -71,7 +72,7 @@ export function ProfilePopover({
       return;
     }
 
-    const jwt = window.__BACKEND_JWT__;
+    const jwt = tokenStore.getJwt();
     if (!jwt) {
       toast('Not authenticated');
       return;
@@ -95,12 +96,8 @@ export function ProfilePopover({
       }
       const avatarUrl: string = body.avatarUrl;
       updateUser({ image: avatarUrl });
-      if (window.__BACKEND_USER__) {
-        window.__BACKEND_USER__ = {
-          ...window.__BACKEND_USER__,
-          image: avatarUrl,
-        };
-      }
+      tokenStore.updateUser({ image: avatarUrl });
+      useUserStore.getState().updateBackendUser({ image: avatarUrl });
       onAvatarUpdated({ mode: 'image', src: avatarUrl });
       toast('Avatar updated');
     } catch (err) {

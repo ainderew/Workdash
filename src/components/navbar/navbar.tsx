@@ -12,13 +12,13 @@ import {
     LayoutDashboard,
     Settings,
 } from "lucide-react";
-import { useRouter } from "next/router";
 import { useSession, signOut } from "next-auth/react";
+import Image from "next/image";
+import Link from "next/link";
 import { getDisplayName } from "@/common/utils/displayName";
 import { ThemeToggle } from "./themeToggle";
 
 export function Navbar() {
-    const router = useRouter();
     const { data: session, status } = useSession();
     const [isOpen, setIsOpen] = useState(false);
     const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -98,9 +98,11 @@ export function Navbar() {
                         className="flex items-center gap-3 group cursor-pointer"
                     >
                         <div className="relative">
-                            <img
+                            <Image
                                 src="/assets/workdash-logo.png"
                                 alt="WorkDash Logo"
+                                width={40}
+                                height={40}
                                 className="w-10 h-auto object-contain group-hover:scale-105 group-hover:brightness-110 transition-all duration-300 z-10 relative"
                             />
                             <div className="absolute inset-0 bg-cyan-500 blur-xl opacity-15 dark:opacity-25 group-hover:opacity-30 dark:group-hover:opacity-50 rounded-full transition-opacity duration-300" />
@@ -131,13 +133,13 @@ export function Navbar() {
                         {status === "authenticated" && session?.user ? (
                             <div className="flex items-center gap-6 pl-4 border-l border-slate-200 dark:border-slate-800">
                                 {/* Go To Office Button */}
-                                <button
-                                    onClick={() => router.push("/app")}
+                                <Link
+                                    href="/app"
                                     className="flex items-center gap-2 text-[10px] font-mono font-bold text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 transition-colors tracking-widest uppercase group"
                                 >
                                     <LayoutDashboard className="w-4 h-4 group-hover:scale-110 transition-transform" />
                                     Go to Office
-                                </button>
+                                </Link>
 
                                 {/* User Dropdown Trigger */}
                                 <div className="relative">
@@ -152,9 +154,11 @@ export function Navbar() {
                                             className={`absolute -inset-0.5 bg-cyan-500 rounded-full blur opacity-0 group-hover:opacity-50 transition duration-500 ${isProfileOpen ? "opacity-75" : ""}`}
                                         ></div>
                                         {session.user.image ? (
-                                            <img
+                                            <Image
                                                 src={session.user.image}
                                                 alt="Profile"
+                                                width={36}
+                                                height={36}
                                                 className="relative w-9 h-9 rounded-full border-2 border-white dark:border-slate-950 object-cover shadow-sm"
                                             />
                                         ) : (
@@ -210,17 +214,13 @@ export function Navbar() {
 
                                                     {/* Menu Items */}
                                                     <div className="p-2">
-                                                        <button
-                                                            onClick={() =>
-                                                                router.push(
-                                                                    "/app/settings",
-                                                                )
-                                                            }
+                                                        <Link
+                                                            href="/app/settings"
                                                             className="w-full flex items-center gap-3 px-3 py-2 text-xs font-mono text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors text-left"
                                                         >
                                                             <Settings className="w-4 h-4" />
                                                             Settings
-                                                        </button>
+                                                        </Link>
 
                                                         <button
                                                             onClick={() =>
@@ -242,15 +242,15 @@ export function Navbar() {
                                 </div>
                             </div>
                         ) : (
-                            <button
-                                onClick={() => router.push("/login")}
+                            <Link
+                                href="/login"
                                 className="relative group px-6 py-2 overflow-hidden"
                             >
                                 <div className="absolute inset-0 bg-cyan-500/10 border border-cyan-500/50 clip-path-polygon-sm group-hover:bg-cyan-500 transition-all duration-300" />
                                 <span className="relative text-cyan-600 dark:text-cyan-400 dark:group-hover:text-slate-950 group-hover:text-slate-950 text-[10px] font-mono font-bold tracking-widest flex items-center gap-2">
                                     Login <ChevronRight className="w-3 h-3" />
                                 </span>
-                            </button>
+                            </Link>
                         )}
                     </div>
 
@@ -289,9 +289,11 @@ export function Navbar() {
                                     session?.user && (
                                         <div className="flex items-center gap-3 pb-6 border-b border-slate-200 dark:border-slate-800">
                                             {session.user.image ? (
-                                                <img
+                                                <Image
                                                     src={session.user.image}
                                                     alt="Profile"
+                                                    width={40}
+                                                    height={40}
                                                     className="w-10 h-10 rounded-full border-2 border-cyan-500/50"
                                                 />
                                             ) : (
@@ -338,13 +340,13 @@ export function Navbar() {
 
                                 {status === "authenticated" ? (
                                     <div className="flex flex-col gap-3 mt-4">
-                                        <button
-                                            onClick={() => router.push("/app")}
+                                        <Link
+                                            href="/app"
                                             className="w-full py-4 bg-cyan-500 text-slate-950 font-bold font-mono text-xs uppercase clip-path-polygon shadow-[0_0_20px_rgba(6,182,212,0.4)] flex items-center justify-center gap-2"
                                         >
                                             <LayoutDashboard className="w-4 h-4" />
                                             GO TO OFFICE
-                                        </button>
+                                        </Link>
                                         <button
                                             onClick={() =>
                                                 signOut({ callbackUrl: "/" })
@@ -356,12 +358,12 @@ export function Navbar() {
                                         </button>
                                     </div>
                                 ) : (
-                                    <button
-                                        onClick={() => router.push("/app")}
-                                        className="mt-4 w-full py-4 bg-cyan-500 text-slate-950 font-bold font-mono text-xs uppercase clip-path-polygon shadow-[0_0_20px_rgba(6,182,212,0.4)]"
+                                    <Link
+                                        href="/app"
+                                        className="mt-4 w-full py-4 bg-cyan-500 text-slate-950 font-bold font-mono text-xs uppercase clip-path-polygon shadow-[0_0_20px_rgba(6,182,212,0.4)] block text-center"
                                     >
                                         LAUNCH_APP
-                                    </button>
+                                    </Link>
                                 )}
                             </div>
                         </motion.div>

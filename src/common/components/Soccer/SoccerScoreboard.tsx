@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
+import Image from "next/image";
 import useUiStore from "@/common/store/uiStore";
 import { CharacterPreview } from "../CharacterCreation/CharacterPreview";
 import {
@@ -495,7 +496,7 @@ export default function SoccerScoreboard() {
                                             className="relative"
                                         >
                                             <div className="absolute inset-0 bg-amber-500/40 blur-2xl rounded-full" />
-                                            <img
+                                            <Image
                                                 src={getRankBadgePath(
                                                     mmrUpdates.find(
                                                         (u) =>
@@ -503,6 +504,8 @@ export default function SoccerScoreboard() {
                                                             mvp.id,
                                                     )?.newMmr || 500,
                                                 )}
+                                                width={160}
+                                                height={160}
                                                 className="w-40 h-40 object-contain relative z-10"
                                                 alt="Rank Badge"
                                             />
@@ -685,8 +688,10 @@ export default function SoccerScoreboard() {
                                     </div>
                                     <div className="relative">
                                         <div className="bg-white/5 p-4 rounded-2xl border border-white/10 grayscale opacity-30 blur-[2px]">
-                                            <img
+                                            <Image
                                                 src={rankUpData.oldBadgePath}
+                                                width={160}
+                                                height={160}
                                                 className="w-40 h-auto object-contain"
                                                 alt="Old Rank Badge"
                                             />

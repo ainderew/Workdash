@@ -1,4 +1,5 @@
 import { CONFIG } from "@/common/utils/config";
+import { tokenStore } from "@/common/utils/tokenStore";
 
 const STORAGE_KEY = "workdash_audio_settings";
 
@@ -40,7 +41,7 @@ export class AudioSettingsService {
     }
 
     private getToken(): string | undefined {
-        return window.__BACKEND_JWT__;
+        return tokenStore.getJwt() || undefined;
     }
 
     private async fetchFromAPI(): Promise<AudioSettings | null> {

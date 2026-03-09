@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import useUserStore from "@/common/store/useStore";
 
 type StatusDefinition = {
     id: string;
@@ -60,7 +61,7 @@ export const usePresenceStore = create<PresenceState>((set) => ({
         set((state) => {
             const next = { ...state.presenceMap };
             let updatedMyStatus: UserPresence | undefined;
-            const currentUserId = window.__BACKEND_USER__?.id;
+            const currentUserId = useUserStore.getState().backendUser?.id;
             for (const entry of entries) {
                 const { userId, ...presence } = entry;
                 next[userId] = presence;

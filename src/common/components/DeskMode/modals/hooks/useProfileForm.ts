@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import useUserStore from '@/common/store/useStore';
+import { tokenStore } from '@/common/utils/tokenStore';
 import { CharacterEventBus } from '@/game/character/CharacterEventBus';
 import { ChatV2Service } from '@/communication/chatV2/chatV2Service';
 import { getDisplayNameFromParts } from '@/common/utils/displayName';
@@ -44,7 +45,7 @@ export function useProfileForm({ isActive, onSuccess }: UseProfileFormOptions) {
     setError(null);
 
     const chatV2Service = ChatV2Service.getInstance();
-    const backendUserId = window.__BACKEND_USER__?.id;
+    const backendUserId = useUserStore.getState().backendUser?.id;
     if (backendUserId) {
       void chatV2Service.getUserProfile(backendUserId).then((profile) => {
         const currentBio = profile.user.bio?.trim() ?? '';
@@ -130,13 +131,8 @@ export function useProfileForm({ isActive, onSuccess }: UseProfileFormOptions) {
 
         updateUser({ name: updatedName, nickname: updatedNickname });
 
-        if (window.__BACKEND_USER__) {
-          window.__BACKEND_USER__ = {
-            ...window.__BACKEND_USER__,
-            name: updatedName,
-            nickname: updatedNickname,
-          };
-        }
+        tokenStore.updateUser({ name: updatedName, nickname: updatedNickname });
+        useUserStore.getState().updateBackendUser({ name: updatedName, nickname: updatedNickname });
 
         // Save bio if changed
         const trimmedBio = bio.trim();

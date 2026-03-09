@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import type { BannerConfig } from '@/communication/chatV2/_types';
 import { ChatV2Service } from '@/communication/chatV2/chatV2Service';
 import { CONFIG } from '@/common/utils/config';
+import { tokenStore } from '@/common/utils/tokenStore';
 
 export function useBannerEditor(
   currentBanner: BannerConfig | undefined,
@@ -86,7 +87,7 @@ export function useBannerEditor(
     try {
       if (imageFile) {
         // Image upload requires FormData — only endpoint that uses direct fetch
-        const jwt = window.__BACKEND_JWT__;
+        const jwt = tokenStore.getJwt();
         if (!jwt) {
           toast('Not authenticated');
           return;

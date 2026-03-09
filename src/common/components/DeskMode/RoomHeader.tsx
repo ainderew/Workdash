@@ -7,6 +7,7 @@ import type {
 } from "@/communication/chatV2/_types";
 import { Bell, Pin, Search, UserRound, Users, X } from "lucide-react";
 import useChatV2Store from "@/common/store/chatV2Store";
+import useUserStore from "@/common/store/useStore";
 import { getDisplayName } from "@/common/utils/displayName";
 import ChannelHashIcon from "./ChannelHashIcon";
 import PinnedMessagesPanel from "./PinnedMessagesPanel";
@@ -62,6 +63,7 @@ function RoomHeader({
     onUnpinMessage,
     onJumpToPinnedMessage,
 }: RoomHeaderProps) {
+    const backendUser = useUserStore((s) => s.backendUser);
     const friendRequests = useChatV2Store((state) => state.friendRequests);
     const notifications = useChatV2Store((state) => state.notifications);
     const isLoadingFriendRequests = useChatV2Store(
@@ -100,8 +102,7 @@ function RoomHeader({
     const notificationsContainerRef = useRef<HTMLDivElement | null>(null);
     const pinnedPanelContainerRef = useRef<HTMLDivElement | null>(null);
     const previousIncomingCountRef = useRef<number | null>(null);
-    const localBackendUserId =
-        typeof window !== "undefined" ? window.__BACKEND_USER__?.id : undefined;
+    const localBackendUserId = backendUser?.id;
 
     const selectedRoomName = useMemo(
         () => rooms.find((entry) => entry.id === searchRoomId)?.name || "",

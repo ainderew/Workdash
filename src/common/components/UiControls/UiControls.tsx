@@ -1,4 +1,5 @@
 import React, { useRef, useEffect } from "react";
+import { logger } from "@/common/utils/logger";
 import UiControlsButton from "./UiControlsButton";
 import {
     Mic,
@@ -94,7 +95,7 @@ function UiControls({ isVisible = true }: UiControlsProps) {
         try {
             const screenShare = ScreenShareService.getInstance();
             screenShare.startScreenShare();
-            console.log("Screen sharing started successfully");
+            logger.log("Screen sharing started successfully");
         } catch (error) {
             console.error("Screen share error:", error);
 

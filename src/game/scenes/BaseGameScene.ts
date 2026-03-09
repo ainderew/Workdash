@@ -8,6 +8,7 @@ import {
     WalkAnimationKeys,
 } from "../commmon/enums";
 import usePlayersStore from "@/common/store/playerStore";
+import { tokenStore } from "@/common/utils/tokenStore";
 import { AvailabilityStatus } from "../player/_enums";
 import { CharacterCustomization } from "../character/_types";
 import { CharacterCompositor } from "../character/CharacterCompositor";
@@ -18,6 +19,7 @@ import { EventBus } from "../EventBus";
 import { AudioZoneManager } from "../audioZoneManager/audioZoneManager";
 import { BackgroundMusicManager } from "../audio/BackgroundMusicManager";
 import { TeleportManager } from "../managers/TeleportManager";
+import { logger } from "@/common/utils/logger";
 
 export interface SceneData {
     spawnX?: number;
@@ -25,29 +27,29 @@ export interface SceneData {
 }
 
 export abstract class BaseGameScene extends Scene {
-    map: Phaser.Tilemaps.Tilemap;
-    camera: Phaser.Cameras.Scene2D.Camera;
+    map!: Phaser.Tilemaps.Tilemap;
+    camera!: Phaser.Cameras.Scene2D.Camera;
     currentZoom: number = 1;
 
-    localPlayerId: string;
+    localPlayerId!: string;
     players: Map<string, Player> = new Map();
     loadingPlayers: Set<string> = new Set();
-    playersLayer: Phaser.Physics.Arcade.Group;
+    playersLayer!: Phaser.Physics.Arcade.Group;
     doors: Phaser.GameObjects.GameObject[] = [];
 
-    multiplayer: Multiplayer;
+    multiplayer!: Multiplayer;
     lastTick: number = 0;
     Hz: number = 1000 / 50;
     private wasAttacking: boolean = false;
     private hasJoinedGame: boolean = false;
 
-    protected audioZoneManager: AudioZoneManager;
-    protected backgroundMusicManager: BackgroundMusicManager;
-    protected teleportManager: TeleportManager;
+    protected audioZoneManager!: AudioZoneManager;
+    protected backgroundMusicManager!: BackgroundMusicManager;
+    protected teleportManager!: TeleportManager;
 
     protected spawnX: number = 1000;
     protected spawnY: number = 1000;
-    protected currentSceneName: string;
+    protected currentSceneName!: string;
 
     abstract mapKey: string;
     abstract worldBounds: { width: number; height: number };
@@ -131,7 +133,7 @@ export abstract class BaseGameScene extends Scene {
         
         if (window.__MULTIPLAYER__?.socket?.connected) {
             this.multiplayer = window.__MULTIPLAYER__;
-            console.log("Reusing existing multiplayer connection");
+            logger.log("Reusing existing multiplayer connection");
         } else {
             if (!jwtToken) {
                 console.error(
@@ -142,7 +144,7 @@ export abstract class BaseGameScene extends Scene {
             this.multiplayer = new Multiplayer(jwtToken);
             this.multiplayer.connectToserver();
             window.__MULTIPLAYER__ = this.multiplayer;
-            console.log("Created new multiplayer connection");
+            logger.log("Created new multiplayer connection");
         }
     }
 
@@ -647,11 +649,11 @@ export abstract class BaseGameScene extends Scene {
                         }
                     }
                 }
-                console.log("loaded local");
+                logger.log("loaded local");
             }
         } finally {
-            console.log("CREATING" + name);
-            console.log(opts);
+            logger.log("CREATING" + name);
+            logger.log(opts);
 
             this.loadingPlayers.delete(id);
         }
@@ -665,7 +667,7 @@ export abstract class BaseGameScene extends Scene {
 
     protected setupRemotePlayer(remotePlayer: Player) {
         //for soccer
-        console.log(remotePlayer);
+        logger.log(remotePlayer);
     }
 
     public destroyPlayer(id: string): void {
@@ -746,7 +748,7 @@ export abstract class BaseGameScene extends Scene {
     }
 
     protected getJwtToken(): string {
-        return window.__BACKEND_JWT__ || "";
+        return tokenStore.getJwt();
     }
 
     private handleWorkspaceSwitch(data: { workspaceId: string }) {

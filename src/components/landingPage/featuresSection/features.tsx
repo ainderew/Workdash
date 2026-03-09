@@ -1,4 +1,5 @@
 import React from "react";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import { VideoIcon, MicIcon, UsersIcon, SparklesIcon } from "lucide-react";
 type FeatureType = "walk-talk" | "video-pods" | "reactions" | "presence";
@@ -64,9 +65,11 @@ const WalkTalkDemo = () => (
                 ease: "easeInOut",
             }}
         >
-            <img
+            <Image
                 src="/assets/landing-male.png"
                 alt=""
+                width={48}
+                height={48}
                 className="w-12 h-12 drop-shadow-[0_0_15px_rgba(0,243,255,0.5)] z-10 relative object-cover"
             />
             {}
@@ -89,9 +92,11 @@ const WalkTalkDemo = () => (
         {}
         <div className="absolute translate-x-10">
             {}
-            <img
+            <Image
                 src="/assets/landing-female.png"
                 alt=""
+                width={48}
+                height={48}
                 className="w-12 h-12 drop-shadow-[0_0_15px_rgba(188,19,254,0.5)] z-10 relative object-cover"
             />
             <motion.div
@@ -146,9 +151,11 @@ const VideoPodsDemo = () => (
                     repeatType: "reverse",
                 }}
             >
-                <img
+                <Image
                     src="/assets/landing-female.png"
                     alt=""
+                    width={48}
+                    height={48}
                     className="w-12 h-12 drop-shadow-[0_0_15px_rgba(188,19,254,0.5)] z-10 relative object-cover"
                 />
             </motion.div>
@@ -183,10 +190,12 @@ const ReactionsDemo = () => (
     <div className="relative w-full h-full bg-slate-100/50 dark:bg-slate-900/50 flex items-center justify-center">
         <div className="absolute inset-0 bg-grid-pattern opacity-30" />
         <div className="relative">
-            <img
+            <Image
                 className="w-16 h-16 rounded-xl flex items-center justify-center drop-shadow-[0_0_15px_rgba(188,19,254,0.5)] z-10 relative object-cover"
                 src="/assets/landing-female.png"
                 alt=""
+                width={64}
+                height={64}
             />
 
             {}

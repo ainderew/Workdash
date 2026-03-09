@@ -1,4 +1,5 @@
 import React from "react";
+import Image from "next/image";
 import { motion, useTransform, MotionValue } from "framer-motion";
 
 interface VirtualInterfaceProps {
@@ -41,9 +42,11 @@ export default function VirtualInterface({ y1, y2 }: VirtualInterfaceProps) {
                     className="absolute top-[52%] left-[45%]"
                 >
                     <div className="relative">
-                        <img
+                        <Image
                             src="/assets/landing-male.png"
                             alt=""
+                            width={40}
+                            height={40}
                             className="w-10 h-10 drop-shadow-[0_4px_6px_rgba(0,0,0,0.4)] z-10 relative object-contain"
                         />
                         <div className="absolute -top-7 left-1/2 -translate-x-1/2 bg-white/90 dark:bg-slate-900/90 px-2 py-0.5 rounded text-[10px] text-slate-900 dark:text-white whitespace-nowrap flex items-center gap-1 shadow-lg">
@@ -65,9 +68,11 @@ export default function VirtualInterface({ y1, y2 }: VirtualInterfaceProps) {
                     className="absolute top-[48%] right-[32%]"
                 >
                     <div className="relative">
-                        <img
+                        <Image
                             src="/assets/landing-female.png"
                             alt=""
+                            width={40}
+                            height={40}
                             className="w-10 h-10 drop-shadow-[0_4px_6px_rgba(0,0,0,0.4)] z-10 relative object-contain"
                         />
                         <div className="absolute -top-7 left-1/2 -translate-x-1/2 bg-white/90 dark:bg-slate-900/90 px-2 py-0.5 rounded text-[10px] text-slate-900 dark:text-white whitespace-nowrap flex items-center gap-1 shadow-lg">

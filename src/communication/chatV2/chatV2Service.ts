@@ -1,5 +1,7 @@
 import { MediaTransportService } from "@/communication/mediaTransportService/mediaTransportServive";
+import { tokenStore } from "@/common/utils/tokenStore";
 import type {
+    BannerConfig,
     ChannelOverwrite,
     ChatV2CreateAttachment,
     ChatV2DirectRoom,
@@ -56,7 +58,7 @@ export class ChatV2Service {
 
     constructor() {
         const jwtToken =
-            typeof window !== "undefined" ? window.__BACKEND_JWT__ : "";
+            typeof window !== "undefined" ? tokenStore.getJwt() : "";
         this.transport = MediaTransportService.getInstance(jwtToken);
     }
 
@@ -73,37 +75,40 @@ export class ChatV2Service {
         timeoutMs: number = 10000,
     ): Promise<T> {
         return new Promise((resolve, reject) => {
-            if (!this.transport.socket.connected) {
-                reject(new Error("Socket is not connected"));
-                return;
-            }
+            const doEmit = () => {
+                const timeoutId = window.setTimeout(() => {
+                    reject(new Error(`${eventName} timed out`));
+                }, timeoutMs);
 
-            const timeoutId = window.setTimeout(() => {
-                reject(new Error(`${eventName} timed out`));
-            }, timeoutMs);
+                const onResponse = (response: AckResponse<T>) => {
+                    window.clearTimeout(timeoutId);
 
-            const onResponse = (response: AckResponse<T>) => {
-                window.clearTimeout(timeoutId);
+                    if (!response || typeof response !== "object") {
+                        reject(new Error(`Invalid response for ${eventName}`));
+                        return;
+                    }
 
-                if (!response || typeof response !== "object") {
-                    reject(new Error(`Invalid response for ${eventName}`));
+                    if (response.ok) {
+                        resolve(response.data);
+                        return;
+                    }
+
+                    reject(new Error(response.error || `Failed: ${eventName}`));
+                };
+
+                if (payload === undefined) {
+                    this.transport.socket.emit(eventName, onResponse);
                     return;
                 }
 
-                if (response.ok) {
-                    resolve(response.data);
-                    return;
-                }
-
-                reject(new Error(response.error || `Failed: ${eventName}`));
+                this.transport.socket.emit(eventName, payload, onResponse);
             };
 
-            if (payload === undefined) {
-                this.transport.socket.emit(eventName, onResponse);
-                return;
+            if (this.transport.socket.connected) {
+                doEmit();
+            } else {
+                this.transport.socket.once("connect", doEmit);
             }
-
-            this.transport.socket.emit(eventName, payload, onResponse);
         });
     }
 
@@ -188,9 +193,11 @@ export class ChatV2Service {
         return this.teardownRealtimeHandlers;
     }
 
-    async listRooms(): Promise<ChatV2Room[]> {
+    async listRooms(workspaceId?: string): Promise<ChatV2Room[]> {
+        const payload = workspaceId ? { workspaceId } : undefined;
         const response = await this.emitWithAck<{ rooms: ChatV2Room[] }>(
             "chat:v2:room:list",
+            payload,
         );
         return response.rooms;
     }
@@ -339,12 +346,15 @@ export class ChatV2Service {
     async updateOwnUserProfile(
         input: {
             bio?: string | null;
+            banner?: BannerConfig;
         },
     ): Promise<ChatV2UserProfile> {
         const payload: {
             bio?: string | null;
+            banner?: BannerConfig;
         } = {};
         if (input.bio !== undefined) payload.bio = input.bio;
+        if (input.banner !== undefined) payload.banner = input.banner;
 
         const response = await this.emitWithAck<{ profile: ChatV2UserProfile }>(
             "chat:v2:user:profile:update",

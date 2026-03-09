@@ -1,6 +1,7 @@
 import useUserStore from "@/common/store/useStore";
 import usePollStore from "@/common/store/pollStore";
 import { getDisplayName } from "@/common/utils/displayName";
+import { logger } from "@/common/utils/logger";
 import { MediaTransportService } from "../mediaTransportService/mediaTransportServive";
 import { PollEvents } from "./_enums";
 import type {
@@ -27,7 +28,7 @@ export class PollService {
     }
 
     createPoll(data: CreatePollData): void {
-        const backendUserId = window.__BACKEND_USER__?.id;
+        const backendUserId = useUserStore.getState().backendUser?.id;
         const userId = backendUserId
             ? String(backendUserId)
             : this.sfuService.socket.id || "";
@@ -35,8 +36,8 @@ export class PollService {
         const userName = getDisplayName(
             {
                 nickname:
-                    localUser.nickname ?? window.__BACKEND_USER__?.nickname,
-                name: localUser.name || window.__BACKEND_USER__?.name,
+                    localUser.nickname ?? useUserStore.getState().backendUser?.nickname,
+                name: localUser.name || useUserStore.getState().backendUser?.name,
             },
             "User",
         );
@@ -47,7 +48,7 @@ export class PollService {
             creatorName: userName,
         };
 
-        console.log("Creating poll with creatorId:", userId);
+        logger.log("Creating poll with creatorId:", userId);
         this.sfuService.socket.emit(PollEvents.CREATE_POLL, pollData);
     }
 
@@ -66,7 +67,7 @@ export class PollService {
     }
 
     closePoll(pollId: string): void {
-        const backendUserId = window.__BACKEND_USER__?.id;
+        const backendUserId = useUserStore.getState().backendUser?.id;
         const userId = backendUserId
             ? String(backendUserId)
             : this.sfuService.socket.id || "";
@@ -93,7 +94,7 @@ export class PollService {
         this.sfuService.socket.on(
             PollEvents.NEW_POLL,
             (pollData: BackendPollData) => {
-                console.log("📊 New poll received:", pollData);
+                logger.log("📊 New poll received:", pollData);
                 const poll = this.transformPollData(pollData);
                 usePollStore.getState().addPoll(poll);
             },
@@ -102,7 +103,7 @@ export class PollService {
         this.sfuService.socket.on(
             PollEvents.POLL_UPDATED,
             (results: PollResults) => {
-                console.log("📊 Poll results updated:", results);
+                logger.log("📊 Poll results updated:", results);
                 usePollStore.getState().updatePollResults(results);
             },
         );
@@ -110,7 +111,7 @@ export class PollService {
         this.sfuService.socket.on(
             PollEvents.POLL_CLOSED,
             ({ pollId }: { pollId: string }) => {
-                console.log("📊 Poll closed:", pollId);
+                logger.log("📊 Poll closed:", pollId);
                 usePollStore.getState().closePoll(pollId);
             },
         );

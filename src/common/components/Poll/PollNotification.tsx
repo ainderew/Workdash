@@ -2,6 +2,7 @@ import React from "react";
 import { useEffect, useRef } from "react";
 import { MessageSquarePlus, CheckCircle2 } from "lucide-react";
 import usePollStore from "@/common/store/pollStore";
+import { logger } from "@/common/utils/logger";
 import type { Poll } from "./types";
 
 interface PollNotificationItemProps {
@@ -109,7 +110,7 @@ export default function PollNotification() {
                         audioRef.current?.pause();
                         audioRef.current!.currentTime = 0;
                         audioEnabledRef.current = true;
-                        console.log("🔊 Audio enabled for notifications");
+                        logger.log("🔊 Audio enabled for notifications");
                     })
                     .catch(() => {});
             }
@@ -134,19 +135,19 @@ export default function PollNotification() {
         }
 
         if (currentPollCount > previousPollCountRef.current) {
-            console.log("🔔 New poll detected! Playing notification sound...");
+            logger.log("🔔 New poll detected! Playing notification sound...");
 
             if (audioRef.current) {
                 audioRef.current.currentTime = 0;
                 audioRef.current
                     .play()
                     .then(() => {
-                        console.log("✅ Notification sound played");
+                        logger.log("✅ Notification sound played");
                     })
                     .catch((error) => {
                         console.warn("⚠️ Could not play sound:", error.message);
                         if (!audioEnabledRef.current) {
-                            console.log(
+                            logger.log(
                                 "💡 Click anywhere on the page to enable notification sounds",
                             );
                         }

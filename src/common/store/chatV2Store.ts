@@ -24,6 +24,7 @@ import {
     writeFrequentEmojiLocal,
 } from "@/communication/chatV2/reactionFrequentCache";
 import { getDisplayName } from "@/common/utils/displayName";
+import useUserStore from "@/common/store/useStore";
 
 type MessageDeletePayload = {
     roomId: string;
@@ -553,9 +554,7 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
                                 ...state.unreadByRoomId,
                                 [message.roomId]: (() => {
                                     const localUserId =
-                                        typeof window !== "undefined"
-                                            ? window.__BACKEND_USER__?.id
-                                            : undefined;
+                                        useUserStore.getState().backendUser?.id;
                                     const isOwnMessage =
                                         typeof localUserId === "number"
                                         && localUserId === message.senderUserId;
@@ -694,22 +693,20 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
         try {
             const chatV2Service = getChatV2Service();
             const wsId = get().selectedWorkspaceId ?? undefined;
-            const rooms = await chatV2Service.listRooms();
+
+            if (!wsId) {
+                // No workspace selected — workspace selector overlay will handle it
+                set({ isLoadingRooms: false });
+                return;
+            }
+
+            const rooms = await chatV2Service.listRooms(wsId);
 
             const roomsById = toRoomsById(rooms);
             const roomOrder = toRoomOrder(rooms);
             const unreadByRoomId = toUnreadByRoomId(rooms);
 
-            // Determine workspace: use existing selection, or infer from rooms
-            const firstServerRoom = roomOrder
-                .map((roomId) => roomsById[roomId])
-                .find(
-                    (room) =>
-                        room?.type !== "DIRECT" && canUserEnterRoom(room),
-                );
-            const resolvedWsId = wsId
-                ?? firstServerRoom?.workspaceId
-                ?? undefined;
+            const resolvedWsId = wsId;
 
             // Fetch categories for the resolved workspace
             const categories = resolvedWsId
@@ -744,7 +741,7 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
                     categoryOrder,
                     currentRoomId: hasCurrentRoom
                         ? state.currentRoomId
-                        : (firstServerRoom?.id ?? firstSelectableRoom?.id ?? null),
+                        : (firstSelectableRoom?.id ?? null),
                     selectedWorkspaceId: resolvedWsId ?? null,
                 };
             });
@@ -1088,9 +1085,7 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
             );
 
             const localUserId =
-                typeof window !== "undefined"
-                    ? window.__BACKEND_USER__?.id
-                    : undefined;
+                useUserStore.getState().backendUser?.id;
             const reactionPayload: ChatV2MessageReactionUpdate = {
                 roomId,
                 messageId,
@@ -1187,7 +1182,7 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
 
     loadFrequentEmojis: async (options) => {
         const userId =
-            typeof window !== "undefined" ? window.__BACKEND_USER__?.id : undefined;
+            useUserStore.getState().backendUser?.id;
         if (typeof userId !== "number" || userId <= 0) {
             return;
         }
@@ -1371,7 +1366,7 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
     getIncomingFriendRequestCount: () => {
         const state = get();
         const localUserId =
-            typeof window !== "undefined" ? window.__BACKEND_USER__?.id : undefined;
+            useUserStore.getState().backendUser?.id;
         if (typeof localUserId !== "number") return 0;
 
         return state.friendRequests.reduce((count, request) => {

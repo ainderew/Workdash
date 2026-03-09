@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import Image from "next/image";
 import useSoccerStore from "@/common/store/soccerStore";
 import usePlayersStore from "@/common/store/playerStore";
 import { SkillConfig } from "@/game/scenes/SoccerMap";
@@ -131,7 +132,7 @@ function SkillSelectionOverlay() {
                             >
                                 {/* Icon Background */}
                                 <div className="aspect-square relative overflow-hidden">
-                                    <img src={iconPath} className="w-full h-full object-cover" alt={skill.name} />
+                                    <Image src={iconPath} width={200} height={200} className="w-full h-full object-cover" alt={skill.name} />
                                     {!isAvailable && (
                                         <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
                                             <span className="text-red-500 font-black uppercase text-xl rotate-[-20deg] border-4 border-red-500 px-4 py-2">Picked</span>

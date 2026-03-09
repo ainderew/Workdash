@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Bell, ChevronDown, Search, UserRoundPlus, X } from "lucide-react";
 import useChatV2Store from "@/common/store/chatV2Store";
+import useUserStore from "@/common/store/useStore";
 import ChannelHashIcon from "./ChannelHashIcon";
 import { ChatV2Service } from "@/communication/chatV2/chatV2Service";
 import type { ChatV2DirectRoom, ChatV2Message, ChatV2Room } from "@/communication/chatV2/_types";
@@ -38,6 +39,7 @@ const byCreatedAtAsc = (a: ChatV2Message, b: ChatV2Message) => {
 
 function CompactChatShell({ onClose }: CompactChatShellProps) {
     useChatNotificationSound();
+    const backendUser = useUserStore((s) => s.backendUser);
     const chatV2Service = useMemo(() => ChatV2Service.getInstance(), []);
     const initialize = useChatV2Store((state) => state.initialize);
     const roomOrder = useChatV2Store((state) => state.roomOrder);
@@ -58,6 +60,7 @@ function CompactChatShell({ onClose }: CompactChatShellProps) {
     const isSending = useChatV2Store((state) => state.isSending);
     const selectRoom = useChatV2Store((state) => state.selectRoom);
     const sendMessage = useChatV2Store((state) => state.sendMessage);
+    const toggleMessageReaction = useChatV2Store((state) => state.toggleMessageReaction);
     const membersByRoomId = useChatV2Store((state) => state.membersByRoomId);
     const reloadDirectRooms = useChatV2Store((state) => state.reloadDirectRooms);
     const reloadFriends = useChatV2Store((state) => state.reloadFriends);
@@ -116,8 +119,7 @@ function CompactChatShell({ onClose }: CompactChatShellProps) {
     const roomPickerRef = useRef<HTMLDivElement | null>(null);
     const notificationsRef = useRef<HTMLDivElement | null>(null);
     const previousIncomingCountRef = useRef<number | null>(null);
-    const localBackendUserId =
-        typeof window !== "undefined" ? window.__BACKEND_USER__?.id : undefined;
+    const localBackendUserId = backendUser?.id;
 
     useEffect(() => {
         void initialize();
@@ -966,6 +968,9 @@ function CompactChatShell({ onClose }: CompactChatShellProps) {
                                     byId.set(replyMessage.id, replyMessage);
                                     return Array.from(byId.values()).sort(byCreatedAtAsc);
                                 });
+                            }}
+                            onToggleReaction={async (messageId, emoji) => {
+                                await toggleMessageReaction(messageId, emoji);
                             }}
                         />
                     )}

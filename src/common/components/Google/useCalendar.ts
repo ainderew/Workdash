@@ -2,6 +2,7 @@ import { useSession, signIn } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { logger } from "@/common/utils/logger";
 
 interface CalendarEvent {
     id: string;
@@ -52,7 +53,7 @@ function useCalendar(selectedDate: Date) {
             }
 
             const events = await res.json();
-            console.log("Calendar events:", events);
+            logger.log("Calendar events:", events);
             setCalendarEvents(events);
         } catch (err) {
             console.error("Calendar fetch error:", err);

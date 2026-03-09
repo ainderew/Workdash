@@ -2,6 +2,7 @@ import { Scene } from "phaser";
 import { Player } from "../player/player";
 import { MediaTransportService } from "@/communication/mediaTransportService/mediaTransportServive";
 import useChatV2Store from "@/common/store/chatV2Store";
+import { logger } from "@/common/utils/logger";
 
 export class AudioZoneManager {
     private scene: Scene;
@@ -48,7 +49,7 @@ export class AudioZoneManager {
                 this,
             );
 
-            console.log(`Created audio zone: ${zoneId}`);
+            logger.log(`Created audio zone: ${zoneId}`);
         }
     }
 

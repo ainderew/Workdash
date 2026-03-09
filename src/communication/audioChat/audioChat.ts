@@ -3,6 +3,7 @@ import { MediaTransportService } from "../mediaTransportService/mediaTransportSe
 import usePlayersStore from "@/common/store/playerStore";
 import { AvailabilityStatus } from "@/game/player/_enums";
 import useAudioStore from "@/common/store/audioStore";
+import { logger } from "@/common/utils/logger";
 
 interface ConsumerServerResponse {
     id: string;
@@ -32,7 +33,7 @@ export class AudioChat {
 
     private sfuService: MediaTransportService;
     private audioProducer?: Producer;
-    private audioElementsSetter: (audioElement: HTMLAudioElement) => void;
+    private audioElementsSetter!: (audioElement: HTMLAudioElement) => void;
     private audioContext: AudioContext | null = null;
     private audioDestination?: MediaStreamAudioDestinationNode;
     private consumers: Map<string, Consumer> = new Map();
@@ -55,9 +56,9 @@ export class AudioChat {
     private watchingNewProducers = false;
 
     constructor() {
-        console.log("initializeAudioChat");
+        logger.log("initializeAudioChat");
         this.sfuService = MediaTransportService.getInstance();
-        console.log("AudioChat initialized");
+        logger.log("AudioChat initialized");
     }
 
     public static getInstance() {
@@ -83,7 +84,7 @@ export class AudioChat {
         this.sfuService.socket.on(
             "zone-players",
             async (data: { zone: string | null; players: ZonePlayer[] }) => {
-                console.log(
+                logger.log(
                     `Entered zone ${data.zone} with ${data.players.length} players`,
                 );
 
@@ -111,7 +112,7 @@ export class AudioChat {
         this.sfuService.socket.on(
             "player-left-zone",
             (data: { socketId: string; playerId: string; zone: string }) => {
-                console.log(`Player ${data.playerId} left zone ${data.zone}`);
+                logger.log(`Player ${data.playerId} left zone ${data.zone}`);
                 this.closeConsumersForSocket(data.socketId);
             },
         );
@@ -119,7 +120,7 @@ export class AudioChat {
         this.sfuService.socket.on(
             "player-joined-zone",
             async (data: PlayerJoinedZoneData) => {
-                console.log(`Player ${data.playerId} joined zone ${data.zone}`);
+                logger.log(`Player ${data.playerId} joined zone ${data.zone}`);
 
                 if (data.producerIds && data.producerIds.length > 0) {
                     this.socketToProducersMap.set(
@@ -188,7 +189,7 @@ export class AudioChat {
             this.audioElementUpdateCallback();
         }
 
-        console.log(`Closed consumer for producer ${producerId}`);
+        logger.log(`Closed consumer for producer ${producerId}`);
     }
 
     /**
@@ -204,7 +205,7 @@ export class AudioChat {
             if (ctx.state === "suspended") {
                 try {
                     await ctx.resume();
-                    console.log("AudioContext resumed successfully");
+                    logger.log("AudioContext resumed successfully");
                 } catch (error) {
                     console.error("Failed to resume AudioContext:", error);
                 }
@@ -339,7 +340,7 @@ export class AudioChat {
 
     private async consumeProducer(producerId: string) {
         if (this.producerToConsumerMap.has(producerId)) {
-            console.log(`Already consuming producer ${producerId}`);
+            logger.log(`Already consuming producer ${producerId}`);
             return;
         }
 
@@ -392,7 +393,7 @@ export class AudioChat {
                 );
             });
 
-            console.log("Consumer resumed, creating Web Audio pipeline...");
+            logger.log("Consumer resumed, creating Web Audio pipeline...");
 
             const remoteStream = new MediaStream([consumer.track]);
 
@@ -437,13 +438,13 @@ export class AudioChat {
                 this.audioElementUpdateCallback();
             }
 
-            console.log(
+            logger.log(
                 "Web Audio pipeline created for",
                 ownerName,
                 "with gain",
                 gainNode.gain.value,
             );
-            console.log(
+            logger.log(
                 "Track:",
                 consumer.track.readyState,
                 "Enabled:",

@@ -7,6 +7,7 @@ import { VideoChatService } from '@/communication/videoChat/videoChat';
 import { ScreenShareService } from '@/communication/screenShare/screenShare';
 import { AudioChat } from '@/communication/audioChat/audioChat';
 import useUiStore from '@/common/store/uiStore';
+import useUserStore from '@/common/store/useStore';
 import { VideoChatViewer } from '@/communication/videoChat/videoChatViewer';
 import CallParticipantTile from './CallParticipantTile';
 import CallAvatar from './CallAvatar';
@@ -24,7 +25,8 @@ const DEFAULT_HEIGHT = 140;
 
 export default function CallView({ channelId, onLeave, onPictureInPicture }: CallViewProps) {
   const call = useCallStore((s) => s.activeCallsByChannel[channelId]);
-  const userId = window.__BACKEND_USER__?.id ?? 0;
+  const backendUser = useUserStore((s) => s.backendUser);
+  const userId = backendUser?.id ?? 0;
   const isMuted = useUiStore((s) => s.isMuted);
   const isVideoOff = useUiStore((s) => s.isVideoOff);
 

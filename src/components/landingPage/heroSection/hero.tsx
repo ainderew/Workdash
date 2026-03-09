@@ -7,10 +7,10 @@ import {
     BatteryIcon,
     CpuIcon,
 } from "lucide-react";
-import { useRouter } from "next/router";
+import Image from "next/image";
+import Link from "next/link";
 import VirtualInterface from "./virtualInterface";
 export function Hero() {
-    const router = useRouter();
     const { scrollY } = useScroll();
     const y1 = useTransform(scrollY, [0, 200], [0, 150]);
     const y2 = useTransform(scrollY, [0, 500], [0, -250]);
@@ -119,8 +119,8 @@ export function Hero() {
                     </p>
 
                     <div className="flex flex-col sm:flex-row gap-4">
-                        <button
-                            onClick={() => router.push("/app")}
+                        <Link
+                            href="/app"
                             className="group cursor-pointer flex-1 flex justify-center relative px-8 py-4 bg-cyan-500 text-slate-950 font-bold text-sm uppercase tracking-wider clip-path-polygon hover:bg-cyan-400 transition-all overflow-hidden"
                         >
                             <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
@@ -128,7 +128,7 @@ export function Hero() {
                                 Start Game{" "}
                                 <ArrowRightIcon className="w-4 h-4" />
                             </span>
-                        </button>
+                        </Link>
 
                         <button className="group cursor-pointer flex-1 justify-center px-8 py-4 bg-slate-100 dark:bg-slate-900/50 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white font-bold text-sm uppercase tracking-wider hover:border-cyan-500/50 hover:text-cyan-600 dark:hover:text-cyan-400 transition-all flex items-center gap-2">
                             <PlayIcon className="w-4 h-4" />
@@ -155,10 +155,12 @@ export function Hero() {
                         </div>
                         <div className="flex items-center">
                             {[1, 2, 3, 4, 5].map((i) => (
-                                <img
+                                <Image
                                     key={i}
                                     src={`/landing-page/users/p${i}.png`}
                                     alt={`User ${i}`}
+                                    width={32}
+                                    height={32}
                                     className={`w-8 h-8 rounded-full border-2 border-slate-50 dark:border-slate-950 -ml-3 first:ml-0 z-${10 - i} object-cover`}
                                 />
                             ))}

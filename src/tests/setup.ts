@@ -1,18 +1,9 @@
 import "@testing-library/jest-dom";
+import { tokenStore } from "@/common/utils/tokenStore";
 
-// Mock window.__BACKEND_JWT__ for SSR-safe tests
-Object.defineProperty(window, "__BACKEND_JWT__", {
-  value: "test-jwt-token",
-  writable: true,
-  configurable: true,
-});
-
-// Mock window.__BACKEND_USER__ for tests that reference the local user
-Object.defineProperty(window, "__BACKEND_USER__", {
-  value: { id: 1, name: "Test User", email: "test@test.com" },
-  writable: true,
-  configurable: true,
-});
+// Seed tokenStore for SSR-safe tests
+tokenStore.setJwt("test-jwt-token");
+tokenStore.setUser({ id: 1, name: "Test User", email: "test@test.com" });
 
 // Mock localStorage for SSR-safe tests
 const localStorageMock = (() => {

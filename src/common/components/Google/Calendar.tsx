@@ -1,5 +1,6 @@
 import React from "react";
 import { signIn, signOut, useSession } from "next-auth/react";
+import { logger } from "@/common/utils/logger";
 
 export default function GameUI() {
     const { data: session } = useSession();
@@ -13,7 +14,7 @@ export default function GameUI() {
         
         const res = await fetch("/api/calendar");
         const events = await res.json();
-        console.log(events);
+        logger.log(events);
         
     };
 

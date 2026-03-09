@@ -12,6 +12,7 @@ import {
     insertMentionIntoValue,
     serializeMentionContentForSend,
 } from "@/communication/chatV2/mentionUtils";
+import useUserStore from "@/common/store/useStore";
 import DeskGifPicker from "./DeskGifPicker";
 import MentionSuggestionFlyout, {
     type MentionSuggestion,
@@ -82,6 +83,7 @@ function Composer({
     members,
     onSend,
 }: ComposerProps) {
+    const backendUser = useUserStore((s) => s.backendUser);
     const [value, setValue] = useState("");
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [uploadError, setUploadError] = useState<string | null>(null);
@@ -97,8 +99,7 @@ function Composer({
     const inlineActionButtonClassName =
         "group/inline relative z-[99] h-9 w-9 shrink-0 rounded-full overflow-hidden text-[var(--wd-text-muted)] transition-colors duration-300 hover:text-white focus-visible:text-white disabled:opacity-55 disabled:cursor-not-allowed";
 
-    const localBackendUserId =
-        typeof window !== "undefined" ? window.__BACKEND_USER__?.id : undefined;
+    const localBackendUserId = backendUser?.id;
 
     const memberNameMap = useMemo(
         () => buildMemberNameMap(members || [], localBackendUserId),

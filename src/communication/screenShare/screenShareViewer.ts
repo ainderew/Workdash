@@ -2,6 +2,7 @@ import { Consumer } from "mediasoup-client/types";
 import { MediaTransportService } from "../mediaTransportService/mediaTransportServive";
 import useUserStore from "@/common/store/useStore";
 import usePlayersStore from "@/common/store/playerStore";
+import { logger } from "@/common/utils/logger";
 import { ConsumerData } from "./_types";
 
 export class ScreenShareViewer {
@@ -53,7 +54,7 @@ export class ScreenShareViewer {
 
     public async loadExistingProducers(): Promise<void> {
         
-        console.log("⏳ Waiting for players to load before loading producers...");
+        logger.log("⏳ Waiting for players to load before loading producers...");
         await this.waitForPlayers();
 
         const producers = await new Promise<
@@ -62,7 +63,7 @@ export class ScreenShareViewer {
             this.service.socket.emit("getProducers", {}, resolve);
         });
 
-        console.log(`Found ${producers.length} existing producers`, producers);
+        logger.log(`Found ${producers.length} existing producers`, producers);
         const relevantProducers = producers.filter(
             (producer) => producer.source === "screen",
         );
@@ -70,17 +71,17 @@ export class ScreenShareViewer {
         for (const producer of relevantProducers) {
             // Store userName if available
             if (producer.userName) {
-                console.log("📝 Storing userName for producer:", producer.producerId, "→", producer.userName);
+                logger.log("📝 Storing userName for producer:", producer.producerId, "→", producer.userName);
                 this.videoOwnerMap[producer.producerId] = producer.userName;
             } else {
                 // Look up player name from playerStore using socketId
                 const playerMap = usePlayersStore.getState().playerMap;
-                console.log("🔍 DEBUG: Looking up socketId:", producer.socketId);
-                console.log("🔍 DEBUG: PlayerMap keys:", Object.keys(playerMap));
+                logger.log("🔍 DEBUG: Looking up socketId:", producer.socketId);
+                logger.log("🔍 DEBUG: PlayerMap keys:", Object.keys(playerMap));
 
                 const player = playerMap[producer.socketId];
                 if (player?.name) {
-                    console.log("📝 Found userName in playerStore:", producer.producerId, "→", player.name);
+                    logger.log("📝 Found userName in playerStore:", producer.producerId, "→", player.name);
                     this.videoOwnerMap[producer.producerId] = player.name;
                 } else {
                     console.warn("⚠️ No player found in playerStore for socketId:", producer.socketId);
@@ -101,7 +102,7 @@ export class ScreenShareViewer {
             const playerCount = Object.keys(playerMap).length;
 
             if (playerCount > 0) {
-                console.log(`✅ Players loaded (${playerCount} players in map)`);
+                logger.log(`✅ Players loaded (${playerCount} players in map)`);
                 return;
             }
 
@@ -172,7 +173,7 @@ export class ScreenShareViewer {
             return;
         }
 
-        console.log("✅ Creating video element for producer:", producerId, "track state:", consumer.track.readyState);
+        logger.log("✅ Creating video element for producer:", producerId, "track state:", consumer.track.readyState);
 
         const videoEl = document.createElement("video") as HTMLVideoElement;
         videoEl.srcObject = new MediaStream([consumer.track]);
@@ -189,7 +190,7 @@ export class ScreenShareViewer {
 
         // Monitor track state changes
         consumer.track.onended = () => {
-            console.log("🛑 Track ended for producer:", producerId);
+            logger.log("🛑 Track ended for producer:", producerId);
             this.removeScreenShareVideo(producerId);
         };
 
@@ -205,7 +206,7 @@ export class ScreenShareViewer {
         videoEl.onloadeddata = () => {
             hasReceivedData = true;
             clearTimeout(dataCheckTimeout);
-            console.log("📺 Video data loaded for producer:", producerId);
+            logger.log("📺 Video data loaded for producer:", producerId);
         };
 
         this.videoElements.set(producerId, videoEl);
@@ -221,12 +222,12 @@ export class ScreenShareViewer {
     }
 
     public removeScreenShareVideo(producerId: string) {
-        console.log("🧹 Removing screenshare producer:", producerId);
+        logger.log("🧹 Removing screenshare producer:", producerId);
 
         // Close and remove the consumer
         const consumer = this.consumers.get(producerId);
         if (consumer) {
-            console.log("🔒 Closing consumer for producer:", producerId);
+            logger.log("🔒 Closing consumer for producer:", producerId);
             consumer.close();
             this.consumers.delete(producerId);
         }
@@ -234,7 +235,7 @@ export class ScreenShareViewer {
         // Remove the video element
         const videoEl = this.videoElements.get(producerId);
         if (videoEl) {
-            console.log("🗑️ Removing video element for producer:", producerId);
+            logger.log("🗑️ Removing video element for producer:", producerId);
             videoEl.srcObject = null; // Clear the stream
             videoEl.remove(); // Remove from DOM if attached
             this.videoElements.delete(producerId);
@@ -255,7 +256,7 @@ export class ScreenShareViewer {
             this.updateComponentStateCallback();
         }
 
-        console.log("✅ Screenshare cleanup complete for producer:", producerId);
+        logger.log("✅ Screenshare cleanup complete for producer:", producerId);
     }
 
     public cleanup(): void {
