@@ -137,18 +137,25 @@ export class CallSignalingService {
 
   leaveCall(channelId: string): Promise<void> {
     return new Promise((resolve, reject) => {
+      const cleanup = () => {
+        VideoChatService.getInstance().stopVideoChat();
+        ScreenShareService.getInstance().stopScreenShare();
+        AudioChat.getInstance().stopMic();
+        useCallStore.getState().setCurrentCall(null);
+      };
+
+      const timeout = setTimeout(() => {
+        cleanup();
+        reject(new Error("leaveCall timed out"));
+      }, 10_000);
+
       this.socket.emit(
         "call:leave",
         { channelId },
         (res: AckResponse) => {
+          clearTimeout(timeout);
+          cleanup();
           if (res.error) return reject(new Error(res.error));
-
-          // Stop all media producers after server confirms the leave
-          VideoChatService.getInstance().stopVideoChat();
-          ScreenShareService.getInstance().stopScreenShare();
-          AudioChat.getInstance().stopMic();
-
-          useCallStore.getState().setCurrentCall(null);
           resolve();
         },
       );

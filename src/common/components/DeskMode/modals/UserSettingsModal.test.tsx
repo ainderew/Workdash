@@ -98,6 +98,17 @@ function renderModal(isOpen = true) {
   return { ...result, onClose };
 }
 
+/** Render modal and wait for the async profile‐load effect to settle. */
+async function renderModalAsync(isOpen = true) {
+  const result = renderModal(isOpen);
+  if (isOpen) {
+    await waitFor(() => {
+      expect(mockGetUserProfile).toHaveBeenCalled();
+    });
+  }
+  return result;
+}
+
 function setupFetchSuccess(user = { name: 'Test User', nickname: null }) {
   mockFetch.mockResolvedValueOnce({
     ok: true,
@@ -125,18 +136,18 @@ describe('UserSettingsModal', () => {
       expect(screen.queryByText('User Settings')).not.toBeInTheDocument();
     });
 
-    it('renders modal with title when open', () => {
-      renderModal();
+    it('renders modal with title when open', async () => {
+      await renderModalAsync();
       expect(screen.getByText('User Settings')).toBeInTheDocument();
     });
 
-    it('shows My Account category by default', () => {
-      renderModal();
+    it('shows My Account category by default', async () => {
+      await renderModalAsync();
       expect(screen.getByText('My Account')).toBeInTheDocument();
     });
 
-    it('renders all sidebar categories', () => {
-      renderModal();
+    it('renders all sidebar categories', async () => {
+      await renderModalAsync();
       expect(screen.getByText('My Account')).toBeInTheDocument();
       expect(screen.getByText('Appearance')).toBeInTheDocument();
       expect(screen.getByText('Audio & Video')).toBeInTheDocument();
@@ -144,37 +155,37 @@ describe('UserSettingsModal', () => {
   });
 
   describe('Account panel fields', () => {
-    it('renders Full Name field', () => {
-      renderModal();
+    it('renders Full Name field', async () => {
+      await renderModalAsync();
       expect(screen.getByText('Full Name')).toBeInTheDocument();
       expect(
         screen.getByPlaceholderText('Enter your full name'),
       ).toBeInTheDocument();
     });
 
-    it('renders Nickname field', () => {
-      renderModal();
+    it('renders Nickname field', async () => {
+      await renderModalAsync();
       expect(screen.getByText('Nickname (Optional)')).toBeInTheDocument();
       expect(
         screen.getByPlaceholderText('Shown instead of full name'),
       ).toBeInTheDocument();
     });
 
-    it('renders Bio section with textarea', () => {
-      renderModal();
+    it('renders Bio section with textarea', async () => {
+      await renderModalAsync();
       expect(screen.getByText('Bio')).toBeInTheDocument();
       expect(
         screen.getByPlaceholderText('Write a short bio...'),
       ).toBeInTheDocument();
     });
 
-    it('renders Avatar section', () => {
-      renderModal();
+    it('renders Avatar section', async () => {
+      await renderModalAsync();
       expect(screen.getByText('Avatar')).toBeInTheDocument();
     });
 
-    it('renders Save Changes and Cancel buttons', () => {
-      renderModal();
+    it('renders Save Changes and Cancel buttons', async () => {
+      await renderModalAsync();
       expect(screen.getByText('Save Changes')).toBeInTheDocument();
       expect(screen.getByText('Cancel')).toBeInTheDocument();
     });
@@ -188,15 +199,15 @@ describe('UserSettingsModal', () => {
       });
     });
 
-    it('allows typing in the bio textarea', () => {
-      renderModal();
+    it('allows typing in the bio textarea', async () => {
+      await renderModalAsync();
       const textarea = screen.getByPlaceholderText('Write a short bio...');
       changeInput(textarea, 'New bio text');
       expect(textarea).toHaveValue('New bio text');
     });
 
-    it('shows character count', () => {
-      renderModal();
+    it('shows character count', async () => {
+      await renderModalAsync();
       expect(screen.getByText(/\/280$/)).toBeInTheDocument();
     });
 
@@ -263,7 +274,7 @@ describe('UserSettingsModal', () => {
     });
 
     it('shows error when name is empty', async () => {
-      renderModal();
+      await renderModalAsync();
 
       const nameInput = screen.getByPlaceholderText('Enter your full name');
       changeInput(nameInput, '');
@@ -279,24 +290,24 @@ describe('UserSettingsModal', () => {
   });
 
   describe('cancel', () => {
-    it('calls onClose when Cancel is clicked', () => {
-      const { onClose } = renderModal();
+    it('calls onClose when Cancel is clicked', async () => {
+      const { onClose } = await renderModalAsync();
       fireEvent.click(screen.getByText('Cancel'));
       expect(onClose).toHaveBeenCalled();
     });
   });
 
   describe('category navigation', () => {
-    it('switches to Appearance panel', () => {
-      renderModal();
+    it('switches to Appearance panel', async () => {
+      await renderModalAsync();
       fireEvent.click(screen.getByText('Appearance'));
       expect(
         screen.queryByPlaceholderText('Enter your full name'),
       ).not.toBeInTheDocument();
     });
 
-    it('switches to Audio & Video panel', () => {
-      renderModal();
+    it('switches to Audio & Video panel', async () => {
+      await renderModalAsync();
       fireEvent.click(screen.getByText('Audio & Video'));
       expect(
         screen.queryByPlaceholderText('Enter your full name'),

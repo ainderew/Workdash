@@ -52,6 +52,7 @@ export class AudioChat {
         new Map();
 
     private producerToConsumerMap: Map<string, string> = new Map();
+    private consumingInFlight = new Set<string>();
     private socketToProducersMap: Map<string, string[]> = new Map();
     private watchingNewProducers = false;
 
@@ -260,9 +261,15 @@ export class AudioChat {
         const processedStream = await this.processAudioStream(stream);
         const [audioTrack] = processedStream.getAudioTracks();
 
-        this.audioProducer = await this.sfuService.sendTransport!.produce({
-            track: audioTrack,
-        });
+        try {
+            this.audioProducer = await this.sfuService.sendTransport!.produce({
+                track: audioTrack,
+            });
+        } catch (err) {
+            stream.getTracks().forEach((t) => t.stop());
+            this.currentStream = null;
+            throw err;
+        }
 
         if (wasMuted) {
             this.muteMic();
@@ -301,9 +308,15 @@ export class AudioChat {
         const processedStream = await this.processAudioStream(stream);
         const [audioTrack] = processedStream.getAudioTracks();
 
-        this.audioProducer = await this.sfuService.sendTransport!.produce({
-            track: audioTrack,
-        });
+        try {
+            this.audioProducer = await this.sfuService.sendTransport!.produce({
+                track: audioTrack,
+            });
+        } catch (err) {
+            stream.getTracks().forEach((t) => t.stop());
+            this.currentStream = null;
+            throw err;
+        }
 
         // Resume AudioContexts after joining (Firefox autoplay policy)
         await this.resumeAudioContexts();
@@ -339,12 +352,14 @@ export class AudioChat {
     }
 
     private async consumeProducer(producerId: string) {
-        if (this.producerToConsumerMap.has(producerId)) {
+        if (this.producerToConsumerMap.has(producerId) || this.consumingInFlight.has(producerId)) {
             logger.log(`Already consuming producer ${producerId}`);
             return;
         }
+        this.consumingInFlight.add(producerId);
 
         if (!this.sfuService.device || !this.sfuService.recvTransport) {
+            this.consumingInFlight.delete(producerId);
             console.error("Cannot consume audio — SFU not initialized");
             return;
         }
@@ -452,6 +467,8 @@ export class AudioChat {
             );
         } catch (error) {
             console.error("Error consuming producer:", error);
+        } finally {
+            this.consumingInFlight.delete(producerId);
         }
     }
 

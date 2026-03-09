@@ -42,12 +42,18 @@ export class VideoChatService {
         
 
         this.currentStream = stream;
-        this.producer = await this.sfuService.sendTransport!.produce({
-            track: videoTrack,
-            appData: {
-                source: "camera",
-            },
-        });
+        try {
+            this.producer = await this.sfuService.sendTransport!.produce({
+                track: videoTrack,
+                appData: {
+                    source: "camera",
+                },
+            });
+        } catch (err) {
+            stream.getTracks().forEach((t) => t.stop());
+            this.currentStream = null;
+            throw err;
+        }
     }
 
     public stopVideoChat() {
