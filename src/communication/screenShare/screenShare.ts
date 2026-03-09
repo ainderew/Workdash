@@ -58,6 +58,18 @@ export class ScreenShareService {
         return stream;
     }
 
+    public pauseProducer() {
+        if (this.screenProducer && !this.screenProducer.closed) {
+            this.screenProducer.pause();
+        }
+    }
+
+    public resumeProducer() {
+        if (this.screenProducer && !this.screenProducer.closed) {
+            this.screenProducer.resume();
+        }
+    }
+
     public stopScreenShare(): void {
         if (!this.screenProducer) {
             return;

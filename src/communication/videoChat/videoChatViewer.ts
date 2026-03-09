@@ -215,6 +215,14 @@ export class VideoChatViewer {
         this.updateComponentStateCallback?.();
     }
 
+    public pauseAllConsumers() {
+        this.consumers.forEach((consumer) => consumer.pause());
+    }
+
+    public resumeAllConsumers() {
+        this.consumers.forEach((consumer) => consumer.resume());
+    }
+
     public removeScreenShareVideo(producerId: string) {
         const consumer = this.consumers.get(producerId);
         if (consumer) {

@@ -15,6 +15,8 @@ export function useFloatingCallVisibility() {
   const currentCall = useCallStore((s) => s.currentCall);
   const manualFloating = useCallStore((s) => s.manualFloating);
   const currentRoomId = useChatV2Store((s) => s.currentRoomId);
+  const selectedWorkspaceId = useChatV2Store((s) => s.selectedWorkspaceId);
+  const roomsById = useChatV2Store((s) => s.roomsById);
   const interactionMode = useUiStore((s) => s.interactionMode);
   const callPresence = useCallStore((s) =>
     currentCall ? s.activeCallsByChannel[currentCall.channelId] : null,
@@ -24,11 +26,21 @@ export function useFloatingCallVisibility() {
   const isViewingCallChannel = currentCall?.channelId === currentRoomId;
   const isDeskMode = interactionMode === 'desk';
 
+  const callWorkspaceId = currentCall
+    ? roomsById[currentCall.channelId]?.workspaceId ?? null
+    : null;
+  const isInDifferentWorkspace =
+    callWorkspaceId !== null &&
+    selectedWorkspaceId !== null &&
+    callWorkspaceId !== selectedWorkspaceId;
+
   const shouldShow = isInCall && (!isViewingCallChannel || manualFloating) && isDeskMode;
 
   return {
     shouldShow,
     channelId: currentCall?.channelId ?? null,
     callPresence,
+    isInDifferentWorkspace,
+    callWorkspaceId,
   };
 }

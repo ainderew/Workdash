@@ -1,5 +1,5 @@
 import React, { useEffect, useCallback, useRef, useState } from 'react';
-import { Phone, Minus, ArrowUpRight } from 'lucide-react';
+import { Phone, Minus, ArrowUpRight, Pause, ArrowLeft } from 'lucide-react';
 import useCallStore from '@/common/store/callStore';
 import useChatV2Store from '@/common/store/chatV2Store';
 import useUiStore from '@/common/store/uiStore';
@@ -7,7 +7,9 @@ import { useFloatingCallVisibility } from '@/common/hooks/useFloatingCallVisibil
 import { CallSignalingService } from '@/communication/callSignaling/callSignalingService';
 import { VideoChatService } from '@/communication/videoChat/videoChat';
 import { ScreenShareService } from '@/communication/screenShare/screenShare';
+import { ScreenShareViewer } from '@/communication/screenShare/screenShareViewer';
 import { AudioChat } from '@/communication/audioChat/audioChat';
+import { VideoChatViewer } from '@/communication/videoChat/videoChatViewer';
 import CallParticipantTile from './CallParticipantTile';
 import CallControlBar from './CallControlBar';
 import CallAvatar from './CallAvatar';
@@ -53,7 +55,8 @@ function clampPosition(
 }
 
 export default function FloatingCallWindow() {
-  const { shouldShow, channelId, callPresence } = useFloatingCallVisibility();
+  const { shouldShow, channelId, callPresence, isInDifferentWorkspace, callWorkspaceId } =
+    useFloatingCallVisibility();
   const floatingWindowState = useCallStore((s) => s.floatingWindowState);
   const floatingPosition = useCallStore((s) => s.floatingPosition);
   const setFloatingPosition = useCallStore((s) => s.setFloatingPosition);
@@ -107,6 +110,49 @@ export default function FloatingCallWindow() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, [shouldShow, currentHeight, setFloatingPosition]);
+
+  // Pause/resume all media streams when switching workspaces mid-call
+  const prevInDifferentWs = useRef(false);
+  useEffect(() => {
+    if (!shouldShow) return;
+    if (isInDifferentWorkspace === prevInDifferentWs.current) return;
+    prevInDifferentWs.current = isInDifferentWorkspace;
+
+    const audio = AudioChat.getInstance();
+    const videoProducer = VideoChatService.getInstance();
+    const screenProducer = ScreenShareService.getInstance();
+    const videoViewer = VideoChatViewer.getInstance();
+    const screenViewer = ScreenShareViewer.getInstance();
+
+    if (isInDifferentWorkspace) {
+      // Pause all producers (outbound)
+      audio.muteMic();
+      videoProducer.pauseProducer();
+      screenProducer.pauseProducer();
+      // Pause all consumers (inbound)
+      audio.enableFocusMode();
+      videoViewer.pauseAllConsumers();
+      screenViewer.pauseAllConsumers();
+    } else {
+      // Resume producers — respect user's prior mute/video state
+      const wasMuted = useUiStore.getState().isMuted;
+      if (!wasMuted) {
+        audio.unMuteMic();
+      }
+      const wasVideoOff = useUiStore.getState().isVideoOff;
+      if (!wasVideoOff) {
+        videoProducer.resumeProducer();
+      }
+      const wasScreenSharing = useCallStore.getState().localMedia.screen;
+      if (wasScreenSharing) {
+        screenProducer.resumeProducer();
+      }
+      // Resume all consumers (inbound)
+      audio.disableFocusMode();
+      videoViewer.resumeAllConsumers();
+      screenViewer.resumeAllConsumers();
+    }
+  }, [shouldShow, isInDifferentWorkspace]);
 
   // Drag handlers
   const onPointerDown = useCallback(
@@ -217,11 +263,23 @@ export default function FloatingCallWindow() {
     }
   }, [channelId]);
 
-  const handleExpandToChannel = useCallback(() => {
-    if (!channelId) return;
+  const setSelectedWorkspaceId = useChatV2Store((s) => s.setSelectedWorkspaceId);
+
+  const handleReturnToCall = useCallback(() => {
+    if (!channelId || !callWorkspaceId) return;
+    setSelectedWorkspaceId(callWorkspaceId);
     useCallStore.getState().setManualFloating(false);
     void selectRoom(channelId);
-  }, [channelId, selectRoom]);
+  }, [channelId, callWorkspaceId, setSelectedWorkspaceId, selectRoom]);
+
+  const handleExpandToChannel = useCallback(() => {
+    if (!channelId) return;
+    if (isInDifferentWorkspace && callWorkspaceId) {
+      setSelectedWorkspaceId(callWorkspaceId);
+    }
+    useCallStore.getState().setManualFloating(false);
+    void selectRoom(channelId);
+  }, [channelId, isInDifferentWorkspace, callWorkspaceId, setSelectedWorkspaceId, selectRoom]);
 
   const handleToggleCollapse = useCallback(() => {
     const next = isCollapsed ? 'expanded' : 'collapsed';
@@ -273,14 +331,32 @@ export default function FloatingCallWindow() {
         >
           <div className="flex items-center gap-2 min-w-0">
             <span
-              className="inline-flex items-center justify-center h-5 w-5 rounded-full shrink-0 animate-pulse"
-              style={{ backgroundColor: 'var(--wd-success)' }}
+              className={`inline-flex items-center justify-center h-5 w-5 rounded-full shrink-0 ${
+                isInDifferentWorkspace ? '' : 'animate-pulse'
+              }`}
+              style={{
+                backgroundColor: isInDifferentWorkspace
+                  ? 'var(--wd-warning, #f59e0b)'
+                  : 'var(--wd-success)',
+              }}
             >
-              <Phone size={10} color="#fff" />
+              {isInDifferentWorkspace ? (
+                <Pause size={10} color="#fff" />
+              ) : (
+                <Phone size={10} color="#fff" />
+              )}
             </span>
             <span className="text-xs font-semibold wd-text-primary truncate">
               #{roomName}
             </span>
+            {isInDifferentWorkspace && (
+              <span
+                className="text-[10px] font-medium shrink-0 px-1 rounded"
+                style={{ color: 'var(--wd-warning, #f59e0b)' }}
+              >
+                Paused
+              </span>
+            )}
             <span className="text-[10px] wd-text-muted shrink-0">
               {participants.length}
             </span>
@@ -317,47 +393,162 @@ export default function FloatingCallWindow() {
         {/* Expanded content */}
         {!isCollapsed && (
           <>
-            {/* Participant tiles */}
-            <div
-              className="grid gap-1.5 p-2"
-              style={{
-                gridTemplateColumns:
-                  participants.length <= 1
-                    ? '1fr'
-                    : 'repeat(2, 1fr)',
-                height: 168,
-                backgroundColor: 'var(--wd-surface-panel-2)',
-              }}
-            >
-              {participants.slice(0, 4).map((p) => (
-                <CallParticipantTile
-                  key={p.userId}
-                  participant={p}
-                  channelId={channelId}
-                  isLocal={p.userId === userId}
-                />
-              ))}
-              {participants.length > 4 && (
-                <div className="flex items-center justify-center rounded-lg wd-bg-elevated">
-                  <div className="flex -space-x-1.5">
-                    {participants.slice(4, 7).map((p) => (
-                      <CallAvatar
-                        key={p.userId}
-                        userId={p.userId}
-                        displayName={p.displayName}
-                        channelId={channelId}
-                      />
-                    ))}
-                  </div>
-                  <span className="text-[10px] wd-text-muted ml-1">
-                    +{participants.length - 4}
-                  </span>
+            {isInDifferentWorkspace ? (
+              /* Paused overlay — replaces participant tiles */
+              <div
+                className="flex flex-col items-center justify-center gap-3 p-4"
+                style={{
+                  height: 168,
+                  backgroundColor: 'var(--wd-surface-panel-2)',
+                }}
+              >
+                <div
+                  className="flex items-center justify-center h-10 w-10 rounded-full"
+                  style={{ backgroundColor: 'color-mix(in srgb, var(--wd-warning, #f59e0b) 20%, transparent)' }}
+                >
+                  <Pause
+                    size={20}
+                    style={{ color: 'var(--wd-warning, #f59e0b)' }}
+                  />
                 </div>
+                <div className="text-center">
+                  <p className="text-xs font-semibold wd-text-primary">
+                    Call paused
+                  </p>
+                  <p className="text-[10px] wd-text-muted mt-0.5">
+                    You're in another workspace
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleReturnToCall}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors wd-btn-primary"
+                >
+                  <ArrowLeft size={12} />
+                  Return to call
+                </button>
+              </div>
+            ) : (
+              /* Normal participant tiles */
+              <div
+                className="grid gap-1.5 p-2"
+                style={{
+                  gridTemplateColumns:
+                    participants.length <= 1
+                      ? '1fr'
+                      : 'repeat(2, 1fr)',
+                  height: 168,
+                  backgroundColor: 'var(--wd-surface-panel-2)',
+                }}
+              >
+                {participants.slice(0, 4).map((p) => (
+                  <CallParticipantTile
+                    key={p.userId}
+                    participant={p}
+                    channelId={channelId}
+                    isLocal={p.userId === userId}
+                  />
+                ))}
+                {participants.length > 4 && (
+                  <div className="flex items-center justify-center rounded-lg wd-bg-elevated">
+                    <div className="flex -space-x-1.5">
+                      {participants.slice(4, 7).map((p) => (
+                        <CallAvatar
+                          key={p.userId}
+                          userId={p.userId}
+                          displayName={p.displayName}
+                          channelId={channelId}
+                        />
+                      ))}
+                    </div>
+                    <span className="text-[10px] wd-text-muted ml-1">
+                      +{participants.length - 4}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Controls bar — only leave + return when paused */}
+            <div className="px-2 py-2 border-t wd-border-subtle">
+              {isInDifferentWorkspace ? (
+                <div className="flex items-center justify-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleReturnToCall}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium wd-text-muted hover:wd-text-primary transition-colors"
+                    style={{
+                      backgroundColor: 'color-mix(in srgb, var(--wd-warning, #f59e0b) 15%, transparent)',
+                    }}
+                    title="Return to call"
+                  >
+                    <ArrowLeft size={11} />
+                    Return
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleLeave();
+                    }}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors"
+                    style={{
+                      backgroundColor: 'color-mix(in srgb, var(--wd-danger, #ef4444) 15%, transparent)',
+                      color: 'var(--wd-danger, #ef4444)',
+                    }}
+                    title="Leave call"
+                  >
+                    <Phone size={11} />
+                    Leave
+                  </button>
+                </div>
+              ) : (
+                <CallControlBar
+                  isMuted={isMuted}
+                  isVideoOff={isVideoOff}
+                  isScreenSharing={isScreenSharing}
+                  onToggleMic={handleToggleMic}
+                  onToggleVideo={handleToggleVideo}
+                  onToggleScreenShare={handleScreenShare}
+                  onLeave={handleLeave}
+                  size="sm"
+                />
               )}
             </div>
+          </>
+        )}
 
-            {/* Controls bar */}
-            <div className="px-2 py-2 border-t wd-border-subtle">
+        {/* Collapsed pill controls */}
+        {isCollapsed && (
+          <div className="flex items-center justify-center px-2 py-1.5">
+            {isInDifferentWorkspace ? (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleReturnToCall}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium wd-text-muted hover:wd-text-primary transition-colors"
+                  title="Return to call"
+                >
+                  <ArrowLeft size={10} />
+                  Return
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleLeave();
+                  }}
+                  className="inline-flex items-center justify-center h-5 w-5 rounded-full transition-colors"
+                  style={{
+                    backgroundColor: 'color-mix(in srgb, var(--wd-danger, #ef4444) 15%, transparent)',
+                    color: 'var(--wd-danger, #ef4444)',
+                  }}
+                  title="Leave call"
+                >
+                  <Phone size={10} />
+                </button>
+              </div>
+            ) : (
               <CallControlBar
                 isMuted={isMuted}
                 isVideoOff={isVideoOff}
@@ -368,23 +559,7 @@ export default function FloatingCallWindow() {
                 onLeave={handleLeave}
                 size="sm"
               />
-            </div>
-          </>
-        )}
-
-        {/* Collapsed pill controls */}
-        {isCollapsed && (
-          <div className="flex items-center justify-center px-2 py-1.5">
-            <CallControlBar
-              isMuted={isMuted}
-              isVideoOff={isVideoOff}
-              isScreenSharing={isScreenSharing}
-              onToggleMic={handleToggleMic}
-              onToggleVideo={handleToggleVideo}
-              onToggleScreenShare={handleScreenShare}
-              onLeave={handleLeave}
-              size="sm"
-            />
+            )}
           </div>
         )}
       </div>

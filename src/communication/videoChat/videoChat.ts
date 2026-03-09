@@ -67,6 +67,18 @@ export class VideoChatService {
         }
     }
 
+    public pauseProducer() {
+        if (this.producer && !this.producer.closed) {
+            this.producer.pause();
+        }
+    }
+
+    public resumeProducer() {
+        if (this.producer && !this.producer.closed) {
+            this.producer.resume();
+        }
+    }
+
     public getCurrentStream() {
         return this.currentStream;
     }
