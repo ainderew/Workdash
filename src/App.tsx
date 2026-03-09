@@ -177,7 +177,12 @@ function App() {
                 EventBus.emit('workspace-switch', { workspaceId: storedDefault });
                 // Trigger room reload since initialize() may have already
                 // run (child effects fire before parent) with no workspace set
-                void useChatV2Store.getState().reloadRoomStructure();
+                void useChatV2Store.getState().reloadRoomStructure().then(() => {
+                    const roomId = useChatV2Store.getState().currentRoomId;
+                    if (roomId) {
+                        void useChatV2Store.getState().selectRoom(roomId);
+                    }
+                });
             } else {
                 openWorkspaceSelector();
             }

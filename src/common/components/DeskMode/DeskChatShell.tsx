@@ -714,15 +714,12 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
                     onSelectWorkspace={(workspaceId) => {
                         setRailView("server");
                         setSelectedWorkspaceId(workspaceId);
-                        const firstRoom = rooms.find(
-                            (room) =>
-                                room.type !== "DIRECT" &&
-                                canEnterRoom(room) &&
-                                room.workspaceId === workspaceId,
-                        );
-                        if (firstRoom) {
-                            void selectRoom(firstRoom.id);
-                        }
+                        void reloadRoomStructure().then(() => {
+                            const roomId = useChatV2Store.getState().currentRoomId;
+                            if (roomId) {
+                                void selectRoom(roomId);
+                            }
+                        });
                     }}
                     onSelectDm={() => {
                         setRailView("dm");
