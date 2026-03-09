@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Loader2, RefreshCw, Unlink } from 'lucide-react';
 import { toast } from 'sonner';
 import { ChatV2Service } from '@/communication/chatV2/chatV2Service';
-import type { DotaStats } from '@/communication/chatV2/_types';
+import type { BetrayalStats, DotaStats } from '@/communication/chatV2/_types';
 import { parseMedal } from '@/common/utils/dotaMedal';
 import { CONFIG } from '@/common/utils/config';
 import { tokenStore } from '@/common/utils/tokenStore';
@@ -13,6 +13,15 @@ function ConnectionsPanel() {
     const [isLinking, setIsLinking] = useState(false);
     const [isSyncing, setIsSyncing] = useState(false);
     const popupRef = useRef<Window | null>(null);
+
+    // Betrayal.io state
+    const [betrayalStats, setBetrayalStats] = useState<BetrayalStats | null>(
+        null,
+    );
+    const [isBetrayalLoading, setIsBetrayalLoading] = useState(true);
+    const [isBetrayalLinking, setIsBetrayalLinking] = useState(false);
+    const [isBetrayalSyncing, setIsBetrayalSyncing] = useState(false);
+    const [betrayalFriendCode, setBetrayalFriendCode] = useState('');
 
     const chatService = ChatV2Service.getInstance();
 
@@ -30,9 +39,24 @@ function ConnectionsPanel() {
         }
     }, [chatService]);
 
+    const fetchBetrayalStats = useCallback(async () => {
+        try {
+            setIsBetrayalLoading(true);
+            const user = tokenStore.getUser();
+            if (!user?.id) return;
+            const result = await chatService.getBetrayalStats(user.id);
+            setBetrayalStats(result);
+        } catch {
+            // No stats
+        } finally {
+            setIsBetrayalLoading(false);
+        }
+    }, [chatService]);
+
     useEffect(() => {
         void fetchStats();
-    }, [fetchStats]);
+        void fetchBetrayalStats();
+    }, [fetchStats, fetchBetrayalStats]);
 
     // Listen for postMessage from the Steam auth popup
     useEffect(() => {
@@ -96,7 +120,11 @@ function ConnectionsPanel() {
             }, 500);
         } catch (err) {
             setIsLinking(false);
-            toast.error(err instanceof Error ? err.message : 'Failed to start Steam auth');
+            toast.error(
+                err instanceof Error
+                    ? err.message
+                    : 'Failed to start Steam auth',
+            );
         }
     };
 
@@ -128,9 +156,61 @@ function ConnectionsPanel() {
         }
     };
 
+    const handleBetrayalLink = async () => {
+        if (!betrayalFriendCode.trim()) {
+            toast.error('Please enter your friend code');
+            return;
+        }
+        setIsBetrayalLinking(true);
+        try {
+            const result = await chatService.linkBetrayal(
+                betrayalFriendCode.trim(),
+            );
+            setBetrayalStats(result);
+            setBetrayalFriendCode('');
+            toast.success('Betrayal.io account linked');
+        } catch (err) {
+            toast.error(
+                err instanceof Error
+                    ? err.message
+                    : 'Failed to link Betrayal.io',
+            );
+        } finally {
+            setIsBetrayalLinking(false);
+        }
+    };
+
+    const handleBetrayalUnlink = async () => {
+        try {
+            await chatService.unlinkBetrayal();
+            setBetrayalStats(null);
+            toast.success('Betrayal.io account unlinked');
+        } catch (err) {
+            toast.error(
+                err instanceof Error ? err.message : 'Failed to unlink',
+            );
+        }
+    };
+
+    const handleBetrayalRefresh = async () => {
+        if (!betrayalStats) return;
+        setIsBetrayalSyncing(true);
+        try {
+            const result = await chatService.syncBetrayalStats();
+            setBetrayalStats(result);
+            toast.success('Stats refreshed');
+        } catch (err) {
+            toast.error(
+                err instanceof Error ? err.message : 'Failed to refresh',
+            );
+        } finally {
+            setIsBetrayalSyncing(false);
+        }
+    };
+
     const medal = stats ? parseMedal(stats.rankTier) : null;
 
-    if (isLoading) {
+    if (isLoading && isBetrayalLoading) {
         return (
             <div className="flex items-center justify-center py-12">
                 <Loader2 size={20} className="animate-spin wd-text-muted" />
@@ -256,6 +336,147 @@ function ConnectionsPanel() {
                             )}
                             Sign in with Steam
                         </button>
+                    </div>
+                )}
+            </div>
+
+            {/* Betrayal.io Section */}
+            <div className="rounded-lg border wd-border-subtle wd-bg-elevated p-4">
+                <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-semibold wd-text-primary flex items-center gap-1.5">
+                        <img
+                            src="/assets/betrayal-icon.webp"
+                            alt="Betrayal.io"
+                            className="h-4 w-4 rounded-sm"
+                        />
+                        Betrayal.io
+                    </h3>
+                    {betrayalStats && (
+                        <div className="flex items-center gap-1.5">
+                            <button
+                                type="button"
+                                onClick={handleBetrayalRefresh}
+                                disabled={isBetrayalSyncing}
+                                className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium wd-text-secondary hover:wd-text-primary hover:wd-bg-elevated transition-colors disabled:opacity-50"
+                            >
+                                <RefreshCw
+                                    size={12}
+                                    className={
+                                        isBetrayalSyncing
+                                            ? 'animate-spin'
+                                            : ''
+                                    }
+                                />
+                                Refresh
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleBetrayalUnlink}
+                                className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium wd-text-danger hover:opacity-80 transition-colors"
+                            >
+                                <Unlink size={12} />
+                                Unlink
+                            </button>
+                        </div>
+                    )}
+                </div>
+
+                {isBetrayalLoading ? (
+                    <div className="flex items-center justify-center py-4">
+                        <Loader2
+                            size={16}
+                            className="animate-spin wd-text-muted"
+                        />
+                    </div>
+                ) : betrayalStats ? (
+                    <div className="space-y-2">
+                        <p className="text-sm wd-text-secondary">
+                            Linked as{' '}
+                            <span className="font-medium wd-text-primary">
+                                {betrayalStats.friendCode}
+                            </span>
+                        </p>
+                        <div className="grid grid-cols-2 gap-3">
+                            <div>
+                                <p className="text-xs wd-text-muted mb-0.5 flex items-center gap-1">
+                                    <img src="/assets/betrayal/shield.png" alt="" className="h-3 w-3" />
+                                    Crewmate
+                                </p>
+                                <p className="text-sm font-medium wd-text-primary tabular-nums">
+                                    {betrayalStats.crewmateWinrate}% WR
+                                </p>
+                                <p className="text-xs wd-text-muted tabular-nums">
+                                    {betrayalStats.crewmateWins}W /{' '}
+                                    {betrayalStats.crewmateRounds -
+                                        betrayalStats.crewmateWins}
+                                    L &middot;{' '}
+                                    {betrayalStats.crewmateRounds} rounds
+                                </p>
+                            </div>
+                            <div>
+                                <p className="text-xs wd-text-muted mb-0.5 flex items-center gap-1">
+                                    <img src="/assets/betrayal/death.png" alt="" className="h-3 w-3" />
+                                    Betrayer
+                                </p>
+                                <p className="text-sm font-medium wd-text-primary tabular-nums">
+                                    {betrayalStats.betrayerWinrate}% WR
+                                </p>
+                                <p className="text-xs wd-text-muted tabular-nums">
+                                    {betrayalStats.betrayerWins}W /{' '}
+                                    {betrayalStats.betrayerRounds -
+                                        betrayalStats.betrayerWins}
+                                    L &middot;{' '}
+                                    {betrayalStats.betrayerRounds} rounds
+                                </p>
+                            </div>
+                        </div>
+                        {betrayalStats.lastSyncedAt && (
+                            <p className="text-[11px] wd-text-muted">
+                                Last synced:{' '}
+                                {new Date(
+                                    betrayalStats.lastSyncedAt,
+                                ).toLocaleString()}
+                            </p>
+                        )}
+                    </div>
+                ) : (
+                    <div className="space-y-3">
+                        <p className="text-sm wd-text-muted">
+                            Link your Betrayal.io account to display your stats
+                            on your profile.
+                        </p>
+                        <div className="flex gap-2">
+                            <input
+                                type="text"
+                                value={betrayalFriendCode}
+                                onChange={(e) =>
+                                    setBetrayalFriendCode(e.target.value)
+                                }
+                                placeholder="name#1234"
+                                className="flex-1 h-10 px-3 rounded-md text-sm wd-bg-surface wd-text-primary border wd-border-subtle placeholder:wd-text-muted focus:outline-none focus:ring-1 focus:ring-[var(--wd-accent)]"
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter')
+                                        void handleBetrayalLink();
+                                }}
+                            />
+                            <button
+                                type="button"
+                                onClick={handleBetrayalLink}
+                                disabled={isBetrayalLinking}
+                                className="inline-flex items-center gap-2 h-10 px-5 rounded-md text-sm font-medium text-white bg-[#E74C3C] hover:bg-[#C0392B] transition-colors disabled:opacity-50"
+                            >
+                                {isBetrayalLinking && (
+                                    <Loader2
+                                        size={16}
+                                        className="animate-spin"
+                                    />
+                                )}
+                                Link
+                            </button>
+                        </div>
+                        <p className="text-[11px] wd-text-muted">
+                            Enter your friend code (e.g. ddrw#9247)
+                        </p>
                     </div>
                 )}
             </div>

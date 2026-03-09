@@ -29,6 +29,7 @@ import type {
     WorkspaceRole,
     DotaRecentMatch,
     DotaStats,
+    BetrayalStats,
 } from "./_types";
 import { getStandaloneGifUrl } from "./gifUrl";
 import { usePresenceStore } from "@/common/store/presenceStore";
@@ -1108,5 +1109,36 @@ export class ChatV2Service {
             { userId },
         );
         return response.matches;
+    }
+
+    // ─── Betrayal.io ────────────────────────────────────────────
+
+    async linkBetrayal(friendCode: string): Promise<BetrayalStats> {
+        const response = await this.emitWithAck<{ stats: BetrayalStats }>(
+            "betrayal:link",
+            { friendCode },
+        );
+        return response.stats;
+    }
+
+    async unlinkBetrayal(): Promise<void> {
+        await this.emitWithAck<Record<string, never>>(
+            "betrayal:unlink",
+        );
+    }
+
+    async getBetrayalStats(userId: number): Promise<BetrayalStats | null> {
+        const response = await this.emitWithAck<{ stats: BetrayalStats | null }>(
+            "betrayal:stats:get",
+            { userId },
+        );
+        return response.stats;
+    }
+
+    async syncBetrayalStats(): Promise<BetrayalStats | null> {
+        const response = await this.emitWithAck<{ stats: BetrayalStats | null }>(
+            "betrayal:stats:sync",
+        );
+        return response.stats;
     }
 }

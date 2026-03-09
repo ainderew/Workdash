@@ -403,3 +403,14 @@ export type DotaRecentMatch = {
     gameMode: number;
     startTime: number;
 };
+
+export type BetrayalStats = {
+    friendCode: string;
+    betrayerRounds: number;
+    betrayerWins: number;
+    betrayerWinrate: number;
+    crewmateRounds: number;
+    crewmateWins: number;
+    crewmateWinrate: number;
+    lastSyncedAt: string | null;
+};
