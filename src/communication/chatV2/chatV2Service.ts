@@ -27,6 +27,8 @@ import type {
     WorkspaceMap,
     WorkspaceMember,
     WorkspaceRole,
+    DotaRecentMatch,
+    DotaStats,
 } from "./_types";
 import { getStandaloneGifUrl } from "./gifUrl";
 import { usePresenceStore } from "@/common/store/presenceStore";
@@ -1067,5 +1069,44 @@ export class ChatV2Service {
             "workspace:channel:overwrite:delete",
             { workspaceId, channelId, targetId, targetType },
         );
+    }
+
+    // --- Dota 2 Profile methods ---
+
+    async linkSteam(steamId64: string): Promise<DotaStats> {
+        const response = await this.emitWithAck<{ steamLink: DotaStats }>(
+            "dota:link",
+            { steamId64 },
+        );
+        return response.steamLink;
+    }
+
+    async unlinkSteam(): Promise<void> {
+        await this.emitWithAck<Record<string, never>>(
+            "dota:unlink",
+        );
+    }
+
+    async getDotaStats(userId: number): Promise<DotaStats | null> {
+        const response = await this.emitWithAck<{ stats: DotaStats | null }>(
+            "dota:stats:get",
+            { userId },
+        );
+        return response.stats;
+    }
+
+    async syncDotaStats(): Promise<DotaStats | null> {
+        const response = await this.emitWithAck<{ stats: DotaStats | null }>(
+            "dota:stats:sync",
+        );
+        return response.stats;
+    }
+
+    async getDotaMatches(userId: number): Promise<DotaRecentMatch[]> {
+        const response = await this.emitWithAck<{ matches: DotaRecentMatch[] }>(
+            "dota:matches:get",
+            { userId },
+        );
+        return response.matches;
     }
 }

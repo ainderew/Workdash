@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Search, Settings, X } from 'lucide-react';
 
-export type SettingsCategory = 'account' | 'appearance' | 'audio-video';
+export type SettingsCategory = 'account' | 'appearance' | 'audio-video' | 'connections';
 
 export interface SidebarItem {
   id: SettingsCategory;

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Palette, User, Volume2 } from 'lucide-react';
+import { Link2, Palette, User, Volume2 } from 'lucide-react';
 import {
   SettingsModalShell,
   type SettingsCategory,
@@ -8,6 +8,7 @@ import {
 import AccountPanel from './user-settings/AccountPanel';
 import AppearancePanel from './user-settings/AppearancePanel';
 import AudioVideoPanel from './user-settings/AudioVideoPanel';
+import ConnectionsPanel from './user-settings/ConnectionsPanel';
 
 interface UserSettingsModalProps {
   isOpen: boolean;
@@ -18,6 +19,7 @@ const CATEGORIES: SidebarItem[] = [
   { id: 'account', label: 'My Account', icon: <User size={16} /> },
   { id: 'appearance', label: 'Appearance', icon: <Palette size={16} /> },
   { id: 'audio-video', label: 'Audio & Video', icon: <Volume2 size={16} /> },
+  { id: 'connections', label: 'Connections', icon: <Link2 size={16} /> },
 ];
 
 function UserSettingsModal({ isOpen, onClose }: UserSettingsModalProps) {
@@ -41,6 +43,7 @@ function UserSettingsModal({ isOpen, onClose }: UserSettingsModalProps) {
       {activeCategory === 'account' && <AccountPanel onClose={onClose} />}
       {activeCategory === 'appearance' && <AppearancePanel />}
       {activeCategory === 'audio-video' && <AudioVideoPanel />}
+      {activeCategory === 'connections' && <ConnectionsPanel />}
     </SettingsModalShell>
   );
 }

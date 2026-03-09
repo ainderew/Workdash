@@ -15,6 +15,7 @@ import { ProfileBannerEditor } from './ProfileBannerEditor';
 import { ProfileBioSection } from './ProfileBioSection';
 import { ProfileActionButtons, ProfileQuickMessage } from './ProfileActions';
 import { ProfileStatusPicker } from './ProfileStatusPicker';
+import { DotaMedalBadge } from './DotaMedalBadge';
 
 interface ProfilePopoverProps {
   popover: ProfilePopoverState;
@@ -240,6 +241,10 @@ export function ProfilePopover({
                 void bio.handleSaveBio();
               }}
             />
+
+            {profile && (
+              <DotaMedalBadge userId={popover.senderUserId} />
+            )}
 
             {!isSelf && (
               <div className="mt-1">

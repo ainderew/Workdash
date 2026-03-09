@@ -379,3 +379,27 @@ export type BannerConfig =
     | { type: 'gradient'; gradient: string }
     | { type: 'image'; url: string }
     | null;
+
+export type DotaStats = {
+    steamId64: string;
+    personaName: string | null;
+    rankTier: number | null;
+    leaderboardRank: number | null;
+    mmrEstimate: number | null;
+    isPrivate: boolean;
+    lastSyncedAt: string | null;
+};
+
+export type DotaRecentMatch = {
+    matchId: number;
+    heroId: number;
+    heroName: string;
+    heroIcon: string;
+    kills: number;
+    deaths: number;
+    assists: number;
+    duration: number;
+    won: boolean;
+    gameMode: number;
+    startTime: number;
+};
