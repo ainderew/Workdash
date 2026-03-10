@@ -21,6 +21,10 @@ export class ScreenShareService {
         return this.instance;
     }
 
+    public getCurrentStream(): MediaStream | null {
+        return this.currentStream;
+    }
+
     public async startScreenShare() {
         if (this.screenProducer) {
             return this.currentStream;

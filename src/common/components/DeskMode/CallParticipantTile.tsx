@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useMemo } from 'react';
-import { Mic, MicOff, Video, Monitor } from 'lucide-react';
+import { Mic, MicOff, Video, Monitor, Pin, PinOff } from 'lucide-react';
 import type { CallParticipant } from '@/common/store/callStore';
 import useCallStore from '@/common/store/callStore';
 import useChatV2Store from '@/common/store/chatV2Store';
@@ -11,12 +11,16 @@ interface CallParticipantTileProps {
   participant: CallParticipant;
   channelId: string;
   isLocal: boolean;
+  isPinned?: boolean;
+  onTogglePin?: () => void;
 }
 
 export default function CallParticipantTile({
   participant,
   channelId,
   isLocal,
+  isPinned,
+  onTogglePin,
 }: CallParticipantTileProps) {
   const videoContainerRef = useRef<HTMLDivElement>(null);
 
@@ -128,12 +132,35 @@ export default function CallParticipantTile({
 
   return (
     <div
-      className="relative overflow-hidden rounded-lg border wd-border-subtle h-full min-w-0"
+      className="relative overflow-hidden rounded-lg border wd-border-subtle h-full min-w-0 group/tile"
       style={{
         aspectRatio: '4 / 3',
         backgroundColor: 'var(--wd-surface-panel)',
       }}
     >
+      {/* Pin button — top-right, visible on hover or when pinned */}
+      {onTogglePin && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onTogglePin();
+          }}
+          className={`absolute top-1 right-1 z-10 inline-flex items-center justify-center h-6 w-6 rounded transition-opacity ${
+            isPinned
+              ? 'opacity-100 bg-blue-500/80'
+              : 'opacity-0 group-hover/tile:opacity-100 bg-black/50 hover:bg-black/70'
+          }`}
+          title={isPinned ? 'Unpin' : 'Pin'}
+        >
+          {isPinned ? (
+            <PinOff size={12} className="text-white" />
+          ) : (
+            <Pin size={12} className="text-white" />
+          )}
+        </button>
+      )}
+
       {/* Background layer: profile pic → sprite → initials */}
       {!participant.media.video && (
         <div className="absolute inset-0 flex items-center justify-center">

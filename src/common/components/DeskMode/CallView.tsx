@@ -9,9 +9,10 @@ import { AudioChat } from '@/communication/audioChat/audioChat';
 import useUiStore from '@/common/store/uiStore';
 import useUserStore from '@/common/store/useStore';
 import { VideoChatViewer } from '@/communication/videoChat/videoChatViewer';
-import CallParticipantTile from './CallParticipantTile';
 import CallAvatar from './CallAvatar';
 import CallControlBar from './CallControlBar';
+import CallTileGrid from './call-tiles/CallTileGrid';
+import { ScreenShareViewer } from '@/communication/screenShare/screenShareViewer';
 
 interface CallViewProps {
   channelId: string;
@@ -68,9 +69,20 @@ export default function CallView({ channelId, onLeave, onPictureInPicture }: Cal
     const viewer = VideoChatViewer.getInstance();
     viewer.loadExistingProducers();
 
+    const screenViewer = ScreenShareViewer.getInstance();
+    // Set callback so displayVideo() doesn't bail when ScreenShareUi is unmounted in desk mode
+    const prevCallback = screenViewer.updateComponentStateCallback;
+    screenViewer.updateComponentStateCallback = () => {};
+    screenViewer.loadExistingProducers();
+
     const audio = AudioChat.getInstance();
     audio.watchNewProducers();
     audio.loadExistingProducers();
+
+    return () => {
+      // Restore previous callback (world-mode ScreenShareUi may re-mount)
+      screenViewer.updateComponentStateCallback = prevCallback;
+    };
   }, []);
 
   useEffect(() => {
@@ -183,19 +195,12 @@ export default function CallView({ channelId, onLeave, onPictureInPicture }: Cal
   return (
     <div className="flex flex-col border-b wd-border-subtle">
       {/* Participant tiles — resizable container, tiles maintain aspect ratio */}
-      <div
-        className="flex items-center justify-center gap-2 p-3 wd-bg-panel-2 overflow-hidden"
-        style={{ height }}
-      >
-        {call.participants.map((p) => (
-          <CallParticipantTile
-            key={p.userId}
-            participant={p}
-            channelId={channelId}
-            isLocal={p.userId === userId}
-          />
-        ))}
-      </div>
+      <CallTileGrid
+        participants={call.participants}
+        channelId={channelId}
+        localUserId={userId}
+        height={height}
+      />
 
       {/* Drag handle */}
       <div

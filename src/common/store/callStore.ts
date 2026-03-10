@@ -53,6 +53,9 @@ interface CallState {
   /** Maps producerId → userId for video tile association */
   producerUserMap: Record<string, number>;
 
+  /** Maps screen-share producerId → userId for screen share tile association */
+  screenProducerUserMap: Record<string, number>;
+
   /** User manually triggered floating PiP while on the call's channel */
   manualFloating: boolean;
 
@@ -61,6 +64,9 @@ interface CallState {
 
   /** Floating call window state */
   floatingWindowState: FloatingWindowState;
+
+  /** Pinned tile key — e.g. "42" for camera, "42-screen" for screen share (null = no pin) */
+  pinnedTileKey: string | null;
 
   // Actions driven by socket events
   handleCallStarted: (call: CallPresence) => void;
@@ -81,6 +87,10 @@ interface CallState {
   setProducerUser: (producerId: string, userId: number) => void;
   removeProducer: (producerId: string) => void;
 
+  // Screen producer → userId mapping
+  setScreenProducerUser: (producerId: string, userId: number) => void;
+  removeScreenProducer: (producerId: string) => void;
+
   // User actions
   setCurrentCall: (channelId: string | null) => void;
   setLocalMedia: (media: Partial<CallParticipantMedia>) => void;
@@ -89,6 +99,9 @@ interface CallState {
   setManualFloating: (value: boolean) => void;
   setFloatingPosition: (pos: FloatingPosition) => void;
   setFloatingWindowState: (state: FloatingWindowState) => void;
+
+  // Pin actions
+  setPinnedTileKey: (key: string | null) => void;
 
   /** Clear workspace-specific state (calls map, producers) but preserve currentCall & media */
   resetForWorkspaceSwitch: () => void;
@@ -107,9 +120,11 @@ const useCallStore = create<CallState>((set) => ({
   currentCall: null,
   localMedia: { ...initialLocalMedia },
   producerUserMap: {},
+  screenProducerUserMap: {},
   manualFloating: false,
   floatingPosition: null,
   floatingWindowState: 'expanded' as FloatingWindowState,
+  pinnedTileKey: null,
 
   handleCallStarted: (call) =>
     set((state) => ({
@@ -123,17 +138,12 @@ const useCallStore = create<CallState>((set) => ({
     set((state) => {
       const next = { ...state.activeCallsByChannel };
       delete next[channelId];
+      const wasInCall = state.currentCall?.channelId === channelId;
       return {
         activeCallsByChannel: next,
-        // If user was in this call, clear it
-        currentCall:
-          state.currentCall?.channelId === channelId
-            ? null
-            : state.currentCall,
-        localMedia:
-          state.currentCall?.channelId === channelId
-            ? { ...initialLocalMedia }
-            : state.localMedia,
+        currentCall: wasInCall ? null : state.currentCall,
+        localMedia: wasInCall ? { ...initialLocalMedia } : state.localMedia,
+        pinnedTileKey: wasInCall ? null : state.pinnedTileKey,
       };
     }),
 
@@ -171,6 +181,21 @@ const useCallStore = create<CallState>((set) => ({
         }
       }
 
+      // Clean up screenProducerUserMap entries for the leaving user
+      const nextScreenProducerUserMap = { ...state.screenProducerUserMap };
+      for (const [producerId, uid] of Object.entries(nextScreenProducerUserMap)) {
+        if (uid === userId) {
+          delete nextScreenProducerUserMap[producerId];
+        }
+      }
+
+      // Clear pin if the leaving user was pinned
+      const pinnedKey = state.pinnedTileKey;
+      const unpinned =
+        pinnedKey === String(userId) || pinnedKey === `${userId}-screen`
+          ? null
+          : pinnedKey;
+
       return {
         activeCallsByChannel: {
           ...state.activeCallsByChannel,
@@ -182,6 +207,8 @@ const useCallStore = create<CallState>((set) => ({
           },
         },
         producerUserMap: nextProducerUserMap,
+        screenProducerUserMap: nextScreenProducerUserMap,
+        pinnedTileKey: unpinned,
       };
     }),
 
@@ -189,6 +216,15 @@ const useCallStore = create<CallState>((set) => ({
     set((state) => {
       const existing = state.activeCallsByChannel[channelId];
       if (!existing) return state;
+
+      // Auto-unpin if the pinned stream is no longer active
+      let nextPinned = state.pinnedTileKey;
+      if (nextPinned === `${userId}-screen` && !media.screen) {
+        nextPinned = null;
+      }
+      if (nextPinned === String(userId) && !media.video) {
+        nextPinned = null;
+      }
 
       return {
         activeCallsByChannel: {
@@ -200,6 +236,7 @@ const useCallStore = create<CallState>((set) => ({
             ),
           },
         },
+        pinnedTileKey: nextPinned,
       };
     }),
 
@@ -233,6 +270,18 @@ const useCallStore = create<CallState>((set) => ({
       return { producerUserMap: next };
     }),
 
+  setScreenProducerUser: (producerId, userId) =>
+    set((state) => ({
+      screenProducerUserMap: { ...state.screenProducerUserMap, [producerId]: userId },
+    })),
+
+  removeScreenProducer: (producerId) =>
+    set((state) => {
+      const next = { ...state.screenProducerUserMap };
+      delete next[producerId];
+      return { screenProducerUserMap: next };
+    }),
+
   setCurrentCall: (channelId) =>
     set(() => ({
       currentCall: channelId ? { channelId } : null,
@@ -253,10 +302,15 @@ const useCallStore = create<CallState>((set) => ({
   setFloatingWindowState: (windowState) =>
     set(() => ({ floatingWindowState: windowState })),
 
+  setPinnedTileKey: (key) =>
+    set(() => ({ pinnedTileKey: key })),
+
   resetForWorkspaceSwitch: () =>
     set(() => ({
       activeCallsByChannel: {},
       producerUserMap: {},
+      screenProducerUserMap: {},
+      pinnedTileKey: null,
     })),
 
   reset: () =>
@@ -265,9 +319,11 @@ const useCallStore = create<CallState>((set) => ({
       currentCall: null,
       localMedia: { ...initialLocalMedia },
       producerUserMap: {},
+      screenProducerUserMap: {},
       manualFloating: false,
       floatingPosition: null,
       floatingWindowState: 'expanded' as FloatingWindowState,
+      pinnedTileKey: null,
     })),
 }));
 

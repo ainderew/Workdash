@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useLayoutEffect, useCallback } from 'react';
 import { ImagePlus, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import UserAvatar from '../UserAvatar';
@@ -46,6 +46,98 @@ export function ProfilePopover({
   });
 
   const isSelf = profile?.isSelf ?? false;
+
+  // --- Viewport-aware positioning ---
+  const popoverRef = useRef<HTMLDivElement>(null);
+  const [adjustedPos, setAdjustedPos] = useState<{
+    top?: number;
+    bottom?: number;
+    left: number;
+    maxHeight?: number;
+  } | null>(null);
+
+  const recalcPosition = useCallback(() => {
+    const el = popoverRef.current;
+    if (!el) return;
+
+    const pad = 8;
+    const vpW = window.innerWidth;
+    const vpH = window.innerHeight;
+    // Use scrollHeight to get the full content height even if currently clipped
+    const elHeight = el.scrollHeight;
+    const elWidth = el.offsetWidth;
+
+    // Horizontal: clamp so popover stays within viewport
+    let left = popover.x;
+    if (left + elWidth > vpW - pad) {
+      left = vpW - elWidth - pad;
+    }
+    if (left < pad) left = pad;
+
+    // Vertical: determine best placement
+    if (popover.anchorBottom) {
+      const bottomVal = vpH - popover.y;
+      const spaceAbove = popover.y - pad;
+      const spaceBelow = vpH - popover.y - pad;
+
+      if (elHeight <= spaceAbove) {
+        // Fits above — bottom-anchor as requested
+        setAdjustedPos({ bottom: bottomVal, left });
+      } else if (elHeight <= spaceBelow) {
+        // Flip to top-anchor
+        setAdjustedPos({ top: popover.y, left });
+      } else {
+        // Can't fit either way — use whichever side has more room, with maxHeight + scroll
+        if (spaceAbove >= spaceBelow) {
+          setAdjustedPos({ bottom: bottomVal, left, maxHeight: spaceAbove });
+        } else {
+          setAdjustedPos({ top: popover.y, left, maxHeight: spaceBelow });
+        }
+      }
+    } else {
+      const spaceBelow = vpH - popover.y - pad;
+      const spaceAbove = popover.y - pad;
+
+      if (elHeight <= spaceBelow) {
+        // Fits below — top-anchor as requested
+        setAdjustedPos({ top: popover.y, left });
+      } else if (elHeight <= spaceAbove) {
+        // Flip to bottom-anchor (grow upward from click point)
+        const bottomVal = vpH - popover.y;
+        setAdjustedPos({ bottom: bottomVal, left });
+      } else {
+        // Can't fit either way — use whichever side has more room, with maxHeight + scroll
+        if (spaceBelow >= spaceAbove) {
+          setAdjustedPos({ top: popover.y, left, maxHeight: spaceBelow });
+        } else {
+          const bottomVal = vpH - popover.y;
+          setAdjustedPos({ bottom: bottomVal, left, maxHeight: spaceAbove });
+        }
+      }
+    }
+  }, [popover.x, popover.y, popover.anchorBottom]);
+
+  // Use ResizeObserver to recalculate whenever popover content changes size,
+  // and reposition on window resize instead of closing
+  useLayoutEffect(() => {
+    const el = popoverRef.current;
+    if (!el) return;
+
+    // Initial calculation
+    recalcPosition();
+
+    const observer = new ResizeObserver(() => {
+      recalcPosition();
+    });
+    observer.observe(el);
+
+    window.addEventListener('resize', recalcPosition);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', recalcPosition);
+    };
+  }, [recalcPosition]);
 
   // --- Inline avatar upload (was ProfileIdentity) ---
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
@@ -131,16 +223,31 @@ export function ProfilePopover({
     />
   );
 
-  return (
-    <div
-      data-user-profile-popover="true"
-      className="fixed z-[170] w-[340px] rounded-xl border border-white/[0.06] wd-bg-panel backdrop-blur-xl shadow-[0_0_0_1px_rgba(0,0,0,0.3),0_4px_12px_rgba(0,0,0,0.2),0_16px_40px_rgba(0,0,0,0.4)] animate-in fade-in zoom-in-95 duration-200"
-      style={{
+  // Before adjustment is calculated, use the caller's position as initial (hidden to avoid flash)
+  const positionStyle: React.CSSProperties = adjustedPos
+    ? {
+        left: adjustedPos.left,
+        ...(adjustedPos.bottom != null
+          ? { bottom: adjustedPos.bottom }
+          : { top: adjustedPos.top }),
+        ...(adjustedPos.maxHeight != null
+          ? { maxHeight: adjustedPos.maxHeight, overflowY: 'auto' as const }
+          : {}),
+      }
+    : {
         left: popover.x,
         ...(popover.anchorBottom
-          ? { bottom: window.innerHeight - popover.y }
+          ? { bottom: typeof window !== 'undefined' ? window.innerHeight - popover.y : 0 }
           : { top: popover.y }),
-      }}
+        visibility: 'hidden' as const,
+      };
+
+  return (
+    <div
+      ref={popoverRef}
+      data-user-profile-popover="true"
+      className="fixed z-[170] w-[340px] rounded-xl border border-white/[0.06] wd-bg-panel backdrop-blur-xl shadow-[0_0_0_1px_rgba(0,0,0,0.3),0_4px_12px_rgba(0,0,0,0.2),0_16px_40px_rgba(0,0,0,0.4)] animate-in fade-in zoom-in-95 duration-200"
+      style={positionStyle}
     >
       {/* Banner: show editor or display mode */}
       {banner.isEditing ? (

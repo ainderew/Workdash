@@ -11,9 +11,8 @@ import { ScreenShareService } from '@/communication/screenShare/screenShare';
 import { ScreenShareViewer } from '@/communication/screenShare/screenShareViewer';
 import { AudioChat } from '@/communication/audioChat/audioChat';
 import { VideoChatViewer } from '@/communication/videoChat/videoChatViewer';
-import CallParticipantTile from './CallParticipantTile';
 import CallControlBar from './CallControlBar';
-import CallAvatar from './CallAvatar';
+import FloatingTileGrid from './call-tiles/FloatingTileGrid';
 
 const WINDOW_WIDTH = 320;
 const WINDOW_HEIGHT_EXPANDED = 268;
@@ -416,43 +415,11 @@ export default function FloatingCallWindow() {
               </div>
             ) : (
               /* Normal participant tiles */
-              <div
-                className="grid gap-1.5 p-2"
-                style={{
-                  gridTemplateColumns:
-                    participants.length <= 1
-                      ? '1fr'
-                      : 'repeat(2, 1fr)',
-                  height: 168,
-                  backgroundColor: 'var(--wd-surface-panel-2)',
-                }}
-              >
-                {participants.slice(0, 4).map((p) => (
-                  <CallParticipantTile
-                    key={p.userId}
-                    participant={p}
-                    channelId={channelId}
-                    isLocal={p.userId === userId}
-                  />
-                ))}
-                {participants.length > 4 && (
-                  <div className="flex items-center justify-center rounded-lg wd-bg-elevated">
-                    <div className="flex -space-x-1.5">
-                      {participants.slice(4, 7).map((p) => (
-                        <CallAvatar
-                          key={p.userId}
-                          userId={p.userId}
-                          displayName={p.displayName}
-                          channelId={channelId}
-                        />
-                      ))}
-                    </div>
-                    <span className="text-[10px] wd-text-muted ml-1">
-                      +{participants.length - 4}
-                    </span>
-                  </div>
-                )}
-              </div>
+              <FloatingTileGrid
+                participants={participants}
+                channelId={channelId}
+                localUserId={userId}
+              />
             )}
 
             {/* Controls bar — only leave + return when paused */}

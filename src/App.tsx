@@ -30,6 +30,7 @@ import useUiStore, { InteractionMode } from "./common/store/uiStore";
 import useChatV2Store from "./common/store/chatV2Store";
 import DeskLayout from "./common/components/DeskMode/DeskLayout";
 import WorkspaceSelectorOverlay from "./common/components/WorkspaceSelector/WorkspaceSelectorOverlay";
+import useCallStore from "@/common/store/callStore";
 import useThemeStore from "@/common/store/themeStore";
 import { EventBus } from "@/game/EventBus";
 
@@ -43,6 +44,7 @@ function App() {
     const selectedWorkspaceId = useChatV2Store(
         (state) => state.selectedWorkspaceId,
     );
+    const currentCall = useCallStore((state) => state.currentCall);
     const [isInitialized, setIsInitialized] = useState(false);
     const [isGameReady, setIsGameReady] = useState(false);
     const { data: session, status } = useSession();
@@ -237,7 +239,9 @@ function App() {
             )}
 
             {}
-            <ScreenShareUi isGameReady={isGameReady} />
+            {!(interactionMode === "desk" && currentCall !== null) && (
+                <ScreenShareUi isGameReady={isGameReady} />
+            )}
             {interactionMode === "world" && (
                 <VideoChatUi isGameReady={isGameReady} />
             )}

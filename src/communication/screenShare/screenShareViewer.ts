@@ -2,6 +2,7 @@ import { Consumer } from "mediasoup-client/types";
 import { MediaTransportService } from "../mediaTransportService/mediaTransportServive";
 import useUserStore from "@/common/store/useStore";
 import usePlayersStore from "@/common/store/playerStore";
+import useCallStore from "@/common/store/callStore";
 import { logger } from "@/common/utils/logger";
 import { ConsumerData } from "./_types";
 
@@ -31,15 +32,20 @@ export class ScreenShareViewer {
             async ({
                 producerId,
                 userName,
+                userId,
                 source,
             }: {
                 producerId: string;
                 userName: string;
+                userId?: number;
                 source: string;
             }) => {
                 if (source !== "screen") return;
 
                 this.videoOwnerMap[producerId] = userName;
+                if (userId != null) {
+                    useCallStore.getState().setScreenProducerUser(producerId, userId);
+                }
                 await this.consumeProducer(producerId);
             },
         );
@@ -58,7 +64,7 @@ export class ScreenShareViewer {
         await this.waitForPlayers();
 
         const producers = await new Promise<
-            { producerId: string; socketId: string; source: string; userName?: string }[]
+            { producerId: string; socketId: string; source: string; userName?: string; userId?: number }[]
         >((resolve) => {
             this.service.socket.emit("getProducers", {}, resolve);
         });
@@ -69,6 +75,11 @@ export class ScreenShareViewer {
         );
 
         for (const producer of relevantProducers) {
+            // Store userId mapping for screen share tiles
+            if (producer.userId != null) {
+                useCallStore.getState().setScreenProducerUser(producer.producerId, producer.userId);
+            }
+
             // Store userName if available
             if (producer.userName) {
                 logger.log("📝 Storing userName for producer:", producer.producerId, "→", producer.userName);
@@ -241,8 +252,9 @@ export class ScreenShareViewer {
             this.videoElements.delete(producerId);
         }
 
-        // Remove from owner map
+        // Remove from owner map and callStore screen producer map
         delete this.videoOwnerMap[producerId];
+        useCallStore.getState().removeScreenProducer(producerId);
 
         // Remove from user store
         const currentProducerIds = useUserStore.getState().user.producerIds ?? [];

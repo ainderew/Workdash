@@ -38,7 +38,7 @@ function SmileyFaceIcon() {
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
-            className="h-[16px] w-[16px]"
+            className="h-[20px] w-[20px]"
             aria-hidden="true"
         >
             <path d="M8.5 9v1" />
@@ -50,9 +50,9 @@ function SmileyFaceIcon() {
 
 function ReactionAddIcon() {
     return (
-        <span className="relative inline-flex h-[18px] w-[18px] items-center justify-center">
+        <span className="relative inline-flex h-[20px] w-[20px] items-center justify-center">
             <SmileyFaceIcon />
-            <Plus size={11} className="absolute -right-[6px] -top-[6px]" />
+            <Plus size={15} className="absolute -right-[6px] -top-[6px]" />
         </span>
     );
 }
@@ -112,7 +112,8 @@ function MessageReactionChips({
         const onMouseDown = (event: MouseEvent) => {
             const target = event.target as HTMLElement | null;
             if (target?.closest("[data-reaction-add-picker='true']")) return;
-            if (target?.closest("[data-message-reaction-picker='true']")) return;
+            if (target?.closest("[data-message-reaction-picker='true']"))
+                return;
             setIsPickerOpen(false);
         };
 
@@ -187,7 +188,9 @@ function MessageReactionChips({
     }
 
     return (
-        <div className={`mt-2 ml-2 flex flex-wrap items-center gap-1 ${className || ""}`}>
+        <div
+            className={`mt-2 ml-2 flex flex-wrap items-center gap-1 ${className || ""}`}
+        >
             {orderedReactions.map((reaction) => (
                 <button
                     key={`${messageId}-${reaction.emoji}`}
@@ -199,15 +202,17 @@ function MessageReactionChips({
                     onClick={() => onToggleReaction?.(reaction.emoji)}
                     onMouseEnter={(event) => openTooltip(event, reaction.emoji)}
                     onMouseLeave={closeTooltipSoon}
-                    className={`inline-flex cursor-pointer items-center gap-1 rounded-full border px-2.5 py-1 text-xs transition-all duration-150 hover:-translate-y-[1px] hover:wd-text-primary hover:bg-[var(--wd-surface-elevated)] hover:shadow-[0_6px_14px_rgba(0,0,0,0.28)] active:translate-y-0 ${
+                    className={`inline-flex cursor-pointer items-center gap-1 rounded-lg border px-3 py-1.5 text-xs transition-all duration-150 hover:-translate-y-[1px] hover:wd-text-primary hover:bg-[var(--wd-surface-elevated)] hover:shadow-[0_6px_14px_rgba(0,0,0,0.28)] active:translate-y-0 ${
                         reaction.viewerReacted
-                            ? 'border-[var(--wd-accent)] bg-[var(--wd-accent)]/10 wd-text-primary'
-                            : 'wd-border-subtle wd-bg-elevated wd-text-secondary'
+                            ? "border-[var(--wd-accent)] bg-[var(--wd-accent)]/10 wd-text-primary"
+                            : "wd-border-subtle wd-bg-elevated wd-text-secondary"
                     }`}
                     title={`${reaction.count} reacted with ${reaction.emoji}`}
                 >
-                    <TwemojiSpan emoji={reaction.emoji} size={16} />
-                    <span className="text-sm font-semibold">{reaction.count}</span>
+                    <TwemojiSpan emoji={reaction.emoji} size={18} />
+                    <span className="text-sm font-semibold">
+                        {reaction.count}
+                    </span>
                 </button>
             ))}
 
@@ -215,7 +220,7 @@ function MessageReactionChips({
                 <button
                     type="button"
                     onClick={() => setIsPickerOpen((current) => !current)}
-                    className="inline-flex cursor-pointer items-center gap-1 rounded-full border wd-border-subtle wd-bg-elevated px-2.5 py-1 text-xs wd-text-secondary transition-all duration-150 hover:-translate-y-[1px] hover:wd-text-primary hover:bg-[var(--wd-surface-elevated)] hover:shadow-[0_6px_14px_rgba(0,0,0,0.28)] active:translate-y-0"
+                    className="inline-flex cursor-pointer items-center gap-1 rounded-lg border wd-border-subtle wd-bg-elevated px-2.5 py-1 text-xs wd-text-secondary transition-all duration-150 hover:-translate-y-[1px] hover:wd-text-primary hover:bg-[var(--wd-surface-elevated)] hover:shadow-[0_6px_14px_rgba(0,0,0,0.28)] active:translate-y-0"
                     title="Add emoji reaction"
                     aria-label="Add emoji reaction"
                 >
@@ -236,71 +241,86 @@ function MessageReactionChips({
 
             {tooltip && typeof window !== "undefined"
                 ? createPortal(
-                    <div
-                        className="fixed z-[230]"
-                        style={{
-                            left: tooltip.x,
-                            top: tooltip.y,
-                            transform: "translate(-50%, -100%)",
-                        }}
-                        onMouseEnter={keepTooltipOpen}
-                        onMouseLeave={closeTooltipSoon}
-                    >
-                        <div className="min-w-[240px] max-w-[320px] rounded-xl border wd-border-strong wd-bg-panel p-3 shadow-[0_20px_45px_rgba(0,0,0,0.55)]">
-                            <div className="flex items-center justify-center pb-2">
-                                <TwemojiSpan emoji={tooltip.emoji} size={32} />
-                            </div>
+                      <div
+                          className="fixed z-[230]"
+                          style={{
+                              left: tooltip.x,
+                              top: tooltip.y,
+                              transform: "translate(-50%, -100%)",
+                          }}
+                          onMouseEnter={keepTooltipOpen}
+                          onMouseLeave={closeTooltipSoon}
+                      >
+                          <div className="min-w-[240px] max-w-[320px] rounded-xl border wd-border-strong wd-bg-panel p-3 shadow-[0_20px_45px_rgba(0,0,0,0.55)]">
+                              <div className="flex items-center justify-center pb-2">
+                                  <TwemojiSpan
+                                      emoji={tooltip.emoji}
+                                      size={32}
+                                  />
+                              </div>
 
-                            {tooltip.loading ? (
-                                <p className="text-xs wd-text-muted">Loading reactors...</p>
-                            ) : tooltip.reactors.length === 0 ? (
-                                <p className="text-xs wd-text-muted">No reactors yet.</p>
-                            ) : (
-                                <div className="space-y-1">
-                                    {tooltip.reactors.slice(0, 20).map((reactor) => {
-                                        const reactorName = getDisplayName(
-                                            reactor,
-                                            `User ${reactor.id}`,
-                                        );
-                                        return (
-                                            <div
-                                                key={`${tooltip.emoji}-${reactor.id}`}
-                                                className="flex items-center gap-2 rounded-md px-1.5 py-1 wd-bg-panel-2"
-                                            >
-                                                <span className="h-6 w-6 shrink-0 rounded-full overflow-hidden border wd-border-subtle wd-bg-elevated inline-flex items-center justify-center text-[10px] font-semibold wd-text-primary">
-                                                    {reactor.image ? (
-                                                        <img
-                                                            src={reactor.image}
-                                                            alt={reactorName}
-                                                            className="h-full w-full object-cover"
-                                                        />
-                                                    ) : (
-                                                        reactorName
-                                                            .charAt(0)
-                                                            .toUpperCase()
-                                                    )}
-                                                </span>
-                                                <span className="text-xs wd-text-primary truncate">
-                                                    {reactorName}
-                                                </span>
-                                            </div>
-                                        );
-                                    })}
+                              {tooltip.loading ? (
+                                  <p className="text-xs wd-text-muted">
+                                      Loading reactors...
+                                  </p>
+                              ) : tooltip.reactors.length === 0 ? (
+                                  <p className="text-xs wd-text-muted">
+                                      No reactors yet.
+                                  </p>
+                              ) : (
+                                  <div className="space-y-1">
+                                      {tooltip.reactors
+                                          .slice(0, 20)
+                                          .map((reactor) => {
+                                              const reactorName =
+                                                  getDisplayName(
+                                                      reactor,
+                                                      `User ${reactor.id}`,
+                                                  );
+                                              return (
+                                                  <div
+                                                      key={`${tooltip.emoji}-${reactor.id}`}
+                                                      className="flex items-center gap-2 rounded-md px-1.5 py-1 wd-bg-panel-2"
+                                                  >
+                                                      <span className="h-6 w-6 shrink-0 rounded-full overflow-hidden border wd-border-subtle wd-bg-elevated inline-flex items-center justify-center text-[10px] font-semibold wd-text-primary">
+                                                          {reactor.image ? (
+                                                              <img
+                                                                  src={
+                                                                      reactor.image
+                                                                  }
+                                                                  alt={
+                                                                      reactorName
+                                                                  }
+                                                                  className="h-full w-full object-cover"
+                                                              />
+                                                          ) : (
+                                                              reactorName
+                                                                  .charAt(0)
+                                                                  .toUpperCase()
+                                                          )}
+                                                      </span>
+                                                      <span className="text-xs wd-text-primary truncate">
+                                                          {reactorName}
+                                                      </span>
+                                                  </div>
+                                              );
+                                          })}
 
-                                    {tooltip.totalCount > tooltip.reactors.length ? (
-                                        <p className="pt-1 text-xs font-medium wd-text-muted">
-                                            +
-                                            {tooltip.totalCount
-                                                - tooltip.reactors.length}{" "}
-                                            others
-                                        </p>
-                                    ) : null}
-                                </div>
-                            )}
-                        </div>
-                    </div>,
-                    window.document.body,
-                )
+                                      {tooltip.totalCount >
+                                      tooltip.reactors.length ? (
+                                          <p className="pt-1 text-xs font-medium wd-text-muted">
+                                              +
+                                              {tooltip.totalCount -
+                                                  tooltip.reactors.length}{" "}
+                                              others
+                                          </p>
+                                      ) : null}
+                                  </div>
+                              )}
+                          </div>
+                      </div>,
+                      window.document.body,
+                  )
                 : null}
         </div>
     );
