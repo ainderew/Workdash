@@ -123,9 +123,6 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
     const toggleMessageReaction = useChatV2Store(
         (state) => state.toggleMessageReaction,
     );
-    const superReaction = useChatV2Store(
-        (state) => state.superReaction,
-    );
     const unreadByRoomId = useChatV2Store((state) => state.unreadByRoomId);
     const getWorkspaceUnreadTotal = useChatV2Store(
         (state) => state.getWorkspaceUnreadTotal,
@@ -1033,9 +1030,6 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
                                         messageId,
                                         emoji,
                                     );
-                                }}
-                                onSuperReaction={async (messageId, emoji) => {
-                                    await superReaction(messageId, emoji);
                                 }}
                             />
                         ) : isSearchPanelVisible ? (

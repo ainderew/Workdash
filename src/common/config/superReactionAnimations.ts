@@ -4,6 +4,7 @@ const EMOJI_ANIMATION_MAP: Record<string, string> = {
     '\u2764\uFE0F': 'heart.json',
     '\uD83D\uDC4D': 'thumbsup.json',
     '\uD83D\uDE02': 'laughing.json',
+    '\uD83D\uDCB0': 'wallet.json',
 };
 
 export function getSuperReactionAnimationUrl(emoji: string): string {
