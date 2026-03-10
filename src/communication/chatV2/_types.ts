@@ -55,9 +55,11 @@ export type ChatV2Attachment = {
 export type ChatV2MessageReaction = {
     emoji: string;
     count: number;
+    superCount: number;
     firstReactedAt: string | Date;
     lastReactedAt: string | Date;
     viewerReacted?: boolean;
+    viewerSuperReacted?: boolean;
 };
 
 export type ChatV2CreateAttachment = {
@@ -119,9 +121,10 @@ export type ChatV2MessageReactionUpdate = {
     roomId: string;
     messageId: string;
     emoji: string;
-    action: "ADDED" | "REMOVED";
+    action: "ADDED" | "REMOVED" | "SUPER_TOGGLED";
     reactorUserId: number;
     count: number;
+    superCount: number;
     firstReactedAt: string | Date | null;
 };
 

@@ -51,6 +51,7 @@
         "emoji-regex": "^10.6.0",
         "framer-motion": "^12.23.25",
         "googleapis": "^162.0.0",
+        "lottie-react": "^2.4.1",
         "lucide-react": "^0.544.0",
         "mediasoup-client": "^3.16.7",
         "next": "15.3.1",

@@ -590,6 +590,13 @@ body {
     .wd-panel-height {
         height: var(--wd-panel-height);
     }
+
+    .wd-super-reaction-glow {
+        box-shadow:
+            0 0 8px 2px rgb(var(--wd-accent-rgb) / 0.35),
+            0 0 16px 4px rgb(var(--wd-accent-rgb) / 0.15);
+        border-color: var(--wd-accent);
+    }
 }
 
 @layer components {

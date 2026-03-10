@@ -43,6 +43,7 @@ type MessageWithReactionAggregates = ChatV2Message & {
     reactionAggregates?: Array<{
         emoji: string;
         count: number;
+        superCount?: number;
         firstReactedAt: string | Date;
         lastReactedAt: string | Date;
     }>;
@@ -73,6 +74,7 @@ const normalizeMessage = (message: MessageWithReactionAggregates): ChatV2Message
         ? message.reactionAggregates.map((aggregate) => ({
             emoji: aggregate.emoji,
             count: aggregate.count,
+            superCount: aggregate.superCount ?? 0,
             firstReactedAt: aggregate.firstReactedAt,
             lastReactedAt: aggregate.lastReactedAt,
         }))
@@ -145,6 +147,7 @@ type ChatV2State = {
         },
     ) => Promise<ChatV2Message | null>;
     toggleMessageReaction: (messageId: string, emoji: string) => Promise<void>;
+    superReaction: (messageId: string, emoji: string) => Promise<void>;
     listReactionReactors: (
         roomId: string,
         messageId: string,
@@ -417,9 +420,10 @@ const applyReactionUpdate = (
             existingReactions[reactionIndex]?.firstReactedAt ||
             new Date().toISOString();
         const lastReactedAt = new Date().toISOString();
-        const nextReaction: ChatV2MessageReaction = {
+        const nextReaction: Pick<ChatV2MessageReaction, 'emoji' | 'count' | 'superCount' | 'firstReactedAt' | 'lastReactedAt'> = {
             emoji: payload.emoji,
             count: payload.count,
+            superCount: payload.superCount ?? 0,
             firstReactedAt,
             lastReactedAt,
         };
@@ -599,6 +603,35 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
                     }));
                 },
                 onMessageReactionUpdate: (payload) => {
+                    set((state) => {
+                        const roomMessages = state.messagesByRoomId[payload.roomId] || [];
+                        const nextRoomMessages = applyReactionUpdate(
+                            roomMessages,
+                            payload,
+                        );
+                        if (nextRoomMessages === roomMessages) {
+                            return {};
+                        }
+
+                        const nextCache = { ...state.reactionReactorsCache };
+                        delete nextCache[
+                            toReactorCacheKey(
+                                payload.roomId,
+                                payload.messageId,
+                                payload.emoji,
+                            )
+                        ];
+
+                        return {
+                            reactionReactorsCache: nextCache,
+                            messagesByRoomId: {
+                                ...state.messagesByRoomId,
+                                [payload.roomId]: nextRoomMessages,
+                            },
+                        };
+                    });
+                },
+                onSuperReactionUpdate: (payload) => {
                     set((state) => {
                         const roomMessages = state.messagesByRoomId[payload.roomId] || [];
                         const nextRoomMessages = applyReactionUpdate(
@@ -1093,6 +1126,7 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
                 action: result.action,
                 reactorUserId: localUserId || 0,
                 count: result.reaction?.count ?? 0,
+                superCount: result.reaction?.superCount ?? 0,
                 firstReactedAt: result.reaction?.firstReactedAt ?? null,
             };
 
@@ -1104,6 +1138,22 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
                 );
                 const nextCache = { ...state.reactionReactorsCache };
                 delete nextCache[toReactorCacheKey(roomId, messageId, trimmedEmoji)];
+
+                if (result.action === "REMOVED") {
+                    const msgIdx = nextRoomMessages.findIndex((m) => m.id === messageId);
+                    if (msgIdx !== -1) {
+                        const msg = nextRoomMessages[msgIdx];
+                        const reactions = [...(msg.reactions || [])];
+                        const rIdx = reactions.findIndex((r) => r.emoji === trimmedEmoji);
+                        if (rIdx !== -1) {
+                            reactions[rIdx] = {
+                                ...reactions[rIdx],
+                                viewerSuperReacted: false,
+                            };
+                            nextRoomMessages[msgIdx] = { ...msg, reactions };
+                        }
+                    }
+                }
 
                 let nextFrequentEmojis = state.frequentEmojis;
                 if (
@@ -1136,6 +1186,80 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
                     error instanceof Error
                         ? error.message
                         : "Failed to toggle reaction",
+            });
+        }
+    },
+
+    superReaction: async (messageId, emoji) => {
+        const roomId = get().currentRoomId;
+        const trimmedEmoji = emoji.trim();
+        if (!roomId || !messageId || !trimmedEmoji) return;
+
+        try {
+            const chatV2Service = getChatV2Service();
+            const result = await chatV2Service.superReaction(
+                roomId,
+                messageId,
+                trimmedEmoji,
+            );
+
+            const localUserId =
+                useUserStore.getState().backendUser?.id;
+            const reactionPayload: ChatV2MessageReactionUpdate = {
+                roomId,
+                messageId,
+                emoji: trimmedEmoji,
+                action: "SUPER_TOGGLED",
+                reactorUserId: localUserId || 0,
+                count: result.reaction?.count ?? 0,
+                superCount: result.reaction?.superCount ?? 0,
+                firstReactedAt: result.reaction?.firstReactedAt ?? null,
+            };
+
+            set((state) => {
+                const roomMessages = state.messagesByRoomId[roomId] || [];
+                const nextRoomMessages = applyReactionUpdate(
+                    roomMessages,
+                    reactionPayload,
+                );
+                const nextCache = { ...state.reactionReactorsCache };
+                delete nextCache[toReactorCacheKey(roomId, messageId, trimmedEmoji)];
+
+                const messageIndex = nextRoomMessages.findIndex(
+                    (m) => m.id === messageId,
+                );
+                if (messageIndex !== -1 && result.reaction) {
+                    const msg = nextRoomMessages[messageIndex];
+                    const reactions = [...(msg.reactions || [])];
+                    const reactionIdx = reactions.findIndex(
+                        (r) => r.emoji === trimmedEmoji,
+                    );
+                    if (reactionIdx !== -1) {
+                        reactions[reactionIdx] = {
+                            ...reactions[reactionIdx],
+                            viewerSuperReacted: result.reaction.viewerSuperReacted,
+                        };
+                        nextRoomMessages[messageIndex] = {
+                            ...msg,
+                            reactions,
+                        };
+                    }
+                }
+
+                return {
+                    reactionReactorsCache: nextCache,
+                    messagesByRoomId: {
+                        ...state.messagesByRoomId,
+                        [roomId]: nextRoomMessages,
+                    },
+                };
+            });
+        } catch (error) {
+            set({
+                error:
+                    error instanceof Error
+                        ? error.message
+                        : "Failed to super react",
             });
         }
     },

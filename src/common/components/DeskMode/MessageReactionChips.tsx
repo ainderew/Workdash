@@ -6,12 +6,14 @@ import { Plus } from "lucide-react";
 import { getDisplayName } from "@/common/utils/displayName";
 import ReactionPickerFlyout from "./ReactionPickerFlyout";
 import TwemojiSpan from "./TwemojiSpan";
+import ReactionChipButton from "./ReactionChipButton";
 
 type MessageReactionChipsProps = {
     roomId: string;
     messageId: string;
     reactions?: ChatV2MessageReaction[];
     onToggleReaction?: (emoji: string) => void;
+    onSuperReaction?: (emoji: string) => void;
     className?: string;
 };
 
@@ -62,6 +64,7 @@ function MessageReactionChips({
     messageId,
     reactions = [],
     onToggleReaction,
+    onSuperReaction,
     className,
 }: MessageReactionChipsProps) {
     const listReactionReactors = useChatV2Store(
@@ -192,28 +195,17 @@ function MessageReactionChips({
             className={`mt-2 ml-2 flex flex-wrap items-center gap-1 ${className || ""}`}
         >
             {orderedReactions.map((reaction) => (
-                <button
+                <ReactionChipButton
                     key={`${messageId}-${reaction.emoji}`}
-                    type="button"
-                    data-reaction-chip="true"
-                    data-reaction-room-id={roomId}
-                    data-reaction-message-id={messageId}
-                    data-reaction-emoji={reaction.emoji}
-                    onClick={() => onToggleReaction?.(reaction.emoji)}
-                    onMouseEnter={(event) => openTooltip(event, reaction.emoji)}
+                    reaction={reaction}
+                    messageId={messageId}
+                    roomId={roomId}
+                    onToggle={(emoji) => onToggleReaction?.(emoji)}
+                    onSuperReaction={onSuperReaction}
+                    onMouseEnter={openTooltip}
                     onMouseLeave={closeTooltipSoon}
-                    className={`inline-flex cursor-pointer items-center gap-1 rounded-lg border px-3 py-1.5 text-xs transition-all duration-150 hover:-translate-y-[1px] hover:wd-text-primary hover:bg-[var(--wd-surface-elevated)] hover:shadow-[0_6px_14px_rgba(0,0,0,0.28)] active:translate-y-0 ${
-                        reaction.viewerReacted
-                            ? "border-[var(--wd-accent)] bg-[var(--wd-accent)]/10 wd-text-primary"
-                            : "wd-border-subtle wd-bg-elevated wd-text-secondary"
-                    }`}
-                    title={`${reaction.count} reacted with ${reaction.emoji}`}
-                >
-                    <TwemojiSpan emoji={reaction.emoji} size={18} />
-                    <span className="text-sm font-semibold">
-                        {reaction.count}
-                    </span>
-                </button>
+                    dismissTooltip={() => setTooltip(null)}
+                />
             ))}
 
             <div className="relative" data-reaction-add-picker="true">

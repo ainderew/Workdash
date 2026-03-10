@@ -61,6 +61,7 @@ function CompactChatShell({ onClose }: CompactChatShellProps) {
     const selectRoom = useChatV2Store((state) => state.selectRoom);
     const sendMessage = useChatV2Store((state) => state.sendMessage);
     const toggleMessageReaction = useChatV2Store((state) => state.toggleMessageReaction);
+    const superReaction = useChatV2Store((state) => state.superReaction);
     const membersByRoomId = useChatV2Store((state) => state.membersByRoomId);
     const reloadDirectRooms = useChatV2Store((state) => state.reloadDirectRooms);
     const reloadFriends = useChatV2Store((state) => state.reloadFriends);
@@ -971,6 +972,9 @@ function CompactChatShell({ onClose }: CompactChatShellProps) {
                             }}
                             onToggleReaction={async (messageId, emoji) => {
                                 await toggleMessageReaction(messageId, emoji);
+                            }}
+                            onSuperReaction={async (messageId, emoji) => {
+                                await superReaction(messageId, emoji);
                             }}
                         />
                     )}

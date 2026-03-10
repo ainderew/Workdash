@@ -207,6 +207,9 @@ function MessageList({
     const toggleMessageReaction = useChatV2Store(
         (state) => state.toggleMessageReaction,
     );
+    const superReaction = useChatV2Store(
+        (state) => state.superReaction,
+    );
     const [attachmentUrls, setAttachmentUrls] = useState<
         Record<
             string,
@@ -1630,6 +1633,12 @@ function MessageList({
                                                         emoji,
                                                     ) => {
                                                         void toggleMessageReaction(
+                                                            message.id,
+                                                            emoji,
+                                                        );
+                                                    }}
+                                                    onSuperReaction={(emoji) => {
+                                                        void superReaction(
                                                             message.id,
                                                             emoji,
                                                         );

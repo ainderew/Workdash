@@ -47,6 +47,7 @@ type RealtimeHandlers = {
         deletedAt: string | Date | null;
     }) => void;
     onMessageReactionUpdate?: (payload: ChatV2MessageReactionUpdate) => void;
+    onSuperReactionUpdate?: (payload: ChatV2MessageReactionUpdate) => void;
     onNotificationNew?: (notification: ChatV2UserNotification) => void;
     onMessagePinNew?: (pinnedMessage: ChatV2PinnedMessage) => void;
     onMessagePinRemoved?: (payload: { roomId: string; messageId: string }) => void;
@@ -156,6 +157,12 @@ export class ChatV2Service {
             }
         };
 
+        const onSuperReactionUpdate = (payload: ChatV2MessageReactionUpdate) => {
+            if (payload?.roomId && payload?.messageId && payload?.emoji) {
+                handlers.onSuperReactionUpdate?.(payload);
+            }
+        };
+
         const onMessagePinNew = (payload: { pinnedMessage: ChatV2PinnedMessage }) => {
             if (payload?.pinnedMessage) {
                 handlers.onMessagePinNew?.(payload.pinnedMessage);
@@ -176,6 +183,10 @@ export class ChatV2Service {
             onMessageReactionUpdate,
         );
         this.transport.socket.on("chat:v2:notification:new", onNotificationNew);
+        this.transport.socket.on(
+            "chat:v2:message:reaction:super:update",
+            onSuperReactionUpdate,
+        );
         this.transport.socket.on("chat:v2:message:pin:new", onMessagePinNew);
         this.transport.socket.on("chat:v2:message:pin:removed", onMessagePinRemoved);
 
@@ -188,6 +199,10 @@ export class ChatV2Service {
                 onMessageReactionUpdate,
             );
             this.transport.socket.off("chat:v2:notification:new", onNotificationNew);
+            this.transport.socket.off(
+                "chat:v2:message:reaction:super:update",
+                onSuperReactionUpdate,
+            );
             this.transport.socket.off("chat:v2:message:pin:new", onMessagePinNew);
             this.transport.socket.off("chat:v2:message:pin:removed", onMessagePinRemoved);
             this.teardownRealtimeHandlers = null;
@@ -496,6 +511,26 @@ export class ChatV2Service {
             action: "ADDED" | "REMOVED";
             reaction: ChatV2MessageReaction | null;
         }>("chat:v2:message:reaction:toggle", {
+            roomId,
+            messageId,
+            emoji,
+        });
+    }
+
+    async superReaction(
+        roomId: string,
+        messageId: string,
+        emoji: string,
+    ): Promise<{
+        message: ChatV2Message;
+        action: "SUPER_TOGGLED";
+        reaction: ChatV2MessageReaction | null;
+    }> {
+        return await this.emitWithAck<{
+            message: ChatV2Message;
+            action: "SUPER_TOGGLED";
+            reaction: ChatV2MessageReaction | null;
+        }>("chat:v2:message:reaction:super", {
             roomId,
             messageId,
             emoji,
