@@ -1,5 +1,5 @@
-import { useCallback, useRef } from 'react';
-import { getSuperReactionAnimationUrl } from '@/common/config/superReactionAnimations';
+import { useEffect, useRef, useState } from 'react';
+import { getSuperReactionAnimationUrl, isSuperReactionEmoji } from '@/common/config/superReactionAnimations';
 
 const MAX_CACHE_SIZE = 50;
 const cache = typeof window !== 'undefined'
@@ -22,21 +22,33 @@ function fetchAnimation(url: string): Promise<object> {
     return promise;
 }
 
-export function useSuperReactionAnimation(emoji: string) {
-    const animationDataRef = useRef<object | null>(null);
+/**
+ * lottie-web mutates animationData in-place during loadAnimation()
+ * (adds `completed`, `__used` flags, converts relative paths to absolute).
+ * Passing the same cached reference on remount feeds corrupted data.
+ * Deep-clone once per component mount so each Lottie instance gets a fresh copy.
+ */
+function cloneAnimationData(data: object): object {
+    return JSON.parse(JSON.stringify(data));
+}
 
-    const preload = useCallback(() => {
+export function useSuperReactionAnimation(emoji: string): object | null {
+    const isSuper = isSuperReactionEmoji(emoji);
+    const [animationData, setAnimationData] = useState<object | null>(null);
+    const mountId = useRef(0);
+
+    useEffect(() => {
+        if (!isSuper) return;
+        const id = ++mountId.current;
         const url = getSuperReactionAnimationUrl(emoji);
         fetchAnimation(url)
             .then((data) => {
-                animationDataRef.current = data;
+                if (id !== mountId.current) return;
+                setAnimationData(cloneAnimationData(data));
             })
             .catch(() => {});
-    }, [emoji]);
+        return () => { mountId.current++; };
+    }, [emoji, isSuper]);
 
-    const getAnimationData = useCallback((): object | null => {
-        return animationDataRef.current;
-    }, []);
-
-    return { preload, getAnimationData };
+    return isSuper ? animationData : null;
 }

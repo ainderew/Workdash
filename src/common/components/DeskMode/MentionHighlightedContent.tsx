@@ -3,12 +3,34 @@ import {
   parseContentWithMentions,
   type MentionMemberNameMap,
 } from '@/communication/chatV2/mentionUtils';
+import { parseCustomEmojis } from '@/common/utils/customEmojiParser';
+import CustomEmojiInline from './CustomEmojiInline';
 
 interface MentionHighlightedContentProps {
   content: string;
   mentionedUserIds: number[];
   memberNameMap: MentionMemberNameMap;
   onClickMention?: (event: React.MouseEvent, userId: number, displayName: string) => void;
+}
+
+/** Renders text with custom emoji tokens replaced by inline images. */
+function renderTextWithCustomEmojis(text: string, keyPrefix: string) {
+  const tokens = parseCustomEmojis(text);
+  if (tokens.length === 1 && tokens[0].type === 'text') {
+    return <span key={keyPrefix}>{text}</span>;
+  }
+  return tokens.map((token, i) => {
+    if (token.type === 'custom_emoji' && token.emojiId && token.emojiName) {
+      return (
+        <CustomEmojiInline
+          key={`${keyPrefix}-ce-${i}`}
+          emojiId={token.emojiId}
+          name={token.emojiName}
+        />
+      );
+    }
+    return <span key={`${keyPrefix}-t-${i}`}>{token.content}</span>;
+  });
 }
 
 function MentionHighlightedContent({
@@ -41,7 +63,9 @@ function MentionHighlightedContent({
         }
 
         return (
-          <span key={`text-${index}`}>{segment.content}</span>
+          <React.Fragment key={`text-${index}`}>
+            {renderTextWithCustomEmojis(segment.content, `seg-${index}`)}
+          </React.Fragment>
         );
       })}
     </>

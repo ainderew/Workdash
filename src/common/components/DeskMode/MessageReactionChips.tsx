@@ -7,13 +7,14 @@ import { getDisplayName } from "@/common/utils/displayName";
 import ReactionPickerFlyout from "./ReactionPickerFlyout";
 import TwemojiSpan from "./TwemojiSpan";
 import ReactionChipButton from "./ReactionChipButton";
+import { parseCustomEmojiToken } from "@/common/utils/customEmojiParser";
+import useCustomEmojiStore from "@/common/store/customEmojiStore";
 
 type MessageReactionChipsProps = {
     roomId: string;
     messageId: string;
     reactions?: ChatV2MessageReaction[];
     onToggleReaction?: (emoji: string) => void;
-    onSuperReaction?: (emoji: string) => void;
     className?: string;
 };
 
@@ -59,12 +60,29 @@ function ReactionAddIcon() {
     );
 }
 
+function ReactionTooltipEmoji({ emoji }: { emoji: string }) {
+    const parsed = parseCustomEmojiToken(emoji);
+    const customEmoji = useCustomEmojiStore((s) =>
+        parsed ? s.findEmojiById(parsed.id) : undefined,
+    );
+    if (customEmoji) {
+        return (
+            <img
+                src={customEmoji.imageUrl}
+                alt={`:${customEmoji.name}:`}
+                className="h-8 w-8"
+                loading="lazy"
+            />
+        );
+    }
+    return <TwemojiSpan emoji={emoji} size={32} />;
+}
+
 function MessageReactionChips({
     roomId,
     messageId,
     reactions = [],
     onToggleReaction,
-    onSuperReaction,
     className,
 }: MessageReactionChipsProps) {
     const listReactionReactors = useChatV2Store(
@@ -201,10 +219,8 @@ function MessageReactionChips({
                     messageId={messageId}
                     roomId={roomId}
                     onToggle={(emoji) => onToggleReaction?.(emoji)}
-                    onSuperReaction={onSuperReaction}
                     onMouseEnter={openTooltip}
                     onMouseLeave={closeTooltipSoon}
-                    dismissTooltip={() => setTooltip(null)}
                 />
             ))}
 
@@ -245,10 +261,7 @@ function MessageReactionChips({
                       >
                           <div className="min-w-[240px] max-w-[320px] rounded-xl border wd-border-strong wd-bg-panel p-3 shadow-[0_20px_45px_rgba(0,0,0,0.55)]">
                               <div className="flex items-center justify-center pb-2">
-                                  <TwemojiSpan
-                                      emoji={tooltip.emoji}
-                                      size={32}
-                                  />
+                                  <ReactionTooltipEmoji emoji={tooltip.emoji} />
                               </div>
 
                               {tooltip.loading ? (

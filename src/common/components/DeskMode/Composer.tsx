@@ -13,11 +13,16 @@ import {
     serializeMentionContentForSend,
 } from "@/communication/chatV2/mentionUtils";
 import useUserStore from "@/common/store/useStore";
+import useChatV2Store from "@/common/store/chatV2Store";
 import DeskGifPicker from "./DeskGifPicker";
 import MentionSuggestionFlyout, {
     type MentionSuggestion,
 } from "./MentionSuggestionFlyout";
+import EmojiAutocompleteFlyout from "./EmojiAutocompleteFlyout";
 import { getDisplayName, getNameAliases } from "@/common/utils/displayName";
+import { useCustomEmojiSearch } from "@/common/hooks/useCustomEmojiSearch";
+import useCustomEmojiStore from "@/common/store/customEmojiStore";
+import type { CustomEmoji } from "@/common/store/customEmojiStore";
 
 function PlusSolidIcon({ className }: { className?: string }) {
     return (
@@ -84,6 +89,7 @@ function Composer({
     onSend,
 }: ComposerProps) {
     const backendUser = useUserStore((s) => s.backendUser);
+    const selectedWorkspaceId = useChatV2Store((s) => s.selectedWorkspaceId);
     const [value, setValue] = useState("");
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [uploadError, setUploadError] = useState<string | null>(null);
@@ -93,6 +99,11 @@ function Composer({
         atIndex: number;
     } | null>(null);
     const [mentionSelectedIndex, setMentionSelectedIndex] = useState(0);
+    const [emojiQuery, setEmojiQuery] = useState<{
+        query: string;
+        colonIndex: number;
+    } | null>(null);
+    const [emojiSelectedIndex, setEmojiSelectedIndex] = useState(0);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const inputElementId = inputId;
@@ -139,6 +150,14 @@ function Composer({
             }));
     }, [members, mentionQuery, localBackendUserId]);
 
+    const emojiSuggestions = useCustomEmojiSearch(
+        selectedWorkspaceId,
+        emojiQuery?.query ?? "",
+    );
+
+    const isEmojiFlyoutOpen =
+        emojiQuery !== null && emojiSuggestions.length > 0;
+
     const isMentionFlyoutOpen =
         mentionQuery !== null && mentionSuggestions.length > 0;
 
@@ -153,6 +172,39 @@ function Composer({
         const length = input.value.length;
         input.setSelectionRange(length, length);
     }, [inputElementId]);
+
+    const closeEmojiFlyout = useCallback(() => {
+        setEmojiQuery(null);
+        setEmojiSelectedIndex(0);
+    }, []);
+
+    const handleEmojiSelect = useCallback(
+        (emoji: CustomEmoji) => {
+            if (!emojiQuery) return;
+
+            const textarea = textareaRef.current;
+            const cursorPos = textarea?.selectionStart ?? value.length;
+
+            // Replace :query with :name: (human-readable shortcode)
+            const before = value.slice(0, emojiQuery.colonIndex);
+            const after = value.slice(cursorPos);
+            const shortcode = `:${emoji.name}: `;
+            const newValue = before + shortcode + after;
+            const newCursorPos = before.length + shortcode.length;
+
+            setValue(newValue);
+            closeEmojiFlyout();
+
+            window.requestAnimationFrame(() => {
+                const input = textareaRef.current;
+                if (input) {
+                    input.focus();
+                    input.setSelectionRange(newCursorPos, newCursorPos);
+                }
+            });
+        },
+        [closeEmojiFlyout, emojiQuery, value],
+    );
 
     const closeMentionFlyout = useCallback(() => {
         setMentionQuery(null);
@@ -200,11 +252,44 @@ function Composer({
             if (query) {
                 setMentionQuery(query);
                 setMentionSelectedIndex(0);
+                closeEmojiFlyout();
             } else {
                 closeMentionFlyout();
+
+                // Check for :emoji autocomplete trigger (don't match closed :name:)
+                const beforeCursor = nextValue.slice(0, cursorPos);
+                const colonMatch = beforeCursor.match(/:([a-z0-9_]{2,32})$/);
+                if (colonMatch) {
+                    const colonIndex = cursorPos - colonMatch[0].length;
+                    const charBefore = colonIndex > 0 ? nextValue[colonIndex - 1] : '';
+                    if (charBefore !== '<') {
+                        setEmojiQuery({ query: colonMatch[1], colonIndex });
+                        setEmojiSelectedIndex(0);
+                    } else {
+                        closeEmojiFlyout();
+                    }
+                } else {
+                    closeEmojiFlyout();
+                }
             }
         },
-        [closeMentionFlyout],
+        [closeMentionFlyout, closeEmojiFlyout],
+    );
+
+    const serializeCustomEmojis = useCallback(
+        (text: string): string => {
+            const emojis =
+                useCustomEmojiStore.getState().emojisByWorkspace[
+                    selectedWorkspaceId ?? ''
+                ] ?? [];
+            if (emojis.length === 0) return text;
+            const emojiMap = new Map(emojis.map((e) => [e.name, e]));
+            return text.replace(/:([a-z0-9_]{2,32}):/g, (match, name: string) => {
+                const emoji = emojiMap.get(name);
+                return emoji ? `<:${emoji.name}:${emoji.id}>` : match;
+            });
+        },
+        [selectedWorkspaceId],
     );
 
     const submit = async () => {
@@ -212,7 +297,9 @@ function Composer({
             value,
             memberNameMap,
         );
-        const content = serializedMentionContent.content.trim();
+        const content = serializeCustomEmojis(
+            serializedMentionContent.content.trim(),
+        );
         if ((!content && !selectedFile) || disabled || isSending || !roomId)
             return;
 
@@ -277,6 +364,34 @@ function Composer({
         (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
             event.stopPropagation();
 
+            if (isEmojiFlyoutOpen) {
+                if (event.key === "ArrowDown") {
+                    event.preventDefault();
+                    setEmojiSelectedIndex((c) =>
+                        c < emojiSuggestions.length - 1 ? c + 1 : 0,
+                    );
+                    return;
+                }
+                if (event.key === "ArrowUp") {
+                    event.preventDefault();
+                    setEmojiSelectedIndex((c) =>
+                        c > 0 ? c - 1 : emojiSuggestions.length - 1,
+                    );
+                    return;
+                }
+                if (event.key === "Enter" || event.key === "Tab") {
+                    event.preventDefault();
+                    const selected = emojiSuggestions[emojiSelectedIndex];
+                    if (selected) handleEmojiSelect(selected);
+                    return;
+                }
+                if (event.key === "Escape") {
+                    event.preventDefault();
+                    closeEmojiFlyout();
+                    return;
+                }
+            }
+
             if (isMentionFlyoutOpen) {
                 if (event.key === "ArrowDown") {
                     event.preventDefault();
@@ -317,8 +432,13 @@ function Composer({
             }
         },
         [
+            closeEmojiFlyout,
             closeMentionFlyout,
+            emojiSelectedIndex,
+            emojiSuggestions,
+            handleEmojiSelect,
             handleMentionSelect,
+            isEmojiFlyoutOpen,
             isMentionFlyoutOpen,
             mentionSelectedIndex,
             mentionSuggestions,
@@ -328,6 +448,16 @@ function Composer({
 
     return (
         <div className="wd-panel-height relative border-t wd-border-subtle p-4 wd-bg-panel-2">
+            {isEmojiFlyoutOpen && (
+                <EmojiAutocompleteFlyout
+                    emojis={emojiSuggestions}
+                    query={emojiQuery?.query ?? ""}
+                    selectedIndex={emojiSelectedIndex}
+                    onSelect={handleEmojiSelect}
+                    onClose={closeEmojiFlyout}
+                />
+            )}
+
             {isMentionFlyoutOpen && (
                 <MentionSuggestionFlyout
                     suggestions={mentionSuggestions}

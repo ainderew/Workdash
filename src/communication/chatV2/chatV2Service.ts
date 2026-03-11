@@ -1058,6 +1058,32 @@ export class ChatV2Service {
         );
     }
 
+    // --- Workspace Emoji methods ---
+
+    async listWorkspaceEmojis(workspaceId: string): Promise<Array<{
+        id: string;
+        workspaceId: string;
+        name: string;
+        imageUrl: string;
+        isAnimated: boolean;
+        uploadedBy: number;
+        createdAt: string;
+    }>> {
+        const response = await this.emitWithAck<{ emojis: Array<{
+            id: string;
+            workspaceId: string;
+            name: string;
+            imageUrl: string;
+            isAnimated: boolean;
+            uploadedBy: number;
+            createdAt: string;
+        }> }>(
+            "workspace:emoji:list",
+            { workspaceId },
+        );
+        return response.emojis;
+    }
+
     // --- Channel Overwrite methods ---
 
     async listChannelOverwrites(

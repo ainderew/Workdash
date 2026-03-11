@@ -43,6 +43,7 @@ import FloatingCallWindow from "./FloatingCallWindow";
 import { CallSignalingService } from "@/communication/callSignaling/callSignalingService";
 import useCallStore from "@/common/store/callStore";
 import useUserStore from "@/common/store/useStore";
+import { useCustomEmojiList } from "@/common/hooks/useCustomEmojiList";
 
 export type DeskChatShellMode = "desk" | "drawer";
 
@@ -53,6 +54,8 @@ interface DeskChatShellProps {
 
 function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
     useChatNotificationSound();
+    const selectedWsId = useChatV2Store((s) => s.selectedWorkspaceId);
+    useCustomEmojiList(selectedWsId);
     const backendUser = useUserStore((s) => s.backendUser);
     const chatV2Service = useMemo(() => ChatV2Service.getInstance(), []);
     const initialize = useChatV2Store((state) => state.initialize);
