@@ -311,6 +311,20 @@ export function parseContentWithMentions(
     return segments.length > 0 ? segments : [{ type: "text", content }];
 }
 
+/**
+ * Convert stored `<@123>` tokens back to `@DisplayName` for editing.
+ */
+export function deserializeMentionContent(
+    content: string,
+    memberNameMap: MentionMemberNameMap,
+): string {
+    return content.replace(/<@(\d+)>/g, (_match, userIdStr: string) => {
+        const userId = Number(userIdStr);
+        const entry = memberNameMap.get(userId);
+        return entry ? `@${entry.displayName}` : `@Unknown`;
+    });
+}
+
 export function getMemberDisplayName(
     memberNameMap: MentionMemberNameMap,
     userId: number,

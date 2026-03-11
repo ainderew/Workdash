@@ -9,6 +9,7 @@ type MessageHoverActionsProps = {
     isPinned?: boolean;
     onReply?: () => void;
     onReact: (emoji: string) => void;
+    onEdit?: () => void;
     onUnsend?: () => void;
     onTogglePin?: () => void;
     onFutureAction?: (label: string) => void;
@@ -55,6 +56,7 @@ function MessageHoverActions({
     isPinned = false,
     onReply,
     onReact,
+    onEdit,
     onUnsend,
     onTogglePin,
     onFutureAction,
@@ -165,17 +167,19 @@ function MessageHoverActions({
                                 {isPinned ? "Unpin message" : "Pin message"}
                             </button>
                         ) : null}
-                        <button
-                            type="button"
-                            onClick={() => {
-                                setIsMoreOpen(false);
-                                onFutureAction?.("Edit");
-                            }}
-                            className="w-full rounded px-2 py-1.5 text-left text-sm wd-text-primary transition-colors hover:bg-[var(--wd-surface-elevated)] inline-flex items-center gap-2"
-                        >
-                            <Pencil size={14} />
-                            Edit
-                        </button>
+                        {onEdit ? (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setIsMoreOpen(false);
+                                    onEdit();
+                                }}
+                                className="w-full rounded px-2 py-1.5 text-left text-sm wd-text-primary transition-colors hover:bg-[var(--wd-surface-elevated)] inline-flex items-center gap-2"
+                            >
+                                <Pencil size={14} />
+                                Edit
+                            </button>
+                        ) : null}
                         {onUnsend ? (
                             <button
                                 type="button"

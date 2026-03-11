@@ -657,6 +657,17 @@ export class ChatV2Service {
         });
     }
 
+    async editMessage(
+        roomId: string,
+        messageId: string,
+        content: string,
+    ): Promise<{ message: ChatV2Message }> {
+        return await this.emitWithAck<{ message: ChatV2Message }>(
+            "chat:v2:message:edit",
+            { roomId, messageId, content },
+        );
+    }
+
     async createRoom(input: {
         name: string;
         topic?: string;
