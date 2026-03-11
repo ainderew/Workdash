@@ -6,6 +6,7 @@ import {
     Plus,
     Settings,
     Shield,
+    Smile,
     Trash2,
     UserMinus,
     X,
@@ -16,6 +17,7 @@ import {
     PERMISSIONS,
     PERMISSION_CATEGORIES,
 } from "@/common/utils/workspacePermissions";
+import { useWorkspacePermissions } from "@/common/hooks/useWorkspacePermissions";
 
 const DEFAULT_ROLE_CATEGORIES = new Set(["General", "Text", "Voice"]);
 const DEFAULT_ROLE_PERMISSIONS = Object.values(PERMISSIONS)
@@ -29,7 +31,9 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"];
 const MAX_SERVER_NAME_LENGTH = 100;
 
-type SettingsTab = "overview" | "roles";
+import EmojisTab from "./EmojisTab";
+
+type SettingsTab = "overview" | "roles" | "emojis";
 
 const ROLE_COLORS = [
     0x5865F2, 0x57F287, 0xFEE75C, 0xEB459E, 0xED4245,
@@ -533,6 +537,8 @@ function ServerSettingsModal({
     const [editName, setEditName] = useState("");
     const [isRenaming, setIsRenaming] = useState(false);
 
+    const { canManageEmojis } = useWorkspacePermissions(serverId);
+
     useEffect(() => {
         if (isOpen) {
             setEditName(serverName);
@@ -791,6 +797,20 @@ function ServerSettingsModal({
                                 Roles
                             </span>
                         </button>
+                        <button
+                            type="button"
+                            onClick={() => setActiveTab("emojis")}
+                            className={`px-3 py-1.5 text-xs font-semibold transition-colors border-b-2 ${
+                                activeTab === "emojis"
+                                    ? "border-[rgba(88,101,242,0.8)] wd-text-primary"
+                                    : "border-transparent wd-text-muted hover:wd-text-secondary"
+                            }`}
+                        >
+                            <span className="inline-flex items-center gap-1.5">
+                                <Smile size={12} />
+                                Emojis
+                            </span>
+                        </button>
                     </div>
                 </div>
 
@@ -940,6 +960,10 @@ function ServerSettingsModal({
 
                     {activeTab === "roles" && (
                         <RolesTab workspaceId={serverId} />
+                    )}
+
+                    {activeTab === "emojis" && (
+                        <EmojisTab workspaceId={serverId} canManage={canManageEmojis} />
                     )}
                 </div>
             </div>

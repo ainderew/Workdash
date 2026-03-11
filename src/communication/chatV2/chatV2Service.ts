@@ -1,5 +1,6 @@
 import { MediaTransportService } from "@/communication/mediaTransportService/mediaTransportServive";
 import { tokenStore } from "@/common/utils/tokenStore";
+import type { CustomEmoji } from "@/common/store/customEmojiStore";
 import type {
     BannerConfig,
     ChannelOverwrite,
@@ -1056,6 +1057,16 @@ export class ChatV2Service {
             "workspace:role:remove",
             { workspaceId, targetUserId: userId, roleId },
         );
+    }
+
+    // --- Workspace Emoji methods ---
+
+    async listWorkspaceEmojis(workspaceId: string): Promise<CustomEmoji[]> {
+        const response = await this.emitWithAck<{ emojis: CustomEmoji[] }>(
+            "workspace:emoji:list",
+            { workspaceId },
+        );
+        return response.emojis;
     }
 
     // --- Channel Overwrite methods ---

@@ -207,9 +207,6 @@ function MessageList({
     const toggleMessageReaction = useChatV2Store(
         (state) => state.toggleMessageReaction,
     );
-    const superReaction = useChatV2Store(
-        (state) => state.superReaction,
-    );
     const [attachmentUrls, setAttachmentUrls] = useState<
         Record<
             string,
@@ -229,6 +226,7 @@ function MessageList({
     const [profilePopover, setProfilePopover] =
         useState<ProfilePopoverState | null>(null);
     const [isAddingFriend, setIsAddingFriend] = useState(false);
+    const [flyoutMessageId, setFlyoutMessageId] = useState<string | null>(null);
     const [resolvedSenderImagesByUserId, setResolvedSenderImagesByUserId] =
         useState<Record<number, string>>({});
     const [
@@ -302,16 +300,26 @@ function MessageList({
         const container = scrollContainerRef.current;
         if (!container) return;
 
-        // On initial load, always scroll to bottom
+        // On initial load, always scroll to bottom.
+        // Double-rAF ensures the browser has laid out all synchronous content
+        // before we measure scrollHeight. Also scroll the end sentinel into
+        // view to handle any late-loading content (images, previews, etc.).
         if (needsInitialScrollRef.current) {
             needsInitialScrollRef.current = false;
+            let cancelled = false;
             const rafId = window.requestAnimationFrame(() => {
-                if (scrollContainerRef.current) {
-                    scrollContainerRef.current.scrollTop =
-                        scrollContainerRef.current.scrollHeight;
-                }
+                if (cancelled) return;
+                window.requestAnimationFrame(() => {
+                    if (cancelled) return;
+                    if (scrollContainerRef.current) {
+                        scrollContainerRef.current.scrollTop =
+                            scrollContainerRef.current.scrollHeight;
+                    }
+                    endRef.current?.scrollIntoView({ behavior: "auto" });
+                });
             });
             return () => {
+                cancelled = true;
                 window.cancelAnimationFrame(rafId);
             };
         }
@@ -1118,8 +1126,6 @@ function MessageList({
                             effectiveMentionedUserIds.includes(
                                 localBackendUserId,
                             );
-                        const hasMentions =
-                            effectiveMentionedUserIds.length > 0;
                         const previousMessage =
                             index > 0
                                 ? groupedMessages.rootMessages[index - 1]
@@ -1157,7 +1163,7 @@ function MessageList({
                                 )}
                                 <div
                                     data-chat-message-id={message.id}
-                                    className={`group flex gap-3 px-1 ${isConsecutive ? "py-0.5" : "py-1"} transition-colors ${
+                                    className={`${flyoutMessageId && flyoutMessageId !== message.id ? "" : "group"} flex gap-3 px-1 ${isConsecutive ? "py-0.5" : "py-1"} transition-colors ${flyoutMessageId === message.id ? "relative z-[100]" : ""} ${
                                         highlightedMessageId === message.id ||
                                         isThreadHighlighted
                                             ? "rounded-md bg-[var(--wd-accent-soft)]"
@@ -1273,6 +1279,9 @@ function MessageList({
                                             onFutureAction={
                                                 handleFutureMessageAction
                                             }
+                                            onFlyoutChange={(open) =>
+                                                setFlyoutMessageId(open ? message.id : null)
+                                            }
                                         />
 
                                         {pinnedMessageIds?.has(message.id) && (
@@ -1367,40 +1376,26 @@ function MessageList({
                                                                                 part.type !== "text"
                                                                             )
                                                                                 return null;
-                                                                            if (
-                                                                                hasMentions &&
-                                                                                part.content
-                                                                            ) {
-                                                                                return (
-                                                                                    <MentionHighlightedContent
-                                                                                        key={`${message.id}-text-${index}`}
-                                                                                        content={
-                                                                                            part.content
-                                                                                        }
-                                                                                        mentionedUserIds={
-                                                                                            effectiveMentionedUserIds
-                                                                                        }
-                                                                                        memberNameMap={
-                                                                                            memberNameMap
-                                                                                        }
-                                                                                        onClickMention={
-                                                                                            handleMentionClick
-                                                                                        }
-                                                                                    />
-                                                                                );
-                                                                            }
                                                                             return (
-                                                                                <span
+                                                                                <MentionHighlightedContent
                                                                                     key={`${message.id}-text-${index}`}
-                                                                                >
-                                                                                    {
+                                                                                    content={
                                                                                         part.content
                                                                                     }
-                                                                                </span>
+                                                                                    mentionedUserIds={
+                                                                                        effectiveMentionedUserIds
+                                                                                    }
+                                                                                    memberNameMap={
+                                                                                        memberNameMap
+                                                                                    }
+                                                                                    onClickMention={
+                                                                                        handleMentionClick
+                                                                                    }
+                                                                                />
                                                                             );
                                                                         },
                                                                     )
-                                                                ) : hasMentions ? (
+                                                                ) : (
                                                                     <MentionHighlightedContent
                                                                         content={
                                                                             message.content
@@ -1415,8 +1410,6 @@ function MessageList({
                                                                             handleMentionClick
                                                                         }
                                                                     />
-                                                                ) : (
-                                                                    message.content
                                                                 )}
                                                             </div>
 
@@ -1633,12 +1626,6 @@ function MessageList({
                                                         emoji,
                                                     ) => {
                                                         void toggleMessageReaction(
-                                                            message.id,
-                                                            emoji,
-                                                        );
-                                                    }}
-                                                    onSuperReaction={(emoji) => {
-                                                        void superReaction(
                                                             message.id,
                                                             emoji,
                                                         );

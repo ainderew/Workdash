@@ -1,0 +1,117 @@
+import { create } from 'zustand';
+
+export type CustomEmoji = {
+  id: string;
+  workspaceId: string;
+  name: string;
+  imageUrl: string;
+  isAnimated: boolean;
+  uploadedBy: number;
+  createdAt: string;
+};
+
+type CustomEmojiState = {
+  emojisByWorkspace: Record<string, CustomEmoji[]>;
+  loadingWorkspaces: Set<string>;
+  fetchedWorkspaces: Set<string>;
+
+  setEmojis: (workspaceId: string, emojis: CustomEmoji[]) => void;
+  setLoading: (workspaceId: string, loading: boolean) => void;
+  markFetched: (workspaceId: string) => void;
+  unmarkFetched: (workspaceId: string) => void;
+  hasFetched: (workspaceId: string) => boolean;
+  addEmoji: (emoji: CustomEmoji) => void;
+  removeEmoji: (workspaceId: string, emojiId: string) => void;
+  renameEmoji: (workspaceId: string, emojiId: string, newName: string) => void;
+  getEmojisForWorkspace: (workspaceId: string) => CustomEmoji[];
+  findEmojiById: (emojiId: string) => CustomEmoji | undefined;
+};
+
+const useCustomEmojiStore = create<CustomEmojiState>((set, get) => ({
+  emojisByWorkspace: {},
+  loadingWorkspaces: new Set(),
+  fetchedWorkspaces: new Set(),
+
+  setEmojis: (workspaceId, emojis) =>
+    set((state) => ({
+      emojisByWorkspace: {
+        ...state.emojisByWorkspace,
+        [workspaceId]: emojis,
+      },
+    })),
+
+  setLoading: (workspaceId, loading) =>
+    set((state) => {
+      const next = new Set(state.loadingWorkspaces);
+      if (loading) next.add(workspaceId);
+      else next.delete(workspaceId);
+      return { loadingWorkspaces: next };
+    }),
+
+  markFetched: (workspaceId) =>
+    set((state) => {
+      const next = new Set(state.fetchedWorkspaces);
+      next.add(workspaceId);
+      return { fetchedWorkspaces: next };
+    }),
+
+  unmarkFetched: (workspaceId) =>
+    set((state) => {
+      const next = new Set(state.fetchedWorkspaces);
+      next.delete(workspaceId);
+      return { fetchedWorkspaces: next };
+    }),
+
+  hasFetched: (workspaceId) => get().fetchedWorkspaces.has(workspaceId),
+
+  addEmoji: (emoji) =>
+    set((state) => {
+      const existing = state.emojisByWorkspace[emoji.workspaceId] ?? [];
+      // Avoid duplicates
+      if (existing.some((e) => e.id === emoji.id)) return state;
+      return {
+        emojisByWorkspace: {
+          ...state.emojisByWorkspace,
+          [emoji.workspaceId]: [...existing, emoji],
+        },
+      };
+    }),
+
+  removeEmoji: (workspaceId, emojiId) =>
+    set((state) => {
+      const existing = state.emojisByWorkspace[workspaceId] ?? [];
+      return {
+        emojisByWorkspace: {
+          ...state.emojisByWorkspace,
+          [workspaceId]: existing.filter((e) => e.id !== emojiId),
+        },
+      };
+    }),
+
+  renameEmoji: (workspaceId, emojiId, newName) =>
+    set((state) => {
+      const existing = state.emojisByWorkspace[workspaceId] ?? [];
+      return {
+        emojisByWorkspace: {
+          ...state.emojisByWorkspace,
+          [workspaceId]: existing.map((e) =>
+            e.id === emojiId ? { ...e, name: newName } : e,
+          ),
+        },
+      };
+    }),
+
+  getEmojisForWorkspace: (workspaceId) =>
+    get().emojisByWorkspace[workspaceId] ?? [],
+
+  findEmojiById: (emojiId) => {
+    const all = Object.values(get().emojisByWorkspace);
+    for (const list of all) {
+      const found = list.find((e) => e.id === emojiId);
+      if (found) return found;
+    }
+    return undefined;
+  },
+}));
+
+export default useCustomEmojiStore;

@@ -12,6 +12,7 @@ type MessageHoverActionsProps = {
     onUnsend?: () => void;
     onTogglePin?: () => void;
     onFutureAction?: (label: string) => void;
+    onFlyoutChange?: (open: boolean) => void;
     className?: string;
 };
 
@@ -57,13 +58,20 @@ function MessageHoverActions({
     onUnsend,
     onTogglePin,
     onFutureAction,
+    onFlyoutChange,
     className,
 }: MessageHoverActionsProps) {
     const [isPickerOpen, setIsPickerOpen] = useState(false);
     const [isMoreOpen, setIsMoreOpen] = useState(false);
 
+    const hasFlyout = isPickerOpen || isMoreOpen;
+
     useEffect(() => {
-        if (!isPickerOpen && !isMoreOpen) return;
+        onFlyoutChange?.(hasFlyout);
+    }, [hasFlyout, onFlyoutChange]);
+
+    useEffect(() => {
+        if (!hasFlyout) return;
 
         const onMouseDown = (event: MouseEvent) => {
             const target = event.target as HTMLElement | null;
@@ -75,11 +83,11 @@ function MessageHoverActions({
 
         window.addEventListener("mousedown", onMouseDown);
         return () => window.removeEventListener("mousedown", onMouseDown);
-    }, [isPickerOpen, isMoreOpen]);
+    }, [hasFlyout]);
 
     return (
         <div
-            className={`pointer-events-none absolute right-0 top-0 z-20 -translate-y-1/2 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 ${className || ""}`}
+            className={`pointer-events-none absolute right-0 top-0 z-20 -translate-y-1/2 transition-opacity ${hasFlyout ? "opacity-100" : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"} ${className || ""}`}
         >
             <div
                 className="pointer-events-auto relative inline-flex items-center rounded-md border wd-border-subtle wd-bg-panel shadow-[0_8px_20px_rgba(0,0,0,0.35)] px-1.5 py-1 gap-1"

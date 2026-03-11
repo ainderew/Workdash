@@ -1,6 +1,11 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import useCustomEmojiStore from '@/common/store/customEmojiStore';
+import useChatV2Store from '@/common/store/chatV2Store';
+import type { CustomEmoji } from '@/common/store/customEmojiStore';
+
+const EMPTY: CustomEmoji[] = [];
 
 type EmojiPickerProps = {
     onSelect: (emoji: string) => void;
@@ -16,8 +21,15 @@ function EmojiPicker({ onSelect, onClose }: EmojiPickerProps) {
     onSelectRef.current = onSelect;
     onCloseRef.current = onClose;
 
+    const workspaceId = useChatV2Store((s) => s.selectedWorkspaceId);
+    const workspaceEmojis = useCustomEmojiStore(
+        (s) => (workspaceId ? s.emojisByWorkspace[workspaceId] : undefined) ?? EMPTY,
+    );
+
     useEffect(() => {
         const handleMouseDown = (e: MouseEvent) => {
+            const target = e.target as HTMLElement | null;
+            if (target?.closest("[data-message-reaction-picker='true']")) return;
             if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
                 onCloseRef.current?.();
             }
@@ -35,6 +47,12 @@ function EmojiPicker({ onSelect, onClose }: EmojiPickerProps) {
         };
     }, []);
 
+    // Stable key to detect when the custom emoji list changes
+    const emojiKey = useMemo(
+        () => workspaceEmojis.map((e) => e.id).join(','),
+        [workspaceEmojis],
+    );
+
     useEffect(() => {
         let cancelled = false;
 
@@ -46,8 +64,22 @@ function EmojiPicker({ onSelect, onClose }: EmojiPickerProps) {
 
             if (cancelled || !mountRef.current) return;
 
+            const custom = workspaceEmojis.length > 0
+                ? [{
+                    id: 'custom',
+                    name: 'Custom',
+                    emojis: workspaceEmojis.map((e) => ({
+                        id: e.id,
+                        name: e.name,
+                        keywords: [e.name],
+                        skins: [{ src: e.imageUrl }],
+                    })),
+                }]
+                : undefined;
+
             const picker = new (Picker as unknown as new (props: Record<string, unknown>) => HTMLElement)({
                 data,
+                custom,
                 set: 'native',
                 theme: 'dark',
                 maxFrequentRows: 0,
@@ -58,8 +90,13 @@ function EmojiPicker({ onSelect, onClose }: EmojiPickerProps) {
                 emojiSize: 28,
                 emojiButtonSize: 36,
                 skinTonePosition: 'search',
-                onEmojiSelect: (emojiData: { native: string }) => {
-                    onSelectRef.current(emojiData.native);
+                onEmojiSelect: (emojiData: { native?: string; src?: string; id?: string; name?: string }) => {
+                    if (emojiData.src && emojiData.id && emojiData.name) {
+                        // Custom emoji — emit as <:name:id>
+                        onSelectRef.current(`<:${emojiData.name}:${emojiData.id}>`);
+                    } else if (emojiData.native) {
+                        onSelectRef.current(emojiData.native);
+                    }
                 },
             });
 
@@ -76,8 +113,9 @@ function EmojiPicker({ onSelect, onClose }: EmojiPickerProps) {
             if (mountRef.current) {
                 mountRef.current.innerHTML = '';
             }
+            setLoaded(false);
         };
-    }, []);
+    }, [emojiKey]);
 
     return (
         <div

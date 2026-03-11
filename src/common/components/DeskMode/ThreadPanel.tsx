@@ -55,7 +55,6 @@ interface ThreadPanelProps {
         options?: { mentionedUserIds?: number[] },
     ) => Promise<void>;
     onToggleReaction: (messageId: string, emoji: string) => Promise<void> | void;
-    onSuperReaction?: (messageId: string, emoji: string) => Promise<void> | void;
 }
 
 const byCreatedAtAsc = (a: ChatV2Message, b: ChatV2Message) => {
@@ -77,7 +76,6 @@ type ThreadMessageRowProps = {
     attachmentUrls: Record<string, string>;
     linkPreviews: Record<string, import("@/common/hooks/useLinkPreviews").LinkPreviewMetadata | null>;
     onToggleReaction: (messageId: string, emoji: string) => Promise<void> | void;
-    onSuperReaction?: (messageId: string, emoji: string) => Promise<void> | void;
     canUnsendImage: boolean;
     onUnsendImage: (message: ChatV2Message) => void;
     onDownloadAttachment: (fileId: string, filename: string) => void;
@@ -91,7 +89,6 @@ function ThreadMessageRow({
     attachmentUrls,
     linkPreviews,
     onToggleReaction,
-    onSuperReaction,
     canUnsendImage,
     onUnsendImage,
     onDownloadAttachment,
@@ -230,33 +227,22 @@ function ThreadMessageRow({
                                                     );
                                                 }
                                                 if (part.type !== "text") return null;
-                                                if (hasMentions && part.content) {
-                                                    return (
-                                                        <MentionHighlightedContent
-                                                            key={`${message.id}-text-${index}`}
-                                                            content={part.content}
-                                                            mentionedUserIds={effectiveMentionedUserIds}
-                                                            memberNameMap={memberNameMap}
-                                                        />
-                                                    );
-                                                }
                                                 return (
-                                                    <span
+                                                    <MentionHighlightedContent
                                                         key={`${message.id}-text-${index}`}
-                                                    >
-                                                        {part.content}
-                                                    </span>
+                                                        content={part.content}
+                                                        mentionedUserIds={effectiveMentionedUserIds}
+                                                        memberNameMap={memberNameMap}
+                                                    />
                                                 );
                                             })
-                                            : hasMentions
-                                                ? (
+                                            : (
                                                     <MentionHighlightedContent
                                                         content={message.content}
                                                         mentionedUserIds={effectiveMentionedUserIds}
                                                         memberNameMap={memberNameMap}
                                                     />
-                                                )
-                                                : message.content}
+                                                )}
                                     </div>
 
                                     {(parsedMessageLinks.length > 0
@@ -384,9 +370,6 @@ function ThreadMessageRow({
                                 onToggleReaction={(emoji) => {
                                     void onToggleReaction(message.id, emoji);
                                 }}
-                                onSuperReaction={onSuperReaction ? (emoji) => {
-                                    void onSuperReaction(message.id, emoji);
-                                } : undefined}
                             />
                         </div>
                     )}
@@ -409,7 +392,6 @@ function ThreadPanel({
     onRetry,
     onSendReply,
     onToggleReaction,
-    onSuperReaction,
 }: ThreadPanelProps) {
     const chatV2Service = useMemo(() => ChatV2Service.getInstance(), []);
     const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -740,7 +722,7 @@ function ThreadPanel({
                             attachmentUrls={attachmentUrls}
                             linkPreviews={linkPreviews}
                             onToggleReaction={onToggleReaction}
-                            onSuperReaction={onSuperReaction}
+
                             canUnsendImage={
                                 typeof localBackendUserId === "number" &&
                                 rootMessage.senderUserId === localBackendUserId &&
@@ -778,7 +760,7 @@ function ThreadPanel({
                                         attachmentUrls={attachmentUrls}
                                         linkPreviews={linkPreviews}
                                         onToggleReaction={onToggleReaction}
-                                        onSuperReaction={onSuperReaction}
+            
                                         canUnsendImage={
                                             typeof localBackendUserId === "number" &&
                                             reply.senderUserId === localBackendUserId &&
