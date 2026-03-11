@@ -67,7 +67,7 @@ export function useWorkspacePermissions(
       canBanMembers: hasPermission(effectivePermissions, PERM.BAN_MEMBERS),
       canManageRoles: hasPermission(effectivePermissions, PERM.MANAGE_ROLES),
       canCreateInvite: hasPermission(effectivePermissions, PERM.CREATE_INVITE),
-      canManageEmojis: hasPermission(effectivePermissions, PERM.ADMINISTRATOR),
+      canManageEmojis: hasPermission(effectivePermissions, PERM.MANAGE_EMOJIS),
       canManageWorkspace: hasPermission(effectivePermissions, PERMISSIONS.MANAGE_WORKSPACE.bit),
     };
   }, [workspaceId, workspaces, viewerUserId]);

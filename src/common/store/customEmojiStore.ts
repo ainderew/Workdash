@@ -18,6 +18,7 @@ type CustomEmojiState = {
   setEmojis: (workspaceId: string, emojis: CustomEmoji[]) => void;
   setLoading: (workspaceId: string, loading: boolean) => void;
   markFetched: (workspaceId: string) => void;
+  unmarkFetched: (workspaceId: string) => void;
   hasFetched: (workspaceId: string) => boolean;
   addEmoji: (emoji: CustomEmoji) => void;
   removeEmoji: (workspaceId: string, emojiId: string) => void;
@@ -51,6 +52,13 @@ const useCustomEmojiStore = create<CustomEmojiState>((set, get) => ({
     set((state) => {
       const next = new Set(state.fetchedWorkspaces);
       next.add(workspaceId);
+      return { fetchedWorkspaces: next };
+    }),
+
+  unmarkFetched: (workspaceId) =>
+    set((state) => {
+      const next = new Set(state.fetchedWorkspaces);
+      next.delete(workspaceId);
       return { fetchedWorkspaces: next };
     }),
 

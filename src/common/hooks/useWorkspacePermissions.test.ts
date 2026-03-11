@@ -243,7 +243,7 @@ describe('useWorkspacePermissions', () => {
       expect(result.current.canManageWorkspace).toBe(true);
     });
 
-    it('canManageEmojis is false without ADMINISTRATOR', () => {
+    it('canManageEmojis is false without ADMINISTRATOR or MANAGE_EMOJIS', () => {
       const allExceptAdmin = PERM.KICK_MEMBERS | PERM.BAN_MEMBERS | PERM.MANAGE_ROLES | PERM.CREATE_INVITE;
       setupStores({
         workspaces: [makeWorkspace({
@@ -257,6 +257,21 @@ describe('useWorkspacePermissions', () => {
       expect(result.current.canKickMembers).toBe(true);
       expect(result.current.canBanMembers).toBe(true);
       expect(result.current.canManageEmojis).toBe(false);
+    });
+
+    it('canManageEmojis is true with MANAGE_EMOJIS permission (non-admin)', () => {
+      setupStores({
+        workspaces: [makeWorkspace({
+          ownerId: 100,
+          members: [makeMember(50, [makeRole(PERM.MANAGE_EMOJIS)])],
+        })],
+        backendUserId: 50,
+      });
+      const { result } = renderHook(() => useWorkspacePermissions('ws-1'));
+
+      expect(result.current.canManageEmojis).toBe(true);
+      expect(result.current.canKickMembers).toBe(false);
+      expect(result.current.canManageRoles).toBe(false);
     });
   });
 

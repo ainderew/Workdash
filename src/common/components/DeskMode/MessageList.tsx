@@ -226,6 +226,7 @@ function MessageList({
     const [profilePopover, setProfilePopover] =
         useState<ProfilePopoverState | null>(null);
     const [isAddingFriend, setIsAddingFriend] = useState(false);
+    const [flyoutMessageId, setFlyoutMessageId] = useState<string | null>(null);
     const [resolvedSenderImagesByUserId, setResolvedSenderImagesByUserId] =
         useState<Record<number, string>>({});
     const [
@@ -1162,7 +1163,7 @@ function MessageList({
                                 )}
                                 <div
                                     data-chat-message-id={message.id}
-                                    className={`group flex gap-3 px-1 ${isConsecutive ? "py-0.5" : "py-1"} transition-colors ${
+                                    className={`${flyoutMessageId && flyoutMessageId !== message.id ? "" : "group"} flex gap-3 px-1 ${isConsecutive ? "py-0.5" : "py-1"} transition-colors ${flyoutMessageId === message.id ? "relative z-[100]" : ""} ${
                                         highlightedMessageId === message.id ||
                                         isThreadHighlighted
                                             ? "rounded-md bg-[var(--wd-accent-soft)]"
@@ -1277,6 +1278,9 @@ function MessageList({
                                             }
                                             onFutureAction={
                                                 handleFutureMessageAction
+                                            }
+                                            onFlyoutChange={(open) =>
+                                                setFlyoutMessageId(open ? message.id : null)
                                             }
                                         />
 

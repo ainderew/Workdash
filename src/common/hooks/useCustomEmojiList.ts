@@ -23,6 +23,7 @@ export function useCustomEmojiList(workspaceId: string | null) {
         })
         .catch((err) => {
           console.error('[custom-emoji] Failed to fetch emojis', err);
+          useCustomEmojiStore.getState().unmarkFetched(workspaceId);
         })
         .finally(() => {
           useCustomEmojiStore.getState().setLoading(workspaceId, false);

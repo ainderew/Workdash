@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import useCustomEmojiStore from '@/common/store/customEmojiStore';
 import useChatV2Store from '@/common/store/chatV2Store';
 import type { CustomEmoji } from '@/common/store/customEmojiStore';
@@ -46,6 +46,12 @@ function EmojiPicker({ onSelect, onClose }: EmojiPickerProps) {
             document.removeEventListener('keydown', handleKeyDown);
         };
     }, []);
+
+    // Stable key to detect when the custom emoji list changes
+    const emojiKey = useMemo(
+        () => workspaceEmojis.map((e) => e.id).join(','),
+        [workspaceEmojis],
+    );
 
     useEffect(() => {
         let cancelled = false;
@@ -107,8 +113,9 @@ function EmojiPicker({ onSelect, onClose }: EmojiPickerProps) {
             if (mountRef.current) {
                 mountRef.current.innerHTML = '';
             }
+            setLoaded(false);
         };
-    }, []);
+    }, [emojiKey]);
 
     return (
         <div
