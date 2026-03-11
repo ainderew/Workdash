@@ -72,5 +72,5 @@ export function useCustomEmojiUpload(workspaceId: string | null) {
     [workspaceId, addEmoji],
   );
 
-  return { upload, isUploading, error, clearError: () => setError(null) };
+  return { upload, isUploading, error, setError, clearError: () => setError(null) };
 }

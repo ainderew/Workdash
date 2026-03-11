@@ -1,20 +1,18 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { ChatV2Service } from '@/communication/chatV2/chatV2Service';
 import { MediaTransportService } from '@/communication/mediaTransportService/mediaTransportServive';
 import useCustomEmojiStore from '@/common/store/customEmojiStore';
 import type { CustomEmoji } from '@/common/store/customEmojiStore';
 
 export function useCustomEmojiList(workspaceId: string | null) {
-  const fetchedRef = useRef<string | null>(null);
-
   useEffect(() => {
     if (!workspaceId) return;
 
     const store = useCustomEmojiStore.getState();
 
-    // Fetch on workspace change (avoid duplicate fetches)
-    if (fetchedRef.current !== workspaceId) {
-      fetchedRef.current = workspaceId;
+    // Fetch on workspace change (avoid duplicate fetches via store-tracked set)
+    if (!store.hasFetched(workspaceId)) {
+      store.markFetched(workspaceId);
       store.setLoading(workspaceId, true);
 
       const service = ChatV2Service.getInstance();

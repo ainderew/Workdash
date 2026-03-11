@@ -28,12 +28,8 @@ import { useChatNotificationSound } from "@/common/hooks/useChatNotificationSoun
 import ServerSettingsModal from "./modals/ServerSettingsModal";
 import WorkspaceMembersModal from "./modals/WorkspaceMembersModal";
 import JoinByInviteModal from "./modals/JoinByInviteModal";
-import {
-    PERM,
-    computeEffectivePermissions,
-    hasPermission,
-} from "@/common/utils/workspacePermissions";
-import type { Workspace, WorkspaceMember } from "@/communication/chatV2/_types";
+import type { Workspace } from "@/communication/chatV2/_types";
+import { useWorkspacePermissions } from "@/common/hooks/useWorkspacePermissions";
 import { buildMemberColorMap } from "@/common/utils/roleColor";
 import MessageList from "./MessageList";
 import RoomHeader from "./RoomHeader";
@@ -42,7 +38,6 @@ import CallBanner from "./CallBanner";
 import FloatingCallWindow from "./FloatingCallWindow";
 import { CallSignalingService } from "@/communication/callSignaling/callSignalingService";
 import useCallStore from "@/common/store/callStore";
-import useUserStore from "@/common/store/useStore";
 import { useCustomEmojiList } from "@/common/hooks/useCustomEmojiList";
 
 export type DeskChatShellMode = "desk" | "drawer";
@@ -56,7 +51,7 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
     useChatNotificationSound();
     const selectedWsId = useChatV2Store((s) => s.selectedWorkspaceId);
     useCustomEmojiList(selectedWsId);
-    const backendUser = useUserStore((s) => s.backendUser);
+
     const chatV2Service = useMemo(() => ChatV2Service.getInstance(), []);
     const initialize = useChatV2Store((state) => state.initialize);
     const roomOrder = useChatV2Store((state) => state.roomOrder);
@@ -393,24 +388,18 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
         undefined,
     );
 
-    const viewerUserId = backendUser?.id ?? 0;
-
     const selectedWorkspace = useMemo(
         () => workspaces.find((ws) => ws.id === selectedWorkspaceId),
         [workspaces, selectedWorkspaceId],
     );
 
-    const isWorkspaceOwner = selectedWorkspace?.ownerId === viewerUserId && viewerUserId !== 0;
-
-    const viewerPermissions = useMemo(() => {
-        // Workspace owner has all permissions
-        if (isWorkspaceOwner) return ~BigInt(0);
-        const viewerMember = selectedWorkspace?.members?.find(
-            (m: WorkspaceMember) => m.userId === viewerUserId,
-        );
-        if (!viewerMember?.roles) return BigInt(0);
-        return computeEffectivePermissions(viewerMember.roles);
-    }, [selectedWorkspace, viewerUserId, isWorkspaceOwner]);
+    const {
+        viewerUserId,
+        canKickMembers,
+        canBanMembers,
+        canManageRoles,
+        canCreateInvite,
+    } = useWorkspacePermissions(selectedWorkspaceId);
 
     const [memberRoleColors, setMemberRoleColors] = useState<Map<number, string>>(new Map());
 
@@ -1099,10 +1088,10 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
                 workspaceName={serverName}
                 workspaceOwnerId={selectedWorkspace?.ownerId ?? 0}
                 viewerUserId={viewerUserId}
-                viewerCanManageMembers={hasPermission(viewerPermissions, PERM.KICK_MEMBERS)}
-                viewerCanBanMembers={hasPermission(viewerPermissions, PERM.BAN_MEMBERS)}
-                viewerCanManageRoles={hasPermission(viewerPermissions, PERM.MANAGE_ROLES)}
-                viewerCanCreateInvite={hasPermission(viewerPermissions, PERM.CREATE_INVITE)}
+                viewerCanManageMembers={canKickMembers}
+                viewerCanBanMembers={canBanMembers}
+                viewerCanManageRoles={canManageRoles}
+                viewerCanCreateInvite={canCreateInvite}
                 initialTab={membersModalTab}
                 onClose={() => setIsMembersModalOpen(false)}
             />

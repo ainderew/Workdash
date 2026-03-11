@@ -17,6 +17,7 @@ import {
     PERMISSIONS,
     PERMISSION_CATEGORIES,
 } from "@/common/utils/workspacePermissions";
+import { useWorkspacePermissions } from "@/common/hooks/useWorkspacePermissions";
 
 const DEFAULT_ROLE_CATEGORIES = new Set(["General", "Text", "Voice"]);
 const DEFAULT_ROLE_PERMISSIONS = Object.values(PERMISSIONS)
@@ -536,6 +537,8 @@ function ServerSettingsModal({
     const [editName, setEditName] = useState("");
     const [isRenaming, setIsRenaming] = useState(false);
 
+    const { canManageEmojis } = useWorkspacePermissions(serverId);
+
     useEffect(() => {
         if (isOpen) {
             setEditName(serverName);
@@ -960,7 +963,7 @@ function ServerSettingsModal({
                     )}
 
                     {activeTab === "emojis" && (
-                        <EmojisTab workspaceId={serverId} canManage />
+                        <EmojisTab workspaceId={serverId} canManage={canManageEmojis} />
                     )}
                 </div>
             </div>

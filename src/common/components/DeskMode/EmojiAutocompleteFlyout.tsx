@@ -26,9 +26,17 @@ function EmojiAutocompleteFlyout({
       onClose();
     };
 
+    const handleFocusOut = (event: FocusEvent) => {
+      const related = event.relatedTarget as Node | null;
+      if (related && containerRef.current?.contains(related)) return;
+      onClose();
+    };
+
     window.addEventListener('mousedown', handleMouseDown);
+    window.addEventListener('focusout', handleFocusOut);
     return () => {
       window.removeEventListener('mousedown', handleMouseDown);
+      window.removeEventListener('focusout', handleFocusOut);
     };
   }, [onClose]);
 

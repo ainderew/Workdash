@@ -37,9 +37,11 @@ function ReactionChipButton({
     const burstRef = useRef<SuperReactionBurstHandle>(null);
 
     const handleClick = useCallback(() => {
-        burstRef.current?.replay();
+        if (!reaction.viewerReacted && isSuper) {
+            burstRef.current?.replay();
+        }
         onToggle(reaction.emoji);
-    }, [onToggle, reaction.emoji]);
+    }, [onToggle, reaction.emoji, reaction.viewerReacted, isSuper]);
 
     const chipClasses = [
         'relative inline-flex cursor-pointer items-center gap-1 rounded-lg border px-3 py-1.5 text-xs transition-all duration-150',

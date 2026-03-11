@@ -108,7 +108,7 @@ function EmojiPicker({ onSelect, onClose }: EmojiPickerProps) {
                 mountRef.current.innerHTML = '';
             }
         };
-    }, [workspaceEmojis.length]);
+    }, []);
 
     return (
         <div

@@ -2,7 +2,7 @@
  * Regex to match custom emoji tokens in message content.
  * Format: <:name:uuid>
  */
-const CUSTOM_EMOJI_REGEX = /<:([a-z0-9_]{2,32}):([0-9a-f-]{36})>/g;
+const CUSTOM_EMOJI_REGEX = /<:([a-z0-9_]{2,32}):([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})>/g;
 
 export interface CustomEmojiToken {
   type: 'text' | 'custom_emoji';
@@ -48,14 +48,14 @@ export function parseCustomEmojis(text: string): CustomEmojiToken[] {
  * Check if a string is a custom emoji token (for reactions).
  */
 export function isCustomEmojiToken(str: string): boolean {
-  return /^<:[a-z0-9_]{2,32}:[0-9a-f-]{36}>$/.test(str);
+  return /^<:[a-z0-9_]{2,32}:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}>$/.test(str);
 }
 
 /**
  * Extract name and id from a custom emoji token.
  */
 export function parseCustomEmojiToken(str: string): { name: string; id: string } | null {
-  const match = str.match(/^<:([a-z0-9_]{2,32}):([0-9a-f-]{36})>$/);
+  const match = str.match(/^<:([a-z0-9_]{2,32}):([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})>$/);
   if (!match) return null;
   return { name: match[1], id: match[2] };
 }

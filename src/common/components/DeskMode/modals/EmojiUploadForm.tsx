@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ImagePlus, Loader2 } from 'lucide-react';
 import { useCustomEmojiUpload } from '@/common/hooks/useCustomEmojiUpload';
 
@@ -6,14 +6,22 @@ const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
 
 interface EmojiUploadFormProps {
   workspaceId: string;
+  disabled?: boolean;
 }
 
-function EmojiUploadForm({ workspaceId }: EmojiUploadFormProps) {
+function EmojiUploadForm({ workspaceId, disabled }: EmojiUploadFormProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [name, setName] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { upload, isUploading, error, clearError } = useCustomEmojiUpload(workspaceId);
+  const { upload, isUploading, error, setError, clearError } = useCustomEmojiUpload(workspaceId);
+
+  // Revoke blob URL on cleanup or when it changes
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
 
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     clearError();
@@ -21,11 +29,15 @@ function EmojiUploadForm({ workspaceId }: EmojiUploadFormProps) {
     if (!file) return;
 
     if (!ALLOWED_TYPES.includes(file.type)) {
+      setError('Invalid file type. Use PNG, JPEG, WebP, or GIF.');
       return;
     }
 
     setSelectedFile(file);
-    setPreviewUrl(URL.createObjectURL(file));
+    setPreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return URL.createObjectURL(file);
+    });
 
     // Auto-generate name from filename
     const baseName = file.name
@@ -44,6 +56,7 @@ function EmojiUploadForm({ workspaceId }: EmojiUploadFormProps) {
     if (!selectedFile || !name.trim()) return;
     const result = await upload(selectedFile, name);
     if (result) {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
       setSelectedFile(null);
       setPreviewUrl(null);
       setName('');
@@ -61,7 +74,7 @@ function EmojiUploadForm({ workspaceId }: EmojiUploadFormProps) {
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
-          disabled={isUploading}
+          disabled={isUploading || disabled}
           className="h-16 w-16 shrink-0 rounded-lg border-2 border-dashed wd-border-subtle flex items-center justify-center transition-colors hover:bg-[var(--wd-surface-elevated)] disabled:opacity-50"
         >
           {previewUrl ? (
@@ -78,7 +91,7 @@ function EmojiUploadForm({ workspaceId }: EmojiUploadFormProps) {
             onChange={(e) => setName(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
             placeholder="emoji_name"
             maxLength={32}
-            disabled={isUploading}
+            disabled={isUploading || disabled}
             className="h-8 w-full rounded-md border wd-border-subtle wd-bg-elevated px-3 text-sm wd-text-primary outline-none focus:border-[var(--wd-border-strong)] disabled:opacity-50"
           />
           <p className="text-[10px] wd-text-muted">
@@ -101,7 +114,7 @@ function EmojiUploadForm({ workspaceId }: EmojiUploadFormProps) {
         </p>
       )}
 
-      {selectedFile && name.length >= 2 && (
+      {selectedFile && name.length >= 2 && !disabled && (
         <button
           type="button"
           onClick={() => void handleUpload()}

@@ -13,9 +13,12 @@ export type CustomEmoji = {
 type CustomEmojiState = {
   emojisByWorkspace: Record<string, CustomEmoji[]>;
   loadingWorkspaces: Set<string>;
+  fetchedWorkspaces: Set<string>;
 
   setEmojis: (workspaceId: string, emojis: CustomEmoji[]) => void;
   setLoading: (workspaceId: string, loading: boolean) => void;
+  markFetched: (workspaceId: string) => void;
+  hasFetched: (workspaceId: string) => boolean;
   addEmoji: (emoji: CustomEmoji) => void;
   removeEmoji: (workspaceId: string, emojiId: string) => void;
   renameEmoji: (workspaceId: string, emojiId: string, newName: string) => void;
@@ -26,6 +29,7 @@ type CustomEmojiState = {
 const useCustomEmojiStore = create<CustomEmojiState>((set, get) => ({
   emojisByWorkspace: {},
   loadingWorkspaces: new Set(),
+  fetchedWorkspaces: new Set(),
 
   setEmojis: (workspaceId, emojis) =>
     set((state) => ({
@@ -42,6 +46,15 @@ const useCustomEmojiStore = create<CustomEmojiState>((set, get) => ({
       else next.delete(workspaceId);
       return { loadingWorkspaces: next };
     }),
+
+  markFetched: (workspaceId) =>
+    set((state) => {
+      const next = new Set(state.fetchedWorkspaces);
+      next.add(workspaceId);
+      return { fetchedWorkspaces: next };
+    }),
+
+  hasFetched: (workspaceId) => get().fetchedWorkspaces.has(workspaceId),
 
   addEmoji: (emoji) =>
     set((state) => {
