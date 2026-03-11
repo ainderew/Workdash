@@ -159,7 +159,7 @@ function ThreadMessageRow({
         <article
             className={`group relative px-0 py-1 ${
                 isCurrentUserMentioned ? "border-l-2 border-l-[rgb(240,185,11)] bg-[rgba(240,185,11,0.06)]" : ""
-            }${isEditing ? " z-[110]" : ""}`}
+            }${isEditing ? " z-[205]" : ""}`}
             data-chat-thread-message-id={message.id}
         >
             {!isEditing && (

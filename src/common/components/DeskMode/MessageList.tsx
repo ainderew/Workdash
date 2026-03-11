@@ -1167,7 +1167,7 @@ function MessageList({
                                 )}
                                 <div
                                     data-chat-message-id={message.id}
-                                    className={`${flyoutMessageId && flyoutMessageId !== message.id ? "" : "group"} flex gap-3 px-1 ${isConsecutive ? "py-0.5" : "py-1"} transition-colors ${flyoutMessageId === message.id ? "relative z-[120]" : editingMessageId === message.id ? "relative z-[110]" : ""} ${
+                                    className={`${(flyoutMessageId && flyoutMessageId !== message.id) || (editingMessageId && editingMessageId !== message.id) ? "" : "group"} flex gap-3 px-1 ${isConsecutive ? "py-0.5" : "py-1"} transition-colors ${flyoutMessageId === message.id ? "relative z-[210]" : editingMessageId === message.id ? "relative z-[205]" : ""} ${
                                         highlightedMessageId === message.id ||
                                         isThreadHighlighted
                                             ? "rounded-md bg-[var(--wd-accent-soft)]"
@@ -1746,7 +1746,7 @@ function MessageList({
                     {avatarContextMenu && (
                         <div
                             data-avatar-context-menu="true"
-                            className="fixed z-[160] min-w-[210px] rounded-md border wd-border-strong wd-bg-panel shadow-[0_14px_36px_rgba(0,0,0,0.45)] p-1"
+                            className="fixed z-[250] min-w-[210px] rounded-md border wd-border-strong wd-bg-panel shadow-[0_14px_36px_rgba(0,0,0,0.45)] p-1"
                             style={{
                                 left: avatarContextMenu.x,
                                 top: avatarContextMenu.y,
