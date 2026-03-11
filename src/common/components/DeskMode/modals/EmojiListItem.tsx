@@ -134,7 +134,7 @@ function EmojiListItem({ emoji, workspaceId, canManage }: EmojiListItemProps) {
               type="button"
               onClick={() => void handleDelete()}
               disabled={isBusy}
-              className="rounded px-2 py-1 text-[10px] font-semibold text-[#ff7b7b] bg-[rgba(255,123,123,0.1)] hover:bg-[rgba(255,123,123,0.2)] disabled:opacity-50"
+              className="rounded px-2 py-1 text-[10px] font-semibold wd-text-danger bg-[rgb(var(--wd-danger-rgb)/0.1)] hover:bg-[rgb(var(--wd-danger-rgb)/0.2)] disabled:opacity-50"
             >
               {isDeleting ? <Loader2 size={12} className="animate-spin" /> : 'Confirm'}
             </button>
@@ -143,7 +143,7 @@ function EmojiListItem({ emoji, workspaceId, canManage }: EmojiListItemProps) {
               type="button"
               onClick={() => setConfirmDelete(true)}
               disabled={isBusy}
-              className="rounded p-1 text-[#ff7b7b] hover:bg-[rgba(255,123,123,0.1)] disabled:opacity-50"
+              className="rounded p-1 wd-text-danger hover:bg-[rgb(var(--wd-danger-rgb)/0.1)] disabled:opacity-50"
               title="Delete"
             >
               <Trash2 size={14} />
@@ -153,7 +153,7 @@ function EmojiListItem({ emoji, workspaceId, canManage }: EmojiListItemProps) {
       )}
 
       {error && (
-        <span className="text-[10px] text-[#ff7b7b]">{error}</span>
+        <span className="text-[10px] wd-text-danger">{error}</span>
       )}
     </div>
   );
