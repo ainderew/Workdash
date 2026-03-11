@@ -77,6 +77,7 @@ interface ComposerProps {
         attachments?: ChatV2CreateAttachment[],
         options?: { mentionedUserIds?: number[] },
     ) => Promise<void> | void;
+    onEditLastMessage?: () => void;
 }
 
 function Composer({
@@ -87,6 +88,7 @@ function Composer({
     placeholder = "Message room",
     members,
     onSend,
+    onEditLastMessage,
 }: ComposerProps) {
     const backendUser = useUserStore((s) => s.backendUser);
     const selectedWorkspaceId = useChatV2Store((s) => s.selectedWorkspaceId);
@@ -426,6 +428,17 @@ function Composer({
                 }
             }
 
+            if (
+                event.key === "ArrowUp" &&
+                onEditLastMessage &&
+                value === "" &&
+                event.currentTarget.selectionStart === 0
+            ) {
+                event.preventDefault();
+                onEditLastMessage();
+                return;
+            }
+
             if (event.key === "Enter" && !event.shiftKey) {
                 event.preventDefault();
                 void submit();
@@ -442,7 +455,9 @@ function Composer({
             isMentionFlyoutOpen,
             mentionSelectedIndex,
             mentionSuggestions,
+            onEditLastMessage,
             submit,
+            value,
         ],
     );
 

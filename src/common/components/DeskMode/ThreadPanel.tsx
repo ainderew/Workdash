@@ -33,8 +33,10 @@ import {
 } from "@/common/utils/characterFaceAvatar";
 import Composer from "./Composer";
 import MessageHoverActions from "./MessageHoverActions";
+import InlineMessageEditor from "./InlineMessageEditor";
 import MentionHighlightedContent from "./MentionHighlightedContent";
 import MessageReactionChips from "./MessageReactionChips";
+import useMessageEdit from "@/common/hooks/useMessageEdit";
 import useUserStore from "@/common/store/useStore";
 import UserAvatar from "./UserAvatar";
 
@@ -78,6 +80,11 @@ type ThreadMessageRowProps = {
     onToggleReaction: (messageId: string, emoji: string) => Promise<void> | void;
     canUnsendImage: boolean;
     onUnsendImage: (message: ChatV2Message) => void;
+    isEditing?: boolean;
+    onEdit?: () => void;
+    onSaveEdit?: (content: string) => Promise<void>;
+    onCancelEdit?: () => void;
+    members?: ChatV2RoomMember[];
     onDownloadAttachment: (fileId: string, filename: string) => void;
     resolvedSenderImage?: string;
     memberNameMap: MentionMemberNameMap;
@@ -94,6 +101,11 @@ function ThreadMessageRow({
     onDownloadAttachment,
     resolvedSenderImage,
     memberNameMap,
+    isEditing,
+    onEdit,
+    onSaveEdit,
+    onCancelEdit,
+    members,
 }: ThreadMessageRowProps) {
     const senderName = getDisplayName(
         message.sender,
@@ -147,9 +159,10 @@ function ThreadMessageRow({
         <article
             className={`group relative px-0 py-1 ${
                 isCurrentUserMentioned ? "border-l-2 border-l-[rgb(240,185,11)] bg-[rgba(240,185,11,0.06)]" : ""
-            }`}
+            }${isEditing ? " z-[205]" : ""}`}
             data-chat-thread-message-id={message.id}
         >
+            {!isEditing && (
             <MessageHoverActions
                 className="right-3"
                 canReply={isRootMessage}
@@ -165,11 +178,13 @@ function ThreadMessageRow({
                 onReact={(emoji) => {
                     void onToggleReaction(message.id, emoji);
                 }}
+                onEdit={onEdit}
                 onUnsend={
                     canUnsendImage ? () => onUnsendImage(message) : undefined
                 }
                 onFutureAction={handleFutureMessageAction}
             />
+            )}
 
             <div className="flex items-start gap-3 pr-24">
                 <UserAvatar
@@ -200,6 +215,15 @@ function ThreadMessageRow({
 
                     {message.deletedAt ? (
                         <p className="text-sm italic wd-text-muted">Message deleted</p>
+                    ) : isEditing ? (
+                        <InlineMessageEditor
+                            initialContent={message.content}
+                            members={members}
+                            onSave={async (content) => {
+                                await onSaveEdit?.(content);
+                            }}
+                            onCancel={() => onCancelEdit?.()}
+                        />
                     ) : (
                         <div className="space-y-2">
                             {standaloneGifUrl ? (
@@ -243,6 +267,9 @@ function ThreadMessageRow({
                                                         memberNameMap={memberNameMap}
                                                     />
                                                 )}
+                                        {message.editedAt && (
+                                            <span className="ml-1 text-[10px] wd-text-muted" title={`Edited ${formatChatMessageTimestamp(message.editedAt)}`}>(edited)</span>
+                                        )}
                                     </div>
 
                                     {(parsedMessageLinks.length > 0
@@ -409,6 +436,8 @@ function ThreadPanel({
         () => buildMemberNameMap(members || []),
         [members],
     );
+    const { editingMessageId, startEdit, cancelEdit, saveEdit } =
+        useMessageEdit(roomId);
     const orderedReplies = useMemo(() => [...replies].sort(byCreatedAtAsc), [replies]);
     const allMessages = useMemo(
         () => (rootMessage ? [rootMessage, ...orderedReplies] : orderedReplies),
@@ -722,7 +751,6 @@ function ThreadPanel({
                             attachmentUrls={attachmentUrls}
                             linkPreviews={linkPreviews}
                             onToggleReaction={onToggleReaction}
-
                             canUnsendImage={
                                 typeof localBackendUserId === "number" &&
                                 rootMessage.senderUserId === localBackendUserId &&
@@ -735,6 +763,21 @@ function ThreadPanel({
                                 resolvedSenderImagesByUserId[rootMessage.senderUserId]
                             }
                             memberNameMap={memberNameMap}
+                            isEditing={editingMessageId === rootMessage.id}
+                            onEdit={
+                                typeof localBackendUserId === "number" &&
+                                rootMessage.senderUserId === localBackendUserId &&
+                                !rootMessage.deletedAt &&
+                                rootMessage.messageType !== "SYSTEM" &&
+                                rootMessage.messageType !== "IMAGE"
+                                    ? () => startEdit(rootMessage)
+                                    : undefined
+                            }
+                            onSaveEdit={async (content) => {
+                                await saveEdit(rootMessage.id, content);
+                            }}
+                            onCancelEdit={cancelEdit}
+                            members={members}
                         />
 
                         <div className="pl-11 pr-2 pt-2">
@@ -760,7 +803,6 @@ function ThreadPanel({
                                         attachmentUrls={attachmentUrls}
                                         linkPreviews={linkPreviews}
                                         onToggleReaction={onToggleReaction}
-            
                                         canUnsendImage={
                                             typeof localBackendUserId === "number" &&
                                             reply.senderUserId === localBackendUserId &&
@@ -773,6 +815,21 @@ function ThreadPanel({
                                             resolvedSenderImagesByUserId[reply.senderUserId]
                                         }
                                         memberNameMap={memberNameMap}
+                                        isEditing={editingMessageId === reply.id}
+                                        onEdit={
+                                            typeof localBackendUserId === "number" &&
+                                            reply.senderUserId === localBackendUserId &&
+                                            !reply.deletedAt &&
+                                            reply.messageType !== "SYSTEM" &&
+                                            reply.messageType !== "IMAGE"
+                                                ? () => startEdit(reply)
+                                                : undefined
+                                        }
+                                        onSaveEdit={async (content) => {
+                                            await saveEdit(reply.id, content);
+                                        }}
+                                        onCancelEdit={cancelEdit}
+                                        members={members}
                                     />
                                 </div>
                             ))

@@ -9,6 +9,7 @@ type MessageHoverActionsProps = {
     isPinned?: boolean;
     onReply?: () => void;
     onReact: (emoji: string) => void;
+    onEdit?: () => void;
     onUnsend?: () => void;
     onTogglePin?: () => void;
     onFutureAction?: (label: string) => void;
@@ -55,6 +56,7 @@ function MessageHoverActions({
     isPinned = false,
     onReply,
     onReact,
+    onEdit,
     onUnsend,
     onTogglePin,
     onFutureAction,
@@ -87,10 +89,10 @@ function MessageHoverActions({
 
     return (
         <div
-            className={`pointer-events-none absolute right-0 top-0 z-20 -translate-y-1/2 transition-opacity ${hasFlyout ? "opacity-100" : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"} ${className || ""}`}
+            className={`pointer-events-none absolute right-0 top-0 ${hasFlyout ? "z-[200]" : "z-20"} -translate-y-1/2 transition-opacity ${hasFlyout ? "opacity-100" : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"} ${className || ""}`}
         >
             <div
-                className="pointer-events-auto relative inline-flex items-center rounded-md border wd-border-subtle wd-bg-panel shadow-[0_8px_20px_rgba(0,0,0,0.35)] px-1.5 py-1 gap-1"
+                className={`relative inline-flex items-center rounded-md border wd-border-subtle wd-bg-panel shadow-[0_8px_20px_rgba(0,0,0,0.35)] px-1.5 py-1 gap-1 ${hasFlyout ? "pointer-events-auto" : "pointer-events-none group-hover:pointer-events-auto group-focus-within:pointer-events-auto"}`}
             >
                 {CHAT_REACTION_QUICK_EMOJIS.map((emoji) => (
                     <button
@@ -165,17 +167,19 @@ function MessageHoverActions({
                                 {isPinned ? "Unpin message" : "Pin message"}
                             </button>
                         ) : null}
-                        <button
-                            type="button"
-                            onClick={() => {
-                                setIsMoreOpen(false);
-                                onFutureAction?.("Edit");
-                            }}
-                            className="w-full rounded px-2 py-1.5 text-left text-sm wd-text-primary transition-colors hover:bg-[var(--wd-surface-elevated)] inline-flex items-center gap-2"
-                        >
-                            <Pencil size={14} />
-                            Edit
-                        </button>
+                        {onEdit ? (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setIsMoreOpen(false);
+                                    onEdit();
+                                }}
+                                className="w-full rounded px-2 py-1.5 text-left text-sm wd-text-primary transition-colors hover:bg-[var(--wd-surface-elevated)] inline-flex items-center gap-2"
+                            >
+                                <Pencil size={14} />
+                                Edit
+                            </button>
+                        ) : null}
                         {onUnsend ? (
                             <button
                                 type="button"

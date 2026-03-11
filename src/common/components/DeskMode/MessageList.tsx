@@ -32,8 +32,10 @@ import {
 import MessageSkeleton from "./MessageSkeleton";
 import UserAvatar from "./UserAvatar";
 import MessageHoverActions from "./MessageHoverActions";
+import InlineMessageEditor from "./InlineMessageEditor";
 import MessageReactionChips from "./MessageReactionChips";
 import MentionHighlightedContent from "./MentionHighlightedContent";
+import useMessageEdit from "@/common/hooks/useMessageEdit";
 import {
     ArrowDown,
     ExternalLink,
@@ -287,6 +289,8 @@ function MessageList({
         () => messages[messages.length - 1]?.id || "",
         [messages],
     );
+    const { editingMessageId, startEdit, cancelEdit, saveEdit } =
+        useMessageEdit(currentRoomId);
 
     // Reset initial scroll flag when switching rooms
     useEffect(() => {
@@ -1163,7 +1167,7 @@ function MessageList({
                                 )}
                                 <div
                                     data-chat-message-id={message.id}
-                                    className={`${flyoutMessageId && flyoutMessageId !== message.id ? "" : "group"} flex gap-3 px-1 ${isConsecutive ? "py-0.5" : "py-1"} transition-colors ${flyoutMessageId === message.id ? "relative z-[100]" : ""} ${
+                                    className={`${(flyoutMessageId && flyoutMessageId !== message.id) || (editingMessageId && editingMessageId !== message.id) ? "" : "group"} flex gap-3 px-1 ${isConsecutive ? "py-0.5" : "py-1"} transition-colors ${flyoutMessageId === message.id ? "relative z-[210]" : editingMessageId === message.id ? "relative z-[205]" : ""} ${
                                         highlightedMessageId === message.id ||
                                         isThreadHighlighted
                                             ? "rounded-md bg-[var(--wd-accent-soft)]"
@@ -1174,7 +1178,7 @@ function MessageList({
                                                   )
                                                 ? "border-l-2 border-l-[var(--wd-accent)]"
                                                 : ""
-                                    }`}
+                                    }${editingMessageId === message.id ? " rounded-md bg-[var(--wd-accent-soft)]" : ""}`}
                                 >
                                     {isConsecutive ? (
                                         <div className="w-9 shrink-0 relative flex items-start justify-end pt-1">
@@ -1228,6 +1232,7 @@ function MessageList({
                                     )}
 
                                     <div className="min-w-0 flex-1 relative">
+                                        {editingMessageId !== message.id && (
                                         <MessageHoverActions
                                             canReply={!message.replyToMessageId}
                                             isPinned={
@@ -1250,6 +1255,17 @@ function MessageList({
                                                     emoji,
                                                 );
                                             }}
+                                            onEdit={
+                                                typeof localBackendUserId ===
+                                                    "number" &&
+                                                message.senderUserId ===
+                                                    localBackendUserId &&
+                                                !message.deletedAt &&
+                                                message.messageType !== "SYSTEM" &&
+                                                message.messageType !== "IMAGE"
+                                                    ? () => startEdit(message)
+                                                    : undefined
+                                            }
                                             onUnsend={
                                                 typeof localBackendUserId ===
                                                     "number" &&
@@ -1283,6 +1299,7 @@ function MessageList({
                                                 setFlyoutMessageId(open ? message.id : null)
                                             }
                                         />
+                                        )}
 
                                         {pinnedMessageIds?.has(message.id) && (
                                             <div className="flex items-center gap-1 text-[11px] wd-text-muted mb-1">
@@ -1328,6 +1345,15 @@ function MessageList({
                                             <div className="text-sm wd-text-muted italic">
                                                 Message deleted
                                             </div>
+                                        ) : editingMessageId === message.id ? (
+                                            <InlineMessageEditor
+                                                initialContent={message.content}
+                                                members={roomMembers}
+                                                onSave={async (content) => {
+                                                    await saveEdit(message.id, content);
+                                                }}
+                                                onCancel={cancelEdit}
+                                            />
                                         ) : (
                                             <div>
                                                 {standaloneGifUrl && (
@@ -1410,6 +1436,9 @@ function MessageList({
                                                                             handleMentionClick
                                                                         }
                                                                     />
+                                                                )}
+                                                                {message.editedAt && (
+                                                                    <span className="ml-1 text-[10px] wd-text-muted" title={`Edited ${formatChatMessageTimestamp(message.editedAt)}`}>(edited)</span>
                                                                 )}
                                                             </div>
 
@@ -1720,7 +1749,7 @@ function MessageList({
                     {avatarContextMenu && (
                         <div
                             data-avatar-context-menu="true"
-                            className="fixed z-[160] min-w-[210px] rounded-md border wd-border-strong wd-bg-panel shadow-[0_14px_36px_rgba(0,0,0,0.45)] p-1"
+                            className="fixed z-[250] min-w-[210px] rounded-md border wd-border-strong wd-bg-panel shadow-[0_14px_36px_rgba(0,0,0,0.45)] p-1"
                             style={{
                                 left: avatarContextMenu.x,
                                 top: avatarContextMenu.y,
