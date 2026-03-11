@@ -1437,6 +1437,9 @@ function MessageList({
                                                                         }
                                                                     />
                                                                 )}
+                                                                {message.editedAt && (
+                                                                    <span className="ml-1 text-[10px] wd-text-muted" title={`Edited ${formatChatMessageTimestamp(message.editedAt)}`}>(edited)</span>
+                                                                )}
                                                             </div>
 
                                                             {(parsedMessageLinks.length >

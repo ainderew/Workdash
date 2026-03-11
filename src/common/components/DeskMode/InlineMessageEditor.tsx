@@ -16,6 +16,7 @@ import EmojiAutocompleteFlyout from "./EmojiAutocompleteFlyout";
 import { getDisplayName, getNameAliases } from "@/common/utils/displayName";
 import { useCustomEmojiSearch } from "@/common/hooks/useCustomEmojiSearch";
 import useCustomEmojiStore from "@/common/store/customEmojiStore";
+import { Check, Pencil, X } from "lucide-react";
 
 const MAX_MENTION_SUGGESTIONS = 25;
 
@@ -350,6 +351,11 @@ function InlineMessageEditor({
 
     return (
         <div className="relative">
+            <div className="mb-1 flex items-center gap-1.5 text-[11px] font-medium text-[var(--wd-accent)]">
+                <Pencil size={11} />
+                Editing message
+            </div>
+
             {isEmojiFlyoutOpen && (
                 <EmojiAutocompleteFlyout
                     emojis={emojiSuggestions}
@@ -395,8 +401,30 @@ function InlineMessageEditor({
                 </div>
             )}
 
-            <div className="text-[11px] wd-text-muted mt-1">
-                escape to cancel · enter to save
+            <div className="mt-1 flex items-center justify-between">
+                <span className="text-[11px] wd-text-muted">
+                    escape to cancel · enter to save
+                </span>
+                <div className="flex items-center gap-1">
+                    <button
+                        type="button"
+                        onClick={onCancel}
+                        disabled={isSaving}
+                        title="Cancel (Escape)"
+                        className="inline-flex h-7 w-7 items-center justify-center rounded wd-text-muted transition-colors hover:wd-text-primary hover:bg-[var(--wd-surface-elevated)] disabled:opacity-50"
+                    >
+                        <X size={15} />
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => void handleSave()}
+                        disabled={isSaving}
+                        title="Save (Enter)"
+                        className="inline-flex h-7 w-7 items-center justify-center rounded text-green-400 transition-colors hover:text-green-300 hover:bg-[rgba(74,222,128,0.1)] disabled:opacity-50"
+                    >
+                        <Check size={15} />
+                    </button>
+                </div>
             </div>
         </div>
     );
