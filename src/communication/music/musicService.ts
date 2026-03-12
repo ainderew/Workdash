@@ -82,6 +82,10 @@ export class MusicClientService {
             this.resubscribeAll();
         });
 
+        this.socket.on("music:queue-updated", (data: { workspaceId: string; queue: Array<{ title: string; duration: number; requestedBy: string }> }) => {
+            useMusicStore.getState().setQueue(data.workspaceId, data.queue);
+        });
+
         this.socket.on("music:listener-update", (data: ListenerUpdatePayload) => {
             const current = useMusicStore.getState().getSession(data.workspaceId);
             if (current) {
@@ -93,6 +97,27 @@ export class MusicClientService {
         });
     }
 
+    /** Request current music session state from the server (e.g. after
+     *  joining a workspace room). Populates musicStore so the NowPlayingBar
+     *  can render without waiting for a state-change broadcast. */
+    fetchState(workspaceId: string): void {
+        if (!this.socket) return;
+        this.socket.emit(
+            "music:get-state",
+            { workspaceId },
+            (res: { ok?: boolean; data?: Omit<MusicStatePayload, 'workspaceId'> | null; error?: string }) => {
+                if (!res.ok || !res.data) return;
+                useMusicStore.getState().setSession(workspaceId, {
+                    state: res.data.state,
+                    currentTrack: res.data.currentTrack,
+                    queueLength: res.data.queueLength,
+                    volume: res.data.volume,
+                    listenerCount: res.data.listenerCount,
+                });
+            },
+        );
+    }
+
     subscribe(workspaceId: string): void {
         if (!this.socket) return;
         this.socket.emit(
@@ -100,10 +125,26 @@ export class MusicClientService {
             { workspaceId },
             (res: { producerId?: string; error?: string }) => {
                 if (res.error) {
-                    console.error("[music] Subscribe failed:", res.error);
+                    // "No active music session" is expected when auto-join
+                    // probes a workspace — don't log it as an error.
+                    if (!res.error.includes("No active music session")) {
+                        console.error("[music] Subscribe failed:", res.error);
+                    }
                     return;
                 }
                 useMusicStore.getState().setListening(workspaceId, true);
+            },
+        );
+    }
+
+    fetchQueue(workspaceId: string): void {
+        if (!this.socket) return;
+        this.socket.emit(
+            "music:get-queue",
+            { workspaceId },
+            (res: { ok?: boolean; data?: Array<{ title: string; duration: number; requestedBy: string }>; error?: string }) => {
+                if (!res.ok || !res.data) return;
+                useMusicStore.getState().setQueue(workspaceId, res.data);
             },
         );
     }

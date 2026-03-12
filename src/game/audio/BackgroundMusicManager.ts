@@ -17,12 +17,7 @@ export class BackgroundMusicManager {
     }
 
     private setupDebugListeners(): void {
-        window.addEventListener("blur", () => {
-            if (this.music && !this.music.isPlaying && this.isEnabled) {
-                this.music.play();
-            }
-        });
-
+        // Resume music on tab regain focus (browsers suspend audio on blur)
         window.addEventListener("focus", () => {
             if (this.music && !this.music.isPlaying && this.isEnabled) {
                 this.music.play();

@@ -4,6 +4,10 @@ import useChatV2Store from './chatV2Store';
 // Mocks
 // ---------------------------------------------------------------------------
 
+vi.mock('@/game/EventBus', () => ({
+  EventBus: { emit: vi.fn(), on: vi.fn(), off: vi.fn() },
+}));
+
 const mockService = {
   setupRealtimeHandlers: vi.fn().mockReturnValue(vi.fn()),
   listRooms: vi.fn().mockResolvedValue([]),
@@ -209,7 +213,7 @@ beforeEach(() => {
   mockService.updateReadCursor.mockResolvedValue(undefined);
   mockService.listRoomMembers.mockResolvedValue([]);
   mockService.listPinnedMessages.mockResolvedValue([]);
-  mockService.selectWorkspace.mockReturnValue(undefined);
+  mockService.selectWorkspace.mockResolvedValue(undefined);
 });
 
 // ---------------------------------------------------------------------------

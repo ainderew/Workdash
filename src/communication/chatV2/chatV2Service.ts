@@ -840,9 +840,14 @@ export class ChatV2Service {
     }
 
     /** Notify the SFU server which workspace the client is currently viewing.
-     *  Sets socketWorkspaces + joins the socket.io workspace room. */
-    selectWorkspace(workspaceId: string): void {
-        this.transport.socket.emit("workspace:select", { workspaceId }, () => {});
+     *  Sets socketWorkspaces + joins the socket.io workspace room.
+     *  Resolves when the server acknowledges the selection. */
+    selectWorkspace(workspaceId: string): Promise<void> {
+        return new Promise<void>((resolve) => {
+            this.transport.socket.emit("workspace:select", { workspaceId }, () => {
+                resolve();
+            });
+        });
     }
 
     async joinWorkspace(workspaceId: string): Promise<WorkspaceMember> {

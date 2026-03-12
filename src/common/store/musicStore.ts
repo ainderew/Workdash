@@ -6,6 +6,12 @@ interface MusicTrackInfo {
     requestedBy: string;
 }
 
+export interface QueuedTrack {
+    title: string;
+    duration: number;
+    requestedBy: string;
+}
+
 interface MusicSessionState {
     state: "playing" | "paused" | "stopped";
     currentTrack: MusicTrackInfo | null;
@@ -16,6 +22,7 @@ interface MusicSessionState {
 
 interface MusicState {
     sessionsByWorkspace: Record<string, MusicSessionState>;
+    queuesByWorkspace: Record<string, QueuedTrack[]>;
     listeningWorkspaces: Set<string>;
 
     setSession: (workspaceId: string, session: MusicSessionState) => void;
@@ -23,10 +30,13 @@ interface MusicState {
     getSession: (workspaceId: string) => MusicSessionState | null;
     setListening: (workspaceId: string, listening: boolean) => void;
     isListening: (workspaceId: string) => boolean;
+    setQueue: (workspaceId: string, queue: QueuedTrack[]) => void;
+    clearQueue: (workspaceId: string) => void;
 }
 
 const useMusicStore = create<MusicState>((set, get) => ({
     sessionsByWorkspace: {},
+    queuesByWorkspace: {},
     listeningWorkspaces: new Set(),
 
     setSession: (workspaceId, session) => {
@@ -42,9 +52,15 @@ const useMusicStore = create<MusicState>((set, get) => ({
         set((state) => {
             const next = { ...state.sessionsByWorkspace };
             delete next[workspaceId];
+            const nextQueues = { ...state.queuesByWorkspace };
+            delete nextQueues[workspaceId];
             const nextListening = new Set(state.listeningWorkspaces);
             nextListening.delete(workspaceId);
-            return { sessionsByWorkspace: next, listeningWorkspaces: nextListening };
+            return {
+                sessionsByWorkspace: next,
+                queuesByWorkspace: nextQueues,
+                listeningWorkspaces: nextListening,
+            };
         });
     },
 
@@ -66,6 +82,23 @@ const useMusicStore = create<MusicState>((set, get) => ({
 
     isListening: (workspaceId) => {
         return get().listeningWorkspaces.has(workspaceId);
+    },
+
+    setQueue: (workspaceId, queue) => {
+        set((state) => ({
+            queuesByWorkspace: {
+                ...state.queuesByWorkspace,
+                [workspaceId]: queue,
+            },
+        }));
+    },
+
+    clearQueue: (workspaceId) => {
+        set((state) => {
+            const next = { ...state.queuesByWorkspace };
+            delete next[workspaceId];
+            return { queuesByWorkspace: next };
+        });
     },
 }));
 

@@ -86,6 +86,10 @@ vi.mock('./user-settings/AudioVideoPanel', () => ({
   default: () => <div data-testid="audio-video-panel">Audio & Video Panel</div>,
 }));
 
+vi.mock('./user-settings/GeneralPanel', () => ({
+  default: () => <div data-testid="general-panel">General Panel</div>,
+}));
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -102,6 +106,8 @@ function renderModal(isOpen = true) {
 async function renderModalAsync(isOpen = true) {
   const result = renderModal(isOpen);
   if (isOpen) {
+    // Default tab is now General; navigate to Account for profile tests
+    fireEvent.click(screen.getByText('My Account'));
     await waitFor(() => {
       expect(mockGetUserProfile).toHaveBeenCalled();
     });
@@ -141,13 +147,14 @@ describe('UserSettingsModal', () => {
       expect(screen.getByText('User Settings')).toBeInTheDocument();
     });
 
-    it('shows My Account category by default', async () => {
-      await renderModalAsync();
-      expect(screen.getByText('My Account')).toBeInTheDocument();
+    it('shows General category by default', () => {
+      renderModal();
+      expect(screen.getByTestId('general-panel')).toBeInTheDocument();
     });
 
     it('renders all sidebar categories', async () => {
       await renderModalAsync();
+      expect(screen.getByText('General')).toBeInTheDocument();
       expect(screen.getByText('My Account')).toBeInTheDocument();
       expect(screen.getByText('Appearance')).toBeInTheDocument();
       expect(screen.getByText('Audio & Video')).toBeInTheDocument();
@@ -194,6 +201,7 @@ describe('UserSettingsModal', () => {
   describe('bio editing', () => {
     it('loads existing bio from profile on mount', async () => {
       renderModal();
+      fireEvent.click(screen.getByText('My Account'));
       await waitFor(() => {
         expect(mockGetUserProfile).toHaveBeenCalledWith(1);
       });
@@ -214,6 +222,7 @@ describe('UserSettingsModal', () => {
     it('saves bio when Save Changes is clicked', async () => {
       setupFetchSuccess();
       renderModal();
+      fireEvent.click(screen.getByText('My Account'));
 
       // Wait for bio to load
       await waitFor(() => {
@@ -235,6 +244,7 @@ describe('UserSettingsModal', () => {
     it('does not save bio if unchanged', async () => {
       setupFetchSuccess();
       renderModal();
+      fireEvent.click(screen.getByText('My Account'));
 
       // Wait for bio to load (sets initialBio = 'Existing bio')
       await waitFor(() => {
@@ -256,6 +266,7 @@ describe('UserSettingsModal', () => {
     it('saves name via PATCH /api/user/profile', async () => {
       setupFetchSuccess({ name: 'New Name', nickname: null });
       renderModal();
+      fireEvent.click(screen.getByText('My Account'));
 
       const nameInput = screen.getByPlaceholderText('Enter your full name');
       changeInput(nameInput, 'New Name');

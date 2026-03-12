@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { ChatV2Service } from "@/communication/chatV2/chatV2Service";
+import { EventBus } from "@/game/EventBus";
 import type {
     ChatV2CreateAttachment,
     ChatV2DirectRoom,
@@ -519,7 +520,9 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
         if (workspaceId) {
             const chatV2Service = getChatV2Service();
             // Notify SFU server so socketWorkspaces is set for mediasoup isolation
-            chatV2Service.selectWorkspace(workspaceId);
+            chatV2Service.selectWorkspace(workspaceId).then(() => {
+                EventBus.emit('workspace-select-complete', { workspaceId });
+            });
             chatV2Service.listCategories(workspaceId).then((categories) => {
                 set({
                     categoriesById: toCategoriesById(categories),
@@ -751,7 +754,8 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
 
             // Notify SFU server so socketWorkspaces is set for mediasoup isolation
             if (resolvedWsId) {
-                chatV2Service.selectWorkspace(resolvedWsId);
+                await chatV2Service.selectWorkspace(resolvedWsId);
+                EventBus.emit('workspace-select-complete', { workspaceId: resolvedWsId });
             }
 
             set((state) => {

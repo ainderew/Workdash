@@ -34,6 +34,7 @@ import useChatV2Store from "./common/store/chatV2Store";
 import DeskLayout from "./common/components/DeskMode/DeskLayout";
 import WorkspaceSelectorOverlay from "./common/components/WorkspaceSelector/WorkspaceSelectorOverlay";
 import useCallStore from "@/common/store/callStore";
+import useMusicStore from "@/common/store/musicStore";
 import useThemeStore from "@/common/store/themeStore";
 import { EventBus } from "@/game/EventBus";
 
@@ -203,6 +204,28 @@ function App() {
             }
         }
     }, [isInitialized, openWorkspaceSelector]);
+
+    // On workspace switch, fetch the current music session state from the
+    // server so the NowPlayingBar can render immediately. The server doesn't
+    // push music:state-changed to newly joined clients — only on state changes.
+    // We delay 1s to let workspace:select complete (server rejects requests
+    // until socketWorkspaces is set). If auto-join is enabled, also subscribe.
+    useEffect(() => {
+        const handler = ({ workspaceId }: { workspaceId: string }) => {
+            const music = MusicClientService.getInstance();
+            music.fetchState(workspaceId);
+
+            const autoJoin = localStorage.getItem('workdash:autoJoinMusic') === 'true';
+            if (autoJoin && !useMusicStore.getState().isListening(workspaceId)) {
+                music.subscribe(workspaceId);
+            }
+        };
+
+        EventBus.on('workspace-select-complete', handler);
+        return () => {
+            EventBus.off('workspace-select-complete', handler);
+        };
+    }, []);
 
     if (status === "loading") {
         return (

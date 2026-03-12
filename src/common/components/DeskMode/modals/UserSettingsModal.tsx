@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link2, Palette, User, Volume2 } from 'lucide-react';
+import { Cog, Link2, Palette, User, Volume2 } from 'lucide-react';
 import {
   SettingsModalShell,
   type SettingsCategory,
@@ -9,6 +9,7 @@ import AccountPanel from './user-settings/AccountPanel';
 import AppearancePanel from './user-settings/AppearancePanel';
 import AudioVideoPanel from './user-settings/AudioVideoPanel';
 import ConnectionsPanel from './user-settings/ConnectionsPanel';
+import GeneralPanel from './user-settings/GeneralPanel';
 
 interface UserSettingsModalProps {
   isOpen: boolean;
@@ -16,6 +17,7 @@ interface UserSettingsModalProps {
 }
 
 const CATEGORIES: SidebarItem[] = [
+  { id: 'general', label: 'General', icon: <Cog size={16} /> },
   { id: 'account', label: 'My Account', icon: <User size={16} /> },
   { id: 'appearance', label: 'Appearance', icon: <Palette size={16} /> },
   { id: 'audio-video', label: 'Audio & Video', icon: <Volume2 size={16} /> },
@@ -24,10 +26,10 @@ const CATEGORIES: SidebarItem[] = [
 
 function UserSettingsModal({ isOpen, onClose }: UserSettingsModalProps) {
   const [activeCategory, setActiveCategory] =
-    useState<SettingsCategory>('account');
+    useState<SettingsCategory>('general');
 
   useEffect(() => {
-    if (isOpen) setActiveCategory('account');
+    if (isOpen) setActiveCategory('general');
   }, [isOpen]);
 
   return (
@@ -40,6 +42,7 @@ function UserSettingsModal({ isOpen, onClose }: UserSettingsModalProps) {
       activeCategory={activeCategory}
       onCategoryChange={setActiveCategory}
     >
+      {activeCategory === 'general' && <GeneralPanel />}
       {activeCategory === 'account' && <AccountPanel onClose={onClose} />}
       {activeCategory === 'appearance' && <AppearancePanel />}
       {activeCategory === 'audio-video' && <AudioVideoPanel />}

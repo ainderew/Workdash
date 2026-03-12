@@ -356,13 +356,21 @@ function Composer({
 
         setUploadError(null);
 
+        // Clear input optimistically so the user isn't blocked while the
+        // message (or bot command like /play) is being processed.
+        const previousValue = value;
+        const previousFile = selectedFile;
+        setValue("");
+        setSelectedFile(null);
+        closeMentionFlyout();
+
         try {
             let attachments: ChatV2CreateAttachment[] | undefined;
 
-            if (selectedFile) {
+            if (previousFile) {
                 const uploaded = await uploadChatFileForMessage(
                     roomId,
-                    selectedFile,
+                    previousFile,
                 );
                 attachments = [uploaded.attachment];
             }
@@ -377,10 +385,10 @@ function Composer({
                       }
                     : undefined,
             );
-            setValue("");
-            setSelectedFile(null);
-            closeMentionFlyout();
         } catch (error) {
+            // Restore input on failure so the user doesn't lose their message
+            setValue(previousValue);
+            setSelectedFile(previousFile);
             setUploadError(
                 error instanceof Error
                     ? error.message

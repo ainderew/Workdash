@@ -17,6 +17,19 @@ interface AckResponse<T = unknown> {
 }
 
 // ----------------------------------------------------------------
+// Sound helpers
+// ----------------------------------------------------------------
+
+function playCallSound(name: "join-call" | "end-call"): void {
+  try {
+    const audio = new Audio(`/assets/sounds/${name}.mp3`);
+    audio.play().catch(() => {});
+  } catch {
+    // ignore — sound is non-critical
+  }
+}
+
+// ----------------------------------------------------------------
 // Service
 // ----------------------------------------------------------------
 
@@ -115,6 +128,7 @@ export class CallSignalingService {
         (res: AckResponse<CallPresence>) => {
           if (res.error) return reject(new Error(res.error));
           useCallStore.getState().setCurrentCall(channelId);
+          playCallSound("join-call");
           resolve(res.call ?? null);
         },
       );
@@ -129,6 +143,7 @@ export class CallSignalingService {
         (res: AckResponse<CallPresence>) => {
           if (res.error) return reject(new Error(res.error));
           useCallStore.getState().setCurrentCall(channelId);
+          playCallSound("join-call");
           resolve(res.call ?? null);
         },
       );
@@ -142,6 +157,7 @@ export class CallSignalingService {
         ScreenShareService.getInstance().stopScreenShare();
         AudioChat.getInstance().stopMic();
         useCallStore.getState().setCurrentCall(null);
+        playCallSound("end-call");
       };
 
       const timeout = setTimeout(() => {
