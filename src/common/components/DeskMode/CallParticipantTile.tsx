@@ -88,11 +88,11 @@ export default function CallParticipantTile({
         if (cancelled) return;
 
         const viewer = VideoChatViewer.getInstance();
-        const sourceEl = viewer.videoElements.get(producerId);
+        const stream = viewer.videoStreams.get(producerId);
 
-        if (sourceEl?.srcObject) {
+        if (stream) {
           const videoEl = document.createElement('video');
-          videoEl.srcObject = sourceEl.srcObject;
+          videoEl.srcObject = stream;
           videoEl.autoplay = true;
           videoEl.playsInline = true;
           videoEl.muted = true;

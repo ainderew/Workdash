@@ -38,10 +38,9 @@ export class ScreenShareService {
                 frameRate: { max: 30, ideal: 30 },
             },
             audio: {
-                echoCancellation: true, 
-                noiseSuppression: true,
+                echoCancellation: false,
+                noiseSuppression: false,
                 autoGainControl: false,
-                
             },
         });
 
@@ -50,10 +49,23 @@ export class ScreenShareService {
 
         this.screenProducer = await this.sfuService.sendTransport!.produce({
             track: videoTrack,
+            encodings: [
+                { maxBitrate: 5_000_000, maxFramerate: 30 },
+            ],
+            codecOptions: { videoGoogleStartBitrate: 1500 },
             appData: {
                 source: "screen",
             },
         });
+
+        // Produce screen share audio if available
+        const audioTracks = stream.getAudioTracks();
+        if (audioTracks.length > 0) {
+            await this.sfuService.sendTransport!.produce({
+                track: audioTracks[0],
+                appData: { source: "screen-audio" },
+            });
+        }
 
         videoTrack.onended = () => {
             this.stopScreenShare();

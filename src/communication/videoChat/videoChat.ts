@@ -25,8 +25,8 @@ export class VideoChatService {
         }
 
         const videoOptions = {
-            width: { min: 640, ideal: 1280, max: 1920 },
-            height: { min: 480, ideal: 720, max: 1080 },
+            width: { min: 640, ideal: 1920, max: 1920 },
+            height: { min: 480, ideal: 1080, max: 1080 },
             frameRate: { ideal: 30, max: 60 },
             facingMode: "user",
         };
@@ -45,6 +45,12 @@ export class VideoChatService {
         try {
             this.producer = await this.sfuService.sendTransport!.produce({
                 track: videoTrack,
+                encodings: [
+                    { maxBitrate: 200_000, scaleResolutionDownBy: 4, maxFramerate: 15 },
+                    { maxBitrate: 1_000_000, scaleResolutionDownBy: 2, maxFramerate: 30 },
+                    { maxBitrate: 4_000_000, scaleResolutionDownBy: 1, maxFramerate: 30 },
+                ],
+                codecOptions: { videoGoogleStartBitrate: 1500 },
                 appData: {
                     source: "camera",
                 },

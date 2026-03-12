@@ -38,6 +38,15 @@ export type FloatingWindowState = 'expanded' | 'collapsed';
 // Store
 // ----------------------------------------------------------------
 
+export type ConnectionQuality = 'good' | 'fair' | 'poor' | 'unknown';
+
+export interface StatsSnapshot {
+  bitrate: number;
+  packetLoss: number;
+  rtt: number;
+  fps: number;
+}
+
 interface CallState {
   /** Active calls the user can see (for sidebar indicators), keyed by channelId */
   activeCallsByChannel: Record<string, CallPresence>;
@@ -56,6 +65,9 @@ interface CallState {
   /** Maps screen-share producerId → userId for screen share tile association */
   screenProducerUserMap: Record<string, number>;
 
+  /** Maps producerId → consumerId for adaptive layer switching */
+  producerToConsumerMap: Record<string, string>;
+
   /** User manually triggered floating PiP while on the call's channel */
   manualFloating: boolean;
 
@@ -67,6 +79,12 @@ interface CallState {
 
   /** Pinned tile key — e.g. "42" for camera, "42-screen" for screen share (null = no pin) */
   pinnedTileKey: string | null;
+
+  /** WebRTC connection quality indicator */
+  connectionQuality: ConnectionQuality;
+
+  /** Latest WebRTC stats snapshot */
+  statsSnapshot: StatsSnapshot | null;
 
   // Actions driven by socket events
   handleCallStarted: (call: CallPresence) => void;
@@ -91,6 +109,10 @@ interface CallState {
   setScreenProducerUser: (producerId: string, userId: number) => void;
   removeScreenProducer: (producerId: string) => void;
 
+  // Producer → Consumer mapping (for adaptive layers)
+  setProducerConsumer: (producerId: string, consumerId: string) => void;
+  removeProducerConsumer: (producerId: string) => void;
+
   // User actions
   setCurrentCall: (channelId: string | null) => void;
   setLocalMedia: (media: Partial<CallParticipantMedia>) => void;
@@ -102,6 +124,10 @@ interface CallState {
 
   // Pin actions
   setPinnedTileKey: (key: string | null) => void;
+
+  // Quality stats
+  setConnectionQuality: (q: ConnectionQuality) => void;
+  setStatsSnapshot: (s: StatsSnapshot | null) => void;
 
   /** Clear workspace-specific state (calls map, producers) but preserve currentCall & media */
   resetForWorkspaceSwitch: () => void;
@@ -121,10 +147,13 @@ const useCallStore = create<CallState>((set) => ({
   localMedia: { ...initialLocalMedia },
   producerUserMap: {},
   screenProducerUserMap: {},
+  producerToConsumerMap: {},
   manualFloating: false,
   floatingPosition: null,
   floatingWindowState: 'expanded' as FloatingWindowState,
   pinnedTileKey: null,
+  connectionQuality: 'unknown' as ConnectionQuality,
+  statsSnapshot: null,
 
   handleCallStarted: (call) =>
     set((state) => ({
@@ -282,6 +311,18 @@ const useCallStore = create<CallState>((set) => ({
       return { screenProducerUserMap: next };
     }),
 
+  setProducerConsumer: (producerId, consumerId) =>
+    set((state) => ({
+      producerToConsumerMap: { ...state.producerToConsumerMap, [producerId]: consumerId },
+    })),
+
+  removeProducerConsumer: (producerId) =>
+    set((state) => {
+      const next = { ...state.producerToConsumerMap };
+      delete next[producerId];
+      return { producerToConsumerMap: next };
+    }),
+
   setCurrentCall: (channelId) =>
     set(() => ({
       currentCall: channelId ? { channelId } : null,
@@ -305,11 +346,18 @@ const useCallStore = create<CallState>((set) => ({
   setPinnedTileKey: (key) =>
     set(() => ({ pinnedTileKey: key })),
 
+  setConnectionQuality: (q) =>
+    set(() => ({ connectionQuality: q })),
+
+  setStatsSnapshot: (s) =>
+    set(() => ({ statsSnapshot: s })),
+
   resetForWorkspaceSwitch: () =>
     set(() => ({
       activeCallsByChannel: {},
       producerUserMap: {},
       screenProducerUserMap: {},
+      producerToConsumerMap: {},
       pinnedTileKey: null,
     })),
 
@@ -320,10 +368,13 @@ const useCallStore = create<CallState>((set) => ({
       localMedia: { ...initialLocalMedia },
       producerUserMap: {},
       screenProducerUserMap: {},
+      producerToConsumerMap: {},
       manualFloating: false,
       floatingPosition: null,
       floatingWindowState: 'expanded' as FloatingWindowState,
       pinnedTileKey: null,
+      connectionQuality: 'unknown' as ConnectionQuality,
+      statsSnapshot: null,
     })),
 }));
 

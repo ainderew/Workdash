@@ -3,8 +3,17 @@ import {
   Mic, MicOff, Video, VideoOff, Monitor, MonitorOff,
   PhoneOff, Maximize2, Minimize2, PictureInPicture2,
 } from 'lucide-react';
+import useCallStore from '@/common/store/callStore';
+import type { ConnectionQuality } from '@/common/store/callStore';
 
 export type CallControlSize = 'sm' | 'md';
+
+const qualityColors: Record<ConnectionQuality, string> = {
+  good: 'var(--wd-success)',
+  fair: 'var(--wd-warning, #f59e0b)',
+  poor: 'var(--wd-danger)',
+  unknown: 'var(--wd-text-muted, #6b7280)',
+};
 
 interface CallControlBarProps {
   isMuted: boolean;
@@ -44,9 +53,28 @@ export default function CallControlBar({
   size = 'md',
 }: CallControlBarProps) {
   const { btn, icon, gap } = sizeConfig[size];
+  const connectionQuality = useCallStore((s) => s.connectionQuality);
+  const statsSnapshot = useCallStore((s) => s.statsSnapshot);
+
+  const qualityLabel =
+    connectionQuality === 'unknown' ? 'Connecting...' : connectionQuality;
+  const statsTooltip = statsSnapshot
+    ? `${qualityLabel} | ${Math.round(statsSnapshot.bitrate / 1000)} kbps | ${statsSnapshot.rtt}ms RTT | ${statsSnapshot.packetLoss}% loss${statsSnapshot.fps ? ` | ${statsSnapshot.fps} fps` : ''}`
+    : qualityLabel;
 
   return (
     <div className={`flex items-center justify-center ${gap}`}>
+      {/* Connection quality indicator */}
+      <div
+        className="relative flex items-center justify-center h-4 w-4 shrink-0"
+        title={statsTooltip}
+      >
+        <span
+          className="block h-2 w-2 rounded-full"
+          style={{ backgroundColor: qualityColors[connectionQuality] }}
+        />
+      </div>
+
       {/* Mute */}
       <button
         type="button"

@@ -160,6 +160,7 @@ export class ScreenShareViewer {
                 useUserStore.getState().user.producerIds ?? [];
 
             this.consumers.set(producerId, consumer);
+            useCallStore.getState().setProducerConsumer(producerId, consumer.id);
             useUserStore.getState().updateUser({
                 producerIds: [...currentProducerIds, producerId],
             });
@@ -209,10 +210,10 @@ export class ScreenShareViewer {
         let hasReceivedData = false;
         const dataCheckTimeout = setTimeout(() => {
             if (!hasReceivedData) {
-                console.warn("⚠️ No data received for producer:", producerId, "after 3s - removing");
+                console.warn("⚠️ No data received for producer:", producerId, "after 10s - removing");
                 this.removeScreenShareVideo(producerId);
             }
-        }, 3000);
+        }, 10000);
 
         videoEl.onloadeddata = () => {
             hasReceivedData = true;

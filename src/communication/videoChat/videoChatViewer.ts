@@ -10,6 +10,9 @@ export class VideoChatViewer {
     public static instance: VideoChatViewer | null = null;
     private sfuService: MediaTransportService;
     private consumers: Map<string, Consumer> = new Map();
+    /** MediaStream per producer — used by desk-mode tiles to avoid double video decode */
+    public videoStreams: Map<string, MediaStream> = new Map();
+    /** HTMLVideoElement per producer — used by world-mode hooks that mount elements into the DOM */
     public videoElements: Map<string, HTMLVideoElement> = new Map();
     public videoChatOwnerMap: Record<string, string> = {};
     public updateComponentStateCallback: (() => void) | null = null;
@@ -104,6 +107,7 @@ export class VideoChatViewer {
                 useUserStore.getState().user.producerIds ?? [];
 
             this.consumers.set(producerId, consumer);
+            useCallStore.getState().setProducerConsumer(producerId, consumer.id);
             useUserStore.getState().updateUser({
                 producerIds: [...currentProducerIds, producerId],
             });
@@ -180,38 +184,26 @@ export class VideoChatViewer {
             return;
         }
 
+        const stream = new MediaStream([consumer.track]);
+        this.videoStreams.set(producerId, stream);
+
+        // World-mode backing element — only plays when mounted into the DOM
         const videoEl = document.createElement("video") as HTMLVideoElement;
-        videoEl.srcObject = new MediaStream([consumer.track]);
+        videoEl.srcObject = stream;
         videoEl.autoplay = true;
         videoEl.muted = true;
         videoEl.playsInline = true;
         videoEl.controls = false;
-        videoEl.style.width = "100%";
         videoEl.dataset.producerId = producerId;
-
         videoEl.style.width = "100%";
         videoEl.style.height = "100%";
         videoEl.style.objectFit = "contain";
-        videoEl.style.backgroundColor = "#000";
-        videoEl.style.display = "block";
+        this.videoElements.set(producerId, videoEl);
 
         consumer.track.onended = () => {
             this.removeScreenShareVideo(producerId);
         };
 
-        let hasReceivedData = false;
-        const dataCheckTimeout = setTimeout(() => {
-            if (!hasReceivedData) {
-                this.removeScreenShareVideo(producerId);
-            }
-        }, 3000);
-
-        videoEl.onloadeddata = () => {
-            hasReceivedData = true;
-            clearTimeout(dataCheckTimeout);
-        };
-
-        this.videoElements.set(producerId, videoEl);
         this.updateComponentStateCallback?.();
     }
 
@@ -229,6 +221,7 @@ export class VideoChatViewer {
             consumer.close();
             this.consumers.delete(producerId);
         }
+        this.videoStreams.delete(producerId);
         const videoEl = this.videoElements.get(producerId);
         if (videoEl) {
             videoEl.srcObject = null;

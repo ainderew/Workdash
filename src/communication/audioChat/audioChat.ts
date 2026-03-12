@@ -266,6 +266,13 @@ export class AudioChat {
         try {
             this.audioProducer = await this.sfuService.sendTransport!.produce({
                 track: audioTrack,
+                codecOptions: {
+                    opusStereo: false,
+                    opusDtx: true,
+                    opusFec: true,
+                    opusMaxAverageBitrate: 96_000,
+                },
+                appData: { source: 'microphone' },
             });
         } catch (err) {
             stream.getTracks().forEach((t) => t.stop());
@@ -313,6 +320,13 @@ export class AudioChat {
         try {
             this.audioProducer = await this.sfuService.sendTransport!.produce({
                 track: audioTrack,
+                codecOptions: {
+                    opusStereo: false,
+                    opusDtx: true,
+                    opusFec: true,
+                    opusMaxAverageBitrate: 96_000,
+                },
+                appData: { source: 'microphone' },
             });
         } catch (err) {
             stream.getTracks().forEach((t) => t.stop());
@@ -424,15 +438,17 @@ export class AudioChat {
 
             if (this.isInFocusMode) {
                 consumer.pause();
+                // Don't tell server to resume — avoid wasting bandwidth
+                // Server will resume when focus mode is lifted
+            } else {
+                await new Promise((resolve) => {
+                    this.sfuService.socket.emit(
+                        "resumeConsumer",
+                        { consumerId: consumer.id },
+                        resolve,
+                    );
+                });
             }
-
-            await new Promise((resolve) => {
-                this.sfuService.socket.emit(
-                    "resumeConsumer",
-                    { consumerId: consumer.id },
-                    resolve,
-                );
-            });
 
             logger.log("Consumer resumed, creating Web Audio pipeline...");
 
@@ -483,17 +499,12 @@ export class AudioChat {
             this.mediaStreamSources.set(consumer.id, source);
             this.gainNodes.set(consumer.id, gainNode);
 
+            // Store a lightweight reference for the audioElements map (used by AudioElement.tsx).
+            // The actual playback is through the Web Audio pipeline above.
             const audioEl = document.createElement("audio");
             audioEl.srcObject = remoteStream;
-            audioEl.autoplay = false;
-            audioEl.muted = true;
             this.audioElements.set(consumer.id, audioEl);
             this.audioElementsSetter(audioEl);
-            document.body.appendChild(audioEl);
-
-            if (this.audioElementUpdateCallback) {
-                this.audioElementUpdateCallback();
-            }
 
             logger.log(
                 "Web Audio pipeline created for",
@@ -527,14 +538,14 @@ export class AudioChat {
         const source = this.audioContext.createMediaStreamSource(stream);
 
         const compressor = this.audioContext.createDynamicsCompressor();
-        compressor.threshold.value = -50;
-        compressor.knee.value = 40;
-        compressor.ratio.value = 12;
+        compressor.threshold.value = -18;
+        compressor.knee.value = 12;
+        compressor.ratio.value = 1.5;
         compressor.attack.value = 0.003;
         compressor.release.value = 0.25;
 
         const gainNode = this.audioContext.createGain();
-        gainNode.gain.value = 1.2;
+        gainNode.gain.value = 1.0;
 
         const highPassFilter = this.audioContext.createBiquadFilter();
         highPassFilter.type = "highpass";
@@ -590,7 +601,15 @@ export class AudioChat {
 
     public disableFocusMode() {
         if (!this.consumers) return;
-        this.consumers.forEach((consumer) => consumer.resume());
+        this.consumers.forEach((consumer) => {
+            consumer.resume();
+            // Resume on server for consumers that were created while in focus mode
+            this.sfuService.socket.emit(
+                "resumeConsumer",
+                { consumerId: consumer.id },
+                () => {},
+            );
+        });
         this.isInFocusMode = false;
     }
 

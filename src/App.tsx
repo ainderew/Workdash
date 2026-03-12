@@ -19,6 +19,7 @@ import { useKeyboardShortcuts } from "@/common/keyboard";
 import { PollService } from "./communication/poll/poll";
 import PollDisplay from "./common/components/Poll/PollDisplay";
 import { CallSignalingService } from "./communication/callSignaling/callSignalingService";
+import { WebrtcStatsService } from "./communication/webrtcStats/webrtcStatsService";
 import { getMusicBotAvatarDataUri } from "@/common/utils/botAvatar";
 import { MusicClientService } from "./communication/music/musicService";
 import { AudioChat } from "./communication/audioChat/audioChat";
@@ -89,6 +90,8 @@ function App() {
 
                 const callService = CallSignalingService.getInstance();
                 callService.setupListeners();
+
+                WebrtcStatsService.getInstance().start();
 
                 MusicClientService.getInstance()
                     .init(transport.socket)
