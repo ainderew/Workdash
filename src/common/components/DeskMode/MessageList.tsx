@@ -309,6 +309,7 @@ function MessageList({
         if (focusedMessageId || isLoading) {
             return;
         }
+        if (isLoadingOlderRef.current) return;
         const container = scrollContainerRef.current;
         if (!container) return;
 

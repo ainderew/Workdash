@@ -30,10 +30,12 @@ export async function getMusicBotAvatarDataUri(): Promise<string> {
       anim.goToAndStop(0, true);
       const canvas = container.querySelector("canvas");
       if (canvas) {
-        cachedDataUri = canvas.toDataURL("image/png");
+        const uri = canvas.toDataURL("image/png");
+        if (uri) cachedDataUri = uri;
       }
       anim.destroy();
       container.remove();
+      pending = null;
       resolve(cachedDataUri || "");
     });
   });

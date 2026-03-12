@@ -63,13 +63,11 @@ export class MusicClientService {
 
         this.socket.on("music:track-started", (data: MusicTrackPayload) => {
             const current = useMusicStore.getState().getSession(data.workspaceId);
-            if (current) {
-                useMusicStore.getState().setSession(data.workspaceId, {
-                    ...current,
-                    state: "playing",
-                    currentTrack: data.track,
-                });
-            }
+            useMusicStore.getState().setSession(data.workspaceId, {
+                ...(current ?? { state: "playing", queueLength: 0, volume: 80, listenerCount: 0 }),
+                state: "playing",
+                currentTrack: data.track,
+            });
         });
 
         this.socket.on("music:session-ended", (data: MusicEndPayload) => {
@@ -78,6 +76,10 @@ export class MusicClientService {
 
         this.socket.on("music:subscribed", (data: { workspaceId: string }) => {
             useMusicStore.getState().setListening(data.workspaceId, true);
+        });
+
+        this.socket.on("reconnect", () => {
+            this.resubscribeAll();
         });
 
         this.socket.on("music:listener-update", (data: ListenerUpdatePayload) => {
