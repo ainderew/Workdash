@@ -6,14 +6,10 @@ import type {
 } from "@/communication/chatV2/_types";
 import {
     Bell,
-    Check,
     ChevronDown,
-    Copy,
-    Fingerprint,
     FolderPlus,
     LockKeyhole,
     LogOut,
-    MoreHorizontal,
     Plus,
     Settings,
     Shield,
@@ -165,23 +161,17 @@ function ChannelSidebar({
     );
     const [renameRoomId, setRenameRoomId] = useState<string | null>(null);
     const [deleteRoomId, setDeleteRoomId] = useState<string | null>(null);
-    const [isUserIdExpanded, setIsUserIdExpanded] = useState(false);
-    const [isUtilityMenuOpen, setIsUtilityMenuOpen] = useState(false);
     const [isUserSettingsModalOpen, setIsUserSettingsModalOpen] =
         useState(false);
     const [isServerSettingsModalOpen, setIsServerSettingsModalOpen] =
         useState(false);
     const [channelPermissionsRoomId, setChannelPermissionsRoomId] =
         useState<string | null>(null);
-    const [userIdCopyState, setUserIdCopyState] = useState<
-        "idle" | "copied" | "failed"
-    >("idle");
     const [footerProfilePopover, setFooterProfilePopover] =
         useState<ProfilePopoverState | null>(null);
     const roomNodeRefs = useRef<
         Record<string, Array<HTMLButtonElement | null>>
     >({});
-    const userIdCopyResetTimeoutRef = useRef<number | null>(null);
 
     const categoryTree = useMemo(() => {
         const entries: Array<{ key: string; id: string | null; name: string }> =
@@ -306,22 +296,11 @@ function ChannelSidebar({
         setIsAvatarLoadFailed(false);
     }, [avatarUrl]);
 
-    useEffect(
-        () => () => {
-            if (userIdCopyResetTimeoutRef.current !== null) {
-                window.clearTimeout(userIdCopyResetTimeoutRef.current);
-            }
-        },
-        [],
-    );
-
     useEffect(() => {
         if (
             !roomContextMenu &&
             !categoryContextMenu &&
-            !isServerActionsMenuOpen &&
-            !isUserIdExpanded &&
-            !isUtilityMenuOpen
+            !isServerActionsMenuOpen
         ) {
             return undefined;
         }
@@ -330,8 +309,6 @@ function ChannelSidebar({
             setRoomContextMenu(null);
             setCategoryContextMenu(null);
             setIsServerActionsMenuOpen(false);
-            setIsUserIdExpanded(false);
-            setIsUtilityMenuOpen(false);
         };
         const onMouseDown = (event: MouseEvent) => {
             const target = event.target as HTMLElement | null;
@@ -339,10 +316,6 @@ function ChannelSidebar({
             if (target?.closest("[data-category-context-menu='true']")) return;
             if (target?.closest("[data-server-actions-menu='true']")) return;
             if (target?.closest("[data-server-actions-trigger='true']")) return;
-            if (target?.closest("[data-user-id-panel='true']")) return;
-            if (target?.closest("[data-user-id-trigger='true']")) return;
-            if (target?.closest("[data-user-utility-menu='true']")) return;
-            if (target?.closest("[data-user-utility-trigger='true']")) return;
             closeMenu();
         };
         const onKeyDown = (event: KeyboardEvent) => {
@@ -363,8 +336,6 @@ function ChannelSidebar({
         };
     }, [
         categoryContextMenu,
-        isUserIdExpanded,
-        isUtilityMenuOpen,
         isServerActionsMenuOpen,
         roomContextMenu,
     ]);
@@ -592,27 +563,6 @@ function ChannelSidebar({
                 }`}
             />
         );
-    };
-
-    const handleCopyUserId = async () => {
-        if (typeof localBackendUserId !== "number") {
-            setUserIdCopyState("failed");
-            return;
-        }
-
-        try {
-            await navigator.clipboard.writeText(String(localBackendUserId));
-            setUserIdCopyState("copied");
-        } catch {
-            setUserIdCopyState("failed");
-        }
-
-        if (userIdCopyResetTimeoutRef.current !== null) {
-            window.clearTimeout(userIdCopyResetTimeoutRef.current);
-        }
-        userIdCopyResetTimeoutRef.current = window.setTimeout(() => {
-            setUserIdCopyState("idle");
-        }, 1800);
     };
 
     return (
@@ -1213,117 +1163,13 @@ function ChannelSidebar({
 
                         <button
                             type="button"
-                            data-user-utility-trigger="true"
-                            title="More user actions"
-                            aria-label="More user actions"
-                            onClick={() => {
-                                setIsUtilityMenuOpen((current) => {
-                                    const next = !current;
-                                    if (!next) {
-                                        setIsUserIdExpanded(false);
-                                    }
-                                    return next;
-                                });
-                            }}
+                            title="Settings"
+                            aria-label="Settings"
+                            onClick={() => setIsUserSettingsModalOpen(true)}
                             className="relative h-7 w-7 inline-flex items-center justify-center rounded-md border wd-border-subtle wd-bg-elevated wd-text-secondary transition-colors hover:bg-[var(--wd-surface-base)] hover:wd-text-primary"
                         >
-                            <MoreHorizontal size={15} />
+                            <Settings size={15} />
                         </button>
-
-                        {isUtilityMenuOpen && (
-                            <div
-                                data-user-utility-menu="true"
-                                className="absolute right-0 bottom-[calc(100%+8px)] z-[260] w-48 rounded-xl border wd-border-strong wd-bg-panel shadow-[0_16px_40px_rgba(0,0,0,0.45)] p-2"
-                            >
-                                <p className="px-1 text-[10px] font-semibold uppercase tracking-wide wd-text-muted">
-                                    User Actions
-                                </p>
-                                <div className="mt-2 space-y-1">
-                                    <button
-                                        type="button"
-                                        title="Settings"
-                                        aria-label="Settings"
-                                        onClick={() => {
-                                            setIsUserSettingsModalOpen(true);
-                                            setIsUtilityMenuOpen(false);
-                                            setIsUserIdExpanded(false);
-                                        }}
-                                        className="w-full h-8 px-2 inline-flex items-center justify-between rounded-md border wd-border-subtle wd-bg-elevated wd-text-secondary transition-colors hover:bg-[var(--wd-surface-base)] hover:wd-text-primary"
-                                    >
-                                        <span className="inline-flex items-center gap-2 text-xs font-medium">
-                                            <Settings size={13} />
-                                            Settings
-                                        </span>
-                                    </button>
-                                    <button
-                                        type="button"
-                                        data-user-id-trigger="true"
-                                        title="User ID"
-                                        aria-label="User ID"
-                                        onClick={() => {
-                                            setIsUserIdExpanded((current) => {
-                                                return !current;
-                                            });
-                                        }}
-                                        className="w-full h-8 px-2 inline-flex items-center justify-between rounded-md border wd-border-subtle wd-bg-elevated wd-text-secondary transition-colors hover:bg-[var(--wd-surface-base)] hover:wd-text-primary"
-                                    >
-                                        <span className="inline-flex items-center gap-2 text-xs font-medium">
-                                            <Fingerprint size={13} />
-                                            User ID
-                                        </span>
-                                        <span className="text-[11px] wd-text-muted">
-                                            {isUserIdExpanded ? "Open" : ""}
-                                        </span>
-                                    </button>
-                                </div>
-
-                                {isUserIdExpanded && (
-                                    <div
-                                        data-user-id-panel="true"
-                                        className="absolute left-[calc(100%+8px)] bottom-0 z-[280] w-56 rounded-xl border wd-border-strong wd-bg-panel shadow-[0_16px_40px_rgba(0,0,0,0.45)] p-2"
-                                    >
-                                        <p className="px-1 text-[11px] font-semibold uppercase tracking-wide wd-text-muted">
-                                            User ID
-                                        </p>
-                                        <div className="mt-2 flex items-center gap-2">
-                                            <code className="flex-1 h-8 rounded-md border wd-border-subtle wd-bg-panel-2 px-2 inline-flex items-center text-xs wd-text-primary font-mono truncate">
-                                                {typeof localBackendUserId ===
-                                                "number"
-                                                    ? localBackendUserId
-                                                    : "Unavailable"}
-                                            </code>
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    void handleCopyUserId();
-                                                }}
-                                                disabled={
-                                                    typeof localBackendUserId !==
-                                                    "number"
-                                                }
-                                                className="h-8 px-2 inline-flex items-center gap-1 rounded-md border wd-border-subtle wd-bg-panel-2 text-xs font-semibold wd-text-secondary transition-colors hover:wd-text-primary hover:bg-[var(--wd-surface-base)] disabled:opacity-60 disabled:cursor-not-allowed"
-                                            >
-                                                {userIdCopyState ===
-                                                "copied" ? (
-                                                    <Check size={13} />
-                                                ) : (
-                                                    <Copy size={13} />
-                                                )}
-                                                <span>
-                                                    {userIdCopyState ===
-                                                    "copied"
-                                                        ? "Copied"
-                                                        : userIdCopyState ===
-                                                            "failed"
-                                                          ? "Retry"
-                                                          : "Copy"}
-                                                </span>
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        )}
                     </div>
                 </div>
             </footer>

@@ -1041,6 +1041,8 @@ function MessageList({
                         const senderName = getSenderName(message);
                         const senderAvatar = getSenderAvatar(message);
                         const isBot = message.sender?.name === "Music Bot";
+                        const isSlashCommand = !!message.content?.startsWith("/");
+                        const skipLinkPreviews = isBot || isSlashCommand;
                         const canOpenAvatarMenu = !(
                             typeof localBackendUserId === "number" &&
                             message.senderUserId === localBackendUserId
@@ -1054,23 +1056,27 @@ function MessageList({
                             message.content && !standaloneGifUrl
                                 ? parseMessageContent(message.content)
                                 : [];
-                        const parsedMessageLinks = parsedMessageParts.filter(
-                            (part) => part.type !== "text" && !!part.url,
-                        );
+                        const parsedMessageLinks = skipLinkPreviews
+                            ? []
+                            : parsedMessageParts.filter(
+                                  (part) => part.type !== "text" && !!part.url,
+                              );
                         const parsedMessageLinkUrls = new Set(
                             parsedMessageLinks.map(
                                 (part) => part.url as string,
                             ),
                         );
-                        const extractedUrls = Array.from(
-                            new Set(
-                                (
-                                    message.content?.match(
-                                        /https?:\/\/[^\s]+/gi,
-                                    ) || []
-                                ).map((url) => url.trim()),
-                            ),
-                        );
+                        const extractedUrls = skipLinkPreviews
+                            ? []
+                            : Array.from(
+                                  new Set(
+                                      (
+                                          message.content?.match(
+                                              /https?:\/\/[^\s]+/gi,
+                                          ) || []
+                                      ).map((url) => url.trim()),
+                                  ),
+                              );
                         const fallbackGenericUrls = extractedUrls.filter(
                             (url) => !parsedMessageLinkUrls.has(url),
                         );

@@ -173,15 +173,15 @@ describe('UserSettingsModal', () => {
 
     it('renders Bio section with textarea', async () => {
       await renderModalAsync();
-      expect(screen.getByText('Bio')).toBeInTheDocument();
+      expect(screen.getByText('About Me')).toBeInTheDocument();
       expect(
         screen.getByPlaceholderText('Write a short bio...'),
       ).toBeInTheDocument();
     });
 
-    it('renders Avatar section', async () => {
+    it('renders Avatar upload button', async () => {
       await renderModalAsync();
-      expect(screen.getByText('Avatar')).toBeInTheDocument();
+      expect(screen.getByText('Upload')).toBeInTheDocument();
     });
 
     it('renders Save Changes and Cancel buttons', async () => {
