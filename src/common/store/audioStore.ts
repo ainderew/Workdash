@@ -4,16 +4,20 @@ import { AudioChat } from "@/communication/audioChat/audioChat";
 interface AudioState {
     userVolumes: Map<string, number>;
     userMuted: Map<string, number>;
+    musicVolume: number;
 
     setUserVolume: (userName: string, volume: number) => void;
     toggleUserMute: (userName: string) => void;
     getUserVolume: (userName: string) => number;
     isUserMuted: (userName: string) => boolean;
+    getMusicVolume: () => number;
+    setMusicVolume: (volume: number) => void;
 }
 
 const useAudioStore = create<AudioState>((set, get) => ({
     userVolumes: new Map<string, number>(),
     userMuted: new Map<string, number>(),
+    musicVolume: 0.5,
 
     setUserVolume: (userName: string, volume: number) => {
         set((state) => {
@@ -55,6 +59,14 @@ const useAudioStore = create<AudioState>((set, get) => ({
 
     isUserMuted: (userName: string) => {
         return get().userMuted.has(userName);
+    },
+
+    getMusicVolume: () => {
+        return get().musicVolume;
+    },
+
+    setMusicVolume: (volume: number) => {
+        set({ musicVolume: Math.max(0, Math.min(1, volume)) });
     },
 }));
 

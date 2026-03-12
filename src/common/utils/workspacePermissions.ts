@@ -30,6 +30,7 @@ export const PERMISSIONS: Record<
     ATTACH_FILES: { bit: bit(20), label: "Attach Files", category: "Text" },
     EMBED_LINKS: { bit: bit(21), label: "Embed Links", category: "Text" },
     MANAGE_EMOJIS: { bit: bit(22), label: "Manage Emojis", category: "Administration" },
+    MANAGE_MUSIC: { bit: bit(23), label: "Manage Music", category: "Voice" },
 };
 
 export const PERMISSION_CATEGORIES = [
@@ -47,6 +48,7 @@ export const PERM = {
     MANAGE_ROLES: PERMISSIONS.MANAGE_ROLES.bit,
     CREATE_INVITE: PERMISSIONS.CREATE_INVITE.bit,
     MANAGE_EMOJIS: PERMISSIONS.MANAGE_EMOJIS.bit,
+    MANAGE_MUSIC: PERMISSIONS.MANAGE_MUSIC.bit,
 } as const;
 
 export function computeEffectivePermissions(roles: WorkspaceRole[]): bigint {

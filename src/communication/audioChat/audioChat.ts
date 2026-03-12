@@ -55,6 +55,8 @@ export class AudioChat {
     private consumingInFlight = new Set<string>();
     private socketToProducersMap: Map<string, string[]> = new Map();
     private watchingNewProducers = false;
+    /** Track music-bot producer IDs for separate gain/processing */
+    private musicBotProducerIds = new Set<string>();
 
     constructor() {
         logger.log("initializeAudioChat");
@@ -335,9 +337,19 @@ export class AudioChat {
                 userName?: string;
                 source?: string;
             }) => {
-                if (data.source && data.source !== "microphone") return;
+                // Accept microphone and music-bot sources
+                if (
+                    data.source &&
+                    data.source !== "microphone" &&
+                    data.source !== "music-bot"
+                ) {
+                    return;
+                }
                 if (data.userName) {
                     this.audioOwnerMap[data.producerId] = data.userName;
+                }
+                if (data.source === "music-bot") {
+                    this.musicBotProducerIds.add(data.producerId);
                 }
                 if (data.socketId) {
                     const existing =
@@ -347,6 +359,20 @@ export class AudioChat {
                 }
 
                 await this.consumeProducer(data.producerId);
+            },
+        );
+
+        this.sfuService.socket.on(
+            "endScreenShare",
+            (data: {
+                producerId: string;
+                kind: string;
+                source?: string;
+            }) => {
+                if (data.source === "music-bot") {
+                    this.closeConsumerByProducerId(data.producerId);
+                    this.musicBotProducerIds.delete(data.producerId);
+                }
             },
         );
     }
@@ -424,15 +450,31 @@ export class AudioChat {
             const source =
                 this.outputAudioContext.createMediaStreamSource(remoteStream);
             const gainNode = this.outputAudioContext.createGain();
-            const ownerName = this.audioOwnerMap[consumerData.producerId];
-            if (ownerName) {
-                const volumeState = useAudioStore
+
+            const isMusicBot = this.musicBotProducerIds.has(
+                consumerData.producerId,
+            );
+
+            if (isMusicBot) {
+                // Music bot: 50% default volume, no voice processing association
+                const musicVol = useAudioStore
                     .getState()
-                    .getUserVolume(ownerName);
-                const isMuted = useAudioStore.getState().isUserMuted(ownerName);
-                gainNode.gain.value = isMuted ? 0 : volumeState;
+                    .getMusicVolume?.() ?? 0.5;
+                gainNode.gain.value = musicVol;
             } else {
-                gainNode.gain.value = 1.0;
+                const ownerName =
+                    this.audioOwnerMap[consumerData.producerId];
+                if (ownerName) {
+                    const volumeState = useAudioStore
+                        .getState()
+                        .getUserVolume(ownerName);
+                    const isMuted = useAudioStore
+                        .getState()
+                        .isUserMuted(ownerName);
+                    gainNode.gain.value = isMuted ? 0 : volumeState;
+                } else {
+                    gainNode.gain.value = 1.0;
+                }
             }
 
             source.connect(gainNode);
@@ -455,7 +497,7 @@ export class AudioChat {
 
             logger.log(
                 "Web Audio pipeline created for",
-                ownerName,
+                isMusicBot ? "Music Bot" : this.audioOwnerMap[consumerData.producerId],
                 "with gain",
                 gainNode.gain.value,
             );
@@ -594,6 +636,7 @@ export class AudioChat {
         this.sfuService.socket.off("player-left-zone");
         this.sfuService.socket.off("player-joined-zone");
         this.sfuService.socket.off("newProducer");
+        this.sfuService.socket.off("endScreenShare");
         this.sfuService.socket.off("playerFocusModeChanged");
 
         if (this.currentStream) {
@@ -691,10 +734,16 @@ export class AudioChat {
         });
 
         const audioProducers = producers.filter(
-            (p) => !p.source || p.source === "microphone",
+            (p) =>
+                !p.source ||
+                p.source === "microphone" ||
+                p.source === "music-bot",
         );
 
         for (const producer of audioProducers) {
+            if (producer.source === "music-bot") {
+                this.musicBotProducerIds.add(producer.producerId);
+            }
             if (producer.userName) {
                 this.audioOwnerMap[producer.producerId] = producer.userName;
             } else {

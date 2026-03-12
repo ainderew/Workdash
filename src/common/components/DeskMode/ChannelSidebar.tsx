@@ -25,6 +25,7 @@ import useChatV2Store from "@/common/store/chatV2Store";
 import { getDisplayName } from "@/common/utils/displayName";
 import ChannelHashIcon from "./ChannelHashIcon";
 import DeskModeControls from "./DeskModeControls";
+import { NowPlayingBar } from "./NowPlayingBar";
 import ChannelCallIndicator from "./ChannelCallIndicator";
 import UserAvatar from "./UserAvatar";
 import PresenceDot from "./PresenceDot";
@@ -1148,6 +1149,8 @@ function ChannelSidebar({
                     </div>
                 )}
             </div>
+
+            <NowPlayingBar />
 
             <footer className="border-t wd-border-subtle wd-bg-panel-2 p-3 wd-panel-height flex justify-center items-center">
                 <div className="flex-1 flex items-center justify-between gap-2">

@@ -19,6 +19,11 @@ import MentionSuggestionFlyout, {
     type MentionSuggestion,
 } from "./MentionSuggestionFlyout";
 import EmojiAutocompleteFlyout from "./EmojiAutocompleteFlyout";
+import {
+    BotCommandFlyout,
+    useBotCommandSearch,
+    type BotCommandEntry,
+} from "./BotCommandAutocomplete";
 import { getDisplayName, getNameAliases } from "@/common/utils/displayName";
 import { useCustomEmojiSearch } from "@/common/hooks/useCustomEmojiSearch";
 import useCustomEmojiStore from "@/common/store/customEmojiStore";
@@ -106,6 +111,8 @@ function Composer({
         colonIndex: number;
     } | null>(null);
     const [emojiSelectedIndex, setEmojiSelectedIndex] = useState(0);
+    const [commandQuery, setCommandQuery] = useState<string | null>(null);
+    const [commandSelectedIndex, setCommandSelectedIndex] = useState(0);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const inputElementId = inputId;
@@ -157,11 +164,16 @@ function Composer({
         emojiQuery?.query ?? "",
     );
 
+    const commandSuggestions = useBotCommandSearch(commandQuery ?? "");
+
     const isEmojiFlyoutOpen =
         emojiQuery !== null && emojiSuggestions.length > 0;
 
     const isMentionFlyoutOpen =
         mentionQuery !== null && mentionSuggestions.length > 0;
+
+    const isCommandFlyoutOpen =
+        commandQuery !== null && commandSuggestions.length > 0;
 
     const focusInput = useCallback(() => {
         if (typeof document === "undefined") return;
@@ -208,6 +220,31 @@ function Composer({
         [closeEmojiFlyout, emojiQuery, value],
     );
 
+    const closeCommandFlyout = useCallback(() => {
+        setCommandQuery(null);
+        setCommandSelectedIndex(0);
+    }, []);
+
+    const handleCommandSelect = useCallback(
+        (entry: BotCommandEntry) => {
+            const commandText = `/${entry.command} `;
+            setValue(commandText);
+            closeCommandFlyout();
+
+            window.requestAnimationFrame(() => {
+                const input = textareaRef.current;
+                if (input) {
+                    input.focus();
+                    input.setSelectionRange(
+                        commandText.length,
+                        commandText.length,
+                    );
+                }
+            });
+        },
+        [closeCommandFlyout],
+    );
+
     const closeMentionFlyout = useCallback(() => {
         setMentionQuery(null);
         setMentionSelectedIndex(0);
@@ -250,6 +287,18 @@ function Composer({
             setValue(nextValue);
 
             const cursorPos = event.target.selectionStart;
+
+            // Check for /command autocomplete — only when "/" is the first char
+            const slashMatch = nextValue.match(/^\/([a-z0-9]*)/);
+            if (slashMatch && cursorPos <= slashMatch[0].length) {
+                setCommandQuery(slashMatch[1]);
+                setCommandSelectedIndex(0);
+                closeMentionFlyout();
+                closeEmojiFlyout();
+                return;
+            }
+            closeCommandFlyout();
+
             const query = getMentionQueryAtCursor(nextValue, cursorPos);
             if (query) {
                 setMentionQuery(query);
@@ -275,7 +324,7 @@ function Composer({
                 }
             }
         },
-        [closeMentionFlyout, closeEmojiFlyout],
+        [closeMentionFlyout, closeEmojiFlyout, closeCommandFlyout],
     );
 
     const serializeCustomEmojis = useCallback(
@@ -366,6 +415,34 @@ function Composer({
         (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
             event.stopPropagation();
 
+            if (isCommandFlyoutOpen) {
+                if (event.key === "ArrowDown") {
+                    event.preventDefault();
+                    setCommandSelectedIndex((c) =>
+                        c < commandSuggestions.length - 1 ? c + 1 : 0,
+                    );
+                    return;
+                }
+                if (event.key === "ArrowUp") {
+                    event.preventDefault();
+                    setCommandSelectedIndex((c) =>
+                        c > 0 ? c - 1 : commandSuggestions.length - 1,
+                    );
+                    return;
+                }
+                if (event.key === "Enter" || event.key === "Tab") {
+                    event.preventDefault();
+                    const selected = commandSuggestions[commandSelectedIndex];
+                    if (selected) handleCommandSelect(selected);
+                    return;
+                }
+                if (event.key === "Escape") {
+                    event.preventDefault();
+                    closeCommandFlyout();
+                    return;
+                }
+            }
+
             if (isEmojiFlyoutOpen) {
                 if (event.key === "ArrowDown") {
                     event.preventDefault();
@@ -445,12 +522,17 @@ function Composer({
             }
         },
         [
+            closeCommandFlyout,
             closeEmojiFlyout,
             closeMentionFlyout,
+            commandSelectedIndex,
+            commandSuggestions,
             emojiSelectedIndex,
             emojiSuggestions,
+            handleCommandSelect,
             handleEmojiSelect,
             handleMentionSelect,
+            isCommandFlyoutOpen,
             isEmojiFlyoutOpen,
             isMentionFlyoutOpen,
             mentionSelectedIndex,
@@ -463,6 +545,16 @@ function Composer({
 
     return (
         <div className="wd-panel-height relative border-t wd-border-subtle p-4 wd-bg-panel-2">
+            {isCommandFlyoutOpen && (
+                <BotCommandFlyout
+                    entries={commandSuggestions}
+                    query={commandQuery ?? ""}
+                    selectedIndex={commandSelectedIndex}
+                    onSelect={handleCommandSelect}
+                    onClose={closeCommandFlyout}
+                />
+            )}
+
             {isEmojiFlyoutOpen && (
                 <EmojiAutocompleteFlyout
                     emojis={emojiSuggestions}

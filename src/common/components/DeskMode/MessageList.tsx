@@ -1,7 +1,6 @@
 import React, {
     useCallback,
     useEffect,
-    useLayoutEffect,
     useMemo,
     useRef,
     useState,
@@ -57,6 +56,7 @@ import {
     generateCharacterFaceDataUrl,
     toCharacterCustomization,
 } from "@/common/utils/characterFaceAvatar";
+import { getMusicBotAvatarSync } from "@/common/utils/botAvatar";
 
 interface MessageListProps {
     messages: ChatV2Message[];
@@ -132,6 +132,11 @@ const getSenderAvatarForMessage = (
         resolvedSenderImagesByUserId?: Record<number, string>;
     },
 ): SenderAvatar => {
+    if (message.sender?.name === "Music Bot") {
+        const botAvatar = getMusicBotAvatarSync();
+        if (botAvatar) return { mode: "image", src: botAvatar };
+    }
+
     const isLocalSender =
         input.localBackendUserId !== undefined &&
         message.senderUserId === input.localBackendUserId;
@@ -194,9 +199,7 @@ function MessageList({
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const endRef = useRef<HTMLDivElement>(null);
     const topSentinelRef = useRef<HTMLDivElement>(null);
-    const previousScrollHeightRef = useRef<number>(0);
     const isLoadingOlderRef = useRef(false);
-    const needsInitialScrollRef = useRef(true);
     const [showNewMessagesPill, setShowNewMessagesPill] = useState(false);
     const [isScrolledFarBack, setIsScrolledFarBack] = useState(false);
     const user = useUserStore((state) => state.user);
@@ -292,11 +295,16 @@ function MessageList({
     const { editingMessageId, startEdit, cancelEdit, saveEdit } =
         useMessageEdit(currentRoomId);
 
-    // Reset initial scroll flag when switching rooms
+    // Reset scroll position when switching rooms (column-reverse: 0 = bottom)
     useEffect(() => {
-        needsInitialScrollRef.current = true;
+        if (scrollContainerRef.current) {
+            scrollContainerRef.current.scrollTop = 0;
+        }
+        setShowNewMessagesPill(false);
+        setIsScrolledFarBack(false);
     }, [currentRoomId]);
 
+    // When new messages arrive, auto-scroll if near bottom or sent by local user
     useEffect(() => {
         if (focusedMessageId || isLoading) {
             return;
@@ -304,52 +312,21 @@ function MessageList({
         const container = scrollContainerRef.current;
         if (!container) return;
 
-        // On initial load, always scroll to bottom.
-        // Double-rAF ensures the browser has laid out all synchronous content
-        // before we measure scrollHeight. Also scroll the end sentinel into
-        // view to handle any late-loading content (images, previews, etc.).
-        if (needsInitialScrollRef.current) {
-            needsInitialScrollRef.current = false;
-            let cancelled = false;
-            const rafId = window.requestAnimationFrame(() => {
-                if (cancelled) return;
-                window.requestAnimationFrame(() => {
-                    if (cancelled) return;
-                    if (scrollContainerRef.current) {
-                        scrollContainerRef.current.scrollTop =
-                            scrollContainerRef.current.scrollHeight;
-                    }
-                    endRef.current?.scrollIntoView({ behavior: "auto" });
-                });
-            });
-            return () => {
-                cancelled = true;
-                window.cancelAnimationFrame(rafId);
-            };
-        }
+        const lastMessage = messages[messages.length - 1];
+        const isSentByLocalUser =
+            typeof localBackendUserId === "number" &&
+            lastMessage?.senderUserId === localBackendUserId;
 
-        const distanceFromBottom =
-            container.scrollHeight -
-            container.scrollTop -
-            container.clientHeight;
+        // In column-reverse, scrollTop is 0 at bottom and negative upward
+        const distanceFromBottom = Math.abs(container.scrollTop);
         const isNearBottom = distanceFromBottom < 100;
 
-        if (isNearBottom) {
-            const rafId = window.requestAnimationFrame(() => {
-                if (scrollContainerRef.current) {
-                    scrollContainerRef.current.scrollTop =
-                        scrollContainerRef.current.scrollHeight;
-                }
-                endRef.current?.scrollIntoView({ behavior: "auto" });
-            });
-
-            return () => {
-                window.cancelAnimationFrame(rafId);
-            };
+        if (isNearBottom || isSentByLocalUser) {
+            container.scrollTop = 0;
         } else {
             setShowNewMessagesPill(true);
         }
-    }, [focusedMessageId, isLoading, lastMessageId]);
+    }, [focusedMessageId, isLoading, lastMessageId, localBackendUserId, messages]);
 
     // IntersectionObserver for lazy loading older messages
     useEffect(() => {
@@ -380,31 +357,11 @@ function MessageList({
         isLoadingOlderRef.current = isLoadingOlderMessages;
     }, [isLoadingOlderMessages]);
 
-    // Scroll anchoring: save scrollHeight before older messages prepend
-    useEffect(() => {
-        if (isLoadingOlderMessages && scrollContainerRef.current) {
-            previousScrollHeightRef.current =
-                scrollContainerRef.current.scrollHeight;
-        }
-    }, [isLoadingOlderMessages]);
-
-    // Scroll anchoring: restore scroll position after older messages prepend
-    useLayoutEffect(() => {
-        const container = scrollContainerRef.current;
-        const prevHeight = previousScrollHeightRef.current;
-        if (!container || !prevHeight || isLoadingOlderMessages) return;
-
-        const delta = container.scrollHeight - prevHeight;
-        if (delta > 0) {
-            container.scrollTop += delta;
-        }
-        previousScrollHeightRef.current = 0;
-    }, [messages, isLoadingOlderMessages]);
+    // column-reverse handles scroll anchoring natively when older messages prepend
 
     const scrollToBottom = useCallback(() => {
         if (scrollContainerRef.current) {
-            scrollContainerRef.current.scrollTop =
-                scrollContainerRef.current.scrollHeight;
+            scrollContainerRef.current.scrollTop = 0;
         }
         setShowNewMessagesPill(false);
         setIsScrolledFarBack(false);
@@ -416,10 +373,8 @@ function MessageList({
         if (!container) return;
 
         const onScroll = () => {
-            const distanceFromBottom =
-                container.scrollHeight -
-                container.scrollTop -
-                container.clientHeight;
+            // In column-reverse, scrollTop is 0 at bottom and negative upward
+            const distanceFromBottom = Math.abs(container.scrollTop);
             if (distanceFromBottom < 100) {
                 setShowNewMessagesPill(false);
             }
@@ -1016,8 +971,9 @@ function MessageList({
     return (
         <div
             ref={scrollContainerRef}
-            className="relative no-scrollbar flex-1 overflow-y-auto px-5 py-4 space-y-3 wd-bg-panel-2"
+            className="relative no-scrollbar flex-1 overflow-y-auto flex flex-col-reverse wd-bg-panel-2"
         >
+            <div className="px-5 py-4 space-y-3">
             {isLoading ? (
                 <MessageSkeleton count={8} />
             ) : groupedMessages.rootMessages.length === 0 ? (
@@ -1083,6 +1039,7 @@ function MessageList({
                         );
                         const senderName = getSenderName(message);
                         const senderAvatar = getSenderAvatar(message);
+                        const isBot = message.sender?.name === "Music Bot";
                         const canOpenAvatarMenu = !(
                             typeof localBackendUserId === "number" &&
                             message.senderUserId === localBackendUserId
@@ -1177,7 +1134,9 @@ function MessageList({
                                                       message.id,
                                                   )
                                                 ? "border-l-2 border-l-[var(--wd-accent)]"
-                                                : ""
+                                                : isBot
+                                                  ? "border-l-[3px] border-l-[var(--wd-bot-border)] bg-[var(--wd-bot-bg)] hover:bg-[var(--wd-bot-bg-hover)]"
+                                                  : ""
                                     }${editingMessageId === message.id ? " rounded-md bg-[var(--wd-accent-soft)]" : ""}`}
                                 >
                                     {isConsecutive ? (
@@ -1328,6 +1287,11 @@ function MessageList({
                                                 >
                                                     {senderName}
                                                 </span>
+                                                {isBot && (
+                                                    <span className="inline-flex items-center rounded-[3px] bg-[var(--wd-bot-badge-bg)] px-[5px] py-px text-[0.625rem] font-semibold uppercase tracking-wide wd-text-accent">
+                                                        BOT
+                                                    </span>
+                                                )}
                                                 <span className="text-xs wd-text-muted">
                                                     {formatChatMessageTimestamp(
                                                         message.createdAt,
@@ -1811,6 +1775,7 @@ function MessageList({
                     Scroll to latest
                 </button>
             ) : null}
+            </div>
         </div>
     );
 }

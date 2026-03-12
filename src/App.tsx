@@ -19,6 +19,9 @@ import { useKeyboardShortcuts } from "@/common/keyboard";
 import { PollService } from "./communication/poll/poll";
 import PollDisplay from "./common/components/Poll/PollDisplay";
 import { CallSignalingService } from "./communication/callSignaling/callSignalingService";
+import { getMusicBotAvatarDataUri } from "@/common/utils/botAvatar";
+import { MusicClientService } from "./communication/music/musicService";
+import { AudioChat } from "./communication/audioChat/audioChat";
 import { tokenStore } from "./common/utils/tokenStore";
 import PollNotification from "./common/components/Poll/PollNotification";
 import SoccerScoreboard from "./common/components/Soccer/SoccerScoreboard";
@@ -85,6 +88,16 @@ function App() {
 
                 const callService = CallSignalingService.getInstance();
                 callService.setupListeners();
+
+                MusicClientService.getInstance()
+                    .init(transport.socket)
+                    .setupListeners();
+
+                // Start listening for newProducer events (needed for music-bot
+                // audio even when not in a call/huddle)
+                AudioChat.getInstance().watchNewProducers();
+
+                void getMusicBotAvatarDataUri();
 
                 setIsInitialized(true);
             } catch (error) {
