@@ -210,6 +210,9 @@ body {
     --wd-danger-soft-alpha: 0.18;
     --wd-warning-rgb: 217 119 6;
     --wd-info-rgb: 14 116 144;
+    --wd-neo-dark-alpha: 0.1;
+    --wd-neo-light-alpha: 0.8;
+    --wd-neo-highlight-alpha: 0.18;
 }
 
 [data-theme="cyber"] {
@@ -264,6 +267,9 @@ body {
     --wd-danger-soft-alpha: 0.2;
     --wd-warning-rgb: 240 178 50;
     --wd-info-rgb: 0 168 252;
+    --wd-neo-dark-alpha: 0.5;
+    --wd-neo-light-alpha: 0.2;
+    --wd-neo-highlight-alpha: 0.04;
 }
 
 [data-theme="eco"] {
@@ -318,6 +324,9 @@ body {
     --wd-danger-soft-alpha: 0.18;
     --wd-warning-rgb: 202 138 4;
     --wd-info-rgb: 8 145 178;
+    --wd-neo-dark-alpha: 0.1;
+    --wd-neo-light-alpha: 0.8;
+    --wd-neo-highlight-alpha: 0.18;
 }
 
 [data-theme="a11y"] {
@@ -372,6 +381,9 @@ body {
     --wd-danger-soft-alpha: 0.22;
     --wd-warning-rgb: 250 204 21;
     --wd-info-rgb: 56 189 248;
+    --wd-neo-dark-alpha: 0.55;
+    --wd-neo-light-alpha: 0.15;
+    --wd-neo-highlight-alpha: 0.03;
 }
 
 [data-theme="discord"] {
@@ -426,6 +438,9 @@ body {
     --wd-danger-soft-alpha: 0.2;
     --wd-warning-rgb: 240 178 50;
     --wd-info-rgb: 0 168 252;
+    --wd-neo-dark-alpha: 0.5;
+    --wd-neo-light-alpha: 0.2;
+    --wd-neo-highlight-alpha: 0.04;
 }
 
 /* Keep legacy dark-mode class behavior for out-of-scope marketing/auth pages. */
@@ -535,9 +550,14 @@ body {
     }
 
     .wd-neo-shadow-top {
+        --_neo-dark: rgb(0 0 0 / var(--wd-neo-dark-alpha, 0.3));
+        --_neo-light: rgb(var(--wd-surface-elevated-rgb) / var(--wd-neo-light-alpha, 0.5));
+        border-top: 1px solid var(--_neo-light);
         box-shadow:
-            0 -4px 8px -2px rgb(0 0 0 / 0.25),
-            0 -2px 4px -2px rgb(var(--wd-surface-panel-rgb) / 0.6);
+            0 -6px 12px -3px var(--_neo-dark),
+            0 -2px 5px -1px var(--_neo-dark),
+            inset 0 2px 4px 0 var(--_neo-light),
+            inset 0 1px 1px 0 rgb(255 255 255 / var(--wd-neo-highlight-alpha, 0.06));
     }
 
     .wd-bg-panel-2 {
