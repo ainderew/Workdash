@@ -59,6 +59,9 @@ export class AudioChat {
     /** Track music-bot producer IDs for separate gain/processing */
     private musicBotProducerIds = new Set<string>();
 
+    /** Maps producerId → userId for reliable active-speaker lookup */
+    private audioProducerUserIdMap: Map<string, number> = new Map();
+
     /** AnalyserNodes for active-speaker detection (keyed by consumerId) */
     private analyserNodes: Map<string, AnalyserNode> = new Map();
     /** AnalyserNode tapped into local mic processing chain */
@@ -198,6 +201,7 @@ export class AudioChat {
         }
 
         delete this.audioOwnerMap[producerId];
+        this.audioProducerUserIdMap.delete(producerId);
         this.producerToConsumerMap.delete(producerId);
 
         if (this.audioElementUpdateCallback) {
@@ -367,6 +371,7 @@ export class AudioChat {
                 producerId: string;
                 socketId?: string;
                 userName?: string;
+                userId?: number;
                 source?: string;
             }) => {
                 // Accept microphone and music-bot sources
@@ -379,6 +384,9 @@ export class AudioChat {
                 }
                 if (data.userName) {
                     this.audioOwnerMap[data.producerId] = data.userName;
+                }
+                if (data.userId != null) {
+                    this.audioProducerUserIdMap.set(data.producerId, data.userId);
                 }
                 if (data.source === "music-bot") {
                     this.musicBotProducerIds.add(data.producerId);
@@ -788,6 +796,7 @@ export class AudioChat {
 
         this.producerToConsumerMap.clear();
         this.socketToProducersMap.clear();
+        this.audioProducerUserIdMap.clear();
     }
 
     /**
@@ -799,13 +808,21 @@ export class AudioChat {
     }
 
     /**
-     * Returns (or lazily creates) an AnalyserNode tapped into a remote
-     * user's audio pipeline for active-speaker detection.
+     * Returns (or lazily creates) an AnalyserNode for a remote user's audio
+     * pipeline, looked up by userId instead of display name (more reliable).
      */
-    public getOrCreateAnalyserForUser(userName: string): AnalyserNode | null {
-        const producerId = Object.keys(this.audioOwnerMap).find(
-            (key) => this.audioOwnerMap[key] === userName,
-        );
+    public getOrCreateAnalyserForUserId(userId: number): AnalyserNode | null {
+        let producerId: string | undefined;
+        for (const [pid, uid] of this.audioProducerUserIdMap) {
+            if (uid === userId) {
+                producerId = pid;
+                break;
+            }
+        }
+        return this.createAnalyserForProducer(producerId);
+    }
+
+    private createAnalyserForProducer(producerId: string | undefined): AnalyserNode | null {
         if (!producerId || !this.outputAudioContext) return null;
 
         const consumerId = this.producerToConsumerMap.get(producerId);
@@ -867,6 +884,7 @@ export class AudioChat {
                 socketId: string;
                 source?: string;
                 userName?: string;
+                userId?: number;
             }[]
         >((resolve) => {
             this.sfuService.socket.emit("getProducers", {}, resolve);
@@ -890,6 +908,9 @@ export class AudioChat {
                 const player = playerMap[producer.socketId];
                 this.audioOwnerMap[producer.producerId] =
                     player?.name || "Unknown User";
+            }
+            if (producer.userId != null) {
+                this.audioProducerUserIdMap.set(producer.producerId, producer.userId);
             }
 
             if (producer.socketId) {

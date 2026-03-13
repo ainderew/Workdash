@@ -16,7 +16,7 @@ const DEACTIVATION_DELAY_MS = 500;
  * All mutations are direct DOM writes — no React state is involved.
  */
 export function useActiveSpeaker(
-  displayName: string,
+  userId: number,
   isLocal: boolean,
   isMuted: boolean,
   tileRef: RefObject<HTMLDivElement | null>,
@@ -41,7 +41,7 @@ export function useActiveSpeaker(
       const audioChat = AudioChat.getInstance();
       const analyser = isLocal
         ? audioChat.getLocalAnalyser()
-        : audioChat.getOrCreateAnalyserForUser(displayName);
+        : audioChat.getOrCreateAnalyserForUserId(userId);
 
       if (!analyser) {
         animFrameId = requestAnimationFrame(checkAudioLevel);
@@ -114,5 +114,5 @@ export function useActiveSpeaker(
       if (deactivationTimer !== null) clearTimeout(deactivationTimer);
       tileEl.removeAttribute('data-speaking');
     };
-  }, [displayName, isLocal, isMuted, tileRef]);
+  }, [userId, isLocal, isMuted]);
 }

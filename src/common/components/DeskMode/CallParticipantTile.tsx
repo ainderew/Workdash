@@ -28,7 +28,7 @@ export default function CallParticipantTile({
 
   // Active speaker highlight — directly toggles data-speaking attr (no re-renders)
   useActiveSpeaker(
-    participant.displayName,
+    participant.userId,
     isLocal,
     !participant.media.audio,
     tileRef,
