@@ -83,6 +83,7 @@ interface ComposerProps {
         options?: { mentionedUserIds?: number[] },
     ) => Promise<void> | void;
     onEditLastMessage?: () => void;
+    onTyping?: () => void;
 }
 
 function Composer({
@@ -94,6 +95,7 @@ function Composer({
     members,
     onSend,
     onEditLastMessage,
+    onTyping,
 }: ComposerProps) {
     const backendUser = useUserStore((s) => s.backendUser);
     const selectedWorkspaceId = useChatV2Store((s) => s.selectedWorkspaceId);
@@ -286,6 +288,10 @@ function Composer({
             const nextValue = event.target.value;
             setValue(nextValue);
 
+            if (nextValue.length > 0) {
+                onTyping?.();
+            }
+
             const cursorPos = event.target.selectionStart;
 
             // Check for /command autocomplete — only when "/" is the first char
@@ -324,7 +330,7 @@ function Composer({
                 }
             }
         },
-        [closeMentionFlyout, closeEmojiFlyout, closeCommandFlyout],
+        [closeMentionFlyout, closeEmojiFlyout, closeCommandFlyout, onTyping],
     );
 
     const serializeCustomEmojis = useCallback(

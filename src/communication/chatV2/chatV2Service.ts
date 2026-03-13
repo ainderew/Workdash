@@ -52,6 +52,8 @@ type RealtimeHandlers = {
     onNotificationNew?: (notification: ChatV2UserNotification) => void;
     onMessagePinNew?: (pinnedMessage: ChatV2PinnedMessage) => void;
     onMessagePinRemoved?: (payload: { roomId: string; messageId: string }) => void;
+    onTypingUpdate?: (payload: { roomId: string; userId: number; displayName: string }) => void;
+    onTypingStop?: (payload: { roomId: string; userId: number }) => void;
 };
 
 export class ChatV2Service {
@@ -176,6 +178,18 @@ export class ChatV2Service {
             }
         };
 
+        const onTypingUpdate = (payload: { roomId: string; userId: number; displayName: string }) => {
+            if (payload?.roomId && typeof payload?.userId === "number") {
+                handlers.onTypingUpdate?.(payload);
+            }
+        };
+
+        const onTypingStop = (payload: { roomId: string; userId: number }) => {
+            if (payload?.roomId && typeof payload?.userId === "number") {
+                handlers.onTypingStop?.(payload);
+            }
+        };
+
         this.transport.socket.on("chat:v2:message:new", onMessageNew);
         this.transport.socket.on("chat:v2:message:update", onMessageUpdate);
         this.transport.socket.on("chat:v2:message:delete", onMessageDelete);
@@ -190,6 +204,8 @@ export class ChatV2Service {
         );
         this.transport.socket.on("chat:v2:message:pin:new", onMessagePinNew);
         this.transport.socket.on("chat:v2:message:pin:removed", onMessagePinRemoved);
+        this.transport.socket.on("chat:v2:typing:update", onTypingUpdate);
+        this.transport.socket.on("chat:v2:typing:stop", onTypingStop);
 
         this.teardownRealtimeHandlers = () => {
             this.transport.socket.off("chat:v2:message:new", onMessageNew);
@@ -206,10 +222,16 @@ export class ChatV2Service {
             );
             this.transport.socket.off("chat:v2:message:pin:new", onMessagePinNew);
             this.transport.socket.off("chat:v2:message:pin:removed", onMessagePinRemoved);
+            this.transport.socket.off("chat:v2:typing:update", onTypingUpdate);
+            this.transport.socket.off("chat:v2:typing:stop", onTypingStop);
             this.teardownRealtimeHandlers = null;
         };
 
         return this.teardownRealtimeHandlers;
+    }
+
+    emitTyping(roomId: string): void {
+        this.transport.socket.emit("chat:v2:typing:start", { roomId });
     }
 
     async listRooms(workspaceId?: string): Promise<ChatV2Room[]> {

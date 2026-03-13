@@ -35,6 +35,7 @@ import MessageList from "./MessageList";
 import RoomHeader from "./RoomHeader";
 import ThreadPanel from "./ThreadPanel";
 import CallBanner from "./CallBanner";
+import TypingIndicator from "./TypingIndicator";
 import FloatingCallWindow from "./FloatingCallWindow";
 import { CallSignalingService } from "@/communication/callSignaling/callSignalingService";
 import useCallStore from "@/common/store/callStore";
@@ -423,6 +424,17 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
         })();
         return () => { cancelled = true; };
     }, [selectedWorkspaceId, chatV2Service, selectedWorkspace?.ownerId]);
+
+    // Throttled typing indicator
+    const lastTypingEmitRef = useRef(0);
+    const handleTyping = useCallback(() => {
+        const now = Date.now();
+        if (now - lastTypingEmitRef.current < 1000) return;
+        lastTypingEmitRef.current = now;
+        if (currentRoomId) {
+            chatV2Service.emitTyping(currentRoomId);
+        }
+    }, [currentRoomId, chatV2Service]);
 
     // URL invite detection
     useEffect(() => {
@@ -954,11 +966,14 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
                                 }}
                             />
 
+                            <TypingIndicator roomId={currentRoomId} />
+
                             <Composer
                                 roomId={currentRoomId}
                                 disabled={!currentRoomId}
                                 isSending={isSending}
                                 members={roomMembers}
+                                onTyping={handleTyping}
                                 onSend={async (
                                     content,
                                     attachments,

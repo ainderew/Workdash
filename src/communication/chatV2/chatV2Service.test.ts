@@ -357,6 +357,8 @@ describe('ChatV2Service', () => {
       'chat:v2:message:reaction:super:update',
       'chat:v2:message:pin:new',
       'chat:v2:message:pin:removed',
+      'chat:v2:typing:update',
+      'chat:v2:typing:stop',
     ];
 
     it('setupRealtimeHandlers registers the correct event names', () => {
@@ -376,7 +378,7 @@ describe('ChatV2Service', () => {
         (call: unknown[]) => call[0],
       );
       expect(registeredEvents).toEqual(EXPECTED_EVENTS);
-      expect(mockOn).toHaveBeenCalledTimes(8);
+      expect(mockOn).toHaveBeenCalledTimes(10);
     });
 
     it('setupRealtimeHandlers teardown removes all event listeners', () => {
@@ -394,7 +396,7 @@ describe('ChatV2Service', () => {
         (call: unknown[]) => call[0],
       );
       expect(removedEvents).toEqual(EXPECTED_EVENTS);
-      expect(mockOff).toHaveBeenCalledTimes(8);
+      expect(mockOff).toHaveBeenCalledTimes(10);
 
       // Each off call should pass the same handler reference that was registered
       for (let i = 0; i < EXPECTED_EVENTS.length; i++) {
@@ -423,14 +425,14 @@ describe('ChatV2Service', () => {
       });
 
       // The first set of handlers should have been removed
-      expect(mockOff).toHaveBeenCalledTimes(8);
+      expect(mockOff).toHaveBeenCalledTimes(10);
       const removedEvents = mockOff.mock.calls.map(
         (call: unknown[]) => call[0],
       );
       expect(removedEvents).toEqual(EXPECTED_EVENTS);
 
-      // And the second set should be registered (total 16 on calls)
-      expect(mockOn).toHaveBeenCalledTimes(16);
+      // And the second set should be registered (total 20 on calls)
+      expect(mockOn).toHaveBeenCalledTimes(20);
     });
   });
 });

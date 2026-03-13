@@ -201,6 +201,9 @@ type ChatV2State = {
         role?: "OWNER" | "ADMIN" | "MODERATOR" | "MEMBER" | "READ_ONLY",
     ) => Promise<void>;
     removeRoomMember: (userId: number) => Promise<void>;
+    typingUsersByRoomId: Record<string, { userId: number; displayName: string; expiresAt: number }[]>;
+    setTypingUser: (roomId: string, userId: number, displayName: string) => void;
+    clearTypingUser: (roomId: string, userId: number) => void;
     clear: () => void;
 };
 
@@ -510,6 +513,7 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
     membersByRoomId: {},
     pinnedMessagesByRoomId: {},
     isLoadingPinnedMessages: false,
+    typingUsersByRoomId: {},
 
     setRailView: (view) => {
         set({ railView: view });
@@ -541,6 +545,7 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
             const chatV2Service = getChatV2Service();
             chatV2Service.setupRealtimeHandlers({
                 onMessageNew: (message) => {
+                    get().clearTypingUser(message.roomId, message.senderUserId);
                     set((state) => {
                         const currentMessages =
                             state.messagesByRoomId[message.roomId] || [];
@@ -696,6 +701,12 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
                             },
                         };
                     });
+                },
+                onTypingUpdate: (payload) => {
+                    get().setTypingUser(payload.roomId, payload.userId, payload.displayName);
+                },
+                onTypingStop: (payload) => {
+                    get().clearTypingUser(payload.roomId, payload.userId);
                 },
             });
 
@@ -1899,6 +1910,35 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
         }
     },
 
+    setTypingUser: (roomId: string, userId: number, displayName: string) => {
+        set((state) => {
+            const current = state.typingUsersByRoomId[roomId] || [];
+            const expiresAt = Date.now() + 6000;
+            const filtered = current.filter((t) => t.userId !== userId);
+            return {
+                typingUsersByRoomId: {
+                    ...state.typingUsersByRoomId,
+                    [roomId]: [...filtered, { userId, displayName, expiresAt }],
+                },
+            };
+        });
+    },
+
+    clearTypingUser: (roomId: string, userId: number) => {
+        set((state) => {
+            const current = state.typingUsersByRoomId[roomId];
+            if (!current) return {};
+            const filtered = current.filter((t) => t.userId !== userId);
+            if (filtered.length === current.length) return {};
+            return {
+                typingUsersByRoomId: {
+                    ...state.typingUsersByRoomId,
+                    [roomId]: filtered,
+                },
+            };
+        });
+    },
+
     clear: () =>
         set({
             initialized: false,
@@ -1936,6 +1976,7 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
             membersByRoomId: {},
             pinnedMessagesByRoomId: {},
             isLoadingPinnedMessages: false,
+            typingUsersByRoomId: {},
         }),
 }));
 
