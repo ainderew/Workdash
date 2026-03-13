@@ -6,6 +6,7 @@ import useChatV2Store from '@/common/store/chatV2Store';
 import { useCharacterFaceAvatar } from '@/common/utils/characterFaceAvatar';
 import { VideoChatViewer } from '@/communication/videoChat/videoChatViewer';
 import { VideoChatService } from '@/communication/videoChat/videoChat';
+import { useActiveSpeaker } from '@/common/hooks/useActiveSpeaker';
 
 interface CallParticipantTileProps {
   participant: CallParticipant;
@@ -22,7 +23,16 @@ export default function CallParticipantTile({
   isPinned,
   onTogglePin,
 }: CallParticipantTileProps) {
+  const tileRef = useRef<HTMLDivElement>(null);
   const videoContainerRef = useRef<HTMLDivElement>(null);
+
+  // Active speaker highlight — directly toggles data-speaking attr (no re-renders)
+  useActiveSpeaker(
+    participant.displayName,
+    isLocal,
+    !participant.media.audio,
+    tileRef,
+  );
 
   // Look up the member data for profile image + character customization
   const members = useChatV2Store((s) => s.membersByRoomId[channelId]);
@@ -132,7 +142,8 @@ export default function CallParticipantTile({
 
   return (
     <div
-      className="relative overflow-hidden rounded-lg border wd-border-subtle h-full min-w-0 group/tile"
+      ref={tileRef}
+      className="relative overflow-hidden rounded-lg border wd-border-subtle h-full min-w-0 group/tile wd-speaker-tile"
       style={{
         aspectRatio: '4 / 3',
         backgroundColor: 'var(--wd-surface-panel)',

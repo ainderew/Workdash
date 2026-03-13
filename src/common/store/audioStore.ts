@@ -1,10 +1,13 @@
 import { create } from "zustand";
 import { AudioChat } from "@/communication/audioChat/audioChat";
 
+export type AudioQualityMode = 'standard' | 'studio';
+
 interface AudioState {
     userVolumes: Map<string, number>;
     userMuted: Map<string, number>;
     musicVolume: number;
+    audioQualityMode: AudioQualityMode;
 
     setUserVolume: (userName: string, volume: number) => void;
     toggleUserMute: (userName: string) => void;
@@ -12,12 +15,14 @@ interface AudioState {
     isUserMuted: (userName: string) => boolean;
     getMusicVolume: () => number;
     setMusicVolume: (volume: number) => void;
+    setAudioQualityMode: (mode: AudioQualityMode) => void;
 }
 
 const useAudioStore = create<AudioState>((set, get) => ({
     userVolumes: new Map<string, number>(),
     userMuted: new Map<string, number>(),
     musicVolume: 0.5,
+    audioQualityMode: 'standard' as AudioQualityMode,
 
     setUserVolume: (userName: string, volume: number) => {
         set((state) => {
@@ -67,6 +72,10 @@ const useAudioStore = create<AudioState>((set, get) => ({
 
     setMusicVolume: (volume: number) => {
         set({ musicVolume: Math.max(0, Math.min(1, volume)) });
+    },
+
+    setAudioQualityMode: (mode: AudioQualityMode) => {
+        set({ audioQualityMode: mode });
     },
 }));
 

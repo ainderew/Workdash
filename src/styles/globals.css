@@ -827,6 +827,25 @@ input[type="range"].slider::-moz-range-thumb:hover {
     box-shadow: 0 0 0 6px color-mix(in srgb, var(--wd-accent) 24%, transparent);
 }
 
+/* ── Active speaker tile highlight ────────────────────────────────── */
+
+.wd-speaker-tile {
+    transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.wd-speaker-tile[data-speaking="true"] {
+    border-color: var(--wd-accent);
+    box-shadow: 0 0 0 1px var(--wd-accent),
+        0 0 8px 2px rgb(var(--wd-accent-rgb) / 0.3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .wd-speaker-tile,
+    .wd-speaker-tile[data-speaking="true"] {
+        transition: none;
+    }
+}
+
 /* #game-container { */
 /*     width: 100vw; */
 /*     height: 100vh; */
