@@ -12,7 +12,7 @@ import ThreadPanel from "./ThreadPanel";
 import UserNotificationsPanel from "./UserNotificationsPanel";
 import { getDisplayName } from "@/common/utils/displayName";
 import { formatChatMessageTimestamp } from "@/common/utils/messageTimestamp";
-import { useChatNotificationSound } from "@/common/hooks/useChatNotificationSound";
+
 import { buildMemberColorMap } from "@/common/utils/roleColor";
 
 interface CompactChatShellProps {
@@ -38,7 +38,6 @@ const byCreatedAtAsc = (a: ChatV2Message, b: ChatV2Message) => {
 };
 
 function CompactChatShell({ onClose }: CompactChatShellProps) {
-    useChatNotificationSound();
     const backendUser = useUserStore((s) => s.backendUser);
     const chatV2Service = useMemo(() => ChatV2Service.getInstance(), []);
     const initialize = useChatV2Store((state) => state.initialize);

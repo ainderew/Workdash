@@ -1,8 +1,11 @@
 import { useEffect, useRef } from 'react';
 import useChatV2Store from '@/common/store/chatV2Store';
 import { usePresenceStore } from '@/common/store/presenceStore';
+import { useDocumentFocus, getIsNotifLeader } from './useDocumentFocus';
 
 const SILENT_STATUSES = new Set(['focus', 'offline']);
+const SOUND_COOLDOWN_MS = 2000;
+const DEFAULT_TITLE = 'WorkDash';
 
 // Singleton state stored on window to survive HMR module reloads
 function getSingletonState() {
@@ -15,21 +18,28 @@ function getSingletonState() {
   return w.__chatNotifSingleton;
 }
 
+function requestNotificationPermission() {
+  if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+    Notification.requestPermission().catch(() => {});
+  }
+}
+
 /**
- * Plays a notification sound when a new unread message arrives
- * in a room the user is NOT currently viewing.
- * Respects user status: suppressed when focus or offline.
- * Only the first mounted instance plays sound (singleton guard).
+ * Plays a notification sound when a new unread message arrives.
+ * Also handles browser notifications, tab title badge, and mark-as-read on refocus.
+ * Must be mounted at the App level to work in all modes.
  */
 export function useChatNotificationSound() {
   const prevUnreadRef = useRef<Record<string, number> | null>(null);
   const isOwnerRef = useRef(false);
+  const lastPlayedRef = useRef(0);
 
   const unreadByRoomId = useChatV2Store((state) => state.unreadByRoomId);
   const currentRoomId = useChatV2Store((state) => state.currentRoomId);
   const selectedWorkspaceId = useChatV2Store((state) => state.selectedWorkspaceId);
   const roomsById = useChatV2Store((state) => state.roomsById);
   const myStatusId = usePresenceStore((state) => state.myStatus.statusId);
+  const isDocumentFocused = useDocumentFocus();
 
   // Prime the audio element on first user interaction (singleton)
   useEffect(() => {
@@ -54,6 +64,7 @@ export function useChatNotificationSound() {
           })
           .catch(() => {});
       }
+      requestNotificationPermission();
     };
 
     window.addEventListener('click', enableAudio, { once: true });
@@ -75,7 +86,7 @@ export function useChatNotificationSound() {
     };
   }, []);
 
-  // Detect new unreads and play sound
+  // Detect new unreads and play sound / fire browser notification
   useEffect(() => {
     if (!isOwnerRef.current) return;
 
@@ -89,7 +100,8 @@ export function useChatNotificationSound() {
 
     let shouldPlay = false;
     for (const roomId in unreadByRoomId) {
-      if (roomId === currentRoomId) continue;
+      // Skip current room only when tab is focused
+      if (roomId === currentRoomId && isDocumentFocused) continue;
       // Only notify for rooms in the active workspace (or DMs)
       const room = roomsById[roomId];
       if (!room || (room.type !== 'DIRECT' && room.workspaceId !== selectedWorkspaceId)) continue;
@@ -103,10 +115,57 @@ export function useChatNotificationSound() {
 
     prevUnreadRef.current = { ...unreadByRoomId };
 
-    const singleton = getSingletonState();
-    if (shouldPlay && !SILENT_STATUSES.has(myStatusId) && singleton.enabled && singleton.audio) {
-      singleton.audio.currentTime = 0;
-      singleton.audio.play().catch(() => {});
+    if (!shouldPlay || SILENT_STATUSES.has(myStatusId)) return;
+
+    const now = Date.now();
+    const isThrottled = now - lastPlayedRef.current < SOUND_COOLDOWN_MS;
+
+    // Sound (with throttle + multi-tab guard)
+    if (!isThrottled && getIsNotifLeader()) {
+      const singleton = getSingletonState();
+      if (singleton.enabled && singleton.audio) {
+        singleton.audio.currentTime = 0;
+        singleton.audio.play().catch(() => {});
+        lastPlayedRef.current = now;
+      }
     }
-  }, [unreadByRoomId, currentRoomId, myStatusId, selectedWorkspaceId, roomsById]);
+
+    // Browser notification (only when unfocused + leader)
+    if (
+      !isDocumentFocused &&
+      getIsNotifLeader() &&
+      typeof Notification !== 'undefined' &&
+      Notification.permission === 'granted'
+    ) {
+      try {
+        new Notification('New message on WorkDash', {
+          body: 'You have unread messages',
+          tag: 'workdash-chat',
+          icon: '/assets/logo.png',
+        });
+      } catch {
+        // Notification API not available or blocked
+      }
+    }
+  }, [unreadByRoomId, currentRoomId, myStatusId, selectedWorkspaceId, roomsById, isDocumentFocused]);
+
+  // Tab title unread badge
+  useEffect(() => {
+    const totalUnreads = Object.values(unreadByRoomId).reduce((sum, n) => sum + (n ?? 0), 0);
+    document.title = totalUnreads > 0 ? `(${totalUnreads}) ${DEFAULT_TITLE}` : DEFAULT_TITLE;
+
+    return () => {
+      document.title = DEFAULT_TITLE;
+    };
+  }, [unreadByRoomId]);
+
+  // Mark current room as read when tab regains focus
+  useEffect(() => {
+    if (isDocumentFocused && currentRoomId) {
+      const unreadCount = useChatV2Store.getState().unreadByRoomId[currentRoomId] ?? 0;
+      if (unreadCount > 0) {
+        void useChatV2Store.getState().markRoomRead(currentRoomId);
+      }
+    }
+  }, [isDocumentFocused, currentRoomId]);
 }

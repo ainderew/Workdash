@@ -38,6 +38,7 @@ import useCallStore from "@/common/store/callStore";
 import useMusicStore from "@/common/store/musicStore";
 import useThemeStore from "@/common/store/themeStore";
 import { EventBus } from "@/game/EventBus";
+import { useChatNotificationSound } from "@/common/hooks/useChatNotificationSound";
 
 function App() {
     const interactionMode = useUiStore((state) => state.interactionMode);
@@ -56,6 +57,7 @@ function App() {
     const router = useRouter();
 
     useKeyboardShortcuts();
+    useChatNotificationSound();
 
     useEffect(() => {
         if (status !== "authenticated" || !session?.backendJwt) {

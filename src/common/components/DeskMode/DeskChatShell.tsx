@@ -24,7 +24,7 @@ import DirectMessageSidebar from "./DirectMessageSidebar";
 import GuildRail from "./GuildRail";
 import MemberPanel from "./MemberPanel";
 import { getDisplayName } from "@/common/utils/displayName";
-import { useChatNotificationSound } from "@/common/hooks/useChatNotificationSound";
+
 import ServerSettingsModal from "./modals/ServerSettingsModal";
 import WorkspaceMembersModal from "./modals/WorkspaceMembersModal";
 import JoinByInviteModal from "./modals/JoinByInviteModal";
@@ -49,7 +49,6 @@ interface DeskChatShellProps {
 }
 
 function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
-    useChatNotificationSound();
     const selectedWsId = useChatV2Store((s) => s.selectedWorkspaceId);
     useCustomEmojiList(selectedWsId);
 

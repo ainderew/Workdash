@@ -26,6 +26,7 @@ import {
 } from "@/communication/chatV2/reactionFrequentCache";
 import { getDisplayName } from "@/common/utils/displayName";
 import useUserStore from "@/common/store/useStore";
+import { getIsDocumentFocused } from "@/common/hooks/useDocumentFocus";
 
 type MessageDeletePayload = {
     roomId: string;
@@ -570,7 +571,7 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
                                     const isOwnMessage =
                                         typeof localUserId === "number"
                                         && localUserId === message.senderUserId;
-                                    if (isOwnMessage || state.currentRoomId === message.roomId) {
+                                    if (isOwnMessage || (state.currentRoomId === message.roomId && getIsDocumentFocused())) {
                                         return state.unreadByRoomId[message.roomId] ?? 0;
                                     }
 
