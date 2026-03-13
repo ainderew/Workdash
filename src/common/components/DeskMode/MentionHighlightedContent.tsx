@@ -13,11 +13,33 @@ interface MentionHighlightedContentProps {
   onClickMention?: (event: React.MouseEvent, userId: number, displayName: string) => void;
 }
 
+/** Renders a plain text string with **bold** markdown parsed into <strong> elements. */
+function renderBoldMarkdown(text: string, keyPrefix: string): React.ReactNode[] {
+  const parts: React.ReactNode[] = [];
+  const boldRegex = /\*\*(.+?)\*\*/g;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = boldRegex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(<span key={`${keyPrefix}-plain-${lastIndex}`}>{text.slice(lastIndex, match.index)}</span>);
+    }
+    parts.push(<strong key={`${keyPrefix}-bold-${match.index}`}>{match[1]}</strong>);
+    lastIndex = match.index + match[0].length;
+  }
+
+  if (lastIndex < text.length) {
+    parts.push(<span key={`${keyPrefix}-plain-${lastIndex}`}>{text.slice(lastIndex)}</span>);
+  }
+
+  return parts.length > 0 ? parts : [<span key={keyPrefix}>{text}</span>];
+}
+
 /** Renders text with custom emoji tokens replaced by inline images. */
 function renderTextWithCustomEmojis(text: string, keyPrefix: string) {
   const tokens = parseCustomEmojis(text);
   if (tokens.length === 1 && tokens[0].type === 'text') {
-    return <span key={keyPrefix}>{text}</span>;
+    return renderBoldMarkdown(text, keyPrefix);
   }
   return tokens.map((token, i) => {
     if (token.type === 'custom_emoji' && token.emojiId && token.emojiName) {
@@ -29,7 +51,7 @@ function renderTextWithCustomEmojis(text: string, keyPrefix: string) {
         />
       );
     }
-    return <span key={`${keyPrefix}-t-${i}`}>{token.content}</span>;
+    return <React.Fragment key={`${keyPrefix}-t-${i}`}>{renderBoldMarkdown(token.content, `${keyPrefix}-t-${i}`)}</React.Fragment>;
   });
 }
 

@@ -108,7 +108,7 @@ export function NowPlayingBar() {
             <div className="flex flex-col justify-center items-center gap-0.5 px-3 py-2 w-full">
                 <div className="flex flex-col items-center gap-1.5 min-w-0">
                     {lottieReady && LottieComponent && musicBotAnimationData ? (
-                        <div className="w-18 h-18 shrink-0">
+                        <div className="w-20 h-20 shrink-0">
                             <LottieComponent
                                 animationData={musicBotAnimationData}
                                 loop

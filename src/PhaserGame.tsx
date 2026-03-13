@@ -73,7 +73,7 @@ export const PhaserGame = forwardRef<IRefPhaserGame, IProps>(
 
             void (async () => {
                 try {
-                    const res = await fetch(`${CONFIG.SFU_SERVER_URL}/api/users/me`, {
+                    const res = await fetch(`${CONFIG.SFU_SERVER_URL}/api/user/me`, {
                         headers: { Authorization: `Bearer ${session.backendJwt}` },
                     });
                     if (!res.ok || cancelled) return;

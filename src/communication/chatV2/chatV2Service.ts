@@ -596,7 +596,7 @@ export class ChatV2Service {
             replyToMessageId?: string;
             mentionedUserIds?: number[];
         },
-    ): Promise<ChatV2Message> {
+    ): Promise<ChatV2Message | null> {
         const clientMessageId =
             typeof crypto.randomUUID === "function"
                 ? crypto.randomUUID()
@@ -632,11 +632,13 @@ export class ChatV2Service {
         }
 
         const response = await this.emitWithAck<{
-            message: ChatV2Message;
-            deduplicated: boolean;
+            message?: ChatV2Message;
+            deduplicated?: boolean;
+            ephemeral?: boolean;
         }>("chat:v2:message:create", payload);
 
-        return response.message;
+        if (response.ephemeral) return null;
+        return response.message ?? null;
     }
 
     async deleteMessage(

@@ -1071,6 +1071,12 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
                 },
             );
 
+            // Ephemeral slash commands return null — skip store update
+            if (!message) {
+                set({ isSending: false });
+                return null;
+            }
+
             set((state) => {
                 const currentMessages = state.messagesByRoomId[roomId] || [];
                 const upsertResult = upsertMessageWithResult(
