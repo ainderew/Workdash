@@ -142,7 +142,14 @@ export default function AuthPage() {
                     <div className="space-y-4">
                         {}
                         <button
-                            onClick={() => signIn("google")}
+                            onClick={() => {
+                                const params = new URLSearchParams(window.location.search);
+                                const inviteCode = params.get("invite");
+                                const callbackUrl = inviteCode
+                                    ? `/invite/${inviteCode}`
+                                    : undefined;
+                                signIn("google", { callbackUrl });
+                            }}
                             className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:border-cyan-500 dark:hover:border-cyan-500 transition-colors group"
                         >
                             <svg className="w-5 h-5" viewBox="0 0 24 24">

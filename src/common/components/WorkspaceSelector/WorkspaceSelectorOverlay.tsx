@@ -1,12 +1,14 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { Building2, Check, Link, Loader2, Plus, X } from "lucide-react";
+import { Building2, Check, Link, Loader2, Plus, Users, X } from "lucide-react";
 import useWorkspaceStore from "@/common/store/workspaceStore";
 import useChatV2Store from "@/common/store/chatV2Store";
 import useUiStore from "@/common/store/uiStore";
 import { EventBus } from "@/game/EventBus";
 import { ChatV2Service } from "@/communication/chatV2/chatV2Service";
 import { toWorkspaceInitials, extractInviteCode } from "@/common/utils/workspaceDisplay";
+import { tokenStore } from "@/common/utils/tokenStore";
+import { CONFIG } from "@/common/utils/config";
 import type { Workspace } from "@/communication/chatV2/_types";
 
 const DEFAULT_WS_KEY = "workdash:defaultWorkspaceId";
@@ -475,6 +477,14 @@ function CreatePanel({
     );
 }
 
+interface InvitePreview {
+    name: string;
+    iconUrl: string | null;
+    memberCount: number;
+    inviterName: string | null;
+    inviterAvatarUrl: string | null;
+}
+
 function JoinPanel({
     onClose,
     onJoined,
@@ -484,15 +494,58 @@ function JoinPanel({
 }) {
     const fetchMyWorkspaces = useWorkspaceStore((s) => s.fetchMyWorkspaces);
     const [codeValue, setCodeValue] = useState("");
+    const [resolvedCode, setResolvedCode] = useState<string | null>(null);
+    const [preview, setPreview] = useState<InvitePreview | null>(null);
+    const [isFetching, setIsFetching] = useState(false);
     const [isJoining, setIsJoining] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const handleJoin = async () => {
+    const handleLookup = async () => {
         const code = extractInviteCode(codeValue);
         if (!code) {
             setError("Please enter an invite code or link.");
             return;
         }
+
+        setIsFetching(true);
+        setError(null);
+        setPreview(null);
+        try {
+            const headers: Record<string, string> = {};
+            const jwt = tokenStore.getJwt();
+            if (jwt) headers["Authorization"] = `Bearer ${jwt}`;
+
+            const res = await fetch(
+                `${CONFIG.SFU_SERVER_URL}/api/invites/${encodeURIComponent(code)}/metadata`,
+                { headers },
+            );
+            if (!res.ok) {
+                setError("Failed to look up invite.");
+                return;
+            }
+            const data = await res.json();
+            if (!data.valid) {
+                setError(data.reason || "This invite is no longer valid.");
+                return;
+            }
+            setResolvedCode(code);
+            setPreview({
+                name: data.workspace.name,
+                iconUrl: data.workspace.iconUrl,
+                memberCount: data.workspace.memberCount,
+                inviterName: data.inviter?.name ?? null,
+                inviterAvatarUrl: data.inviter?.avatarUrl ?? null,
+            });
+        } catch {
+            setError("Failed to look up invite.");
+        } finally {
+            setIsFetching(false);
+        }
+    };
+
+    const handleJoin = async () => {
+        const code = resolvedCode ?? extractInviteCode(codeValue);
+        if (!code) return;
 
         setIsJoining(true);
         setError(null);
@@ -510,6 +563,12 @@ function JoinPanel({
         }
     };
 
+    const handleBack = () => {
+        setPreview(null);
+        setResolvedCode(null);
+        setError(null);
+    };
+
     return (
         <div className="rounded-xl border wd-border-subtle wd-bg-panel p-5 animate-in fade-in slide-in-from-bottom-2 duration-200">
             <div className="flex items-center justify-between mb-4">
@@ -525,57 +584,139 @@ function JoinPanel({
                 </button>
             </div>
 
-            <div className="space-y-3">
-                <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wide wd-text-secondary mb-2">
-                        Invite Code or Link
-                    </label>
-                    <input
-                        type="text"
-                        className="wd-input"
-                        placeholder="e.g. abc123 or https://..."
-                        value={codeValue}
-                        onChange={(e) => setCodeValue(e.target.value)}
-                        onKeyDown={(e) => {
-                            if (e.key === "Enter" && !isJoining) void handleJoin();
-                        }}
-                        autoFocus
-                        disabled={isJoining}
-                    />
-                </div>
-
-                {error && (
-                    <p className="rounded-md border border-[rgba(237,66,69,0.35)] bg-[rgba(237,66,69,0.12)] px-3 py-2 text-xs wd-text-danger">
-                        {error}
-                    </p>
-                )}
-
-                <div className="flex justify-end gap-2">
-                    <button
-                        type="button"
-                        className="wd-btn-ghost"
-                        onClick={onClose}
-                        disabled={isJoining}
-                    >
-                        Cancel
-                    </button>
-                    <button
-                        type="button"
-                        className="wd-btn-primary inline-flex items-center gap-2"
-                        onClick={handleJoin}
-                        disabled={isJoining || !codeValue.trim()}
-                    >
-                        {isJoining ? (
-                            <>
-                                <Loader2 size={14} className="animate-spin" />
-                                Joining...
-                            </>
-                        ) : (
-                            "Join Workspace"
+            {/* Step 2: Preview */}
+            {preview ? (
+                <div className="space-y-4">
+                    <div className="flex flex-col items-center gap-3 py-2">
+                        {/* Workspace icon */}
+                        <div className="w-16 h-16 rounded-[14px] wd-bg-elevated flex items-center justify-center text-xl font-bold wd-text-primary overflow-hidden shrink-0">
+                            {preview.iconUrl ? (
+                                <Image
+                                    src={preview.iconUrl}
+                                    alt=""
+                                    width={64}
+                                    height={64}
+                                    unoptimized
+                                    className="w-full h-full object-cover"
+                                />
+                            ) : (
+                                <span>{toWorkspaceInitials(preview.name)}</span>
+                            )}
+                        </div>
+                        <span className="text-base font-semibold wd-text-primary text-center">
+                            {preview.name}
+                        </span>
+                        <div className="flex items-center gap-1.5 wd-text-muted text-xs">
+                            <Users size={12} />
+                            <span>
+                                {preview.memberCount} member{preview.memberCount !== 1 ? "s" : ""}
+                            </span>
+                        </div>
+                        {preview.inviterName && (
+                            <div className="flex items-center gap-1.5 text-xs wd-text-secondary">
+                                {preview.inviterAvatarUrl ? (
+                                    <Image
+                                        src={preview.inviterAvatarUrl}
+                                        alt=""
+                                        width={16}
+                                        height={16}
+                                        unoptimized
+                                        className="w-4 h-4 rounded-full object-cover"
+                                    />
+                                ) : (
+                                    <div className="w-4 h-4 rounded-full wd-bg-elevated" />
+                                )}
+                                <span>Invited by {preview.inviterName}</span>
+                            </div>
                         )}
-                    </button>
+                    </div>
+
+                    {error && (
+                        <p className="rounded-md border border-[rgba(237,66,69,0.35)] bg-[rgba(237,66,69,0.12)] px-3 py-2 text-xs wd-text-danger">
+                            {error}
+                        </p>
+                    )}
+
+                    <div className="flex justify-end gap-2">
+                        <button
+                            type="button"
+                            className="wd-btn-ghost"
+                            onClick={handleBack}
+                            disabled={isJoining}
+                        >
+                            Back
+                        </button>
+                        <button
+                            type="button"
+                            className="wd-btn-primary inline-flex items-center gap-2"
+                            onClick={handleJoin}
+                            disabled={isJoining}
+                        >
+                            {isJoining ? (
+                                <>
+                                    <Loader2 size={14} className="animate-spin" />
+                                    Joining...
+                                </>
+                            ) : (
+                                `Join ${preview.name}`
+                            )}
+                        </button>
+                    </div>
                 </div>
-            </div>
+            ) : (
+                /* Step 1: Code input */
+                <div className="space-y-3">
+                    <div>
+                        <label className="block text-xs font-semibold uppercase tracking-wide wd-text-secondary mb-2">
+                            Invite Code or Link
+                        </label>
+                        <input
+                            type="text"
+                            className="wd-input"
+                            placeholder="e.g. abc123 or https://..."
+                            value={codeValue}
+                            onChange={(e) => setCodeValue(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter" && !isFetching) void handleLookup();
+                            }}
+                            autoFocus
+                            disabled={isFetching}
+                        />
+                    </div>
+
+                    {error && (
+                        <p className="rounded-md border border-[rgba(237,66,69,0.35)] bg-[rgba(237,66,69,0.12)] px-3 py-2 text-xs wd-text-danger">
+                            {error}
+                        </p>
+                    )}
+
+                    <div className="flex justify-end gap-2">
+                        <button
+                            type="button"
+                            className="wd-btn-ghost"
+                            onClick={onClose}
+                            disabled={isFetching}
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="button"
+                            className="wd-btn-primary inline-flex items-center gap-2"
+                            onClick={handleLookup}
+                            disabled={isFetching || !codeValue.trim()}
+                        >
+                            {isFetching ? (
+                                <>
+                                    <Loader2 size={14} className="animate-spin" />
+                                    Looking up...
+                                </>
+                            ) : (
+                                "Continue"
+                            )}
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

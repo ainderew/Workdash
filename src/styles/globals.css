@@ -888,6 +888,64 @@ input[type="range"].slider::-moz-range-thumb:hover {
     }
 }
 
+/* ── Invite preview ──────────────────────────────────────────────── */
+
+@keyframes wd-invite-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes wd-invite-card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.wd-invite-card-wrapper {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background-color: var(--wd-surface-base);
+  animation: wd-invite-fade-in 300ms ease-out both;
+}
+
+.wd-invite-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 380px;
+  width: 100%;
+  padding: 2.5rem 2rem;
+  border-radius: 1rem;
+  border: 1px solid var(--wd-border-subtle);
+  background-color: var(--wd-surface-panel);
+  animation: wd-invite-card-enter 400ms ease-out 100ms both;
+}
+
+.wd-invite-skeleton {
+  border-radius: 0.75rem;
+  background-color: var(--wd-surface-elevated);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wd-invite-card-wrapper,
+  .wd-invite-card {
+    animation: none;
+  }
+}
+
 /* #game-container { */
 /*     width: 100vw; */
 /*     height: 100vh; */
