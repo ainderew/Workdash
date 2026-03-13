@@ -60,6 +60,8 @@ jobs:
               --name workdash-frontend \
               --network host \
               --restart unless-stopped \
+              -e PORT=8080 \
+              -e HOSTNAME=0.0.0.0 \
               -e NEXTAUTH_URL="${{ vars.NEXTAUTH_URL }}" \
               -e NEXTAUTH_SECRET="${{ secrets.NEXTAUTH_SECRET }}" \
               -e GOOGLE_CLIENT_ID="${{ secrets.GOOGLE_CLIENT_ID }}" \
