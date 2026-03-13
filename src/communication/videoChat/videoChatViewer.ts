@@ -10,12 +10,14 @@ export class VideoChatViewer {
     public static instance: VideoChatViewer | null = null;
     private sfuService: MediaTransportService;
     private consumers: Map<string, Consumer> = new Map();
+    private consumingInFlight = new Set<string>();
     /** MediaStream per producer — used by desk-mode tiles to avoid double video decode */
     public videoStreams: Map<string, MediaStream> = new Map();
     /** HTMLVideoElement per producer — used by world-mode hooks that mount elements into the DOM */
     public videoElements: Map<string, HTMLVideoElement> = new Map();
     public videoChatOwnerMap: Record<string, string> = {};
     public updateComponentStateCallback: (() => void) | null = null;
+    private stateListeners = new Set<() => void>();
 
     constructor() {
         this.sfuService = MediaTransportService.getInstance();
@@ -27,6 +29,19 @@ export class VideoChatViewer {
             this.instance = new VideoChatViewer();
         }
         return this.instance;
+    }
+
+    public onStateUpdate(cb: () => void): void {
+        this.stateListeners.add(cb);
+    }
+
+    public offStateUpdate(cb: () => void): void {
+        this.stateListeners.delete(cb);
+    }
+
+    private notifyStateListeners(): void {
+        this.updateComponentStateCallback?.();
+        this.stateListeners.forEach((cb) => cb());
     }
 
     private setupListeners(): void {
@@ -62,6 +77,11 @@ export class VideoChatViewer {
     }
 
     private async consumeProducer(producerId: string): Promise<void> {
+        if (this.consumers.has(producerId) || this.consumingInFlight.has(producerId)) {
+            return;
+        }
+        this.consumingInFlight.add(producerId);
+
         try {
             if (!this.sfuService.device || !this.sfuService.recvTransport) {
                 console.error("Cannot consume video — SFU not initialized");
@@ -117,6 +137,8 @@ export class VideoChatViewer {
             }
         } catch (err) {
             console.error("Failed to consume producer:", err);
+        } finally {
+            this.consumingInFlight.delete(producerId);
         }
     }
 
@@ -204,7 +226,7 @@ export class VideoChatViewer {
             this.removeScreenShareVideo(producerId);
         };
 
-        this.updateComponentStateCallback?.();
+        this.notifyStateListeners();
     }
 
     public pauseAllConsumers() {
@@ -238,8 +260,6 @@ export class VideoChatViewer {
         useUserStore.getState().updateUser({
             producerIds: updatedProducerIds,
         });
-        if (this.updateComponentStateCallback) {
-            this.updateComponentStateCallback();
-        }
+        this.notifyStateListeners();
     }
 }

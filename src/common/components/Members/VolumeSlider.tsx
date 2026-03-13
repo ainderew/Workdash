@@ -3,26 +3,26 @@ import { Volume2, VolumeX } from "lucide-react";
 import useAudioStore from "@/common/store/audioStore";
 
 interface VolumeSliderProps {
-    userName: string;
+    userId: number;
 }
 
-function VolumeSlider({ userName }: VolumeSliderProps) {
+function VolumeSlider({ userId }: VolumeSliderProps) {
     const { getUserVolume, setUserVolume, isUserMuted, toggleUserMute } = useAudioStore();
-    const [volume, setVolume] = useState(() => getUserVolume(userName));
-    const isMuted = isUserMuted(userName);
+    const [volume, setVolume] = useState(() => getUserVolume(userId));
+    const isMuted = isUserMuted(userId);
 
     useEffect(() => {
-        setVolume(getUserVolume(userName));
-    }, [userName, getUserVolume]);
+        setVolume(getUserVolume(userId));
+    }, [userId, getUserVolume]);
 
     const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const newVolume = parseInt(e.target.value) / 100;
         setVolume(newVolume);
-        setUserVolume(userName, newVolume);
+        setUserVolume(userId, newVolume);
     };
 
     const handleMuteToggle = () => {
-        toggleUserMute(userName);
+        toggleUserMute(userId);
     };
 
     const displayVolume = Math.round(volume * 100);

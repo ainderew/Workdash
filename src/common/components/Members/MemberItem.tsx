@@ -3,10 +3,16 @@ import { Avatar, AvatarFallback } from "@radix-ui/react-avatar";
 import React, { useMemo } from "react";
 import VolumeSlider from "./VolumeSlider";
 import usePlayersStore from "@/common/store/playerStore";
+import { AudioChat } from "@/communication/audioChat/audioChat";
 
 function MemberItem({ player }: { player: Player }) {
     const localPlayerId = usePlayersStore((state) => state.localPlayerId);
     const isLocalPlayer = player.id === localPlayerId;
+
+    const volumeUserId = useMemo(
+        () => AudioChat.getInstance().getUserIdByName(player.name!),
+        [player.name],
+    );
 
     
     const avatarBackgroundStyles = useMemo((): React.CSSProperties => {
@@ -87,9 +93,9 @@ function MemberItem({ player }: { player: Player }) {
                 )}
             </div>
 
-            {/* Volume control - always visible for remote users */}
-            {!isLocalPlayer && (
-                <VolumeSlider userName={player.name!} />
+            {/* Volume control — shown for remote users with an active audio producer */}
+            {!isLocalPlayer && volumeUserId != null && (
+                <VolumeSlider userId={volumeUserId} />
             )}
         </div>
     );

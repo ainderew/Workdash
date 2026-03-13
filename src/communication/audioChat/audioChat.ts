@@ -324,7 +324,7 @@ export class AudioChat {
 
         return {
             opusStereo: isStudio,
-            opusDtx: false,
+            opusDtx: !isStudio,
             opusFec: true,
             opusMaxAverageBitrate: isStudio ? 128_000 : 96_000,
             ...(isStudio && { opusMaxPlaybackRate: 48000 }),
@@ -504,15 +504,14 @@ export class AudioChat {
                     .getMusicVolume?.() ?? 0.5;
                 gainNode.gain.value = musicVol;
             } else {
-                const ownerName =
-                    this.audioOwnerMap[consumerData.producerId];
-                if (ownerName) {
+                const userId = this.audioProducerUserIdMap.get(consumerData.producerId);
+                if (userId != null) {
                     const volumeState = useAudioStore
                         .getState()
-                        .getUserVolume(ownerName);
+                        .getUserVolume(userId);
                     const isMuted = useAudioStore
                         .getState()
-                        .isUserMuted(ownerName);
+                        .isUserMuted(userId);
                     gainNode.gain.value = isMuted ? 0 : volumeState;
                 } else {
                     gainNode.gain.value = 1.0;
@@ -554,6 +553,9 @@ export class AudioChat {
     private async processAudioStream(
         stream: MediaStream,
     ): Promise<MediaStream> {
+        const mode = useAudioStore.getState().audioQualityMode;
+        const isStudio = mode === 'studio';
+
         this.audioContext = new AudioContext({ sampleRate: 48000 });
 
         // Firefox requires AudioContext to be resumed after user gesture
@@ -564,11 +566,21 @@ export class AudioChat {
         const source = this.audioContext.createMediaStreamSource(stream);
 
         const compressor = this.audioContext.createDynamicsCompressor();
-        compressor.threshold.value = -18;
-        compressor.knee.value = 12;
-        compressor.ratio.value = 1.5;
-        compressor.attack.value = 0.003;
-        compressor.release.value = 0.25;
+        if (isStudio) {
+            // Gentle compression for studio mode (preserve dynamics)
+            compressor.threshold.value = -18;
+            compressor.knee.value = 12;
+            compressor.ratio.value = 1.5;
+            compressor.attack.value = 0.003;
+            compressor.release.value = 0.25;
+        } else {
+            // Tighter compression for standard voice mode
+            compressor.threshold.value = -24;
+            compressor.knee.value = 6;
+            compressor.ratio.value = 3;
+            compressor.attack.value = 0.003;
+            compressor.release.value = 0.15;
+        }
 
         const gainNode = this.audioContext.createGain();
         gainNode.gain.value = 1.0;
@@ -580,11 +592,29 @@ export class AudioChat {
         this.audioDestination =
             this.audioContext.createMediaStreamDestination();
 
-        source
-            .connect(highPassFilter)
-            .connect(compressor)
-            .connect(gainNode)
-            .connect(this.audioDestination);
+        if (isStudio) {
+            // Studio: skip noise gate for cleaner passthrough
+            source
+                .connect(highPassFilter)
+                .connect(compressor)
+                .connect(gainNode)
+                .connect(this.audioDestination);
+        } else {
+            // Standard: add noise gate (DynamicsCompressor as gate) between highpass and compressor
+            const noiseGate = this.audioContext.createDynamicsCompressor();
+            noiseGate.threshold.value = -50;
+            noiseGate.knee.value = 0;
+            noiseGate.ratio.value = 20;
+            noiseGate.attack.value = 0.001;
+            noiseGate.release.value = 0.05;
+
+            source
+                .connect(highPassFilter)
+                .connect(noiseGate)
+                .connect(compressor)
+                .connect(gainNode)
+                .connect(this.audioDestination);
+        }
 
         // Tap an AnalyserNode for local active-speaker detection
         this.localAnalyser = this.audioContext.createAnalyser();
@@ -811,15 +841,15 @@ export class AudioChat {
      * Returns (or lazily creates) an AnalyserNode for a remote user's audio
      * pipeline, looked up by userId instead of display name (more reliable).
      */
-    public getOrCreateAnalyserForUserId(userId: number): AnalyserNode | null {
-        let producerId: string | undefined;
+    private findProducerIdForUserId(userId: number): string | undefined {
         for (const [pid, uid] of this.audioProducerUserIdMap) {
-            if (uid === userId) {
-                producerId = pid;
-                break;
-            }
+            if (uid === userId) return pid;
         }
-        return this.createAnalyserForProducer(producerId);
+        return undefined;
+    }
+
+    public getOrCreateAnalyserForUserId(userId: number): AnalyserNode | null {
+        return this.createAnalyserForProducer(this.findProducerIdForUserId(userId));
     }
 
     private createAnalyserForProducer(producerId: string | undefined): AnalyserNode | null {
@@ -870,11 +900,30 @@ export class AudioChat {
         return consumer ? this.gainNodes.get(consumer.id) || null : null;
     }
 
-    public setUserVolume(userName: string, volume: number): void {
-        const gainNode = this.getGainNodeByUserName(userName);
+    public getGainNodeByUserId(userId: number): GainNode | null {
+        const producerId = this.findProducerIdForUserId(userId);
+        if (!producerId) return null;
+
+        const consumerId = this.producerToConsumerMap.get(producerId);
+        if (!consumerId) return null;
+
+        return this.gainNodes.get(consumerId) || null;
+    }
+
+    public setUserVolume(userId: number, volume: number): void {
+        const gainNode = this.getGainNodeByUserId(userId);
         if (gainNode) {
             gainNode.gain.value = Math.max(0, Math.min(2.0, volume));
         }
+    }
+
+    public getUserIdByName(userName: string): number | null {
+        for (const [producerId, name] of Object.entries(this.audioOwnerMap)) {
+            if (name === userName) {
+                return this.audioProducerUserIdMap.get(producerId) ?? null;
+            }
+        }
+        return null;
     }
 
     public async loadExistingProducers(): Promise<void> {

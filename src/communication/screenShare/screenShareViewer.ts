@@ -3,6 +3,7 @@ import { MediaTransportService } from "../mediaTransportService/mediaTransportSe
 import useUserStore from "@/common/store/useStore";
 import usePlayersStore from "@/common/store/playerStore";
 import useCallStore from "@/common/store/callStore";
+import useUiStore from "@/common/store/uiStore";
 import { logger } from "@/common/utils/logger";
 import { ConsumerData } from "./_types";
 
@@ -59,9 +60,11 @@ export class ScreenShareViewer {
     }
 
     public async loadExistingProducers(): Promise<void> {
-        
-        logger.log("⏳ Waiting for players to load before loading producers...");
-        await this.waitForPlayers();
+        // In desk mode there are no Phaser players; skip the wait.
+        if (useUiStore.getState().interactionMode !== "desk") {
+            logger.log("Waiting for players to load before loading producers...");
+            await this.waitForPlayers();
+        }
 
         const producers = await new Promise<
             { producerId: string; socketId: string; source: string; userName?: string; userId?: number }[]

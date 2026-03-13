@@ -12,7 +12,9 @@ export default function AudioElement() {
                 setAudioElements((prev) => [audioElement, ...prev]),
             () => setUpdateTrigger((prev) => prev + 1),
         );
-        audioChatService.joinVoiceChat();
+        audioChatService.joinVoiceChat().catch((err) => {
+            console.error("Failed to join voice chat:", err);
+        });
         
         
         

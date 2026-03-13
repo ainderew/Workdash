@@ -6,6 +6,7 @@ import useCallStore from "@/common/store/callStore";
 export class ScreenShareService {
     private sfuService: MediaTransportService;
     private screenProducer: Producer | null = null;
+    private screenAudioProducer: Producer | null = null;
     private currentStream: MediaStream | null = null;
     public static instance: ScreenShareService | null = null;
 
@@ -61,7 +62,7 @@ export class ScreenShareService {
         // Produce screen share audio if available
         const audioTracks = stream.getAudioTracks();
         if (audioTracks.length > 0) {
-            await this.sfuService.sendTransport!.produce({
+            this.screenAudioProducer = await this.sfuService.sendTransport!.produce({
                 track: audioTracks[0],
                 appData: { source: "screen-audio" },
             });
@@ -89,6 +90,16 @@ export class ScreenShareService {
     public stopScreenShare(): void {
         if (!this.screenProducer) {
             return;
+        }
+
+        // Close screen audio producer first (prevents orphaned audio stream)
+        if (this.screenAudioProducer && !this.screenAudioProducer.closed) {
+            this.sfuService.socket.emit("producerClosed", {
+                producerId: this.screenAudioProducer.id,
+                kind: "audio",
+            });
+            this.screenAudioProducer.close();
+            this.screenAudioProducer = null;
         }
 
         const producerId = this.screenProducer.id;

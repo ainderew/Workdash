@@ -90,43 +90,37 @@ export default function CallParticipantTile({
     } else {
       if (!producerId) return;
 
-      let cancelled = false;
-      let retryTimer: number | undefined;
       let mounted: HTMLVideoElement | null = null;
-      let attempts = 0;
-      const MAX_ATTEMPTS = 25; // 5 seconds total (25 × 200ms)
 
-      const attach = () => {
-        if (cancelled) return;
-
+      const tryAttach = () => {
+        if (!container) return;
         const viewer = VideoChatViewer.getInstance();
         const stream = viewer.videoStreams.get(producerId);
+        if (!stream) return;
 
-        if (stream) {
-          const videoEl = document.createElement('video');
-          videoEl.srcObject = stream;
-          videoEl.autoplay = true;
-          videoEl.playsInline = true;
-          videoEl.muted = true;
-          videoEl.style.width = '100%';
-          videoEl.style.height = '100%';
-          videoEl.style.objectFit = 'cover';
-          mounted = videoEl;
-          container.appendChild(videoEl);
-          return;
-        }
-
-        // Video element not ready yet — retry (consumeProducer is async)
-        if (++attempts < MAX_ATTEMPTS) {
-          retryTimer = window.setTimeout(attach, 200);
-        }
+        const videoEl = document.createElement('video');
+        videoEl.srcObject = stream;
+        videoEl.autoplay = true;
+        videoEl.playsInline = true;
+        videoEl.muted = true;
+        videoEl.style.width = '100%';
+        videoEl.style.height = '100%';
+        videoEl.style.objectFit = 'cover';
+        mounted = videoEl;
+        container.appendChild(videoEl);
       };
 
-      attach();
+      // Try immediately in case stream is already available
+      tryAttach();
+
+      // If not yet available, register a listener for stream arrivals
+      const viewer = VideoChatViewer.getInstance();
+      if (!mounted) {
+        viewer.onStateUpdate(tryAttach);
+      }
 
       return () => {
-        cancelled = true;
-        if (retryTimer != null) clearTimeout(retryTimer);
+        viewer.offStateUpdate(tryAttach);
         if (mounted) {
           mounted.srcObject = null;
           mounted.remove();
