@@ -26,8 +26,10 @@ interface UiState {
     selectedMicrophoneId: string;
     isMicSelectorOpen: boolean;
 
-    
+
     isVideoOff: boolean;
+    availableCameras: MediaDeviceInfo[];
+    selectedCameraId: string;
 
     
     isSoccerStatsModalOpen: boolean;
@@ -79,9 +81,11 @@ interface UiState {
     toggleMicSelector: () => void;
     closeMicSelector: () => void;
 
-    
+
     toggleVideoCam: () => void;
     setIsVideoOff: (isOff: boolean) => void;
+    setAvailableCameras: (cameras: MediaDeviceInfo[]) => void;
+    setSelectedCameraId: (id: string) => void;
 
     
     openSoccerStatsModal: () => void;
@@ -114,6 +118,8 @@ const useUiStore = create<UiState>((set) => ({
     selectedMicrophoneId: "",
     isMicSelectorOpen: false,
     isVideoOff: true,
+    availableCameras: [],
+    selectedCameraId: "",
     isSoccerStatsModalOpen: false,
     isSoccerGameControlModalOpen: false,
     isMatchHistoryModalOpen: false,
@@ -186,9 +192,11 @@ const useUiStore = create<UiState>((set) => ({
         set((state) => ({ isMicSelectorOpen: !state.isMicSelectorOpen })),
     closeMicSelector: () => set({ isMicSelectorOpen: false }),
 
-    
+
     toggleVideoCam: () => set((state) => ({ isVideoOff: !state.isVideoOff })),
     setIsVideoOff: (isOff) => set({ isVideoOff: isOff }),
+    setAvailableCameras: (cameras) => set({ availableCameras: cameras }),
+    setSelectedCameraId: (id) => set({ selectedCameraId: id }),
 
     
     openSoccerStatsModal: () => set({ isSoccerStatsModalOpen: true }),

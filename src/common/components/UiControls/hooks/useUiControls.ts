@@ -9,7 +9,7 @@ function useUiControls() {
     const audioService = AudioChat.getInstance();
     const videoCamService = VideoChatService.getInstance();
 
-    
+
     const {
         isMuted,
         toggleMic: toggleMicState,
@@ -18,29 +18,48 @@ function useUiControls() {
         selectedMicrophoneId,
         setAvailableMicrophones,
         setSelectedMicrophoneId,
+        availableCameras,
+        selectedCameraId,
+        setAvailableCameras,
+        setSelectedCameraId,
     } = useUiStore();
 
-    
     const loadMicrophones = useCallback(async () => {
         try {
             const mics = await audioService.getAvailableMicrophones();
             setAvailableMicrophones(mics);
 
-            
-            if (mics.length > 0 && !selectedMicrophoneId) {
+            // Auto-select first mic only if none is selected yet
+            const currentMicId = useUiStore.getState().selectedMicrophoneId;
+            if (mics.length > 0 && !currentMicId) {
                 setSelectedMicrophoneId(mics[0].deviceId);
             }
         } catch (error) {
             console.error("Failed to load microphones:", error);
         }
-    }, [audioService, selectedMicrophoneId, setAvailableMicrophones, setSelectedMicrophoneId]);
+    }, [audioService, setAvailableMicrophones, setSelectedMicrophoneId]);
 
-    
+    const loadCameras = useCallback(async () => {
+        try {
+            const cameras = await videoCamService.getAvailableCameras();
+            setAvailableCameras(cameras);
+
+            const currentCamId = useUiStore.getState().selectedCameraId;
+            if (cameras.length > 0 && !currentCamId) {
+                setSelectedCameraId(cameras[0].deviceId);
+            }
+        } catch (error) {
+            console.error("Failed to load cameras:", error);
+        }
+    }, [videoCamService, setAvailableCameras, setSelectedCameraId]);
+
     useEffect(() => {
         loadMicrophones();
+        loadCameras();
 
         const handleDeviceChange = () => {
             loadMicrophones();
+            loadCameras();
         };
 
         navigator.mediaDevices.addEventListener(
@@ -54,7 +73,7 @@ function useUiControls() {
                 handleDeviceChange,
             );
         };
-    }, [loadMicrophones]);
+    }, [loadMicrophones, loadCameras]);
 
     
     useEffect(() => {
@@ -111,6 +130,23 @@ function useUiControls() {
         };
     }
 
+    function cameraSelector() {
+        async function selectCamera(deviceId: string) {
+            try {
+                setSelectedCameraId(deviceId);
+                await videoCamService.switchCamera(deviceId);
+            } catch (error) {
+                console.error("Failed to switch camera:", error);
+            }
+        }
+
+        return {
+            availableCameras,
+            selectedCameraId,
+            selectCamera,
+        };
+    }
+
     function videoCamControls() {
         const { isVideoOff, toggleVideoCam: toggleVideoCamState } = useUiStore();
 
@@ -147,6 +183,7 @@ function useUiControls() {
     return {
         micControls,
         microphoneSelector,
+        cameraSelector,
         videoCamControls,
         toggleMembersUi,
         isMembersUiOpen,

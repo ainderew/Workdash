@@ -26,6 +26,9 @@ export function useAudioVideoSettings() {
   // Video state from store
   const isVideoOff = useUiStore((state) => state.isVideoOff);
   const toggleVideoCamState = useUiStore((state) => state.toggleVideoCam);
+  const availableCameras = useUiStore((state) => state.availableCameras);
+  const selectedCameraId = useUiStore((state) => state.selectedCameraId);
+  const setSelectedCameraId = useUiStore((state) => state.setSelectedCameraId);
 
   // Background music local state
   const [backgroundMusicEnabled, setBackgroundMusicEnabled] = useState(false);
@@ -60,6 +63,18 @@ export function useAudioVideoSettings() {
     [audioService, setSelectedMicrophoneId],
   );
 
+  const selectCamera = useCallback(
+    async (deviceId: string) => {
+      try {
+        setSelectedCameraId(deviceId);
+        await videoCamService.switchCamera(deviceId);
+      } catch (error) {
+        console.error('Failed to switch camera:', error);
+      }
+    },
+    [videoCamService, setSelectedCameraId],
+  );
+
   const toggleVideo = useCallback(() => {
     toggleVideoCamState();
     if (!isVideoOff) {
@@ -90,6 +105,9 @@ export function useAudioVideoSettings() {
     selectMicrophone,
     isVideoOff,
     toggleVideo,
+    availableCameras,
+    selectedCameraId,
+    selectCamera,
     backgroundMusicEnabled,
     musicVolume,
     toggleBackgroundMusic,

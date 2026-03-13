@@ -1,10 +1,12 @@
 import React from 'react';
 import {
-  Mic, MicOff, Video, VideoOff, Monitor, MonitorOff,
+  Monitor, MonitorOff,
   PhoneOff, Maximize2, Minimize2, PictureInPicture2,
 } from 'lucide-react';
 import useCallStore from '@/common/store/callStore';
 import type { ConnectionQuality } from '@/common/store/callStore';
+import MicSplitButton from './MicSplitButton';
+import VideoSplitButton from './VideoSplitButton';
 
 export type CallControlSize = 'sm' | 'md';
 
@@ -75,43 +77,21 @@ export default function CallControlBar({
         />
       </div>
 
-      {/* Mute */}
-      <button
-        type="button"
-        onClick={onToggleMic}
-        className={`inline-flex items-center justify-center ${btn} rounded-full border transition-colors ${
-          isMuted
-            ? 'border-[var(--wd-danger)] text-[var(--wd-danger)]'
-            : 'wd-border-subtle wd-text-secondary hover:wd-text-primary'
-        }`}
-        style={
-          isMuted
-            ? { backgroundColor: 'color-mix(in srgb, var(--wd-danger) 12%, transparent)' }
-            : undefined
-        }
-        title={isMuted ? 'Unmute' : 'Mute'}
-      >
-        {isMuted ? <MicOff size={icon} /> : <Mic size={icon} />}
-      </button>
+      {/* Mute + mic source picker */}
+      <MicSplitButton
+        isMuted={isMuted}
+        onToggleMic={onToggleMic}
+        size={size}
+        variant="pill"
+      />
 
-      {/* Video */}
-      <button
-        type="button"
-        onClick={onToggleVideo}
-        className={`inline-flex items-center justify-center ${btn} rounded-full border transition-colors ${
-          isVideoOff
-            ? 'wd-border-subtle wd-text-secondary hover:wd-text-primary'
-            : 'border-[var(--wd-success)] text-[var(--wd-success)]'
-        }`}
-        style={
-          !isVideoOff
-            ? { backgroundColor: 'color-mix(in srgb, var(--wd-success) 12%, transparent)' }
-            : undefined
-        }
-        title={isVideoOff ? 'Turn on camera' : 'Turn off camera'}
-      >
-        {isVideoOff ? <VideoOff size={icon} /> : <Video size={icon} />}
-      </button>
+      {/* Video + camera source picker */}
+      <VideoSplitButton
+        isVideoOff={isVideoOff}
+        onToggleVideo={onToggleVideo}
+        size={size}
+        variant="pill"
+      />
 
       {/* Screen Share */}
       <button

@@ -456,6 +456,28 @@ body {
 /*         @apply bg-background text-foreground; */
 /*     } */
 /* } */
+@keyframes wd-popover-up {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(4px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}
+
+.wd-anim-popover-up {
+  animation: wd-popover-up 150ms ease-out both;
+  transform-origin: bottom center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wd-anim-popover-up {
+    animation: none !important;
+  }
+}
+
 @keyframes wd-typing-wave {
   0%, 100% {
     transform: translateY(0);

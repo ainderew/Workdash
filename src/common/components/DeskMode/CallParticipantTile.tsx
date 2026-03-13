@@ -3,6 +3,7 @@ import { Mic, MicOff, Video, Monitor, Pin, PinOff } from 'lucide-react';
 import type { CallParticipant } from '@/common/store/callStore';
 import useCallStore from '@/common/store/callStore';
 import useChatV2Store from '@/common/store/chatV2Store';
+import useUiStore from '@/common/store/uiStore';
 import { useCharacterFaceAvatar } from '@/common/utils/characterFaceAvatar';
 import { VideoChatViewer } from '@/communication/videoChat/videoChatViewer';
 import { VideoChatService } from '@/communication/videoChat/videoChat';
@@ -26,13 +27,14 @@ export default function CallParticipantTile({
   const tileRef = useRef<HTMLDivElement>(null);
   const videoContainerRef = useRef<HTMLDivElement>(null);
 
+  // For local user, use uiStore.isMuted (updates instantly on toggle).
+  // participant.media.audio only updates after a server round-trip, causing
+  // the voice indicator to flash even when muted.
+  const localMuted = useUiStore((s) => s.isMuted);
+  const isMuted = isLocal ? localMuted : !participant.media.audio;
+
   // Active speaker highlight — directly toggles data-speaking attr (no re-renders)
-  useActiveSpeaker(
-    participant.userId,
-    isLocal,
-    !participant.media.audio,
-    tileRef,
-  );
+  useActiveSpeaker(participant.userId, isLocal, isMuted, tileRef);
 
   // Look up the member data for profile image + character customization
   const members = useChatV2Store((s) => s.membersByRoomId[channelId]);
