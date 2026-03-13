@@ -3,6 +3,7 @@ import { MediaTransportService } from "../mediaTransportService/mediaTransportSe
 import usePlayersStore from "@/common/store/playerStore";
 import { AvailabilityStatus } from "@/game/player/_enums";
 import useAudioStore from "@/common/store/audioStore";
+import type { AudioQualityMode } from "@/common/store/audioStore";
 import { logger } from "@/common/utils/logger";
 
 interface ConsumerServerResponse {
@@ -57,6 +58,14 @@ export class AudioChat {
     private watchingNewProducers = false;
     /** Track music-bot producer IDs for separate gain/processing */
     private musicBotProducerIds = new Set<string>();
+
+    /** Maps producerId → userId for reliable active-speaker lookup */
+    private audioProducerUserIdMap: Map<string, number> = new Map();
+
+    /** AnalyserNodes for active-speaker detection (keyed by consumerId) */
+    private analyserNodes: Map<string, AnalyserNode> = new Map();
+    /** AnalyserNode tapped into local mic processing chain */
+    private localAnalyser: AnalyserNode | null = null;
 
     constructor() {
         logger.log("initializeAudioChat");
@@ -178,6 +187,12 @@ export class AudioChat {
             this.gainNodes.delete(consumerId);
         }
 
+        const analyser = this.analyserNodes.get(consumerId);
+        if (analyser) {
+            analyser.disconnect();
+            this.analyserNodes.delete(consumerId);
+        }
+
         const audioEl = this.audioElements.get(consumerId);
         if (audioEl) {
             audioEl.srcObject = null;
@@ -186,6 +201,7 @@ export class AudioChat {
         }
 
         delete this.audioOwnerMap[producerId];
+        this.audioProducerUserIdMap.delete(producerId);
         this.producerToConsumerMap.delete(producerId);
 
         if (this.audioElementUpdateCallback) {
@@ -266,12 +282,7 @@ export class AudioChat {
         try {
             this.audioProducer = await this.sfuService.sendTransport!.produce({
                 track: audioTrack,
-                codecOptions: {
-                    opusStereo: false,
-                    opusDtx: true,
-                    opusFec: true,
-                    opusMaxAverageBitrate: 96_000,
-                },
+                codecOptions: this.getCodecOptions(),
                 appData: { source: 'microphone' },
             });
         } catch (err) {
@@ -288,13 +299,16 @@ export class AudioChat {
     }
 
     private getAudioConstraints(deviceId?: string): MediaTrackConstraints {
+        const mode = useAudioStore.getState().audioQualityMode;
+        const isStudio = mode === 'studio';
+
         const constraints: MediaTrackConstraints = {
-            channelCount: 1,
+            channelCount: isStudio ? 2 : 1,
             sampleRate: 48000,
             sampleSize: 16,
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true,
+            echoCancellation: !isStudio,
+            noiseSuppression: !isStudio,
+            autoGainControl: !isStudio,
         };
 
         if (deviceId) {
@@ -302,6 +316,19 @@ export class AudioChat {
         }
 
         return constraints;
+    }
+
+    private getCodecOptions() {
+        const mode = useAudioStore.getState().audioQualityMode;
+        const isStudio = mode === 'studio';
+
+        return {
+            opusStereo: isStudio,
+            opusDtx: false,
+            opusFec: true,
+            opusMaxAverageBitrate: isStudio ? 128_000 : 96_000,
+            ...(isStudio && { opusMaxPlaybackRate: 48000 }),
+        };
     }
 
     public async joinVoiceChat(deviceId?: string) {
@@ -320,12 +347,7 @@ export class AudioChat {
         try {
             this.audioProducer = await this.sfuService.sendTransport!.produce({
                 track: audioTrack,
-                codecOptions: {
-                    opusStereo: false,
-                    opusDtx: true,
-                    opusFec: true,
-                    opusMaxAverageBitrate: 96_000,
-                },
+                codecOptions: this.getCodecOptions(),
                 appData: { source: 'microphone' },
             });
         } catch (err) {
@@ -349,6 +371,7 @@ export class AudioChat {
                 producerId: string;
                 socketId?: string;
                 userName?: string;
+                userId?: number;
                 source?: string;
             }) => {
                 // Accept microphone and music-bot sources
@@ -361,6 +384,9 @@ export class AudioChat {
                 }
                 if (data.userName) {
                     this.audioOwnerMap[data.producerId] = data.userName;
+                }
+                if (data.userId != null) {
+                    this.audioProducerUserIdMap.set(data.producerId, data.userId);
                 }
                 if (data.source === "music-bot") {
                     this.musicBotProducerIds.add(data.producerId);
@@ -560,6 +586,11 @@ export class AudioChat {
             .connect(gainNode)
             .connect(this.audioDestination);
 
+        // Tap an AnalyserNode for local active-speaker detection
+        this.localAnalyser = this.audioContext.createAnalyser();
+        this.localAnalyser.fftSize = 256;
+        gainNode.connect(this.localAnalyser);
+
         return this.audioDestination.stream;
     }
 
@@ -641,6 +672,62 @@ export class AudioChat {
         );
     }
 
+    public getAudioProducer(): Producer | undefined {
+        return this.audioProducer;
+    }
+
+    public getConsumers(): Map<string, Consumer> {
+        return this.consumers;
+    }
+
+    /**
+     * Re-create the audio producer with current quality mode settings.
+     * Called when the user toggles between standard and studio mode.
+     */
+    public async applyQualityMode(mode: AudioQualityMode): Promise<void> {
+        useAudioStore.getState().setAudioQualityMode(mode);
+
+        if (!this.audioProducer || this.audioProducer.closed) return;
+        if (!this.currentStream) return;
+
+        const wasMuted = this.isMuted;
+        const deviceId = this.currentDeviceId ?? undefined;
+
+        // Stop existing producer and stream
+        this.audioProducer.close();
+        this.audioProducer = undefined;
+        this.currentStream.getTracks().forEach((t) => t.stop());
+        this.currentStream = null;
+
+        if (this.audioContext) {
+            await this.audioContext.close();
+            this.audioContext = null;
+        }
+
+        // Re-acquire with new constraints
+        const stream = await navigator.mediaDevices.getUserMedia({
+            audio: this.getAudioConstraints(deviceId),
+        });
+
+        this.currentStream = stream;
+        const processedStream = await this.processAudioStream(stream);
+        const [audioTrack] = processedStream.getAudioTracks();
+
+        this.audioProducer = await this.sfuService.sendTransport!.produce({
+            track: audioTrack,
+            codecOptions: this.getCodecOptions(),
+            appData: { source: 'microphone' },
+        });
+
+        if (wasMuted) {
+            this.muteMic();
+        } else {
+            this.unMuteMic();
+        }
+
+        logger.log(`Audio quality mode applied: ${mode}`);
+    }
+
     public getCurrentDeviceId(): string | null {
         return this.currentDeviceId;
     }
@@ -683,6 +770,12 @@ export class AudioChat {
         });
         this.gainNodes.clear();
 
+        this.analyserNodes.forEach((analyser) => {
+            analyser.disconnect();
+        });
+        this.analyserNodes.clear();
+        this.localAnalyser = null;
+
         if (this.outputAudioContext) {
             await this.outputAudioContext.close();
             this.outputAudioContext = null;
@@ -703,6 +796,50 @@ export class AudioChat {
 
         this.producerToConsumerMap.clear();
         this.socketToProducersMap.clear();
+        this.audioProducerUserIdMap.clear();
+    }
+
+    /**
+     * Returns the local mic AnalyserNode for active-speaker detection.
+     * Created in processAudioStream; null when mic is not active.
+     */
+    public getLocalAnalyser(): AnalyserNode | null {
+        return this.localAnalyser;
+    }
+
+    /**
+     * Returns (or lazily creates) an AnalyserNode for a remote user's audio
+     * pipeline, looked up by userId instead of display name (more reliable).
+     */
+    public getOrCreateAnalyserForUserId(userId: number): AnalyserNode | null {
+        let producerId: string | undefined;
+        for (const [pid, uid] of this.audioProducerUserIdMap) {
+            if (uid === userId) {
+                producerId = pid;
+                break;
+            }
+        }
+        return this.createAnalyserForProducer(producerId);
+    }
+
+    private createAnalyserForProducer(producerId: string | undefined): AnalyserNode | null {
+        if (!producerId || !this.outputAudioContext) return null;
+
+        const consumerId = this.producerToConsumerMap.get(producerId);
+        if (!consumerId) return null;
+
+        // Return cached analyser if it already exists
+        const existing = this.analyserNodes.get(consumerId);
+        if (existing) return existing;
+
+        const source = this.mediaStreamSources.get(consumerId);
+        if (!source) return null;
+
+        const analyser = this.outputAudioContext.createAnalyser();
+        analyser.fftSize = 256;
+        source.connect(analyser);
+        this.analyserNodes.set(consumerId, analyser);
+        return analyser;
     }
 
     public getAudioElementByUserName(
@@ -747,6 +884,7 @@ export class AudioChat {
                 socketId: string;
                 source?: string;
                 userName?: string;
+                userId?: number;
             }[]
         >((resolve) => {
             this.sfuService.socket.emit("getProducers", {}, resolve);
@@ -770,6 +908,9 @@ export class AudioChat {
                 const player = playerMap[producer.socketId];
                 this.audioOwnerMap[producer.producerId] =
                     player?.name || "Unknown User";
+            }
+            if (producer.userId != null) {
+                this.audioProducerUserIdMap.set(producer.producerId, producer.userId);
             }
 
             if (producer.socketId) {
