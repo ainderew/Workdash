@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import useFlipDirection from "@/common/hooks/useFlipDirection";
 import { Ellipsis, Forward, Pencil, Pin, Plus, Reply, Trash2 } from "lucide-react";
 import { CHAT_REACTION_QUICK_EMOJIS } from "@/communication/chatV2/reactionCatalog";
 import ReactionPickerFlyout from "./ReactionPickerFlyout";
@@ -65,6 +66,9 @@ function MessageHoverActions({
 }: MessageHoverActionsProps) {
     const [isPickerOpen, setIsPickerOpen] = useState(false);
     const [isMoreOpen, setIsMoreOpen] = useState(false);
+    const toolbarRef = useRef<HTMLDivElement>(null);
+    const pickerDirection = useFlipDirection(toolbarRef, isPickerOpen);
+    const moreDirection = useFlipDirection(toolbarRef, isMoreOpen, 150);
 
     const hasFlyout = isPickerOpen || isMoreOpen;
 
@@ -92,6 +96,7 @@ function MessageHoverActions({
             className={`pointer-events-none absolute right-0 top-0 ${hasFlyout ? "z-[200]" : "z-20"} -translate-y-1/2 transition-opacity ${hasFlyout ? "opacity-100" : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"} ${className || ""}`}
         >
             <div
+                ref={toolbarRef}
                 className={`relative inline-flex items-center rounded-md border wd-border-subtle wd-bg-panel shadow-[0_8px_20px_rgba(0,0,0,0.35)] px-1.5 py-1 gap-1 ${hasFlyout ? "pointer-events-auto" : "pointer-events-none group-hover:pointer-events-auto group-focus-within:pointer-events-auto"}`}
             >
                 {CHAT_REACTION_QUICK_EMOJIS.map((emoji) => (
@@ -152,7 +157,7 @@ function MessageHoverActions({
                 {isMoreOpen ? (
                     <div
                         data-message-more-actions="true"
-                        className="absolute right-0 top-[calc(100%+8px)] z-[180] min-w-[160px] rounded-md border wd-border-subtle wd-bg-panel p-1 shadow-[0_10px_24px_rgba(0,0,0,0.4)]"
+                        className={`absolute right-0 z-[180] min-w-[160px] rounded-md border wd-border-subtle wd-bg-panel p-1 shadow-[0_10px_24px_rgba(0,0,0,0.4)] ${moreDirection === 'up' ? 'bottom-[calc(100%+8px)]' : 'top-[calc(100%+8px)]'}`}
                     >
                         {onTogglePin ? (
                             <button
@@ -198,7 +203,7 @@ function MessageHoverActions({
 
                 {isPickerOpen ? (
                     <ReactionPickerFlyout
-                        className="absolute right-0 top-[calc(100%+8px)] z-[180]"
+                        className={`absolute right-0 z-[180] ${pickerDirection === 'up' ? 'bottom-[calc(100%+8px)]' : 'top-[calc(100%+8px)]'}`}
                         onSelectEmoji={(emoji) => {
                             onReact(emoji);
                             setIsPickerOpen(false);

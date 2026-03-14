@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import useFlipDirection from "@/common/hooks/useFlipDirection";
 import type { ChatV2MessageReaction } from "@/communication/chatV2/_types";
 import useChatV2Store from "@/common/store/chatV2Store";
 import { createPortal } from "react-dom";
@@ -90,6 +91,8 @@ function MessageReactionChips({
     );
     const [tooltip, setTooltip] = useState<TooltipState | null>(null);
     const [isPickerOpen, setIsPickerOpen] = useState(false);
+    const addButtonRef = useRef<HTMLDivElement>(null);
+    const pickerDirection = useFlipDirection(addButtonRef, isPickerOpen);
     const hideTimeoutRef = useRef<number | null>(null);
 
     const orderedReactions = useMemo(
@@ -224,7 +227,7 @@ function MessageReactionChips({
                 />
             ))}
 
-            <div className="relative" data-reaction-add-picker="true">
+            <div ref={addButtonRef} className="relative" data-reaction-add-picker="true">
                 <button
                     type="button"
                     onClick={() => setIsPickerOpen((current) => !current)}
@@ -237,7 +240,7 @@ function MessageReactionChips({
 
                 {isPickerOpen ? (
                     <ReactionPickerFlyout
-                        className="absolute left-0 top-[calc(100%+8px)] z-[190]"
+                        className={`absolute left-0 z-[190] ${pickerDirection === 'up' ? 'bottom-[calc(100%+8px)]' : 'top-[calc(100%+8px)]'}`}
                         onSelectEmoji={(emoji) => {
                             onToggleReaction?.(emoji);
                             setIsPickerOpen(false);
