@@ -175,6 +175,7 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
         null,
     );
     const searchRequestIdRef = useRef(0);
+    const channelContentRef = useRef<HTMLDivElement>(null);
     const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("");
     const [activeThreadRootId, setActiveThreadRootId] = useState<string | null>(
         null,
@@ -452,6 +453,28 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
             const url = new URL(window.location.href);
             url.searchParams.delete("invite");
             window.history.replaceState({}, "", url.toString());
+        }
+    }, []);
+
+    // Measure channel content area for fullscreen floating call window
+    useEffect(() => {
+        const el = channelContentRef.current;
+        if (!el) return;
+        const setRect = useCallStore.getState().setChannelContentRect;
+        try {
+            const observer = new ResizeObserver(() => {
+                const rect = el.getBoundingClientRect();
+                setRect({
+                    x: rect.x,
+                    y: rect.y,
+                    width: rect.width,
+                    height: rect.height,
+                });
+            });
+            observer.observe(el);
+            return () => observer.disconnect();
+        } catch {
+            // ResizeObserver not supported
         }
     }, []);
 
@@ -832,7 +855,7 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
                             />
                         )}
 
-                        <div className="flex-1 min-w-0 flex flex-col">
+                        <div ref={channelContentRef} className="flex-1 min-w-0 flex flex-col">
                             <RoomHeader
                                 room={currentRoom}
                                 serverName={serverName}

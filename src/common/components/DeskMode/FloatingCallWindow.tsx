@@ -1,5 +1,5 @@
 import React, { useEffect, useCallback, useRef, useState } from 'react';
-import { Phone, Minus, ArrowUpRight, Pause, ArrowLeft } from 'lucide-react';
+import { Phone, Minus, ArrowUpRight, Pause, ArrowLeft, Maximize2, Minimize2 } from 'lucide-react';
 import useCallStore from '@/common/store/callStore';
 import useChatV2Store from '@/common/store/chatV2Store';
 import useUiStore from '@/common/store/uiStore';
@@ -45,6 +45,7 @@ export default function FloatingCallWindow() {
   const floatingPosition = useCallStore((s) => s.floatingPosition);
   const setFloatingPosition = useCallStore((s) => s.setFloatingPosition);
   const setFloatingWindowState = useCallStore((s) => s.setFloatingWindowState);
+  const channelContentRect = useCallStore((s) => s.channelContentRect);
   const isMuted = useUiStore((s) => s.isMuted);
   const isVideoOff = useUiStore((s) => s.isVideoOff);
   const isScreenSharing = useCallStore((s) => s.localMedia.screen);
@@ -65,6 +66,7 @@ export default function FloatingCallWindow() {
   const containerRef = useRef<HTMLDivElement>(null);
 
   const isCollapsed = floatingWindowState === 'collapsed';
+  const isFullscreen = floatingWindowState === 'fullscreen';
   const currentHeight = isCollapsed ? PILL_HEIGHT : WINDOW_HEIGHT_EXPANDED;
 
   // Initialize position on first show
@@ -95,6 +97,22 @@ export default function FloatingCallWindow() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, [shouldShow, currentHeight, setFloatingPosition]);
+
+  // Escape key exits fullscreen
+  useEffect(() => {
+    if (!isFullscreen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setFloatingWindowState('expanded');
+        const pos = useCallStore.getState().floatingPosition;
+        if (pos) {
+          setFloatingPosition(clampPosition(pos, WINDOW_WIDTH, WINDOW_HEIGHT_EXPANDED));
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isFullscreen, setFloatingWindowState, setFloatingPosition]);
 
   // Pause/resume all media streams when switching workspaces mid-call
   const prevInDifferentWs = useRef(false);
@@ -142,7 +160,7 @@ export default function FloatingCallWindow() {
   // Drag handlers
   const onPointerDown = useCallback(
     (e: React.PointerEvent) => {
-      if (e.button !== 0) return;
+      if (e.button !== 0 || isFullscreen) return;
       dragging.current = true;
       hasMoved.current = false;
       setIsDragging(true);
@@ -152,7 +170,7 @@ export default function FloatingCallWindow() {
       (e.target as HTMLElement).setPointerCapture(e.pointerId);
       e.preventDefault();
     },
-    [floatingPosition],
+    [floatingPosition, isFullscreen],
   );
 
   const onPointerMove = useCallback(
@@ -266,9 +284,21 @@ export default function FloatingCallWindow() {
     void selectRoom(channelId);
   }, [channelId, isInDifferentWorkspace, callWorkspaceId, setSelectedWorkspaceId, selectRoom]);
 
+  const handleToggleFullscreen = useCallback(() => {
+    if (isFullscreen) {
+      setFloatingWindowState('expanded');
+      const pos = useCallStore.getState().floatingPosition;
+      if (pos) {
+        setFloatingPosition(clampPosition(pos, WINDOW_WIDTH, WINDOW_HEIGHT_EXPANDED));
+      }
+    } else {
+      setFloatingWindowState('fullscreen');
+    }
+  }, [isFullscreen, setFloatingWindowState, setFloatingPosition]);
+
   const handleToggleCollapse = useCallback(() => {
-    const next = isCollapsed ? 'expanded' : 'collapsed';
-    setFloatingWindowState(next);
+    const next = isCollapsed || isFullscreen ? 'collapsed' : 'expanded';
+    setFloatingWindowState(isCollapsed ? 'expanded' : 'collapsed');
 
     // Adjust Y position when toggling to keep window in bounds
     const pos = useCallStore.getState().floatingPosition;
@@ -276,7 +306,7 @@ export default function FloatingCallWindow() {
       const newHeight = next === 'collapsed' ? PILL_HEIGHT : WINDOW_HEIGHT_EXPANDED;
       setFloatingPosition(clampPosition(pos, WINDOW_WIDTH, newHeight));
     }
-  }, [isCollapsed, setFloatingWindowState, setFloatingPosition]);
+  }, [isCollapsed, isFullscreen, setFloatingWindowState, setFloatingPosition]);
 
   if (!shouldShow || !channelId || !floatingPosition) return null;
 
@@ -286,19 +316,30 @@ export default function FloatingCallWindow() {
   return (
     <div
       ref={containerRef}
-      className={`fixed z-[75] select-none transition-all ${
+      className={`fixed z-[75] select-none transition-all motion-reduce:duration-0 ${
         isDragging ? 'duration-0' : 'duration-200 ease-out'
       } ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
-      style={{
-        left: floatingPosition.x,
-        top: floatingPosition.y,
-        width: WINDOW_WIDTH,
-      }}
+      style={
+        isFullscreen && channelContentRect
+          ? {
+              left: channelContentRect.x,
+              top: channelContentRect.y,
+              width: channelContentRect.width,
+              height: channelContentRect.height,
+            }
+          : {
+              left: floatingPosition.x,
+              top: floatingPosition.y,
+              width: WINDOW_WIDTH,
+            }
+      }
     >
       <div
-        className={`overflow-hidden rounded-xl border wd-border-subtle ${
-          isDragging ? 'shadow-2xl scale-[1.02]' : 'shadow-lg'
-        } transition-shadow transition-transform duration-150`}
+        className={`overflow-hidden border wd-border-subtle ${
+          isFullscreen ? 'rounded-none h-full flex flex-col' : 'rounded-xl'
+        } ${
+          isDragging ? 'shadow-2xl scale-[1.02]' : isFullscreen ? 'shadow-none' : 'shadow-lg'
+        } transition-shadow transition-transform duration-150 motion-reduce:duration-0`}
         style={{
           backgroundColor: 'color-mix(in srgb, var(--wd-surface-panel) 92%, transparent)',
           backdropFilter: 'blur(20px) saturate(1.2)',
@@ -308,7 +349,7 @@ export default function FloatingCallWindow() {
         {/* Header — drag handle */}
         <div
           className="flex items-center justify-between gap-2 px-3 py-2 border-b wd-border-subtle"
-          style={{ cursor: isDragging ? 'grabbing' : 'grab', touchAction: 'none' }}
+          style={{ cursor: isFullscreen ? 'default' : isDragging ? 'grabbing' : 'grab', touchAction: 'none' }}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onDragEnd}
@@ -360,6 +401,20 @@ export default function FloatingCallWindow() {
             >
               <ArrowUpRight size={12} />
             </button>
+            {/* Fullscreen toggle (only shown when not collapsed) */}
+            {!isCollapsed && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleToggleFullscreen();
+                }}
+                className="inline-flex items-center justify-center h-5 w-5 rounded wd-text-muted hover:wd-text-primary transition-colors"
+                title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+              >
+                {isFullscreen ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
+              </button>
+            )}
             {/* Collapse/expand */}
             <button
               type="button"
@@ -377,13 +432,13 @@ export default function FloatingCallWindow() {
 
         {/* Expanded content */}
         {!isCollapsed && (
-          <>
+          <div className={isFullscreen ? 'flex-1 min-h-0 flex flex-col' : ''}>
             {isInDifferentWorkspace ? (
               /* Paused overlay — replaces participant tiles */
               <div
-                className="flex flex-col items-center justify-center gap-3 p-4"
+                className={`flex flex-col items-center justify-center gap-3 p-4 ${isFullscreen ? 'flex-1' : ''}`}
                 style={{
-                  height: 168,
+                  ...(isFullscreen ? {} : { height: 168 }),
                   backgroundColor: 'var(--wd-surface-panel-2)',
                 }}
               >
@@ -419,6 +474,7 @@ export default function FloatingCallWindow() {
                 participants={participants}
                 channelId={channelId}
                 localUserId={userId}
+                fillHeight={isFullscreen}
               />
             )}
 
@@ -468,7 +524,7 @@ export default function FloatingCallWindow() {
                 />
               )}
             </div>
-          </>
+          </div>
         )}
 
         {/* Collapsed pill controls */}

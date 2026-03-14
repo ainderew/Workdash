@@ -32,7 +32,14 @@ export interface FloatingPosition {
   y: number;
 }
 
-export type FloatingWindowState = 'expanded' | 'collapsed';
+export type FloatingWindowState = 'expanded' | 'collapsed' | 'fullscreen';
+
+export interface ChannelContentRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
 
 // ----------------------------------------------------------------
 // Store
@@ -76,6 +83,9 @@ interface CallState {
 
   /** Floating call window state */
   floatingWindowState: FloatingWindowState;
+
+  /** Channel content area bounds for fullscreen mode */
+  channelContentRect: ChannelContentRect | null;
 
   /** Pinned tile key — e.g. "42" for camera, "42-screen" for screen share (null = no pin) */
   pinnedTileKey: string | null;
@@ -121,6 +131,7 @@ interface CallState {
   setManualFloating: (value: boolean) => void;
   setFloatingPosition: (pos: FloatingPosition) => void;
   setFloatingWindowState: (state: FloatingWindowState) => void;
+  setChannelContentRect: (rect: ChannelContentRect | null) => void;
 
   // Pin actions
   setPinnedTileKey: (key: string | null) => void;
@@ -151,6 +162,7 @@ const useCallStore = create<CallState>((set) => ({
   manualFloating: false,
   floatingPosition: null,
   floatingWindowState: 'expanded' as FloatingWindowState,
+  channelContentRect: null,
   pinnedTileKey: null,
   connectionQuality: 'unknown' as ConnectionQuality,
   statsSnapshot: null,
@@ -343,6 +355,9 @@ const useCallStore = create<CallState>((set) => ({
   setFloatingWindowState: (windowState) =>
     set(() => ({ floatingWindowState: windowState })),
 
+  setChannelContentRect: (rect) =>
+    set(() => ({ channelContentRect: rect })),
+
   setPinnedTileKey: (key) =>
     set(() => ({ pinnedTileKey: key })),
 
@@ -372,6 +387,7 @@ const useCallStore = create<CallState>((set) => ({
       manualFloating: false,
       floatingPosition: null,
       floatingWindowState: 'expanded' as FloatingWindowState,
+      channelContentRect: null,
       pinnedTileKey: null,
       connectionQuality: 'unknown' as ConnectionQuality,
       statsSnapshot: null,

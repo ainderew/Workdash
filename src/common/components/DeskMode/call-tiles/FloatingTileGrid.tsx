@@ -10,6 +10,7 @@ interface FloatingTileGridProps {
   participants: CallParticipant[];
   channelId: string;
   localUserId: number;
+  fillHeight?: boolean;
 }
 
 const TILE_CONTAINER_HEIGHT = 168;
@@ -42,6 +43,7 @@ export default function FloatingTileGrid({
   participants,
   channelId,
   localUserId,
+  fillHeight = false,
 }: FloatingTileGridProps) {
   const pinnedTileKey = useCallStore((s) => s.pinnedTileKey);
   const setPinnedTileKey = useCallStore((s) => s.setPinnedTileKey);
@@ -56,11 +58,13 @@ export default function FloatingTileGrid({
 
   if (pinnedTile) {
     const others = allTiles.filter((t) => t.key !== pinnedTileKey);
+    const visibleOthers = fillHeight ? others : others.slice(0, 3);
+    const hiddenCount = fillHeight ? 0 : others.length - visibleOthers.length;
     return (
       <div
-        className="flex flex-col gap-1.5 p-2"
+        className={`flex flex-col gap-1.5 p-2 ${fillHeight ? 'flex-1 min-h-0' : ''}`}
         style={{
-          height: TILE_CONTAINER_HEIGHT,
+          ...(fillHeight ? { minHeight: 0 } : { height: TILE_CONTAINER_HEIGHT }),
           backgroundColor: 'var(--wd-surface-panel-2)',
         }}
       >
@@ -68,12 +72,12 @@ export default function FloatingTileGrid({
           {renderTile(pinnedTile, channelId, pinnedTileKey, togglePin)}
         </div>
         {others.length > 0 && (
-          <div className="flex gap-1 h-12 shrink-0">
-            {others.slice(0, 3).map((t) => renderTile(t, channelId, pinnedTileKey, togglePin))}
-            {others.length > 3 && (
+          <div className={`flex gap-1 shrink-0 ${fillHeight ? 'h-16' : 'h-12'}`}>
+            {visibleOthers.map((t) => renderTile(t, channelId, pinnedTileKey, togglePin))}
+            {hiddenCount > 0 && (
               <div className="flex items-center justify-center rounded-lg wd-bg-elevated px-1">
                 <span className="text-[10px] wd-text-muted">
-                  +{others.length - 3}
+                  +{hiddenCount}
                 </span>
               </div>
             )}
@@ -84,16 +88,19 @@ export default function FloatingTileGrid({
   }
 
   // Default grid layout
-  const visibleTiles = allTiles.slice(0, 4);
+  const visibleTiles = fillHeight ? allTiles : allTiles.slice(0, 4);
   const overflowCount = allTiles.length - visibleTiles.length;
 
   return (
     <div
-      className="grid gap-1.5 p-2"
+      className={`grid gap-1.5 p-2 ${fillHeight ? 'flex-1 min-h-0' : ''}`}
       style={{
-        gridTemplateColumns:
-          visibleTiles.length <= 1 ? '1fr' : 'repeat(2, 1fr)',
-        height: TILE_CONTAINER_HEIGHT,
+        gridTemplateColumns: fillHeight
+          ? 'repeat(auto-fill, minmax(150px, 1fr))'
+          : visibleTiles.length <= 1
+            ? '1fr'
+            : 'repeat(2, 1fr)',
+        ...(fillHeight ? { minHeight: 0 } : { height: TILE_CONTAINER_HEIGHT }),
         backgroundColor: 'var(--wd-surface-panel-2)',
       }}
     >
