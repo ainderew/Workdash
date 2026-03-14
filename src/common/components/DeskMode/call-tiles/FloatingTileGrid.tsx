@@ -15,19 +15,16 @@ interface FloatingTileGridProps {
 
 const TILE_CONTAINER_HEIGHT = 168;
 
-function renderTile(tile: TileData, channelId: string, pinnedTileKey: string | null, togglePin: (key: string) => void) {
-  if (tile.isScreen) {
-    return (
-      <ScreenShareTile
-        key={tile.key}
-        participant={tile.participant}
-        isLocal={tile.isLocal}
-        isPinned={pinnedTileKey === tile.key}
-        onTogglePin={() => togglePin(tile.key)}
-      />
-    );
-  }
-  return (
+function renderTile(tile: TileData, channelId: string, pinnedTileKey: string | null, togglePin: (key: string) => void, fillHeight = false) {
+  const content = tile.isScreen ? (
+    <ScreenShareTile
+      key={tile.key}
+      participant={tile.participant}
+      isLocal={tile.isLocal}
+      isPinned={pinnedTileKey === tile.key}
+      onTogglePin={() => togglePin(tile.key)}
+    />
+  ) : (
     <CallParticipantTile
       key={tile.key}
       participant={tile.participant}
@@ -37,6 +34,16 @@ function renderTile(tile: TileData, channelId: string, pinnedTileKey: string | n
       onTogglePin={() => togglePin(tile.key)}
     />
   );
+
+  if (fillHeight) {
+    return (
+      <div key={tile.key} className="min-h-0 min-w-0 overflow-hidden">
+        {content}
+      </div>
+    );
+  }
+
+  return content;
 }
 
 export default function FloatingTileGrid({
@@ -69,11 +76,11 @@ export default function FloatingTileGrid({
         }}
       >
         <div className="flex-1 min-h-0 overflow-hidden">
-          {renderTile(pinnedTile, channelId, pinnedTileKey, togglePin)}
+          {renderTile(pinnedTile, channelId, pinnedTileKey, togglePin, fillHeight)}
         </div>
         {others.length > 0 && (
-          <div className={`flex gap-1 shrink-0 overflow-hidden ${fillHeight ? 'h-20' : 'h-12'}`}>
-            {visibleOthers.map((t) => renderTile(t, channelId, pinnedTileKey, togglePin))}
+          <div className={`flex gap-1 shrink-0 overflow-hidden ${fillHeight ? 'gap-3 h-20' : 'h-12'}`}>
+            {visibleOthers.map((t) => renderTile(t, channelId, pinnedTileKey, togglePin, fillHeight))}
             {hiddenCount > 0 && (
               <div className="flex items-center justify-center rounded-lg wd-bg-elevated px-1">
                 <span className="text-[10px] wd-text-muted">
@@ -111,7 +118,7 @@ export default function FloatingTileGrid({
         backgroundColor: 'var(--wd-surface-panel-2)',
       }}
     >
-      {visibleTiles.map((t) => renderTile(t, channelId, pinnedTileKey, togglePin))}
+      {visibleTiles.map((t) => renderTile(t, channelId, pinnedTileKey, togglePin, fillHeight))}
       {overflowCount > 0 && (
         <div className="flex items-center justify-center rounded-lg wd-bg-elevated">
           <div className="flex -space-x-1.5">
