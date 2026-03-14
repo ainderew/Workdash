@@ -62,17 +62,17 @@ export default function FloatingTileGrid({
     const hiddenCount = fillHeight ? 0 : others.length - visibleOthers.length;
     return (
       <div
-        className={`flex flex-col gap-1.5 p-2 ${fillHeight ? 'flex-1 min-h-0' : ''}`}
+        className={`flex flex-col gap-1.5 p-2 ${fillHeight ? 'flex-1 min-h-0 overflow-hidden' : ''}`}
         style={{
           ...(fillHeight ? { minHeight: 0 } : { height: TILE_CONTAINER_HEIGHT }),
           backgroundColor: 'var(--wd-surface-panel-2)',
         }}
       >
-        <div className="flex-1 min-h-0">
+        <div className="flex-1 min-h-0 overflow-hidden">
           {renderTile(pinnedTile, channelId, pinnedTileKey, togglePin)}
         </div>
         {others.length > 0 && (
-          <div className={`flex gap-1 shrink-0 ${fillHeight ? 'h-16' : 'h-12'}`}>
+          <div className={`flex gap-1 shrink-0 overflow-hidden ${fillHeight ? 'h-20' : 'h-12'}`}>
             {visibleOthers.map((t) => renderTile(t, channelId, pinnedTileKey, togglePin))}
             {hiddenCount > 0 && (
               <div className="flex items-center justify-center rounded-lg wd-bg-elevated px-1">
@@ -91,15 +91,22 @@ export default function FloatingTileGrid({
   const visibleTiles = fillHeight ? allTiles : allTiles.slice(0, 4);
   const overflowCount = allTiles.length - visibleTiles.length;
 
+  // For fullscreen: compute grid dimensions to equally divide space
+  const cols = fillHeight
+    ? Math.max(1, Math.ceil(Math.sqrt(visibleTiles.length)))
+    : visibleTiles.length <= 1
+      ? 1
+      : 2;
+  const rows = fillHeight
+    ? Math.max(1, Math.ceil(visibleTiles.length / cols))
+    : undefined;
+
   return (
     <div
-      className={`grid gap-1.5 p-2 ${fillHeight ? 'flex-1 min-h-0' : ''}`}
+      className={`grid gap-1.5 p-2 ${fillHeight ? 'flex-1 min-h-0 overflow-hidden' : ''}`}
       style={{
-        gridTemplateColumns: fillHeight
-          ? 'repeat(auto-fill, minmax(150px, 1fr))'
-          : visibleTiles.length <= 1
-            ? '1fr'
-            : 'repeat(2, 1fr)',
+        gridTemplateColumns: `repeat(${cols}, 1fr)`,
+        ...(rows != null ? { gridTemplateRows: `repeat(${rows}, 1fr)` } : {}),
         ...(fillHeight ? { minHeight: 0 } : { height: TILE_CONTAINER_HEIGHT }),
         backgroundColor: 'var(--wd-surface-panel-2)',
       }}
