@@ -725,8 +725,19 @@ function ChannelSidebar({
                 className="no-scrollbar flex-1 min-h-0 overflow-y-auto px-3 py-2"
             >
                 {isLoading ? (
-                    <div className="text-xs wd-text-muted px-2 py-3">
-                        Loading channels...
+                    <div className="space-y-4 py-2">
+                        {[0, 1].map((group) => (
+                            <div key={group} className="space-y-1">
+                                <div className="px-1 py-1">
+                                    <div className={`h-2.5 ${group === 0 ? "w-20" : "w-16"} rounded animate-pulse motion-reduce:animate-none wd-bg-elevated`} />
+                                </div>
+                                {Array.from({ length: group === 0 ? 4 : 3 }, (_, i) => (
+                                    <div key={i} className="px-2 py-2">
+                                        <div className={`h-3 ${["w-24", "w-20", "w-28", "w-16"][i % 4]} rounded animate-pulse motion-reduce:animate-none wd-bg-elevated`} />
+                                    </div>
+                                ))}
+                            </div>
+                        ))}
                     </div>
                 ) : (
                     categoryTree.map((category) => {

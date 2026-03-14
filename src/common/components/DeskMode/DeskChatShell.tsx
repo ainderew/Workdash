@@ -67,7 +67,11 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
     const setSelectedWorkspaceId = useChatV2Store(
         (state) => state.setSelectedWorkspaceId,
     );
-    const messagesByRoomId = useChatV2Store((state) => state.messagesByRoomId);
+    const currentRoomMessages = useChatV2Store((state) =>
+        state.currentRoomId
+            ? state.messagesByRoomId[state.currentRoomId]
+            : undefined,
+    );
     const isLoadingRooms = useChatV2Store((state) => state.isLoadingRooms);
     const isLoadingDirectRooms = useChatV2Store(
         (state) => state.isLoadingDirectRooms,
@@ -76,6 +80,9 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
     const isLoadingMessages = useChatV2Store(
         (state) => state.isLoadingMessages,
     );
+    const effectiveIsLoading =
+        isLoadingMessages ||
+        (!!currentRoomId && currentRoomMessages === undefined);
     const isLoadingOlderMessages = useChatV2Store(
         (state) => state.isLoadingOlderMessages,
     );
@@ -448,9 +455,7 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
         }
     }, []);
 
-    const roomMessages = currentRoomId
-        ? messagesByRoomId[currentRoomId] || []
-        : [];
+    const roomMessages = currentRoomMessages || [];
     const roomMembers = currentRoomId
         ? membersByRoomId[currentRoomId] || []
         : [];
@@ -913,7 +918,7 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
 
                             <MessageList
                                 messages={roomMessages}
-                                isLoading={isLoadingMessages}
+                                isLoading={effectiveIsLoading}
                                 memberRoleColors={memberRoleColors}
                                 isLoadingOlderMessages={isLoadingOlderMessages}
                                 hasMoreMessages={

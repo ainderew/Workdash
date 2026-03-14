@@ -1,4 +1,4 @@
-import React, { forwardRef, useEffect, useLayoutEffect, useRef } from "react";
+import React, { forwardRef, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import StartGame from "./game/main";
 import { EventBus } from "./game/EventBus";
@@ -30,7 +30,7 @@ export const PhaserGame = forwardRef<IRefPhaserGame, IProps>(
         const game = useRef<Phaser.Game | null>(null!);
         const { data: session } = useSession();
 
-        useLayoutEffect(() => {
+        useEffect(() => {
             if (session?.backendJwt) {
                 tokenStore.setJwt(session.backendJwt);
                 if (session.backendUser) tokenStore.setUser(session.backendUser);
