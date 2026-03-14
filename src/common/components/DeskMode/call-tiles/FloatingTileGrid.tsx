@@ -23,6 +23,7 @@ function renderTile(tile: TileData, channelId: string, pinnedTileKey: string | n
       isLocal={tile.isLocal}
       isPinned={pinnedTileKey === tile.key}
       onTogglePin={() => togglePin(tile.key)}
+      fillCell={fillHeight}
     />
   ) : (
     <CallParticipantTile
@@ -32,6 +33,7 @@ function renderTile(tile: TileData, channelId: string, pinnedTileKey: string | n
       isLocal={tile.isLocal}
       isPinned={pinnedTileKey === tile.key}
       onTogglePin={() => togglePin(tile.key)}
+      fillCell={fillHeight}
     />
   );
 

@@ -10,6 +10,8 @@ interface ScreenShareTileProps {
   isLocal: boolean;
   isPinned?: boolean;
   onTogglePin?: () => void;
+  /** When true, fill the parent cell instead of enforcing 16:9 aspect ratio */
+  fillCell?: boolean;
 }
 
 export default function ScreenShareTile({
@@ -17,6 +19,7 @@ export default function ScreenShareTile({
   isLocal,
   isPinned,
   onTogglePin,
+  fillCell,
 }: ScreenShareTileProps) {
   const videoContainerRef = useRef<HTMLDivElement>(null);
 
@@ -121,7 +124,7 @@ export default function ScreenShareTile({
     <div
       className="relative overflow-hidden rounded-lg border wd-border-subtle h-full min-w-0 group/tile"
       style={{
-        aspectRatio: '16 / 9',
+        aspectRatio: fillCell ? 'auto' : '16 / 9',
         backgroundColor: '#000',
       }}
     >

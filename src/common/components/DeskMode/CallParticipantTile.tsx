@@ -15,6 +15,8 @@ interface CallParticipantTileProps {
   isLocal: boolean;
   isPinned?: boolean;
   onTogglePin?: () => void;
+  /** When true, fill the parent cell instead of enforcing 4:3 aspect ratio */
+  fillCell?: boolean;
 }
 
 export default function CallParticipantTile({
@@ -23,6 +25,7 @@ export default function CallParticipantTile({
   isLocal,
   isPinned,
   onTogglePin,
+  fillCell,
 }: CallParticipantTileProps) {
   const tileRef = useRef<HTMLDivElement>(null);
   const videoContainerRef = useRef<HTMLDivElement>(null);
@@ -141,7 +144,7 @@ export default function CallParticipantTile({
       ref={tileRef}
       className="relative overflow-hidden rounded-lg border wd-border-subtle h-full min-w-0 group/tile wd-speaker-tile"
       style={{
-        aspectRatio: '4 / 3',
+        aspectRatio: fillCell ? 'auto' : '4 / 3',
         backgroundColor: 'var(--wd-surface-panel)',
       }}
     >
