@@ -37,7 +37,7 @@ function renderTile(tile: TileData, channelId: string, pinnedTileKey: string | n
 
   if (fillHeight) {
     return (
-      <div key={tile.key} className="min-h-0 min-w-0 overflow-hidden">
+      <div key={tile.key} className="h-full w-full min-h-0 min-w-0 overflow-hidden">
         {content}
       </div>
     );
