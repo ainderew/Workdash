@@ -184,10 +184,12 @@ export default function CallView({ channelId, onLeave, onPictureInPicture, onFul
           onToggleVideo={handleToggleVideo}
           onToggleScreenShare={handleScreenShare}
           onLeave={onLeave}
-          onToggleCollapse={() => setCollapsed(false)}
-          onPictureInPicture={onPictureInPicture}
-          onToggleFullscreen={onFullscreen}
-          isCollapsed
+          displayModeProps={{
+            isCollapsed: true,
+            onToggleCollapse: () => setCollapsed(false),
+            onPictureInPicture,
+            onToggleFullscreen: onFullscreen,
+          }}
           size="sm"
         />
       </div>
@@ -228,10 +230,12 @@ export default function CallView({ channelId, onLeave, onPictureInPicture, onFul
           onToggleVideo={handleToggleVideo}
           onToggleScreenShare={handleScreenShare}
           onLeave={onLeave}
-          onToggleCollapse={() => setCollapsed(true)}
-          onPictureInPicture={onPictureInPicture}
-          onToggleFullscreen={onFullscreen}
-          isCollapsed={false}
+          displayModeProps={{
+            isCollapsed: false,
+            onToggleCollapse: () => setCollapsed(true),
+            onPictureInPicture,
+            onToggleFullscreen: onFullscreen,
+          }}
         />
       </div>
     </div>

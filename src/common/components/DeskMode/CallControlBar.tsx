@@ -1,12 +1,12 @@
 import React from 'react';
-import {
-  Monitor, MonitorOff,
-  PhoneOff, Maximize2, Minimize2, PictureInPicture2,
-} from 'lucide-react';
+import { Monitor, MonitorOff, PhoneOff } from 'lucide-react';
 import useCallStore from '@/common/store/callStore';
 import type { ConnectionQuality } from '@/common/store/callStore';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import MicSplitButton from './MicSplitButton';
 import VideoSplitButton from './VideoSplitButton';
+import DisplayModeSplitButton from './DisplayModeSplitButton';
+import type { DisplayModeSplitButtonProps } from './DisplayModeSplitButton';
 
 export type CallControlSize = 'sm' | 'md';
 
@@ -25,15 +25,8 @@ interface CallControlBarProps {
   onToggleVideo: () => void;
   onToggleScreenShare: () => void;
   onLeave: () => void;
-  /** Toggle between expanded/collapsed call view */
-  onToggleCollapse?: () => void;
-  isCollapsed?: boolean;
-  /** Navigate back to the call's channel */
-  onExpandToChannel?: () => void;
-  /** Pop out to floating PiP window */
-  onPictureInPicture?: () => void;
-  /** Toggle fullscreen mode */
-  onToggleFullscreen?: () => void;
+  /** Props for the display-mode split button (inline mode only) */
+  displayModeProps?: DisplayModeSplitButtonProps;
   size?: CallControlSize;
 }
 
@@ -50,11 +43,7 @@ export default function CallControlBar({
   onToggleVideo,
   onToggleScreenShare,
   onLeave,
-  onToggleCollapse,
-  isCollapsed,
-  onExpandToChannel,
-  onPictureInPicture,
-  onToggleFullscreen,
+  displayModeProps,
   size = 'md',
 }: CallControlBarProps) {
   const { btn, icon, gap } = sizeConfig[size];
@@ -70,15 +59,17 @@ export default function CallControlBar({
   return (
     <div className={`flex items-center justify-center ${gap}`}>
       {/* Connection quality indicator */}
-      <div
-        className="relative flex items-center justify-center h-4 w-4 shrink-0"
-        title={statsTooltip}
-      >
-        <span
-          className="block h-2 w-2 rounded-full"
-          style={{ backgroundColor: qualityColors[connectionQuality] }}
-        />
-      </div>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className="relative flex items-center justify-center h-4 w-4 shrink-0 cursor-default">
+            <span
+              className="block h-2 w-2 rounded-full"
+              style={{ backgroundColor: qualityColors[connectionQuality] }}
+            />
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="top" sideOffset={6}>{statsTooltip}</TooltipContent>
+      </Tooltip>
 
       {/* Mute + mic source picker */}
       <MicSplitButton
@@ -97,70 +88,39 @@ export default function CallControlBar({
       />
 
       {/* Screen Share */}
-      <button
-        type="button"
-        onClick={onToggleScreenShare}
-        className={`inline-flex items-center justify-center ${btn} rounded-full border transition-colors ${
-          isScreenSharing
-            ? 'border-[var(--wd-info)] text-[var(--wd-info)]'
-            : 'wd-border-subtle wd-text-secondary hover:wd-text-primary'
-        }`}
-        style={
-          isScreenSharing
-            ? { backgroundColor: 'color-mix(in srgb, var(--wd-info) 12%, transparent)' }
-            : undefined
-        }
-        title={isScreenSharing ? 'Stop sharing' : 'Share screen'}
-      >
-        {isScreenSharing ? <MonitorOff size={icon} /> : <Monitor size={icon} />}
-      </button>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            onClick={onToggleScreenShare}
+            className={`inline-flex items-center justify-center ${btn} rounded-full border cursor-pointer transition-colors ${
+              isScreenSharing
+                ? 'border-[var(--wd-info)] text-[var(--wd-info)]'
+                : 'wd-border-subtle wd-text-secondary hover:wd-text-primary'
+            }`}
+            style={
+              isScreenSharing
+                ? { backgroundColor: 'color-mix(in srgb, var(--wd-info) 12%, transparent)' }
+                : undefined
+            }
+          >
+            {isScreenSharing ? <MonitorOff size={icon} /> : <Monitor size={icon} />}
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="top" sideOffset={6}>
+          {isScreenSharing ? 'Stop sharing' : 'Share screen'}
+        </TooltipContent>
+      </Tooltip>
 
-      {/* Picture-in-picture (pop out to floating window) */}
-      {onPictureInPicture && (
-        <button
-          type="button"
-          onClick={onPictureInPicture}
-          className={`inline-flex items-center justify-center ${btn} rounded-full border wd-border-subtle wd-text-secondary hover:wd-text-primary transition-colors`}
-          title="Pop out to floating window"
-        >
-          <PictureInPicture2 size={icon} />
-        </button>
-      )}
-
-      {/* Fullscreen */}
-      {onToggleFullscreen && (
-        <button
-          type="button"
-          onClick={onToggleFullscreen}
-          className={`inline-flex items-center justify-center ${btn} rounded-full border wd-border-subtle wd-text-secondary hover:wd-text-primary transition-colors`}
-          title="Fullscreen"
-        >
-          <Maximize2 size={icon} />
-        </button>
-      )}
-
-      {/* Expand to channel */}
-      {onExpandToChannel && (
-        <button
-          type="button"
-          onClick={onExpandToChannel}
-          className={`inline-flex items-center justify-center ${btn} rounded-full border wd-border-subtle wd-text-secondary hover:wd-text-primary transition-colors`}
-          title="Go to call channel"
-        >
-          <Maximize2 size={icon} />
-        </button>
-      )}
-
-      {/* Collapse/expand toggle */}
-      {onToggleCollapse && (
-        <button
-          type="button"
-          onClick={onToggleCollapse}
-          className={`inline-flex items-center justify-center ${btn} rounded-full border wd-border-subtle wd-text-secondary hover:wd-text-primary transition-colors`}
-          title={isCollapsed ? 'Expand call view' : 'Minimize to pill'}
-        >
-          {isCollapsed ? <Maximize2 size={icon} /> : <Minimize2 size={icon} />}
-        </button>
+      {/* Display mode split button (inline mode only) */}
+      {displayModeProps && (
+        <>
+          <div
+            className="w-px h-5 mx-0.5"
+            style={{ backgroundColor: 'var(--wd-border-subtle)' }}
+          />
+          <DisplayModeSplitButton {...displayModeProps} size={size} />
+        </>
       )}
 
       {/* Divider + Leave */}
@@ -169,15 +129,19 @@ export default function CallControlBar({
         style={{ backgroundColor: 'var(--wd-border-subtle)' }}
       />
 
-      <button
-        type="button"
-        onClick={onLeave}
-        className={`inline-flex items-center justify-center ${btn} rounded-full transition-colors`}
-        style={{ backgroundColor: 'var(--wd-danger)', color: '#fff' }}
-        title="Leave call"
-      >
-        <PhoneOff size={icon} />
-      </button>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            onClick={onLeave}
+            className={`inline-flex items-center justify-center ${btn} rounded-full cursor-pointer transition-colors`}
+            style={{ backgroundColor: 'var(--wd-danger)', color: '#fff' }}
+          >
+            <PhoneOff size={icon} />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="top" sideOffset={6}>Leave call</TooltipContent>
+      </Tooltip>
     </div>
   );
 }

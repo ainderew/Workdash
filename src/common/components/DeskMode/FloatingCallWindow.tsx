@@ -1,5 +1,6 @@
 import React, { useEffect, useCallback, useRef, useState } from 'react';
-import { Phone, Minus, ArrowUpRight, Pause, ArrowLeft, Maximize2, Minimize2 } from 'lucide-react';
+import { Phone, Minus, ArrowUpRight, Pause, ArrowLeft, Expand, Shrink, ChevronUp } from 'lucide-react';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import useCallStore from '@/common/store/callStore';
 import useChatV2Store from '@/common/store/chatV2Store';
 import useUiStore from '@/common/store/uiStore';
@@ -399,44 +400,60 @@ export default function FloatingCallWindow() {
           </div>
 
           <div className="flex items-center gap-1 shrink-0">
-            {/* Expand to channel */}
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleExpandToChannel();
-              }}
-              className="inline-flex items-center justify-center h-5 w-5 rounded wd-text-muted hover:wd-text-primary transition-colors"
-              title="Go to call channel"
-            >
-              <ArrowUpRight size={12} />
-            </button>
+            {/* Go to call channel */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleExpandToChannel();
+                  }}
+                  className="inline-flex items-center justify-center h-5 w-5 rounded wd-text-muted hover:wd-text-primary cursor-pointer transition-colors hover:bg-[color-mix(in_srgb,var(--wd-text-primary)_10%,transparent)]"
+                >
+                  <ArrowUpRight size={12} />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" sideOffset={4}>Go to call channel</TooltipContent>
+            </Tooltip>
             {/* Fullscreen toggle (only shown when not collapsed) */}
             {!isCollapsed && (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleToggleFullscreen();
-                }}
-                className="inline-flex items-center justify-center h-5 w-5 rounded wd-text-muted hover:wd-text-primary transition-colors"
-                title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
-              >
-                {isFullscreen ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
-              </button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleToggleFullscreen();
+                    }}
+                    className="inline-flex items-center justify-center h-5 w-5 rounded wd-text-muted hover:wd-text-primary cursor-pointer transition-colors hover:bg-[color-mix(in_srgb,var(--wd-text-primary)_10%,transparent)]"
+                  >
+                    {isFullscreen ? <Shrink size={12} /> : <Expand size={12} />}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" sideOffset={4}>
+                  {isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+                </TooltipContent>
+              </Tooltip>
             )}
             {/* Collapse/expand */}
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleToggleCollapse();
-              }}
-              className="inline-flex items-center justify-center h-5 w-5 rounded wd-text-muted hover:wd-text-primary transition-colors"
-              title={isCollapsed ? 'Expand' : 'Minimize'}
-            >
-              <Minus size={12} />
-            </button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleToggleCollapse();
+                  }}
+                  className="inline-flex items-center justify-center h-5 w-5 rounded wd-text-muted hover:wd-text-primary cursor-pointer transition-colors hover:bg-[color-mix(in_srgb,var(--wd-text-primary)_10%,transparent)]"
+                >
+                  {isCollapsed ? <ChevronUp size={12} /> : <Minus size={12} />}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" sideOffset={4}>
+                {isCollapsed ? 'Expand' : 'Minimize'}
+              </TooltipContent>
+            </Tooltip>
           </div>
         </div>
 
@@ -472,7 +489,7 @@ export default function FloatingCallWindow() {
                 <button
                   type="button"
                   onClick={handleReturnToCall}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors wd-btn-primary"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium cursor-pointer transition-colors wd-btn-primary"
                 >
                   <ArrowLeft size={12} />
                   Return to call
@@ -492,34 +509,42 @@ export default function FloatingCallWindow() {
             <div className="px-2 py-2 border-t wd-border-subtle">
               {isInDifferentWorkspace ? (
                 <div className="flex items-center justify-center gap-2">
-                  <button
-                    type="button"
-                    onClick={handleReturnToCall}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium wd-text-muted hover:wd-text-primary transition-colors"
-                    style={{
-                      backgroundColor: 'color-mix(in srgb, var(--wd-warning, #f59e0b) 15%, transparent)',
-                    }}
-                    title="Return to call"
-                  >
-                    <ArrowLeft size={11} />
-                    Return
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleLeave();
-                    }}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors"
-                    style={{
-                      backgroundColor: 'color-mix(in srgb, var(--wd-danger, #ef4444) 15%, transparent)',
-                      color: 'var(--wd-danger, #ef4444)',
-                    }}
-                    title="Leave call"
-                  >
-                    <Phone size={11} />
-                    Leave
-                  </button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        onClick={handleReturnToCall}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium wd-text-muted hover:wd-text-primary cursor-pointer transition-colors"
+                        style={{
+                          backgroundColor: 'color-mix(in srgb, var(--wd-warning, #f59e0b) 15%, transparent)',
+                        }}
+                      >
+                        <ArrowLeft size={11} />
+                        Return
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" sideOffset={4}>Return to call</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleLeave();
+                        }}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium cursor-pointer transition-colors"
+                        style={{
+                          backgroundColor: 'color-mix(in srgb, var(--wd-danger, #ef4444) 15%, transparent)',
+                          color: 'var(--wd-danger, #ef4444)',
+                        }}
+                      >
+                        <Phone size={11} />
+                        Leave
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" sideOffset={4}>Leave call</TooltipContent>
+                  </Tooltip>
                 </div>
               ) : (
                 <CallControlBar
@@ -542,30 +567,38 @@ export default function FloatingCallWindow() {
           <div className="flex items-center justify-center px-2 py-1.5">
             {isInDifferentWorkspace ? (
               <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handleReturnToCall}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium wd-text-muted hover:wd-text-primary transition-colors"
-                  title="Return to call"
-                >
-                  <ArrowLeft size={10} />
-                  Return
-                </button>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleLeave();
-                  }}
-                  className="inline-flex items-center justify-center h-5 w-5 rounded-full transition-colors"
-                  style={{
-                    backgroundColor: 'color-mix(in srgb, var(--wd-danger, #ef4444) 15%, transparent)',
-                    color: 'var(--wd-danger, #ef4444)',
-                  }}
-                  title="Leave call"
-                >
-                  <Phone size={10} />
-                </button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      onClick={handleReturnToCall}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium wd-text-muted hover:wd-text-primary cursor-pointer transition-colors"
+                    >
+                      <ArrowLeft size={10} />
+                      Return
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" sideOffset={4}>Return to call</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleLeave();
+                      }}
+                      className="inline-flex items-center justify-center h-5 w-5 rounded-full cursor-pointer transition-colors"
+                      style={{
+                        backgroundColor: 'color-mix(in srgb, var(--wd-danger, #ef4444) 15%, transparent)',
+                        color: 'var(--wd-danger, #ef4444)',
+                      }}
+                    >
+                      <Phone size={10} />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" sideOffset={4}>Leave call</TooltipContent>
+                </Tooltip>
               </div>
             ) : (
               <CallControlBar

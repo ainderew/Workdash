@@ -66,6 +66,10 @@ export class AudioChat {
     private analyserNodes: Map<string, AnalyserNode> = new Map();
     /** AnalyserNode tapped into local mic processing chain */
     private localAnalyser: AnalyserNode | null = null;
+    /** Receive-side high-pass filters (keyed by consumerId) for cleanup */
+    private receiveFilters: Map<string, BiquadFilterNode> = new Map();
+    /** Shared output limiter to prevent clipping from loud remote speakers */
+    private outputLimiter: DynamicsCompressorNode | null = null;
 
     constructor() {
         logger.log("initializeAudioChat");
@@ -187,6 +191,12 @@ export class AudioChat {
             this.gainNodes.delete(consumerId);
         }
 
+        const rxFilter = this.receiveFilters.get(consumerId);
+        if (rxFilter) {
+            rxFilter.disconnect();
+            this.receiveFilters.delete(consumerId);
+        }
+
         const analyser = this.analyserNodes.get(consumerId);
         if (analyser) {
             analyser.disconnect();
@@ -195,7 +205,6 @@ export class AudioChat {
 
         const audioEl = this.audioElements.get(consumerId);
         if (audioEl) {
-            audioEl.srcObject = null;
             audioEl.remove();
             this.audioElements.delete(consumerId);
         }
@@ -326,7 +335,8 @@ export class AudioChat {
             opusStereo: isStudio,
             opusDtx: !isStudio,
             opusFec: true,
-            opusMaxAverageBitrate: isStudio ? 128_000 : 96_000,
+            // 48kbps mono is broadcast-quality for voice; higher bitrates encode noise in detail
+            opusMaxAverageBitrate: isStudio ? 128_000 : 48_000,
             ...(isStudio && { opusMaxPlaybackRate: 48000 }),
         };
     }
@@ -480,8 +490,19 @@ export class AudioChat {
 
             const remoteStream = new MediaStream([consumer.track]);
 
-            if (!this.outputAudioContext) {
-                this.outputAudioContext = new AudioContext();
+            if (!this.outputAudioContext || this.outputAudioContext.state === 'closed') {
+                this.outputAudioContext = new AudioContext({
+                    latencyHint: 'interactive',
+                });
+
+                // Shared limiter before destination to prevent clipping from loud speakers
+                this.outputLimiter = this.outputAudioContext.createDynamicsCompressor();
+                this.outputLimiter.threshold.value = -1;
+                this.outputLimiter.knee.value = 0;
+                this.outputLimiter.ratio.value = 20;
+                this.outputLimiter.attack.value = 0.001;
+                this.outputLimiter.release.value = 0.01;
+                this.outputLimiter.connect(this.outputAudioContext.destination);
             }
 
             // Firefox requires AudioContext to be resumed after user gesture
@@ -491,14 +512,28 @@ export class AudioChat {
 
             const source =
                 this.outputAudioContext.createMediaStreamSource(remoteStream);
-            const gainNode = this.outputAudioContext.createGain();
 
             const isMusicBot = this.musicBotProducerIds.has(
                 consumerData.producerId,
             );
 
+            // Receive-side high-pass for voice (skip for music bot)
+            // Only high-pass is needed — capture side already low-passes at 8kHz,
+            // so a receive-side low-pass would add phase distortion with no benefit.
+            let lastNode: AudioNode = source;
+            if (!isMusicBot) {
+                const rxHighPass = this.outputAudioContext.createBiquadFilter();
+                rxHighPass.type = "highpass";
+                rxHighPass.frequency.value = 80;
+
+                source.connect(rxHighPass);
+                lastNode = rxHighPass;
+                this.receiveFilters.set(consumer.id, rxHighPass);
+            }
+
+            const gainNode = this.outputAudioContext.createGain();
+
             if (isMusicBot) {
-                // Music bot: 50% default volume, no voice processing association
                 const musicVol = useAudioStore
                     .getState()
                     .getMusicVolume?.() ?? 0.5;
@@ -518,16 +553,16 @@ export class AudioChat {
                 }
             }
 
-            source.connect(gainNode);
-            gainNode.connect(this.outputAudioContext.destination);
+            lastNode.connect(gainNode);
+            gainNode.connect(this.outputLimiter!);
 
             this.mediaStreamSources.set(consumer.id, source);
             this.gainNodes.set(consumer.id, gainNode);
 
-            // Store a lightweight reference for the audioElements map (used by AudioElement.tsx).
-            // The actual playback is through the Web Audio pipeline above.
+            // Bookkeeping reference only — playback is through the Web Audio pipeline above.
+            // Do NOT assign srcObject here; AudioElement.tsx must not call play() either,
+            // or the raw stream plays in parallel causing echo/flanging.
             const audioEl = document.createElement("audio");
-            audioEl.srcObject = remoteStream;
             this.audioElements.set(consumer.id, audioEl);
             this.audioElementsSetter(audioEl);
 
@@ -556,7 +591,10 @@ export class AudioChat {
         const mode = useAudioStore.getState().audioQualityMode;
         const isStudio = mode === 'studio';
 
-        this.audioContext = new AudioContext({ sampleRate: 48000 });
+        this.audioContext = new AudioContext({
+            sampleRate: 48000,
+            latencyHint: 'interactive',
+        });
 
         // Firefox requires AudioContext to be resumed after user gesture
         if (this.audioContext.state === "suspended") {
@@ -565,52 +603,52 @@ export class AudioChat {
 
         const source = this.audioContext.createMediaStreamSource(stream);
 
+        // High-pass filter: remove rumble, hum, and low-freq noise
+        const highPassFilter = this.audioContext.createBiquadFilter();
+        highPassFilter.type = "highpass";
+        highPassFilter.frequency.value = isStudio ? 80 : 100;
+
+        // Low-pass filter (standard only): remove high-freq hiss/static above voice range
+        const lowPassFilter = this.audioContext.createBiquadFilter();
+        lowPassFilter.type = "lowpass";
+        lowPassFilter.frequency.value = 8000;
+
+        // Light compressor to even out voice levels without amplifying noise
         const compressor = this.audioContext.createDynamicsCompressor();
         if (isStudio) {
-            // Gentle compression for studio mode (preserve dynamics)
             compressor.threshold.value = -18;
             compressor.knee.value = 12;
             compressor.ratio.value = 1.5;
             compressor.attack.value = 0.003;
             compressor.release.value = 0.25;
         } else {
-            // Tighter compression for standard voice mode
-            compressor.threshold.value = -24;
-            compressor.knee.value = 6;
-            compressor.ratio.value = 3;
+            // Gentle compression — let browser noiseSuppression do the heavy lifting
+            compressor.threshold.value = -20;
+            compressor.knee.value = 10;
+            compressor.ratio.value = 2;
             compressor.attack.value = 0.003;
-            compressor.release.value = 0.15;
+            compressor.release.value = 0.25;
         }
 
         const gainNode = this.audioContext.createGain();
         gainNode.gain.value = 1.0;
 
-        const highPassFilter = this.audioContext.createBiquadFilter();
-        highPassFilter.type = "highpass";
-        highPassFilter.frequency.value = 80;
-
         this.audioDestination =
             this.audioContext.createMediaStreamDestination();
 
         if (isStudio) {
-            // Studio: skip noise gate for cleaner passthrough
+            // Studio: minimal processing for clean passthrough
             source
                 .connect(highPassFilter)
                 .connect(compressor)
                 .connect(gainNode)
                 .connect(this.audioDestination);
         } else {
-            // Standard: add noise gate (DynamicsCompressor as gate) between highpass and compressor
-            const noiseGate = this.audioContext.createDynamicsCompressor();
-            noiseGate.threshold.value = -50;
-            noiseGate.knee.value = 0;
-            noiseGate.ratio.value = 20;
-            noiseGate.attack.value = 0.001;
-            noiseGate.release.value = 0.05;
-
+            // Standard: band-pass (high-pass + low-pass) then gentle compression
+            // Browser's noiseSuppression + echoCancellation handle the real noise reduction
             source
                 .connect(highPassFilter)
-                .connect(noiseGate)
+                .connect(lowPassFilter)
                 .connect(compressor)
                 .connect(gainNode)
                 .connect(this.audioDestination);
@@ -806,13 +844,22 @@ export class AudioChat {
         this.analyserNodes.clear();
         this.localAnalyser = null;
 
+        this.receiveFilters.forEach((filter) => {
+            filter.disconnect();
+        });
+        this.receiveFilters.clear();
+
+        if (this.outputLimiter) {
+            this.outputLimiter.disconnect();
+            this.outputLimiter = null;
+        }
+
         if (this.outputAudioContext) {
             await this.outputAudioContext.close();
             this.outputAudioContext = null;
         }
 
         this.audioElements.forEach((audioEl) => {
-            audioEl.srcObject = null;
             audioEl.remove();
         });
         this.audioElements.clear();

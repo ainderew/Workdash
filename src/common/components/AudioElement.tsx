@@ -25,14 +25,9 @@ export default function AudioElement() {
     }, []);
 
     useEffect(() => {
-        
-        
-        
-        for (const audioEl of audioElements) {
-            if (!audioEl) continue;
-            audioEl.muted = true;
-            audioEl.play().catch(console.error);
-        }
+        // Audio playback is handled by the Web Audio pipeline in AudioChat.
+        // The audio elements are bookkeeping references only — do NOT call play()
+        // as that would create a duplicate playback path causing echo/flanging.
     }, [audioElements]);
 
     return null;
