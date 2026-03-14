@@ -33,6 +33,7 @@ export function useChatNotificationSound() {
   const prevUnreadRef = useRef<Record<string, number> | null>(null);
   const isOwnerRef = useRef(false);
   const lastPlayedRef = useRef(0);
+  const readyRef = useRef(false);
 
   const unreadByRoomId = useChatV2Store((state) => state.unreadByRoomId);
   const currentRoomId = useChatV2Store((state) => state.currentRoomId);
@@ -55,14 +56,18 @@ export function useChatNotificationSound() {
 
     const enableAudio = () => {
       if (!singleton.enabled && singleton.audio) {
+        singleton.audio.volume = 0;
         singleton.audio
           .play()
           .then(() => {
             singleton.audio?.pause();
             singleton.audio!.currentTime = 0;
+            singleton.audio!.volume = 0.3;
             singleton.enabled = true;
           })
-          .catch(() => {});
+          .catch(() => {
+            if (singleton.audio) singleton.audio.volume = 0.3;
+          });
       }
       requestNotificationPermission();
     };
@@ -86,6 +91,14 @@ export function useChatNotificationSound() {
     };
   }, []);
 
+  // Grace period: suppress sounds while initial data loads
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      readyRef.current = true;
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, []);
+
   // Detect new unreads and play sound / fire browser notification
   useEffect(() => {
     if (!isOwnerRef.current) return;
@@ -94,6 +107,12 @@ export function useChatNotificationSound() {
 
     // Skip initial hydration
     if (prev === null) {
+      prevUnreadRef.current = { ...unreadByRoomId };
+      return;
+    }
+
+    // Suppress sounds during initial load grace period
+    if (!readyRef.current) {
       prevUnreadRef.current = { ...unreadByRoomId };
       return;
     }

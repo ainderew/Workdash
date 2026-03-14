@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { Cog, Link2, Palette, User, Volume2 } from 'lucide-react';
+import { Cog, Link2, Palette, Trophy, User, Volume2 } from 'lucide-react';
 import {
   SettingsModalShell,
   type SettingsCategory,
   type SidebarItem,
 } from './settings-primitives';
 import AccountPanel from './user-settings/AccountPanel';
+import AchievementsPanel from './user-settings/AchievementsPanel';
 import AppearancePanel from './user-settings/AppearancePanel';
 import AudioVideoPanel from './user-settings/AudioVideoPanel';
 import ConnectionsPanel from './user-settings/ConnectionsPanel';
@@ -22,6 +23,7 @@ const CATEGORIES: SidebarItem[] = [
   { id: 'appearance', label: 'Appearance', icon: <Palette size={16} /> },
   { id: 'audio-video', label: 'Audio & Video', icon: <Volume2 size={16} /> },
   { id: 'connections', label: 'Connections', icon: <Link2 size={16} /> },
+  { id: 'achievements', label: 'Achievements', icon: <Trophy size={16} /> },
 ];
 
 function UserSettingsModal({ isOpen, onClose }: UserSettingsModalProps) {
@@ -47,6 +49,7 @@ function UserSettingsModal({ isOpen, onClose }: UserSettingsModalProps) {
       {activeCategory === 'appearance' && <AppearancePanel />}
       {activeCategory === 'audio-video' && <AudioVideoPanel />}
       {activeCategory === 'connections' && <ConnectionsPanel />}
+      {activeCategory === 'achievements' && <AchievementsPanel />}
     </SettingsModalShell>
   );
 }

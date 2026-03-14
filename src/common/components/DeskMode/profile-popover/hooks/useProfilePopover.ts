@@ -70,22 +70,11 @@ export function useProfilePopover(
       if (event.key === 'Escape') stableOnClose();
     };
 
-    const handleScroll = (event: Event) => {
-      const target = event.target as HTMLElement | null;
-      // Ignore scroll events originating from inside the popover
-      for (const selector of POPOVER_SELECTORS) {
-        if (target?.closest(selector)) return;
-      }
-      stableOnClose();
-    };
-
     window.addEventListener('mousedown', handleMouseDown);
     window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('scroll', handleScroll, true);
     return () => {
       window.removeEventListener('mousedown', handleMouseDown);
       window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('scroll', handleScroll, true);
     };
   }, [senderUserId, stableOnClose]);
 

@@ -709,6 +709,11 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
                 onTypingStop: (payload) => {
                     get().clearTypingUser(payload.roomId, payload.userId);
                 },
+                onAchievementUnlocked: (payload) => {
+                    // Handled by useAchievementListener hook for toast/sound
+                    // This callback exists so the socket listener is registered
+                    EventBus.emit("achievement:unlocked", payload);
+                },
             });
 
             await get().reloadRoomStructure();

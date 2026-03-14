@@ -391,9 +391,13 @@ function MessageList({
             return undefined;
         }
 
-        const closeMenu = () => {
+        const closeAll = () => {
             setAvatarContextMenu(null);
             setProfilePopover(null);
+        };
+
+        const closeContextMenuOnly = () => {
+            setAvatarContextMenu(null);
         };
 
         const onMouseDown = (event: MouseEvent) => {
@@ -407,24 +411,24 @@ function MessageList({
             if (target?.closest("[data-user-profile-more='true']")) {
                 return;
             }
-            closeMenu();
+            closeAll();
         };
 
         const onKeyDown = (event: KeyboardEvent) => {
             if (event.key === "Escape") {
-                closeMenu();
+                closeAll();
             }
         };
 
         window.addEventListener("mousedown", onMouseDown);
         window.addEventListener("keydown", onKeyDown);
-        window.addEventListener("scroll", closeMenu, true);
-        window.addEventListener("resize", closeMenu);
+        window.addEventListener("scroll", closeContextMenuOnly, true);
+        window.addEventListener("resize", closeAll);
         return () => {
             window.removeEventListener("mousedown", onMouseDown);
             window.removeEventListener("keydown", onKeyDown);
-            window.removeEventListener("scroll", closeMenu, true);
-            window.removeEventListener("resize", closeMenu);
+            window.removeEventListener("scroll", closeContextMenuOnly, true);
+            window.removeEventListener("resize", closeAll);
         };
     }, [avatarContextMenu, profilePopover]);
 

@@ -327,7 +327,7 @@ export default function FloatingCallWindow() {
   return (
     <div
       ref={containerRef}
-      className={`fixed z-[75] select-none transition-all motion-reduce:duration-0 ${
+      className={`fixed z-[200] select-none transition-all motion-reduce:duration-0 ${
         isDragging ? 'duration-0' : 'duration-200 ease-out'
       } ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
       style={

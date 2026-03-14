@@ -2,6 +2,8 @@ import { MediaTransportService } from "@/communication/mediaTransportService/med
 import { tokenStore } from "@/common/utils/tokenStore";
 import type { CustomEmoji } from "@/common/store/customEmojiStore";
 import type {
+    AchievementUnlockPayload,
+    AchievementWithStatus,
     BannerConfig,
     ChannelOverwrite,
     ChatV2CreateAttachment,
@@ -23,6 +25,7 @@ import type {
     ChatV2Thread,
     ChatV2UserNotification,
     ChatV2UserProfile,
+    DisplayAchievement,
     Workspace,
     WorkspaceInvite,
     WorkspaceMap,
@@ -54,6 +57,7 @@ type RealtimeHandlers = {
     onMessagePinRemoved?: (payload: { roomId: string; messageId: string }) => void;
     onTypingUpdate?: (payload: { roomId: string; userId: number; displayName: string }) => void;
     onTypingStop?: (payload: { roomId: string; userId: number }) => void;
+    onAchievementUnlocked?: (payload: AchievementUnlockPayload) => void;
 };
 
 export class ChatV2Service {
@@ -190,6 +194,12 @@ export class ChatV2Service {
             }
         };
 
+        const onAchievementUnlocked = (payload: AchievementUnlockPayload) => {
+            if (payload?.achievementKey) {
+                handlers.onAchievementUnlocked?.(payload);
+            }
+        };
+
         this.transport.socket.on("chat:v2:message:new", onMessageNew);
         this.transport.socket.on("chat:v2:message:update", onMessageUpdate);
         this.transport.socket.on("chat:v2:message:delete", onMessageDelete);
@@ -206,6 +216,7 @@ export class ChatV2Service {
         this.transport.socket.on("chat:v2:message:pin:removed", onMessagePinRemoved);
         this.transport.socket.on("chat:v2:typing:update", onTypingUpdate);
         this.transport.socket.on("chat:v2:typing:stop", onTypingStop);
+        this.transport.socket.on("achievement:unlocked", onAchievementUnlocked);
 
         this.teardownRealtimeHandlers = () => {
             this.transport.socket.off("chat:v2:message:new", onMessageNew);
@@ -224,6 +235,7 @@ export class ChatV2Service {
             this.transport.socket.off("chat:v2:message:pin:removed", onMessagePinRemoved);
             this.transport.socket.off("chat:v2:typing:update", onTypingUpdate);
             this.transport.socket.off("chat:v2:typing:stop", onTypingStop);
+            this.transport.socket.off("achievement:unlocked", onAchievementUnlocked);
             this.teardownRealtimeHandlers = null;
         };
 
@@ -1226,5 +1238,32 @@ export class ChatV2Service {
             "betrayal:stats:sync",
         );
         return response.stats;
+    }
+
+    // ─── Achievements ───────────────────────────────────────────
+
+    async getAchievements(): Promise<AchievementWithStatus[]> {
+        const response = await this.emitWithAck<{
+            achievements: AchievementWithStatus[];
+        }>("achievement:list");
+        return response.achievements;
+    }
+
+    async getUserAchievementDisplay(
+        userId: number,
+    ): Promise<DisplayAchievement[]> {
+        const response = await this.emitWithAck<{
+            display: DisplayAchievement[];
+        }>("achievement:display:list", { userId });
+        return response.display;
+    }
+
+    async updateMyAchievementDisplay(
+        items: Array<{ achievementKey: string; position: number }>,
+    ): Promise<void> {
+        await this.emitWithAck<{ success: boolean }>(
+            "achievement:display:update",
+            { items },
+        );
     }
 }

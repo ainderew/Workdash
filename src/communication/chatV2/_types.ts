@@ -407,6 +407,45 @@ export type DotaRecentMatch = {
     startTime: number;
 };
 
+// --- Achievement types ---
+
+export type AchievementRarity = "common" | "uncommon" | "rare" | "epic" | "legendary";
+
+export type AchievementCategory = "chat" | "social" | "profile" | "game";
+
+export type AchievementWithStatus = {
+    key: string;
+    name: string;
+    description: string;
+    icon: string;
+    rarity: AchievementRarity;
+    category: AchievementCategory;
+    type: "counter" | "one-shot";
+    threshold: number;
+    hidden: boolean;
+    currentCount: number;
+    unlockedAt: string | null;
+};
+
+export type DisplayAchievement = {
+    achievementKey: string;
+    position: number;
+    name: string;
+    description: string;
+    icon: string;
+    rarity: AchievementRarity;
+};
+
+export type AchievementUnlockPayload = {
+    userId: number;
+    achievementKey: string;
+    name: string;
+    description: string;
+    icon: string;
+    rarity: AchievementRarity;
+    category: string;
+};
+
 export type BetrayalStats = {
     friendCode: string;
     betrayerRounds: number;

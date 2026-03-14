@@ -17,6 +17,7 @@ import { ProfileActionButtons, ProfileQuickMessage } from './ProfileActions';
 import { ProfileStatusPicker } from './ProfileStatusPicker';
 import { DotaMedalBadge } from './DotaMedalBadge';
 import { BetrayalStatsBadge } from './BetrayalStatsBadge';
+import { AchievementBadges } from './AchievementBadges';
 
 interface ProfilePopoverProps {
   popover: ProfilePopoverState;
@@ -352,6 +353,7 @@ export function ProfilePopover({
 
             {profile && (
               <>
+                <AchievementBadges userId={popover.senderUserId} />
                 <DotaMedalBadge userId={popover.senderUserId} />
                 <BetrayalStatsBadge userId={popover.senderUserId} />
               </>

@@ -39,6 +39,7 @@ import useMusicStore from "@/common/store/musicStore";
 import useThemeStore from "@/common/store/themeStore";
 import { EventBus } from "@/game/EventBus";
 import { useChatNotificationSound } from "@/common/hooks/useChatNotificationSound";
+import { useAchievementListener } from "@/common/hooks/useAchievementListener";
 
 function App() {
     const interactionMode = useUiStore((state) => state.interactionMode);
@@ -58,6 +59,7 @@ function App() {
 
     useKeyboardShortcuts();
     useChatNotificationSound();
+    useAchievementListener();
 
     useEffect(() => {
         if (status !== "authenticated" || !session?.backendJwt) {

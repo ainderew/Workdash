@@ -27,7 +27,7 @@ export function ProfileBioSection({
   onSaveBio,
 }: ProfileBioSectionProps) {
   return (
-    <div className="rounded-lg border border-white/[0.04] wd-bg-panel-2/60 p-3.5">
+    <div className="rounded-lg wd-neo p-3.5">
       <div className="mb-2.5 flex items-center justify-between">
         <p className="text-[10px] font-semibold uppercase tracking-widest wd-text-muted">
           About

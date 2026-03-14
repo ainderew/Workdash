@@ -501,7 +501,7 @@ export class AudioChat {
                 this.outputLimiter.knee.value = 0;
                 this.outputLimiter.ratio.value = 20;
                 this.outputLimiter.attack.value = 0.001;
-                this.outputLimiter.release.value = 0.01;
+                this.outputLimiter.release.value = 0.05;
                 this.outputLimiter.connect(this.outputAudioContext.destination);
             }
 
@@ -559,10 +559,12 @@ export class AudioChat {
             this.mediaStreamSources.set(consumer.id, source);
             this.gainNodes.set(consumer.id, gainNode);
 
-            // Bookkeeping reference only — playback is through the Web Audio pipeline above.
-            // Do NOT assign srcObject here; AudioElement.tsx must not call play() either,
-            // or the raw stream plays in parallel causing echo/flanging.
+            // Chrome/Chromium requires a muted <audio> element consuming the stream
+            // to keep createMediaStreamSource() active. Without this, the WebRTC track
+            // delivers silence to the Web Audio pipeline.
             const audioEl = document.createElement("audio");
+            audioEl.srcObject = remoteStream;
+            audioEl.muted = true;
             this.audioElements.set(consumer.id, audioEl);
             this.audioElementsSetter(audioEl);
 

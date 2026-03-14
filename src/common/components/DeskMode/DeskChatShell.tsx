@@ -8,6 +8,7 @@ import React, {
 import Image from "next/image";
 import useChatV2Store from "@/common/store/chatV2Store";
 import useWorkspaceStore from "@/common/store/workspaceStore";
+import useUiStore from "@/common/store/uiStore";
 import { ChatV2Service } from "@/communication/chatV2/chatV2Service";
 import type {
     ChatV2DirectRoom,
@@ -28,6 +29,7 @@ import { getDisplayName } from "@/common/utils/displayName";
 import ServerSettingsModal from "./modals/ServerSettingsModal";
 import WorkspaceMembersModal from "./modals/WorkspaceMembersModal";
 import JoinByInviteModal from "./modals/JoinByInviteModal";
+import AchievementsModal from "./modals/AchievementsModal";
 import type { Workspace } from "@/communication/chatV2/_types";
 import { useWorkspacePermissions } from "@/common/hooks/useWorkspacePermissions";
 import { buildMemberColorMap } from "@/common/utils/roleColor";
@@ -392,6 +394,8 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
         "members" | "invites"
     >("members");
     const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
+    const isAchievementsModalOpen = useUiStore((s) => s.isAchievementsModalOpen);
+    const closeAchievementsModal = useUiStore((s) => s.closeAchievementsModal);
     const [joinInviteCode, setJoinInviteCode] = useState<string | undefined>(
         undefined,
     );
@@ -1151,6 +1155,11 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
                     setSelectedWorkspaceId(workspace.id);
                     void reloadRoomStructure();
                 }}
+            />
+
+            <AchievementsModal
+                isOpen={isAchievementsModalOpen}
+                onClose={closeAchievementsModal}
             />
 
             {isCreateWorkspaceOpen && (

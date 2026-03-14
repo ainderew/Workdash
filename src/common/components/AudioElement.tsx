@@ -25,9 +25,12 @@ export default function AudioElement() {
     }, []);
 
     useEffect(() => {
-        // Audio playback is handled by the Web Audio pipeline in AudioChat.
-        // The audio elements are bookkeeping references only — do NOT call play()
-        // as that would create a duplicate playback path causing echo/flanging.
+        // Chrome requires a muted <audio> element playing the stream to keep
+        // createMediaStreamSource() active. Without this, WebRTC tracks go silent.
+        for (const audioEl of audioElements) {
+            if (!audioEl) continue;
+            audioEl.play().catch(console.error);
+        }
     }, [audioElements]);
 
     return null;

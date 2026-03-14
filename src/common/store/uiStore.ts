@@ -40,8 +40,10 @@ interface UiState {
     
     isMatchHistoryModalOpen: boolean;
 
-    
+
     isSoccerEndgameVisible: boolean;
+
+    isAchievementsModalOpen: boolean;
 
     
     ping: number | null;
@@ -99,8 +101,11 @@ interface UiState {
     openMatchHistoryModal: () => void;
     closeMatchHistoryModal: () => void;
 
-    
+
     setIsSoccerEndgameVisible: (visible: boolean) => void;
+
+    openAchievementsModal: () => void;
+    closeAchievementsModal: () => void;
 }
 
 const useUiStore = create<UiState>((set) => ({
@@ -124,6 +129,7 @@ const useUiStore = create<UiState>((set) => ({
     isSoccerGameControlModalOpen: false,
     isMatchHistoryModalOpen: false,
     isSoccerEndgameVisible: false,
+    isAchievementsModalOpen: false,
     ping: null,
     interactionMode: "world",
     showWorkspaceSelector: false,
@@ -210,10 +216,13 @@ const useUiStore = create<UiState>((set) => ({
     openMatchHistoryModal: () => set({ isMatchHistoryModalOpen: true }),
     closeMatchHistoryModal: () => set({ isMatchHistoryModalOpen: false }),
 
-    
+
     setIsSoccerEndgameVisible: (visible: boolean) => set({ isSoccerEndgameVisible: visible }),
 
-    
+    openAchievementsModal: () => set({ isAchievementsModalOpen: true }),
+    closeAchievementsModal: () => set({ isAchievementsModalOpen: false }),
+
+
     setPing: (ping) => set({ ping }),
     setInteractionMode: (mode) => set({ interactionMode: mode }),
     toggleInteractionMode: () =>

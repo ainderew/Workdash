@@ -101,7 +101,7 @@ export function DotaMedalBadge({ userId }: DotaMedalBadgeProps) {
 
     if (stats.isPrivate) {
         return (
-            <div className="rounded-lg wd-bg-elevated px-3 py-2">
+            <div className="rounded-lg wd-neo px-3 py-2">
                 <p className="text-xs font-medium wd-text-muted">
                     Dota 2 Profile — Private
                 </p>
@@ -112,7 +112,7 @@ export function DotaMedalBadge({ userId }: DotaMedalBadgeProps) {
     const medal = parseMedal(stats.rankTier);
 
     return (
-        <div className="rounded-lg wd-bg-elevated px-3 py-2.5">
+        <div className="rounded-lg wd-neo px-3 py-2.5">
             <p className="text-[10px] font-semibold uppercase tracking-wider wd-text-muted mb-1.5">
                 Dota 2
             </p>

@@ -34,7 +34,7 @@ export function BetrayalStatsBadge({ userId }: BetrayalStatsBadgeProps) {
     if (isLoading || !stats) return null;
 
     return (
-        <div className="rounded-lg wd-bg-elevated px-3 py-2.5">
+        <div className="rounded-lg wd-neo px-3 py-2.5">
             <p className="text-[10px] font-semibold uppercase tracking-wider wd-text-muted mb-1.5">
                 Betrayal.io
             </p>

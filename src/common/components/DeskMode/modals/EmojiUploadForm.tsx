@@ -133,7 +133,7 @@ function EmojiUploadForm({ workspaceId, disabled }: EmojiUploadFormProps) {
       )}
 
       <p className="text-[10px] wd-text-muted">
-        PNG, JPEG, WebP, or GIF. Max 256KB. Will be resized to 128x128.
+        PNG, JPEG, WebP, or GIF. Max 2MB. Will be resized to 64×64.
       </p>
     </div>
   );

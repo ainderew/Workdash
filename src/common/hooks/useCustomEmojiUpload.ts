@@ -4,7 +4,7 @@ import { tokenStore } from '@/common/utils/tokenStore';
 import useCustomEmojiStore from '@/common/store/customEmojiStore';
 import type { CustomEmoji } from '@/common/store/customEmojiStore';
 
-const MAX_EMOJI_SIZE = 256 * 1024; // 256KB
+const MAX_EMOJI_SIZE = 2 * 1024 * 1024; // 2MB
 const ALLOWED_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif']);
 
 export function useCustomEmojiUpload(workspaceId: string | null) {
@@ -27,7 +27,7 @@ export function useCustomEmojiUpload(workspaceId: string | null) {
       }
 
       if (file.size > MAX_EMOJI_SIZE) {
-        setError('File size exceeds 256KB limit');
+        setError('File size exceeds 2MB limit');
         return null;
       }
 

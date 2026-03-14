@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useMemo } from 'react';
+import React, { useRef, useEffect, useMemo, useState, useCallback } from 'react';
 import { Mic, MicOff, Video, Monitor, Pin, PinOff } from 'lucide-react';
 import type { CallParticipant } from '@/common/store/callStore';
 import useCallStore from '@/common/store/callStore';
@@ -8,6 +8,7 @@ import { useCharacterFaceAvatar } from '@/common/utils/characterFaceAvatar';
 import { VideoChatViewer } from '@/communication/videoChat/videoChatViewer';
 import { VideoChatService } from '@/communication/videoChat/videoChat';
 import { useActiveSpeaker } from '@/common/hooks/useActiveSpeaker';
+import ParticipantVolumeMenu from './ParticipantVolumeMenu';
 
 interface CallParticipantTileProps {
   participant: CallParticipant;
@@ -29,6 +30,16 @@ export default function CallParticipantTile({
 }: CallParticipantTileProps) {
   const tileRef = useRef<HTMLDivElement>(null);
   const videoContainerRef = useRef<HTMLDivElement>(null);
+  const [volumeMenu, setVolumeMenu] = useState<{ x: number; y: number } | null>(null);
+
+  const handleContextMenu = useCallback(
+    (e: React.MouseEvent) => {
+      if (isLocal) return; // no self-volume control
+      e.preventDefault();
+      setVolumeMenu({ x: e.clientX, y: e.clientY });
+    },
+    [isLocal],
+  );
 
   // For local user, use uiStore.isMuted (updates instantly on toggle).
   // participant.media.audio only updates after a server round-trip, causing
@@ -142,6 +153,7 @@ export default function CallParticipantTile({
   return (
     <div
       ref={tileRef}
+      onContextMenu={handleContextMenu}
       className="relative overflow-hidden rounded-lg border wd-border-subtle h-full min-w-0 group/tile wd-speaker-tile"
       style={{
         aspectRatio: fillCell ? 'auto' : '4 / 3',
@@ -234,6 +246,17 @@ export default function CallParticipantTile({
           )}
         </div>
       </div>
+
+      {/* Per-participant volume context menu */}
+      {volumeMenu && (
+        <ParticipantVolumeMenu
+          userId={participant.userId}
+          displayName={participant.displayName}
+          x={volumeMenu.x}
+          y={volumeMenu.y}
+          onClose={() => setVolumeMenu(null)}
+        />
+      )}
     </div>
   );
 }

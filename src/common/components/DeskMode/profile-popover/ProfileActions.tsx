@@ -237,7 +237,7 @@ export function ProfileQuickMessage({
   };
 
   return (
-    <div className="flex items-center gap-2 rounded-lg border border-white/[0.04] wd-bg-panel-2 px-3 py-2.5 transition-colors duration-200 focus-within:border-white/[0.12] focus-within:bg-[var(--wd-surface-elevated)]">
+    <div className="flex items-center gap-2 rounded-lg wd-neo px-3 py-2.5 transition-shadow duration-200 focus-within:ring-1 focus-within:ring-[var(--wd-accent)]/30">
       <input
         ref={inputRef}
         type="text"
