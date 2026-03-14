@@ -62,7 +62,7 @@ export default function FloatingTileGrid({
     const hiddenCount = fillHeight ? 0 : others.length - visibleOthers.length;
     return (
       <div
-        className={`flex flex-col gap-1.5 p-2 ${fillHeight ? 'flex-1 min-h-0 overflow-hidden' : ''}`}
+        className={`flex flex-col p-2 ${fillHeight ? 'flex-1 min-h-0 overflow-hidden gap-3 p-4' : 'gap-1.5'}`}
         style={{
           ...(fillHeight ? { minHeight: 0 } : { height: TILE_CONTAINER_HEIGHT }),
           backgroundColor: 'var(--wd-surface-panel-2)',
@@ -103,7 +103,7 @@ export default function FloatingTileGrid({
 
   return (
     <div
-      className={`grid gap-1.5 p-2 ${fillHeight ? 'flex-1 min-h-0 overflow-hidden' : ''}`}
+      className={`grid p-2 ${fillHeight ? 'flex-1 min-h-0 overflow-hidden gap-3 p-4' : 'gap-1.5'}`}
       style={{
         gridTemplateColumns: `repeat(${cols}, 1fr)`,
         ...(rows != null ? { gridTemplateRows: `repeat(${rows}, 1fr)` } : {}),
