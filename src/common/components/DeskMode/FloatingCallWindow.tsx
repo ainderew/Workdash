@@ -46,6 +46,8 @@ export default function FloatingCallWindow() {
   const setFloatingPosition = useCallStore((s) => s.setFloatingPosition);
   const setFloatingWindowState = useCallStore((s) => s.setFloatingWindowState);
   const channelContentRect = useCallStore((s) => s.channelContentRect);
+  const manualFloating = useCallStore((s) => s.manualFloating);
+  const currentRoomId = useChatV2Store((s) => s.currentRoomId);
   const isMuted = useUiStore((s) => s.isMuted);
   const isVideoOff = useUiStore((s) => s.isVideoOff);
   const isScreenSharing = useCallStore((s) => s.localMedia.screen);
@@ -103,8 +105,12 @@ export default function FloatingCallWindow() {
     if (!isFullscreen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        const store = useCallStore.getState();
+        if (store.manualFloating && store.currentCall?.channelId === currentRoomId) {
+          store.setManualFloating(false);
+        }
         setFloatingWindowState('expanded');
-        const pos = useCallStore.getState().floatingPosition;
+        const pos = store.floatingPosition;
         if (pos) {
           setFloatingPosition(clampPosition(pos, WINDOW_WIDTH, WINDOW_HEIGHT_EXPANDED));
         }
@@ -112,7 +118,7 @@ export default function FloatingCallWindow() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isFullscreen, setFloatingWindowState, setFloatingPosition]);
+  }, [isFullscreen, currentRoomId, setFloatingWindowState, setFloatingPosition]);
 
   // Pause/resume all media streams when switching workspaces mid-call
   const prevInDifferentWs = useRef(false);
@@ -286,6 +292,10 @@ export default function FloatingCallWindow() {
 
   const handleToggleFullscreen = useCallback(() => {
     if (isFullscreen) {
+      // If user is viewing the call channel, exit back to inline view
+      if (manualFloating && channelId === currentRoomId) {
+        useCallStore.getState().setManualFloating(false);
+      }
       setFloatingWindowState('expanded');
       const pos = useCallStore.getState().floatingPosition;
       if (pos) {
@@ -294,7 +304,7 @@ export default function FloatingCallWindow() {
     } else {
       setFloatingWindowState('fullscreen');
     }
-  }, [isFullscreen, setFloatingWindowState, setFloatingPosition]);
+  }, [isFullscreen, manualFloating, channelId, currentRoomId, setFloatingWindowState, setFloatingPosition]);
 
   const handleToggleCollapse = useCallback(() => {
     const next = isCollapsed || isFullscreen ? 'collapsed' : 'expanded';

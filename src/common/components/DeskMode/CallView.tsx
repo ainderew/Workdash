@@ -18,13 +18,14 @@ interface CallViewProps {
   channelId: string;
   onLeave: () => void;
   onPictureInPicture?: () => void;
+  onFullscreen?: () => void;
 }
 
 const MIN_HEIGHT = 80;
 const MAX_HEIGHT = 500;
 const DEFAULT_HEIGHT = 140;
 
-export default function CallView({ channelId, onLeave, onPictureInPicture }: CallViewProps) {
+export default function CallView({ channelId, onLeave, onPictureInPicture, onFullscreen }: CallViewProps) {
   const call = useCallStore((s) => s.activeCallsByChannel[channelId]);
   const backendUser = useUserStore((s) => s.backendUser);
   const userId = backendUser?.id ?? 0;
@@ -185,6 +186,7 @@ export default function CallView({ channelId, onLeave, onPictureInPicture }: Cal
           onLeave={onLeave}
           onToggleCollapse={() => setCollapsed(false)}
           onPictureInPicture={onPictureInPicture}
+          onToggleFullscreen={onFullscreen}
           isCollapsed
           size="sm"
         />
@@ -228,6 +230,7 @@ export default function CallView({ channelId, onLeave, onPictureInPicture }: Cal
           onLeave={onLeave}
           onToggleCollapse={() => setCollapsed(true)}
           onPictureInPicture={onPictureInPicture}
+          onToggleFullscreen={onFullscreen}
           isCollapsed={false}
         />
       </div>

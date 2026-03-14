@@ -51,6 +51,11 @@ export default function CallBanner({ channelId }: CallBannerProps) {
         channelId={channelId}
         onLeave={handleLeave}
         onPictureInPicture={() => useCallStore.getState().setManualFloating(true)}
+        onFullscreen={() => {
+          const store = useCallStore.getState();
+          store.setManualFloating(true);
+          store.setFloatingWindowState('fullscreen');
+        }}
       />
     );
   }

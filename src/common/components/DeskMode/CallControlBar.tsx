@@ -32,6 +32,8 @@ interface CallControlBarProps {
   onExpandToChannel?: () => void;
   /** Pop out to floating PiP window */
   onPictureInPicture?: () => void;
+  /** Toggle fullscreen mode */
+  onToggleFullscreen?: () => void;
   size?: CallControlSize;
 }
 
@@ -52,6 +54,7 @@ export default function CallControlBar({
   isCollapsed,
   onExpandToChannel,
   onPictureInPicture,
+  onToggleFullscreen,
   size = 'md',
 }: CallControlBarProps) {
   const { btn, icon, gap } = sizeConfig[size];
@@ -121,6 +124,18 @@ export default function CallControlBar({
           title="Pop out to floating window"
         >
           <PictureInPicture2 size={icon} />
+        </button>
+      )}
+
+      {/* Fullscreen */}
+      {onToggleFullscreen && (
+        <button
+          type="button"
+          onClick={onToggleFullscreen}
+          className={`inline-flex items-center justify-center ${btn} rounded-full border wd-border-subtle wd-text-secondary hover:wd-text-primary transition-colors`}
+          title="Fullscreen"
+        >
+          <Maximize2 size={icon} />
         </button>
       )}
 
