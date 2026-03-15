@@ -152,7 +152,7 @@ export class AudioChat {
         );
     }
 
-    private closeAllAudioConsumers(): void {
+    public closeAllAudioConsumers(): void {
         for (const [producerId] of this.producerToConsumerMap) {
             this.closeConsumerByProducerId(producerId);
         }

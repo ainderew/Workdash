@@ -236,6 +236,13 @@ export class ScreenShareViewer {
         this.consumers.forEach((consumer) => consumer.resume());
     }
 
+    public closeAllConsumers(): void {
+        const producerIds = Array.from(this.consumers.keys());
+        for (const producerId of producerIds) {
+            this.removeScreenShareVideo(producerId);
+        }
+    }
+
     public removeScreenShareVideo(producerId: string) {
         logger.log("🧹 Removing screenshare producer:", producerId);
 

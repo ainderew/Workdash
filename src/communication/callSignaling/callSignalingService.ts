@@ -3,7 +3,9 @@ import useCallStore from "@/common/store/callStore";
 import type { CallParticipant, CallParticipantMedia, CallPresence } from "@/common/store/callStore";
 import { AudioChat } from "@/communication/audioChat/audioChat";
 import { VideoChatService } from "@/communication/videoChat/videoChat";
+import { VideoChatViewer } from "@/communication/videoChat/videoChatViewer";
 import { ScreenShareService } from "@/communication/screenShare/screenShare";
+import { ScreenShareViewer } from "@/communication/screenShare/screenShareViewer";
 
 // ----------------------------------------------------------------
 // Types (server response shapes)
@@ -64,7 +66,17 @@ export class CallSignalingService {
     });
 
     this.socket.on("call:ended", ({ channelId }: { channelId: string }) => {
+      const wasInCall = store().currentCall?.channelId === channelId;
       store().handleCallEnded(channelId);
+      if (wasInCall) {
+        VideoChatService.getInstance().stopVideoChat();
+        ScreenShareService.getInstance().stopScreenShare();
+        AudioChat.getInstance().stopMic();
+        VideoChatViewer.getInstance().closeAllConsumers();
+        ScreenShareViewer.getInstance().closeAllConsumers();
+        AudioChat.getInstance().closeAllAudioConsumers();
+        playCallSound("end-call");
+      }
     });
 
     this.socket.on(
@@ -156,6 +168,9 @@ export class CallSignalingService {
         VideoChatService.getInstance().stopVideoChat();
         ScreenShareService.getInstance().stopScreenShare();
         AudioChat.getInstance().stopMic();
+        VideoChatViewer.getInstance().closeAllConsumers();
+        ScreenShareViewer.getInstance().closeAllConsumers();
+        AudioChat.getInstance().closeAllAudioConsumers();
         useCallStore.getState().setCurrentCall(null);
         playCallSound("end-call");
       };
