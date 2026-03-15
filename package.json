@@ -31,12 +31,14 @@
         "build-nolog": "next build",
         "start": "next start -p 8080",
         "lint": "eslint 'src/**/*.{ts,tsx}' --fix && node scripts/theme-guardrails.cjs",
-        "test": "vitest run"
+        "test": "vitest run",
+        "postinstall": "cp node_modules/@jitsi/rnnoise-wasm/dist/rnnoise.wasm public/rnnoise.wasm"
     },
     "dependencies": {
         "@emoji-mart/data": "^1.2.1",
         "@giphy/js-fetch-api": "^5.7.0",
         "@giphy/react-components": "^10.1.0",
+        "@jitsi/rnnoise-wasm": "^0.2.1",
         "@radix-ui/react-avatar": "^1.1.10",
         "@radix-ui/react-separator": "^1.1.7",
         "@radix-ui/react-slot": "^1.2.3",

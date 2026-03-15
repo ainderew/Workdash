@@ -7,6 +7,7 @@ import MicSplitButton from './MicSplitButton';
 import VideoSplitButton from './VideoSplitButton';
 import DisplayModeSplitButton from './DisplayModeSplitButton';
 import type { DisplayModeSplitButtonProps } from './DisplayModeSplitButton';
+import NoiseCancelToggle from './NoiseCancelToggle';
 
 export type CallControlSize = 'sm' | 'md';
 
@@ -78,6 +79,9 @@ export default function CallControlBar({
         size={size}
         variant="pill"
       />
+
+      {/* Noise cancellation quick-toggle */}
+      <NoiseCancelToggle size={size} />
 
       {/* Video + camera source picker */}
       <VideoSplitButton

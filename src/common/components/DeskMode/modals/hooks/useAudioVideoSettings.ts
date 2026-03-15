@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import useUiStore from '@/common/store/uiStore';
+import useAudioStore from '@/common/store/audioStore';
 import { AudioChat } from '@/communication/audioChat/audioChat';
 import { VideoChatService } from '@/communication/videoChat/videoChat';
 import { AudioSettingsService } from '@/game/audio/AudioSettingsService';
@@ -29,6 +30,10 @@ export function useAudioVideoSettings() {
   const availableCameras = useUiStore((state) => state.availableCameras);
   const selectedCameraId = useUiStore((state) => state.selectedCameraId);
   const setSelectedCameraId = useUiStore((state) => state.setSelectedCameraId);
+
+  // Noise cancellation state from store
+  const noiseCancellation = useAudioStore((s) => s.noiseCancellation);
+  const setNoiseCancellation = useAudioStore((s) => s.setNoiseCancellation);
 
   // Background music local state
   const [backgroundMusicEnabled, setBackgroundMusicEnabled] = useState(false);
@@ -89,6 +94,16 @@ export function useAudioVideoSettings() {
     EventBus.emit('background-music-toggle', newValue);
   }, [backgroundMusicEnabled, settingsService]);
 
+  const toggleNoiseCancellation = useCallback(async () => {
+    const newValue = !noiseCancellation;
+    setNoiseCancellation(newValue);
+    const audioChat = AudioChat.getInstance();
+    const currentMode = useAudioStore.getState().audioQualityMode;
+    if (currentMode === 'standard') {
+      await audioChat.applyQualityMode('standard');
+    }
+  }, [noiseCancellation, setNoiseCancellation]);
+
   const setMusicVolume = useCallback(
     (volume: number) => {
       setMusicVolumeState(volume);
@@ -108,6 +123,8 @@ export function useAudioVideoSettings() {
     availableCameras,
     selectedCameraId,
     selectCamera,
+    noiseCancellation,
+    toggleNoiseCancellation,
     backgroundMusicEnabled,
     musicVolume,
     toggleBackgroundMusic,

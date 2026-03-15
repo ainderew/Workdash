@@ -5,6 +5,7 @@ import { AvailabilityStatus } from "@/game/player/_enums";
 import useAudioStore from "@/common/store/audioStore";
 import type { AudioQualityMode } from "@/common/store/audioStore";
 import { logger } from "@/common/utils/logger";
+import { RNNoiseService } from "./rnnoiseService";
 
 interface ConsumerServerResponse {
     id: string;
@@ -72,6 +73,10 @@ export class AudioChat {
     private outputLimiter: DynamicsCompressorNode | null = null;
     /** Noise gate polling interval for send-side audio */
     private noiseGateInterval: ReturnType<typeof setInterval> | null = null;
+    /** RNNoise AudioWorklet node (standard mode only) */
+    private rnnoiseNode: AudioWorkletNode | null = null;
+    /** Cached RNNoise support check */
+    private rnnoiseSupported: boolean | null = null;
 
     constructor() {
         logger.log("initializeAudioChat");
@@ -311,10 +316,21 @@ export class AudioChat {
         }
     }
 
+    private isRNNoiseAvailable(): boolean {
+        if (this.rnnoiseSupported === null) {
+            this.rnnoiseSupported = RNNoiseService.isSupported();
+        }
+        return this.rnnoiseSupported;
+    }
+
     private getAudioConstraints(deviceId?: string): MediaTrackConstraints {
         const mode = useAudioStore.getState().audioQualityMode;
         const isStudio = mode === 'studio';
 
+        // Keep browser noiseSuppression ON in standard mode even when RNNoise is
+        // active. Browser NS operates at the capture level and handles steady-state
+        // noise (fans, hum) effectively. RNNoise adds ML-based denoising + VAD
+        // gating on top for additional suppression.
         const constraints: MediaTrackConstraints = {
             channelCount: isStudio ? 2 : 1,
             sampleRate: 48000,
@@ -644,7 +660,7 @@ export class AudioChat {
             compressor.attack.value = 0.003;
             compressor.release.value = 0.25;
         } else {
-            // Gentle compression — let browser noiseSuppression do the heavy lifting
+            // Gentle compression — browser NS + RNNoise/FFT gate handle noise
             compressor.threshold.value = -20;
             compressor.knee.value = 10;
             compressor.ratio.value = 2;
@@ -666,78 +682,104 @@ export class AudioChat {
                 .connect(gainNode)
                 .connect(this.audioDestination);
         } else {
-            // Standard: band-pass + compression + noise gate
-            // Browser's noiseSuppression + echoCancellation handle real noise reduction;
-            // the gate silences fan/ambient noise when the user isn't speaking.
-            const gateAnalyser = this.audioContext.createAnalyser();
-            gateAnalyser.fftSize = 256;
-            gateAnalyser.smoothingTimeConstant = 0.3;
+            // Standard mode: try RNNoise ML denoiser, fall back to FFT noise gate
+            const ncEnabled = useAudioStore.getState().noiseCancellation;
+            let rnnoiseNode: AudioWorkletNode | null = null;
 
-            const gateGain = this.audioContext.createGain();
-            gateGain.gain.value = 0;
-
-            const gateBuffer = new Float32Array(gateAnalyser.fftSize);
-            const OPEN_THRESHOLD_DB = -45;
-            const CLOSE_THRESHOLD_DB = -50;
-            const HOLD_MS = 150;
-            let isGateOpen = false;
-            let holdTimer: ReturnType<typeof setTimeout> | null = null;
-
-            this.clearNoiseGate();
-            this.noiseGateInterval = setInterval(() => {
-                if (
-                    !this.audioContext ||
-                    this.audioContext.state === "closed"
-                ) {
-                    this.clearNoiseGate();
-                    return;
+            if (ncEnabled && RNNoiseService.isSupported()) {
+                try {
+                    rnnoiseNode = await RNNoiseService.createNode(this.audioContext);
+                    this.rnnoiseNode = rnnoiseNode;
+                } catch {
+                    // Fall through to FFT gate
                 }
+            }
 
-                gateAnalyser.getFloatTimeDomainData(gateBuffer);
-                let sum = 0;
-                for (let i = 0; i < gateBuffer.length; i++) {
-                    sum += gateBuffer[i] * gateBuffer[i];
-                }
-                const rms = Math.sqrt(sum / gateBuffer.length);
-                const dB = 20 * Math.log10(Math.max(rms, 1e-10));
-                const now = this.audioContext.currentTime;
+            if (rnnoiseNode) {
+                // RNNoise path: highPass → lowPass → RNNoise worklet → compressor → gain → dest
+                // lowPass(8kHz) cuts high-frequency hiss above voice range before
+                // RNNoise processes, so the model focuses on in-band noise.
+                source
+                    .connect(highPassFilter)
+                    .connect(lowPassFilter)
+                    .connect(rnnoiseNode)
+                    .connect(compressor)
+                    .connect(gainNode)
+                    .connect(this.audioDestination);
+            } else {
+                // Fallback: band-pass + compression + noise gate
+                // Browser's noiseSuppression + echoCancellation handle real noise reduction;
+                // the gate silences fan/ambient noise when the user isn't speaking.
+                const gateAnalyser = this.audioContext.createAnalyser();
+                gateAnalyser.fftSize = 256;
+                gateAnalyser.smoothingTimeConstant = 0.3;
 
-                if (dB > OPEN_THRESHOLD_DB) {
-                    if (holdTimer) {
-                        clearTimeout(holdTimer);
-                        holdTimer = null;
+                const gateGain = this.audioContext.createGain();
+                gateGain.gain.value = 0;
+
+                const gateBuffer = new Float32Array(gateAnalyser.fftSize);
+                const OPEN_THRESHOLD_DB = -45;
+                const CLOSE_THRESHOLD_DB = -50;
+                const HOLD_MS = 150;
+                let isGateOpen = false;
+                let holdTimer: ReturnType<typeof setTimeout> | null = null;
+
+                this.clearNoiseGate();
+                this.noiseGateInterval = setInterval(() => {
+                    if (
+                        !this.audioContext ||
+                        this.audioContext.state === "closed"
+                    ) {
+                        this.clearNoiseGate();
+                        return;
                     }
-                    if (!isGateOpen) {
-                        isGateOpen = true;
-                        gateGain.gain.cancelScheduledValues(now);
-                        gateGain.gain.setTargetAtTime(1.0, now, 0.006);
+
+                    gateAnalyser.getFloatTimeDomainData(gateBuffer);
+                    let sum = 0;
+                    for (let i = 0; i < gateBuffer.length; i++) {
+                        sum += gateBuffer[i] * gateBuffer[i];
                     }
-                } else if (dB < CLOSE_THRESHOLD_DB && isGateOpen) {
-                    if (!holdTimer) {
-                        holdTimer = setTimeout(() => {
+                    const rms = Math.sqrt(sum / gateBuffer.length);
+                    const dB = 20 * Math.log10(Math.max(rms, 1e-10));
+                    const now = this.audioContext.currentTime;
+
+                    if (dB > OPEN_THRESHOLD_DB) {
+                        if (holdTimer) {
+                            clearTimeout(holdTimer);
                             holdTimer = null;
-                            isGateOpen = false;
-                            if (
-                                this.audioContext &&
-                                this.audioContext.state !== "closed"
-                            ) {
-                                const t = this.audioContext.currentTime;
-                                gateGain.gain.cancelScheduledValues(t);
-                                gateGain.gain.setTargetAtTime(0.0, t, 0.015);
-                            }
-                        }, HOLD_MS);
+                        }
+                        if (!isGateOpen) {
+                            isGateOpen = true;
+                            gateGain.gain.cancelScheduledValues(now);
+                            gateGain.gain.setTargetAtTime(1.0, now, 0.006);
+                        }
+                    } else if (dB < CLOSE_THRESHOLD_DB && isGateOpen) {
+                        if (!holdTimer) {
+                            holdTimer = setTimeout(() => {
+                                holdTimer = null;
+                                isGateOpen = false;
+                                if (
+                                    this.audioContext &&
+                                    this.audioContext.state !== "closed"
+                                ) {
+                                    const t = this.audioContext.currentTime;
+                                    gateGain.gain.cancelScheduledValues(t);
+                                    gateGain.gain.setTargetAtTime(0.0, t, 0.015);
+                                }
+                            }, HOLD_MS);
+                        }
                     }
-                }
-            }, 20);
+                }, 20);
 
-            source
-                .connect(highPassFilter)
-                .connect(lowPassFilter)
-                .connect(compressor)
-                .connect(gateAnalyser)
-                .connect(gateGain)
-                .connect(gainNode)
-                .connect(this.audioDestination);
+                source
+                    .connect(highPassFilter)
+                    .connect(lowPassFilter)
+                    .connect(compressor)
+                    .connect(gateAnalyser)
+                    .connect(gateGain)
+                    .connect(gainNode)
+                    .connect(this.audioDestination);
+            }
         }
 
         // Tap an AnalyserNode for local active-speaker detection
@@ -755,6 +797,14 @@ export class AudioChat {
         }
     }
 
+    private cleanupRNNoise() {
+        if (this.rnnoiseNode) {
+            this.rnnoiseNode.port.postMessage({ type: 'destroy' });
+            this.rnnoiseNode.disconnect();
+            this.rnnoiseNode = null;
+        }
+    }
+
     public muteMic() {
         if (this.audioProducer) {
             this.audioProducer?.pause();
@@ -765,6 +815,7 @@ export class AudioChat {
     /** Close the audio producer and stop the mic track (for leaving calls) */
     public stopMic() {
         this.clearNoiseGate();
+        this.cleanupRNNoise();
         if (this.audioProducer && !this.audioProducer.closed) {
             this.audioProducer.close();
             this.audioProducer = undefined;
@@ -857,6 +908,7 @@ export class AudioChat {
 
         // Stop existing producer and stream
         this.clearNoiseGate();
+        this.cleanupRNNoise();
         this.audioProducer.close();
         this.audioProducer = undefined;
         this.currentStream.getTracks().forEach((t) => t.stop());
@@ -907,6 +959,8 @@ export class AudioChat {
         this.sfuService.socket.off("newProducer");
         this.sfuService.socket.off("endScreenShare");
         this.sfuService.socket.off("playerFocusModeChanged");
+
+        this.cleanupRNNoise();
 
         if (this.currentStream) {
             this.currentStream.getTracks().forEach((track) => track.stop());

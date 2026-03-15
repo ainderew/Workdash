@@ -15,6 +15,8 @@ function AudioVideoPanel() {
     selectMicrophone,
     isVideoOff,
     toggleVideo,
+    noiseCancellation,
+    toggleNoiseCancellation,
     backgroundMusicEnabled,
     musicVolume,
     toggleBackgroundMusic,
@@ -48,6 +50,15 @@ function AudioVideoPanel() {
             </select>
           </div>
         )}
+      </SettingsSection>
+
+      <SettingsSection label="Noise Cancellation">
+        <SettingsToggle
+          label="Noise Cancellation"
+          description={noiseCancellation ? 'AI-powered noise removal' : 'Disabled'}
+          checked={noiseCancellation}
+          onChange={() => toggleNoiseCancellation()}
+        />
       </SettingsSection>
 
       <SettingsSection label="Camera">

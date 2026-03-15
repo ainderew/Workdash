@@ -8,6 +8,7 @@ interface AudioState {
     userMuted: Map<number, number>;
     musicVolume: number;
     audioQualityMode: AudioQualityMode;
+    noiseCancellation: boolean;
 
     setUserVolume: (userId: number, volume: number) => void;
     toggleUserMute: (userId: number) => void;
@@ -16,6 +17,7 @@ interface AudioState {
     getMusicVolume: () => number;
     setMusicVolume: (volume: number) => void;
     setAudioQualityMode: (mode: AudioQualityMode) => void;
+    setNoiseCancellation: (enabled: boolean) => void;
 }
 
 const useAudioStore = create<AudioState>((set, get) => ({
@@ -23,6 +25,7 @@ const useAudioStore = create<AudioState>((set, get) => ({
     userMuted: new Map<number, number>(),
     musicVolume: 0.5,
     audioQualityMode: 'standard' as AudioQualityMode,
+    noiseCancellation: true,
 
     setUserVolume: (userId: number, volume: number) => {
         set((state) => {
@@ -73,6 +76,10 @@ const useAudioStore = create<AudioState>((set, get) => ({
 
     setAudioQualityMode: (mode: AudioQualityMode) => {
         set({ audioQualityMode: mode });
+    },
+
+    setNoiseCancellation: (enabled: boolean) => {
+        set({ noiseCancellation: enabled });
     },
 }));
 
