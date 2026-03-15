@@ -86,6 +86,23 @@ export default function CallView({ channelId, onLeave, onPictureInPicture, onFul
     };
   }, []);
 
+  // Re-fetch audio producers when a new participant joins so existing
+  // participants discover the joiner's pre-existing producer (created at
+  // app load, before they entered the call).
+  const participantCount = call?.participants.length ?? 0;
+  const initialFetchDone = useRef(false);
+  useEffect(() => {
+    // Skip the initial mount — the effect above already fetches producers.
+    if (!initialFetchDone.current) {
+      initialFetchDone.current = true;
+      return;
+    }
+    if (participantCount > 0) {
+      AudioChat.getInstance().loadExistingProducers();
+      VideoChatViewer.getInstance().loadExistingProducers();
+    }
+  }, [participantCount]);
+
   useEffect(() => {
     if (!membersByRoomId[channelId]) {
       loadRoomMembers(channelId);

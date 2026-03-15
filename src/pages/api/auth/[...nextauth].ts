@@ -46,7 +46,7 @@ async function refreshAccessToken(token: JWT) {
 }
 
 async function performBackendSync(idToken: string) {
-    const backendUrl = `${CONFIG.SFU_SERVER_URL}/api/auth/google-sync`;
+    const backendUrl = `${CONFIG.INTERNAL_SFU_URL}/api/auth/google-sync`;
 
     const response = await fetch(backendUrl, {
         method: "POST",
@@ -74,7 +74,7 @@ async function performBackendSync(idToken: string) {
 }
 
 async function refreshBackendToken(existingJwt: string) {
-    const backendUrl = `${CONFIG.SFU_SERVER_URL}/api/auth/refresh`;
+    const backendUrl = `${CONFIG.INTERNAL_SFU_URL}/api/auth/refresh`;
 
     const response = await fetch(backendUrl, {
         method: "POST",

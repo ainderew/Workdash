@@ -70,6 +70,8 @@ export class AudioChat {
     private receiveFilters: Map<string, BiquadFilterNode> = new Map();
     /** Shared output limiter to prevent clipping from loud remote speakers */
     private outputLimiter: DynamicsCompressorNode | null = null;
+    /** Noise gate polling interval for send-side audio */
+    private noiseGateInterval: ReturnType<typeof setInterval> | null = null;
 
     constructor() {
         logger.log("initializeAudioChat");
@@ -262,6 +264,8 @@ export class AudioChat {
         }
 
         const wasMuted = this.isMuted;
+
+        this.clearNoiseGate();
 
         if (this.currentStream) {
             this.currentStream.getTracks().forEach((track) => track.stop());
@@ -477,13 +481,29 @@ export class AudioChat {
                 // Don't tell server to resume — avoid wasting bandwidth
                 // Server will resume when focus mode is lifted
             } else {
-                await new Promise((resolve) => {
+                const resumeResult = await new Promise<
+                    void | { error: string }
+                >((resolve) => {
                     this.sfuService.socket.emit(
                         "resumeConsumer",
                         { consumerId: consumer.id },
                         resolve,
                     );
                 });
+                if (
+                    resumeResult &&
+                    typeof resumeResult === "object" &&
+                    "error" in resumeResult
+                ) {
+                    console.error(
+                        "Failed to resume consumer:",
+                        resumeResult.error,
+                    );
+                    consumer.close();
+                    this.consumers.delete(consumer.id);
+                    this.producerToConsumerMap.delete(producerId);
+                    return;
+                }
             }
 
             logger.log("Consumer resumed, creating Web Audio pipeline...");
@@ -608,7 +628,7 @@ export class AudioChat {
         // High-pass filter: remove rumble, hum, and low-freq noise
         const highPassFilter = this.audioContext.createBiquadFilter();
         highPassFilter.type = "highpass";
-        highPassFilter.frequency.value = isStudio ? 80 : 100;
+        highPassFilter.frequency.value = isStudio ? 80 : 150;
 
         // Low-pass filter (standard only): remove high-freq hiss/static above voice range
         const lowPassFilter = this.audioContext.createBiquadFilter();
@@ -646,12 +666,76 @@ export class AudioChat {
                 .connect(gainNode)
                 .connect(this.audioDestination);
         } else {
-            // Standard: band-pass (high-pass + low-pass) then gentle compression
-            // Browser's noiseSuppression + echoCancellation handle the real noise reduction
+            // Standard: band-pass + compression + noise gate
+            // Browser's noiseSuppression + echoCancellation handle real noise reduction;
+            // the gate silences fan/ambient noise when the user isn't speaking.
+            const gateAnalyser = this.audioContext.createAnalyser();
+            gateAnalyser.fftSize = 256;
+            gateAnalyser.smoothingTimeConstant = 0.3;
+
+            const gateGain = this.audioContext.createGain();
+            gateGain.gain.value = 0;
+
+            const gateBuffer = new Float32Array(gateAnalyser.fftSize);
+            const OPEN_THRESHOLD_DB = -45;
+            const CLOSE_THRESHOLD_DB = -50;
+            const HOLD_MS = 150;
+            let isGateOpen = false;
+            let holdTimer: ReturnType<typeof setTimeout> | null = null;
+
+            this.clearNoiseGate();
+            this.noiseGateInterval = setInterval(() => {
+                if (
+                    !this.audioContext ||
+                    this.audioContext.state === "closed"
+                ) {
+                    this.clearNoiseGate();
+                    return;
+                }
+
+                gateAnalyser.getFloatTimeDomainData(gateBuffer);
+                let sum = 0;
+                for (let i = 0; i < gateBuffer.length; i++) {
+                    sum += gateBuffer[i] * gateBuffer[i];
+                }
+                const rms = Math.sqrt(sum / gateBuffer.length);
+                const dB = 20 * Math.log10(Math.max(rms, 1e-10));
+                const now = this.audioContext.currentTime;
+
+                if (dB > OPEN_THRESHOLD_DB) {
+                    if (holdTimer) {
+                        clearTimeout(holdTimer);
+                        holdTimer = null;
+                    }
+                    if (!isGateOpen) {
+                        isGateOpen = true;
+                        gateGain.gain.cancelScheduledValues(now);
+                        gateGain.gain.setTargetAtTime(1.0, now, 0.006);
+                    }
+                } else if (dB < CLOSE_THRESHOLD_DB && isGateOpen) {
+                    if (!holdTimer) {
+                        holdTimer = setTimeout(() => {
+                            holdTimer = null;
+                            isGateOpen = false;
+                            if (
+                                this.audioContext &&
+                                this.audioContext.state !== "closed"
+                            ) {
+                                const t = this.audioContext.currentTime;
+                                gateGain.gain.cancelScheduledValues(t);
+                                gateGain.gain.setTargetAtTime(0.0, t, 0.015);
+                            }
+                        }, HOLD_MS);
+                    }
+                }
+            }, 20);
+
             source
                 .connect(highPassFilter)
                 .connect(lowPassFilter)
                 .connect(compressor)
+                .connect(gateAnalyser)
+                .connect(gateGain)
                 .connect(gainNode)
                 .connect(this.audioDestination);
         }
@@ -664,6 +748,13 @@ export class AudioChat {
         return this.audioDestination.stream;
     }
 
+    private clearNoiseGate() {
+        if (this.noiseGateInterval) {
+            clearInterval(this.noiseGateInterval);
+            this.noiseGateInterval = null;
+        }
+    }
+
     public muteMic() {
         if (this.audioProducer) {
             this.audioProducer?.pause();
@@ -673,6 +764,7 @@ export class AudioChat {
 
     /** Close the audio producer and stop the mic track (for leaving calls) */
     public stopMic() {
+        this.clearNoiseGate();
         if (this.audioProducer && !this.audioProducer.closed) {
             this.audioProducer.close();
             this.audioProducer = undefined;
@@ -764,6 +856,7 @@ export class AudioChat {
         const deviceId = this.currentDeviceId ?? undefined;
 
         // Stop existing producer and stream
+        this.clearNoiseGate();
         this.audioProducer.close();
         this.audioProducer = undefined;
         this.currentStream.getTracks().forEach((t) => t.stop());
@@ -876,6 +969,9 @@ export class AudioChat {
         this.producerToConsumerMap.clear();
         this.socketToProducersMap.clear();
         this.audioProducerUserIdMap.clear();
+        this.watchingNewProducers = false;
+        this.consumingInFlight.clear();
+        this.musicBotProducerIds.clear();
     }
 
     /**

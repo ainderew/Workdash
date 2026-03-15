@@ -109,7 +109,7 @@ export const patchBackendUserProfile = async (
     token: string,
     input: UserProfilePatchInput,
 ) => {
-    const profileResponse = await fetch(`${CONFIG.SFU_SERVER_URL}/api/user/profile`, {
+    const profileResponse = await fetch(`${CONFIG.INTERNAL_SFU_URL}/api/user/profile`, {
         method: "PATCH",
         headers: {
             "Content-Type": "application/json",
@@ -129,7 +129,7 @@ export const patchBackendUserProfile = async (
     // Compatibility fallback for older backend versions that only expose update-name.
     if (profileResponse.status === 404) {
         const fallbackResponse = await fetch(
-            `${CONFIG.SFU_SERVER_URL}/api/user/update-name`,
+            `${CONFIG.INTERNAL_SFU_URL}/api/user/update-name`,
             {
                 method: "PATCH",
                 headers: {

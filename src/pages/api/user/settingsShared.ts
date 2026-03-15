@@ -88,7 +88,7 @@ const toUserThemePayload = (rawBody: unknown): UserThemeSettingsApiPayload => {
 export const getBackendUserSettings = async (
     token: string,
 ): Promise<{ status: number; body: UserThemeSettingsApiPayload }> => {
-    const settingsResponse = await fetch(`${CONFIG.SFU_SERVER_URL}/api/settings`, {
+    const settingsResponse = await fetch(`${CONFIG.INTERNAL_SFU_URL}/api/settings`, {
         method: "GET",
         headers: {
             Authorization: `Bearer ${token}`,
@@ -106,7 +106,7 @@ export const patchBackendUserSettings = async (
     token: string,
     input: UserThemeSettingsPatchInput,
 ): Promise<{ status: number; body: UserThemeSettingsApiPayload | { error: string } }> => {
-    const settingsResponse = await fetch(`${CONFIG.SFU_SERVER_URL}/api/settings`, {
+    const settingsResponse = await fetch(`${CONFIG.INTERNAL_SFU_URL}/api/settings`, {
         method: "PATCH",
         headers: {
             "Content-Type": "application/json",
