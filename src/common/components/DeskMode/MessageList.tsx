@@ -19,6 +19,7 @@ import {
     getChatFileThumbnailUrl,
 } from "@/communication/chatV2/uploadService";
 import { parseMessageContent } from "@/common/utils/linkParser";
+import { BotMessageCard } from "./BotCards/BotMessageCard";
 import useUserStore from "@/common/store/useStore";
 import useChatV2Store from "@/common/store/chatV2Store";
 import { UnifiedLinkPreview } from "@/common/components/TextChat/UnifiedLinkPreview";
@@ -1145,9 +1146,7 @@ function MessageList({
                                                       message.id,
                                                   )
                                                 ? "border-l-2 border-l-[var(--wd-accent)]"
-                                                : isBot
-                                                  ? "border-l-[3px] border-l-[var(--wd-bot-border)] bg-[var(--wd-bot-bg)] hover:bg-[var(--wd-bot-bg-hover)]"
-                                                  : ""
+                                                : ""
                                     }${editingMessageId === message.id ? " rounded-md bg-[var(--wd-accent-soft)]" : ""}`}
                                 >
                                     {isConsecutive ? (
@@ -1329,6 +1328,8 @@ function MessageList({
                                                 }}
                                                 onCancel={cancelEdit}
                                             />
+                                        ) : isBot && message.botCard ? (
+                                            <BotMessageCard message={message} />
                                         ) : (
                                             <div>
                                                 {standaloneGifUrl && (

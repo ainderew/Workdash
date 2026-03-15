@@ -115,6 +115,8 @@ export type ChatV2Message = {
     }>;
     reactions?: ChatV2MessageReaction[];
     mentionedUserIds?: number[];
+    botCard?: BotCardPayload;
+    replacesMessageId?: string;
 };
 
 export type ChatV2MessageReactionUpdate = {
@@ -445,6 +447,65 @@ export type AchievementUnlockPayload = {
     rarity: AchievementRarity;
     category: string;
 };
+
+// --- Bot card types (structured music bot embeds) ---
+
+export interface BotCardSearching {
+    type: "searching";
+    query: string;
+}
+
+export interface BotCardNowPlaying {
+    type: "now_playing";
+    track: { title: string; duration: number; source?: string };
+    requestedBy: string;
+    queueLength: number;
+}
+
+export interface BotCardQueued {
+    type: "queued";
+    track: { title: string; duration: number };
+    requestedBy: string;
+    position: number;
+}
+
+export interface BotCardQueueList {
+    type: "queue_list";
+    currentTrack: { title: string; state: "playing" | "paused" } | null;
+    tracks: Array<{ title: string; duration: number; requestedBy: string }>;
+}
+
+export interface BotCardNowPlayingInfo {
+    type: "now_playing_info";
+    track: { title: string; duration: number; source?: string };
+    requestedBy: string;
+    state: "playing" | "paused";
+    listenerCount: number;
+}
+
+export interface BotCardError {
+    type: "error";
+    message: string;
+}
+
+export interface BotCardSessionEnded {
+    type: "session_ended";
+}
+
+export interface BotCardGenericInfo {
+    type: "generic_info";
+    message: string;
+}
+
+export type BotCardPayload =
+    | BotCardSearching
+    | BotCardNowPlaying
+    | BotCardQueued
+    | BotCardQueueList
+    | BotCardNowPlayingInfo
+    | BotCardError
+    | BotCardSessionEnded
+    | BotCardGenericInfo;
 
 export type BetrayalStats = {
     friendCode: string;

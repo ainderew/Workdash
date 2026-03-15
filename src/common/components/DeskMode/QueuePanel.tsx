@@ -1,14 +1,9 @@
 import React from "react";
 import type { QueuedTrack } from "@/common/store/musicStore";
+import { formatDuration } from "@/common/utils/formatDuration";
 
 interface QueuePanelProps {
     tracks: QueuedTrack[];
-}
-
-function formatDuration(seconds: number): string {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
 export function QueuePanel({ tracks }: QueuePanelProps) {

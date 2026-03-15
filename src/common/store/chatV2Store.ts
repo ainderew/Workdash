@@ -548,8 +548,15 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
                 onMessageNew: (message) => {
                     get().clearTypingUser(message.roomId, message.senderUserId);
                     set((state) => {
-                        const currentMessages =
+                        let currentMessages =
                             state.messagesByRoomId[message.roomId] || [];
+
+                        if (message.replacesMessageId) {
+                            currentMessages = currentMessages.filter(
+                                (m) => m.id !== message.replacesMessageId,
+                            );
+                        }
+
                         const upsertResult = upsertMessageWithResult(
                             currentMessages,
                             message,
