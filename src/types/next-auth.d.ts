@@ -28,5 +28,6 @@ declare module "next-auth/jwt" {
         backendJwtExpiresAt?: number;
         backendUser?: BackendUser;
         backendCharacter?: BackendCharacter;
+        authProvider?: string; // "google" | "magic-link"
     }
 }

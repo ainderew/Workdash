@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/router";
-import { signIn, useSession } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import Head from "next/head";
 import {
   InvitePreviewCard,
@@ -75,8 +75,8 @@ export default function InvitePage() {
 
   const handleSignIn = useCallback(() => {
     if (!code || typeof code !== "string") return;
-    void signIn("google", { callbackUrl: `/invite/${code}` });
-  }, [code]);
+    void router.push(`/login?invite=${encodeURIComponent(code)}`);
+  }, [code, router]);
 
   const isAuthenticated = authStatus === "authenticated";
 

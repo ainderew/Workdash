@@ -1,9 +1,17 @@
-import NextAuth, { AuthOptions } from "next-auth";
+import NextAuth, { AuthOptions, User } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
+import CredentialsProvider from "next-auth/providers/credentials";
 import { JWT } from "next-auth/jwt";
 import { Session } from "next-auth";
 import { CONFIG } from "@/common/utils/config";
-import { ExtendedAccount } from "@/types/auth";
+import { ExtendedAccount, BackendUser, BackendCharacter } from "@/types/auth";
+
+interface MagicLinkUser extends User {
+    backendJwt: string;
+    backendJwtExpiresAt: number;
+    backendUser: BackendUser;
+    backendCharacter: BackendCharacter;
+}
 
 
 async function refreshAccessToken(token: JWT) {
@@ -102,6 +110,7 @@ async function refreshBackendToken(existingJwt: string) {
 
 
 export const authOptions: AuthOptions = {
+    session: { strategy: "jwt" },
     providers: [
         GoogleProvider({
             clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -113,6 +122,39 @@ export const authOptions: AuthOptions = {
                     include_granted_scopes: true,
                     prompt: "consent",
                 },
+            },
+        }),
+        CredentialsProvider({
+            id: "magic-link",
+            name: "Magic Link",
+            credentials: {
+                token: { type: "text" },
+            },
+            async authorize(credentials) {
+                if (!credentials?.token) return null;
+
+                const res = await fetch(
+                    `${CONFIG.INTERNAL_SFU_URL}/api/auth/magic-link/verify`,
+                    {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ token: credentials.token }),
+                    },
+                );
+
+                if (!res.ok) return null;
+
+                const data = await res.json();
+                return {
+                    id: String(data.user.id),
+                    email: data.user.email,
+                    name: data.user.name,
+                    image: data.user.avatarUrl ?? null,
+                    backendJwt: data.token,
+                    backendJwtExpiresAt: Date.now() + 25 * 24 * 60 * 60 * 1000,
+                    backendUser: { ...data.user, image: data.user.avatarUrl },
+                    backendCharacter: data.character,
+                };
             },
         }),
     ],
@@ -139,10 +181,27 @@ export const authOptions: AuthOptions = {
         async jwt({
             token,
             account,
+            user,
         }: {
             token: JWT;
             account: ExtendedAccount | null;
-        }) {
+            user?: User | MagicLinkUser;
+        }): Promise<JWT> {
+            // MAGIC LINK: user object comes from authorize() return
+            if (account?.provider === "magic-link" && user) {
+                const mlUser = user as MagicLinkUser;
+                return {
+                    ...token,
+                    backendJwt: mlUser.backendJwt,
+                    backendJwtExpiresAt: mlUser.backendJwtExpiresAt,
+                    backendUser: mlUser.backendUser,
+                    backendCharacter: mlUser.backendCharacter,
+                    nickname: mlUser.backendUser?.nickname ?? null,
+                    authProvider: "magic-link",
+                };
+            }
+
+            // GOOGLE: existing flow (account is ExtendedAccount)
             if (account) {
                 return {
                     ...token,
@@ -157,11 +216,13 @@ export const authOptions: AuthOptions = {
                     backendCharacter: account.backendCharacter,
                     nickname: account.backendUser?.nickname ?? null,
                     user: token.user,
+                    authProvider: "google",
                 };
             }
 
-            // Return previous token if the access token and backend token have not expired yet
-            const isAccessTokenExpired = Date.now() >= (token.accessTokenExpires as number);
+            // TOKEN REFRESH: only refresh Google access token if provider was Google
+            const isGoogleUser = token.authProvider === "google";
+            const isAccessTokenExpired = isGoogleUser && Date.now() >= (token.accessTokenExpires as number);
             const isBackendTokenExpired = token.backendJwtExpiresAt && Date.now() >= (token.backendJwtExpiresAt as number);
 
             let newToken = token;
