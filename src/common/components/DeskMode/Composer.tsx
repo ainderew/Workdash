@@ -558,7 +558,7 @@ function Composer({
     );
 
     return (
-        <div className="wd-panel-height relative border-t wd-border-subtle p-4 wd-bg-panel-2">
+        <div className="min-h-[var(--wd-panel-height)] relative border-t wd-border-subtle p-4 wd-bg-panel-2">
             {isCommandFlyoutOpen && (
                 <BotCommandFlyout
                     entries={commandSuggestions}
@@ -697,6 +697,7 @@ function Composer({
                         onChange={(event) => {
                             const nextFile = event.target.files?.[0] || null;
                             setSelectedFile(nextFile);
+                            event.target.value = '';
                         }}
                     />
                 </div>
