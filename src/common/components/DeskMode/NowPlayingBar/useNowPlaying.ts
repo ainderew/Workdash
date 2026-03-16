@@ -4,6 +4,7 @@ import useMusicStore from "@/common/store/musicStore";
 import useChatV2Store from "@/common/store/chatV2Store";
 import { MusicClientService } from "@/communication/music/musicService";
 import { useWorkspacePermissions } from "@/common/hooks/useWorkspacePermissions";
+import { useTrackElapsed } from "./useTrackElapsed";
 
 const EMPTY_QUEUE: never[] = [];
 
@@ -41,26 +42,7 @@ export function useNowPlaying() {
   const [showQueue, setShowQueue] = useState(false);
 
   // ── Elapsed time tracker (client-side estimate) ──────────────────────
-  const [elapsed, setElapsed] = useState(0);
-  const trackTitleRef = useRef<string | null>(null);
-
-  // Reset elapsed when track changes
-  useEffect(() => {
-    const title = session?.currentTrack?.title ?? null;
-    if (title !== trackTitleRef.current) {
-      trackTitleRef.current = title;
-      setElapsed(0);
-    }
-  }, [session?.currentTrack?.title]);
-
-  // Tick elapsed every second while playing
-  useEffect(() => {
-    if (session?.state !== "playing") return;
-    const id = setInterval(() => {
-      setElapsed((prev) => prev + 1);
-    }, 1000);
-    return () => clearInterval(id);
-  }, [session?.state]);
+  const elapsed = useTrackElapsed(session, workspaceId);
 
   useEffect(() => {
     if (lottieReady) return;

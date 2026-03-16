@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import { NowPlayingBar } from "./NowPlayingBar";
 
 // ─── Factory helpers ─────────────────────────────────────────────────────────
@@ -31,6 +31,7 @@ const mockUnsubscribe = vi.fn();
 const mockFetchQueue = vi.fn();
 const mockTogglePlayback = vi.fn();
 const mockSkip = vi.fn();
+const mockFetchState = vi.fn();
 
 vi.mock("@/communication/music/musicService", () => ({
   MusicClientService: {
@@ -40,6 +41,7 @@ vi.mock("@/communication/music/musicService", () => ({
       fetchQueue: mockFetchQueue,
       togglePlayback: mockTogglePlayback,
       skip: mockSkip,
+      fetchState: mockFetchState,
     })),
   },
 }));
@@ -456,6 +458,70 @@ describe("NowPlayingBar", () => {
       setSession(makeSession({ currentTrack: { title: "Song", duration: 0, requestedBy: "Alice" } }));
       render(<NowPlayingBar />);
       expect(screen.getByText("--:--")).toBeInTheDocument();
+    });
+
+    it("caps elapsed display at track duration", () => {
+      vi.useFakeTimers();
+      setSession(makeSession({
+        state: "playing",
+        currentTrack: { title: "Short Song", duration: 3, requestedBy: "Alice" },
+      }));
+      render(<NowPlayingBar />);
+
+      // Advance past the 3-second duration
+      act(() => { vi.advanceTimersByTime(5000); });
+
+      // Elapsed text should be capped at 0:03, not 0:05
+      const timeElements = screen.getAllByText("0:03");
+      expect(timeElements.length).toBeGreaterThanOrEqual(1);
+      expect(screen.queryByText("0:05")).not.toBeInTheDocument();
+
+      vi.useRealTimers();
+    });
+
+    it("calls fetchState after grace period when elapsed reaches duration", () => {
+      vi.useFakeTimers();
+      setSession(makeSession({
+        state: "playing",
+        currentTrack: { title: "Short Song", duration: 3, requestedBy: "Alice" },
+      }));
+      render(<NowPlayingBar />);
+
+      // Advance to duration (3 ticks)
+      act(() => { vi.advanceTimersByTime(3000); });
+      expect(mockFetchState).not.toHaveBeenCalled();
+
+      // Advance past the 3-second grace period
+      act(() => { vi.advanceTimersByTime(3000); });
+      expect(mockFetchState).toHaveBeenCalledWith("ws-1");
+      expect(mockFetchState).toHaveBeenCalledTimes(1);
+
+      vi.useRealTimers();
+    });
+
+    it("resets elapsed to 0 when track changes", () => {
+      vi.useFakeTimers();
+      setSession(makeSession({
+        state: "playing",
+        currentTrack: { title: "Song A", duration: 180, requestedBy: "Alice" },
+      }));
+      const { rerender } = render(<NowPlayingBar />);
+
+      // Advance 5 seconds
+      act(() => { vi.advanceTimersByTime(5000); });
+      expect(screen.getByText("0:05")).toBeInTheDocument();
+
+      // Change track
+      setSession(makeSession({
+        state: "playing",
+        currentTrack: { title: "Song B", duration: 200, requestedBy: "Bob" },
+      }));
+      rerender(<NowPlayingBar />);
+
+      // Elapsed should reset to 0:00
+      expect(screen.getByText("0:00")).toBeInTheDocument();
+
+      vi.useRealTimers();
     });
   });
 

@@ -17,7 +17,7 @@ export function ProgressBar({ elapsed, duration }: ProgressBarProps) {
   return (
     <div className="flex items-center gap-1.5 w-full">
       <span className="text-[9px] wd-text-muted tabular-nums w-7 text-right shrink-0">
-        {formatTime(elapsed)}
+        {formatTime(duration > 0 ? Math.min(elapsed, duration) : elapsed)}
       </span>
       <div className="flex-1 h-1 rounded-full bg-[var(--wd-surface-elevated)] overflow-hidden">
         <div

@@ -12,7 +12,7 @@ export interface QueuedTrack {
     requestedBy: string;
 }
 
-interface MusicSessionState {
+export interface MusicSessionState {
     state: "playing" | "paused" | "stopped";
     currentTrack: MusicTrackInfo | null;
     queueLength: number;
