@@ -1,5 +1,7 @@
 import React, { useCallback, useMemo, useRef, useState } from "react";
-import { SendHorizontal, Sticker, X } from "lucide-react";
+import { SendHorizontal, Sticker } from "lucide-react";
+import { useClipboardImagePaste } from "./hooks/useClipboardImagePaste";
+import { AttachmentPreview } from "./AttachmentPreview";
 import { toast } from "sonner";
 import type {
     ChatV2CreateAttachment,
@@ -117,6 +119,15 @@ function Composer({
     const [commandSelectedIndex, setCommandSelectedIndex] = useState(0);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+    const handleImagePaste = useCallback((file: File) => {
+        setSelectedFile(file);
+        setUploadError(null);
+    }, []);
+
+    const { handlePaste } = useClipboardImagePaste({
+        onImagePaste: handleImagePaste,
+    });
     const inputElementId = inputId;
     const inlineActionButtonClassName =
         "group/inline relative z-[99] h-9 w-9 shrink-0 rounded-full overflow-hidden text-[var(--wd-text-muted)] transition-colors duration-300 hover:text-white focus-visible:text-white disabled:opacity-55 disabled:cursor-not-allowed";
@@ -600,16 +611,10 @@ function Composer({
             )}
 
             {selectedFile && (
-                <div className="mb-3 px-3 py-2 rounded-md wd-bg-elevated text-xs wd-text-secondary flex items-center justify-between border wd-border-subtle">
-                    <span className="truncate pr-2">{selectedFile.name}</span>
-                    <button
-                        type="button"
-                        className="wd-text-muted hover:text-[var(--wd-text-primary)]"
-                        onClick={() => setSelectedFile(null)}
-                    >
-                        <X className="w-4 h-4" />
-                    </button>
-                </div>
+                <AttachmentPreview
+                    file={selectedFile}
+                    onRemove={() => setSelectedFile(null)}
+                />
             )}
 
             {uploadError && (
@@ -641,6 +646,7 @@ function Composer({
                                 value={value}
                                 onChange={handleChange}
                                 onKeyDown={handleKeyDown}
+                                onPaste={handlePaste}
                                 disabled={disabled || isSending}
                                 rows={1}
                                 placeholder={placeholder}
