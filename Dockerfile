@@ -2,7 +2,7 @@
 FROM node:20-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN mkdir -p public && npm ci
 
 # Dev target — full source + deps, no build step
 FROM node:20-alpine AS dev
