@@ -1116,6 +1116,18 @@ export class AudioChat {
         }
     }
 
+    public setMusicVolume(volume: number): void {
+        const clamped = Math.max(0, Math.min(1, volume));
+        for (const producerId of this.musicBotProducerIds) {
+            const consumerId = this.producerToConsumerMap.get(producerId);
+            if (!consumerId) continue;
+            const gainNode = this.gainNodes.get(consumerId);
+            if (gainNode) {
+                gainNode.gain.value = clamped;
+            }
+        }
+    }
+
     public getUserIdByName(userName: string): number | null {
         for (const [producerId, name] of Object.entries(this.audioOwnerMap)) {
             if (name === userName) {

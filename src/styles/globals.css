@@ -1023,6 +1023,23 @@ input[type="range"].wd-volume-slider::-moz-range-progress {
     }
 }
 
+/* ── Playback pulse animation (NowPlayingBar play button) ─────────── */
+
+@keyframes wd-playback-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--wd-accent) 40%, transparent); }
+    50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--wd-accent) 0%, transparent); }
+}
+
+.wd-playback-pulse {
+    animation: wd-playback-pulse 2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .wd-playback-pulse {
+        animation: none;
+    }
+}
+
 /* ── Active speaker tile highlight ────────────────────────────────── */
 
 .wd-speaker-tile {

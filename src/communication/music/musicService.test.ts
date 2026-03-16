@@ -277,6 +277,56 @@ describe("MusicClientService", () => {
     });
   });
 
+  describe("togglePlayback", () => {
+    it("should emit music:toggle-playback with workspaceId", () => {
+      const service = MusicClientService.getInstance();
+      service.init(socket as unknown as SocketIOClient.Socket);
+
+      service.togglePlayback("ws-1");
+
+      expect(socket.emit).toHaveBeenCalledWith(
+        "music:toggle-playback",
+        { workspaceId: "ws-1" },
+        expect.any(Function),
+      );
+    });
+
+    it("should not throw on error callback", () => {
+      const service = MusicClientService.getInstance();
+      service.init(socket as unknown as SocketIOClient.Socket);
+
+      service.togglePlayback("ws-1");
+
+      const callback = socket.emit.mock.calls[0][2] as (res: unknown) => void;
+      expect(() => callback({ error: "No permission" })).not.toThrow();
+    });
+  });
+
+  describe("skip", () => {
+    it("should emit music:skip with workspaceId", () => {
+      const service = MusicClientService.getInstance();
+      service.init(socket as unknown as SocketIOClient.Socket);
+
+      service.skip("ws-1");
+
+      expect(socket.emit).toHaveBeenCalledWith(
+        "music:skip",
+        { workspaceId: "ws-1" },
+        expect.any(Function),
+      );
+    });
+
+    it("should not throw on error callback", () => {
+      const service = MusicClientService.getInstance();
+      service.init(socket as unknown as SocketIOClient.Socket);
+
+      service.skip("ws-1");
+
+      const callback = socket.emit.mock.calls[0][2] as (res: unknown) => void;
+      expect(() => callback({ error: "No active session" })).not.toThrow();
+    });
+  });
+
   describe("resubscribeAll", () => {
     it("should re-subscribe to all listening workspaces on reconnect", () => {
       const service = MusicClientService.getInstance();

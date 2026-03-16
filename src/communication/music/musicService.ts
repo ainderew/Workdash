@@ -149,6 +149,32 @@ export class MusicClientService {
         );
     }
 
+    togglePlayback(workspaceId: string): void {
+        if (!this.socket) return;
+        this.socket.emit(
+            "music:toggle-playback",
+            { workspaceId },
+            (res: { ok?: boolean; state?: string; error?: string }) => {
+                if (res.error) {
+                    console.error("[music] Toggle playback failed:", res.error);
+                }
+            },
+        );
+    }
+
+    skip(workspaceId: string): void {
+        if (!this.socket) return;
+        this.socket.emit(
+            "music:skip",
+            { workspaceId },
+            (res: { ok?: boolean; error?: string }) => {
+                if (res.error) {
+                    console.error("[music] Skip failed:", res.error);
+                }
+            },
+        );
+    }
+
     unsubscribe(workspaceId: string): void {
         if (!this.socket) return;
         this.socket.emit(

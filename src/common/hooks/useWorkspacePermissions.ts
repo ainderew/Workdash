@@ -19,6 +19,7 @@ export interface WorkspacePermissions {
   canCreateInvite: boolean;
   canManageEmojis: boolean;
   canManageWorkspace: boolean;
+  canManageMusic: boolean;
 }
 
 const EMPTY_PERMISSIONS: WorkspacePermissions = {
@@ -31,6 +32,7 @@ const EMPTY_PERMISSIONS: WorkspacePermissions = {
   canCreateInvite: false,
   canManageEmojis: false,
   canManageWorkspace: false,
+  canManageMusic: false,
 };
 
 export function useWorkspacePermissions(
@@ -69,6 +71,7 @@ export function useWorkspacePermissions(
       canCreateInvite: hasPermission(effectivePermissions, PERM.CREATE_INVITE),
       canManageEmojis: hasPermission(effectivePermissions, PERM.MANAGE_EMOJIS),
       canManageWorkspace: hasPermission(effectivePermissions, PERMISSIONS.MANAGE_WORKSPACE.bit),
+      canManageMusic: hasPermission(effectivePermissions, PERM.MANAGE_MUSIC),
     };
   }, [workspaceId, workspaces, viewerUserId]);
 }

@@ -71,7 +71,11 @@ const useAudioStore = create<AudioState>((set, get) => ({
     },
 
     setMusicVolume: (volume: number) => {
-        set({ musicVolume: Math.max(0, Math.min(1, volume)) });
+        const clamped = Math.max(0, Math.min(1, volume));
+        set({ musicVolume: clamped });
+
+        const audioChat = AudioChat.getInstance();
+        audioChat.setMusicVolume(clamped);
     },
 
     setAudioQualityMode: (mode: AudioQualityMode) => {
