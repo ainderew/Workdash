@@ -9,7 +9,7 @@ const PrivacyPage = () => {
                         Privacy Policy
                     </h1>
                     <p className="text-slate-400">
-                        Effective Date: December 19, 2025
+                        Effective Date: March 18, 2026
                     </p>
                 </div>
 
@@ -73,9 +73,15 @@ const PrivacyPage = () => {
 
                     <div className="space-y-4 text-slate-300 mt-4">
                         <p>
-                            We access Google Calendar data (Read-Only) solely to
+                            We request the{" "}
+                            <code className="text-orange-300 bg-slate-900/50 px-1 rounded text-sm">
+                                calendar.readonly
+                            </code>{" "}
+                            scope to read your Google Calendar data. We access
+                            only event summaries, times, and free/busy status to
                             display your schedule and provide 1-click access to
-                            meeting links within the Workdash interface.
+                            meeting links within the Workdash interface. No
+                            calendar data is modified, created, or deleted.
                         </p>
 
                         <strong className="text-white block mt-2">
@@ -108,6 +114,54 @@ const PrivacyPage = () => {
                             <li>
                                 Data is processed in-memory and is not stored at
                                 rest on our servers.
+                            </li>
+                        </ul>
+
+                        <strong className="text-white block mt-4">
+                            Data Protection Mechanisms:
+                        </strong>
+                        <ul className="list-disc ml-6 space-y-2">
+                            <li>
+                                <strong className="text-white">
+                                    Encryption in Transit:
+                                </strong>{" "}
+                                All communication between your browser and our
+                                servers is encrypted using TLS/HTTPS. Real-time
+                                media streams (voice, video, screen share) are
+                                encrypted via DTLS-SRTP through WebRTC.
+                            </li>
+                            <li>
+                                <strong className="text-white">
+                                    Secure Authentication:
+                                </strong>{" "}
+                                We use OAuth 2.0 via Google Sign-In for
+                                authentication. We never receive, store, or have
+                                access to your Google password.
+                            </li>
+                            <li>
+                                <strong className="text-white">
+                                    Minimal Data Retention:
+                                </strong>{" "}
+                                Google Calendar data is fetched on demand and
+                                processed in-memory only. It is never written to
+                                a database or persisted on disk.
+                            </li>
+                            <li>
+                                <strong className="text-white">
+                                    Access Controls:
+                                </strong>{" "}
+                                Access to production systems is restricted to
+                                authorized personnel only, using
+                                role-based access controls and secure
+                                credential management.
+                            </li>
+                            <li>
+                                <strong className="text-white">
+                                    Token Security:
+                                </strong>{" "}
+                                OAuth tokens are stored securely and are
+                                automatically revoked when you disconnect your
+                                Google account or delete your Workdash account.
                             </li>
                         </ul>
                     </div>
