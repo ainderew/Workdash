@@ -18,6 +18,8 @@ import { ProfileStatusPicker } from './ProfileStatusPicker';
 import { DotaMedalBadge } from './DotaMedalBadge';
 import { BetrayalStatsBadge } from './BetrayalStatsBadge';
 import { AchievementBadges } from './AchievementBadges';
+import { ActivityText } from '../ActivityText';
+import useChatV2Store from '@/common/store/chatV2Store';
 
 interface ProfilePopoverProps {
   popover: ProfilePopoverState;
@@ -47,6 +49,7 @@ export function ProfilePopover({
   });
 
   const isSelf = profile?.isSelf ?? false;
+  const selectedWorkspaceId = useChatV2Store((s) => s.selectedWorkspaceId);
 
   // --- Viewport-aware positioning ---
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -319,13 +322,14 @@ export function ProfilePopover({
           </div>
         )}
 
-        <div className="mt-2.5 space-y-0.5">
+        <div className="mt-2.5 space-y-0.5 overflow-hidden">
           <p className="text-[17px] font-semibold tracking-[-0.01em] wd-text-primary truncate">
             {popover.senderName}
           </p>
           <p className="text-[11px] font-mono wd-text-muted opacity-60">
             ID {popover.senderUserId}
           </p>
+          <ActivityText userId={popover.senderUserId} workspaceId={selectedWorkspaceId} />
         </div>
       </div>
 

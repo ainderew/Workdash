@@ -9,75 +9,43 @@ This repo depends on `workdash-media-server`.
 - Client (this repo): `http://localhost:8080`
 - Media server: `http://localhost:4000`
 - Postgres: `localhost:5432`
+- Redis: `localhost:6379`
 - NATS JetStream: `localhost:4222` (monitoring on `localhost:8222`)
 
 ## Prerequisites
 
 - Node.js 20 (v20.x) for builds — `npm run dev` works on Node 20–23, but `npm run build` requires Node 20 (as of Feb 23, 2026)
-- Docker (Docker Desktop or OrbStack)
+- Docker (Docker Desktop or OrbStack) with Docker Compose
 - `workdash-media-server` checked out locally
+- `.env.docker` template at the workspace root (copy to `.env` — see step 1)
 - Google OAuth credentials for NextAuth
 - GCS bucket + service account key for chat file uploads (required by server startup)
 
 ## 1) Start local infrastructure
 
-Run once:
+A `docker-compose.yml` at the workspace root (`workdash-project/`) starts Postgres, Redis, and NATS together.
 
 ```bash
-docker volume create workdash-postgres-data
+cd /Users/AndrewPinon/projects/workdash-project
+
+# First time only — create your local env file from the template
+cp .env.docker .env
+# Edit .env and fill in values marked "CHANGE ME" (JWT_SECRET, Google OAuth, etc.)
+
+# Start all services
+docker compose up -d
 ```
 
-Run Postgres:
-
-```bash
-docker run --name workdash-postgres -d \
-  -e POSTGRES_DB=workdash_dev \
-  -e POSTGRES_USER=workdash_dev_admin \
-  -e POSTGRES_PASSWORD=qwe123.. \
-  -p 5432:5432 \
-  -v workdash-postgres-data:/var/lib/postgresql/data \
-  postgres:16
-```
-
-Run NATS JetStream:
-
-```bash
-docker run --name workdash-nats -d \
-  -p 4222:4222 \
-  -p 8222:8222 \
-  nats:2.10 -js
-```
-
-**OrbStack users:** The same `docker` commands work — OrbStack is a drop-in Docker replacement. Just make sure OrbStack is running first (`open -a OrbStack`). You can also use `orb` to manage containers:
-
-```bash
-# Start stopped containers
-orb start workdash-postgres
-orb start workdash-nats
-```
+**OrbStack users:** Docker Compose works the same way — just make sure OrbStack is running first (`open -a OrbStack`).
 
 ## 2) Configure and start the media server
 
-In `workdash-media-server/.env` set:
+Most media server config is handled by the root `.env` file (created in step 1). If you need to override anything locally, create `workdash-media-server/.env` with:
 
 ```env
-PUBLIC_IP=127.0.0.1
-
-DATABASE_URL=postgresql://workdash_dev_admin:qwe123..@localhost:5432/workdash_dev
-
-JWT_SECRET=replace-with-a-random-secret
-JWT_EXPIRES_IN=7d
-
+DATABASE_URL=postgresql://workdash:workdash@localhost:5432/workdash
+REDIS_URL=redis://localhost:6379
 NATS_SERVERS=nats://127.0.0.1:4222
-
-GCS_BUCKET_NAME=your-bucket
-GCS_PROJECT_ID=your-gcp-project-id
-GOOGLE_APPLICATION_CREDENTIALS=/absolute/path/to/service-account-key.json
-
-# Optional
-# CHAT_FILE_PURGE_INTERVAL_MS=300000
-# CHAT_FILE_PURGE_RETENTION_MS=604800000
-# CHAT_FILE_PURGE_BATCH_SIZE=100
 ```
 
 Then:
@@ -149,8 +117,8 @@ Test files live alongside the source they cover (`*.test.ts` / `*.test.tsx`).
 ## Troubleshooting
 
 - Server exits at startup with a NATS error:
-    - Verify NATS is running on `127.0.0.1:4222`.
-    - OrbStack users: ensure OrbStack is running (`open -a OrbStack`) and the container is started (`docker start workdash-nats`).
+    - Verify NATS is running: `docker compose ps` (from the workspace root).
+    - OrbStack users: ensure OrbStack is running (`open -a OrbStack`).
 - Server exits with `GCS_* environment variable is required`:
     - Set `GCS_BUCKET_NAME`, `GCS_PROJECT_ID`, and `GOOGLE_APPLICATION_CREDENTIALS`.
 - Google sign-in fails:
@@ -161,6 +129,11 @@ Test files live alongside the source they cover (`*.test.ts` / `*.test.tsx`).
 ## Stopping local services
 
 ```bash
-docker stop workdash-postgres workdash-nats
-docker rm workdash-postgres workdash-nats
+cd /Users/AndrewPinon/projects/workdash-project
+
+# Stop and remove containers (data is preserved in volumes)
+docker compose down
+
+# Stop and remove containers AND delete all data
+docker compose down -v
 ```

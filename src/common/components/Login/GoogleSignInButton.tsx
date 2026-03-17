@@ -9,11 +9,12 @@ export function GoogleSignInButton({ callbackUrl }: Props) {
   return (
     <button
       onClick={() => signIn("google", { callbackUrl })}
-      className="flex w-full items-center justify-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors"
+      className="flex w-full items-center justify-center gap-3 rounded-xl px-4 py-3.5 text-sm font-semibold transition-all duration-200 hover:-translate-y-[1px] hover:shadow-xl active:translate-y-0 active:shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--wd-login-accent)]"
       style={{
-        backgroundColor: "var(--wd-surface-base)",
-        border: "1px solid var(--wd-border-subtle)",
-        color: "var(--wd-text-primary)",
+        backgroundColor: "var(--wd-login-surface)",
+        color: "var(--wd-login-text)",
+        boxShadow:
+          "0 1px 3px rgb(0 0 0 / 0.08), 0 0 0 1px var(--wd-login-border)",
       }}
     >
       <svg className="h-5 w-5" viewBox="0 0 24 24">

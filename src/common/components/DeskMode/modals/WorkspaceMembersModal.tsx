@@ -20,6 +20,7 @@ import { colorToHex } from "@/common/utils/roleColor";
 import UserAvatar from "../UserAvatar";
 import PresenceDot from "../PresenceDot";
 import WorkspaceMemberContextMenu from "../WorkspaceMemberContextMenu";
+import { ActivityText } from "../ActivityText";
 
 // ================================================================
 // Types
@@ -259,6 +260,7 @@ function WorkspaceMemberRow({
                         <span className="ml-1.5 text-[10px] wd-text-muted">(Owner)</span>
                     )}
                 </span>
+                <ActivityText userId={member.userId} workspaceId={member.workspaceId} />
                 {topRole && (
                     <span className="inline-flex items-center gap-1 mt-0.5">
                         <span

@@ -12,6 +12,7 @@ import {
 } from "mediasoup-client/types";
 import io from "socket.io-client";
 import { StatusClientService } from "@/communication/status/statusService";
+import { ActivityClientService } from "@/communication/activity/activityService";
 
 
 export class MediaTransportService {
@@ -56,6 +57,8 @@ export class MediaTransportService {
             const statusClient = StatusClientService.init(this.socket);
             statusClient.setupListeners();
             statusClient.fetchDefinitions().catch(console.error);
+
+            ActivityClientService.getInstance().init(this.socket).setupListeners();
         });
     }
 

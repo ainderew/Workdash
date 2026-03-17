@@ -33,32 +33,32 @@ export function MagicLinkSent({ email, onResend, onBack }: Props) {
       : email;
 
   return (
-    <div className="flex flex-col items-center gap-4 py-2 text-center">
+    <div className="flex flex-col items-center gap-5 py-2 text-center">
       <div
-        className="flex h-14 w-14 items-center justify-center rounded-full"
+        className="wd-login-icon-pop flex h-12 w-12 items-center justify-center rounded-full"
         style={{
-          backgroundColor: "var(--wd-accent-soft)",
-          color: "var(--wd-accent)",
+          backgroundColor: "var(--wd-login-accent-soft)",
+          color: "var(--wd-login-accent)",
         }}
       >
-        <MailIcon className="h-7 w-7" />
+        <MailIcon className="h-6 w-6" />
       </div>
 
       <div>
         <h3
           className="text-lg font-semibold"
-          style={{ color: "var(--wd-text-primary)" }}
+          style={{ color: "var(--wd-login-text)" }}
         >
-          Check your email
+          Check your inbox
         </h3>
         <p
-          className="mt-1 text-sm"
-          style={{ color: "var(--wd-text-secondary)" }}
+          className="mt-1.5 text-sm"
+          style={{ color: "var(--wd-login-text-sub)" }}
         >
-          We sent a sign-in link to{" "}
+          We sent a magic link to{" "}
           <span
             className="font-medium"
-            style={{ color: "var(--wd-text-primary)" }}
+            style={{ color: "var(--wd-login-text)" }}
           >
             {masked}
           </span>
@@ -68,7 +68,11 @@ export function MagicLinkSent({ email, onResend, onBack }: Props) {
       <button
         onClick={handleResend}
         disabled={resendState === "sending" || cooldown > 0}
-        className="wd-btn-ghost mt-1 flex items-center gap-2 rounded-lg px-4 py-2 text-sm"
+        className="flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold transition-all duration-200 hover:-translate-y-[1px] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--wd-login-accent)]"
+        style={{
+          backgroundColor: "var(--wd-login-accent-soft)",
+          color: "var(--wd-login-accent)",
+        }}
       >
         {resendState === "sending" ? (
           <>
@@ -77,8 +81,6 @@ export function MagicLinkSent({ email, onResend, onBack }: Props) {
           </>
         ) : cooldown > 0 ? (
           `Resend in ${cooldown}s`
-        ) : resendState === "sent" ? (
-          "Resend email"
         ) : (
           "Resend email"
         )}
@@ -86,8 +88,8 @@ export function MagicLinkSent({ email, onResend, onBack }: Props) {
 
       <button
         onClick={onBack}
-        className="text-sm font-medium"
-        style={{ color: "var(--wd-accent)" }}
+        className="text-sm font-medium transition-opacity hover:opacity-70"
+        style={{ color: "var(--wd-login-accent)" }}
       >
         Use a different email
       </button>

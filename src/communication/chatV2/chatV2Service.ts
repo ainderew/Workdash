@@ -37,6 +37,7 @@ import type {
 } from "./_types";
 import { getStandaloneGifUrl } from "./gifUrl";
 import { usePresenceStore } from "@/common/store/presenceStore";
+import { useActivityStore } from "@/common/store/activityStore";
 
 type AckResponse<T> =
     | { ok: true; data: T }
@@ -944,6 +945,19 @@ export class ChatV2Service {
             }));
         if (presenceEntries.length > 0) {
             usePresenceStore.getState().bulkSetPresence(presenceEntries);
+        }
+
+        // Hydrate activity store from workspace member list
+        const activityEntries = response.members
+            .filter((m: WorkspaceMember) => m.activity)
+            .map((m: WorkspaceMember) => ({
+                userId: m.userId,
+                activity: m.activity!,
+            }));
+        if (activityEntries.length > 0) {
+            useActivityStore
+                .getState()
+                .batchSetActivities(workspaceId, activityEntries);
         }
 
         return response.members;

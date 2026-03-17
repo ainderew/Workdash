@@ -42,4 +42,5 @@ AGENTS.md
 # RNNoise WASM build artifact (copied from node_modules by postinstall)
 public/rnnoise.wasm
 
-/docs/*
+docs/*
+impeccable.md

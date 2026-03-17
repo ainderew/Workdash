@@ -1,3 +1,5 @@
+import type { UserActivity } from "@/communication/activity/_types";
+
 export type ChatV2RoomCategory = {
     id: string;
     workspaceId: string;
@@ -329,6 +331,7 @@ export type WorkspaceMember = {
         icon: string | null;
         manualLock: boolean;
     };
+    activity?: UserActivity | null;
 };
 
 export type WorkspaceRole = {

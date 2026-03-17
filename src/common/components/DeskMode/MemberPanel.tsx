@@ -10,6 +10,8 @@ import {
 } from "@/components/ui/tooltip";
 import UserAvatar from "./UserAvatar";
 import PresenceDot from "./PresenceDot";
+import { ActivityText } from "./ActivityText";
+import useChatV2Store from "@/common/store/chatV2Store";
 
 const ROLE_ORDER: ChatV2RoomMember["role"][] = [
     "OWNER",
@@ -168,10 +170,13 @@ function MemberRow({
     onRemove: () => void;
 }) {
     const displayName = getDisplayName(member.user, `User ${member.userId}`);
+    const selectedWorkspaceId = useChatV2Store(
+        (s) => s.selectedWorkspaceId,
+    );
 
     return (
-        <div className="group flex items-center gap-4 px-2 py-1.5 rounded-md hover:bg-white/5 transition-colors">
-            <div className="relative shrink-0">
+        <div className="group flex items-start gap-4 px-2 py-1.5 rounded-md hover:bg-white/5 transition-colors">
+            <div className="relative shrink-0 mt-0.5">
                 <UserAvatar
                     name={displayName}
                     image={member.user.image}
@@ -182,12 +187,18 @@ function MemberRow({
                 />
                 <PresenceDot userId={member.userId} size="xs" />
             </div>
-            <span
-                className={`text-sm truncate flex-1 transition-colors items-center ${nameColor ? "font-medium" : "wd-text-secondary group-hover:wd-text-primary"}`}
-                style={nameColor ? { color: nameColor } : undefined}
-            >
-                {displayName}
-            </span>
+            <div className="flex-1 min-w-0">
+                <span
+                    className={`text-sm truncate block transition-colors ${nameColor ? "font-medium" : "wd-text-secondary group-hover:wd-text-primary"}`}
+                    style={nameColor ? { color: nameColor } : undefined}
+                >
+                    {displayName}
+                </span>
+                <ActivityText
+                    userId={member.userId}
+                    workspaceId={selectedWorkspaceId}
+                />
+            </div>
             <Tooltip>
                 <TooltipTrigger asChild>
                     <button
