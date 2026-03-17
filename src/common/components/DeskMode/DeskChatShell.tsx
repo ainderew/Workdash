@@ -203,10 +203,29 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
         return room.viewerRole !== null;
     }, []);
 
+    const chatInitialized = useChatV2Store((state) => state.initialized);
+
     useEffect(() => {
         void initialize();
         void fetchMyWorkspaces();
     }, [initialize, fetchMyWorkspaces]);
+
+    // When a workspace is selected after initialization (e.g. by App.tsx's
+    // resolveWorkspace), reload rooms so the sidebar isn't stuck showing
+    // "No rooms" from the early-exit in initialize().
+    const prevWsRef = useRef<string | null>(null);
+    useEffect(() => {
+        if (!chatInitialized || !selectedWorkspaceId) return;
+        if (prevWsRef.current === selectedWorkspaceId) return;
+        prevWsRef.current = selectedWorkspaceId;
+
+        void reloadRoomStructure().then(() => {
+            const roomId = useChatV2Store.getState().currentRoomId;
+            if (roomId) {
+                void selectRoom(roomId);
+            }
+        });
+    }, [chatInitialized, selectedWorkspaceId, reloadRoomStructure, selectRoom]);
 
     useEffect(() => {
         if (railView !== "dm") return;

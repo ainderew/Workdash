@@ -34,6 +34,8 @@ import type {
     DotaRecentMatch,
     DotaStats,
     BetrayalStats,
+    PublicWorkspacePreview,
+    JoinRequest,
 } from "./_types";
 import { getStandaloneGifUrl } from "./gifUrl";
 import { usePresenceStore } from "@/common/store/presenceStore";
@@ -860,14 +862,20 @@ export class ChatV2Service {
         workspaceId: string;
         name?: string;
         iconUrl?: string | null;
+        description?: string | null;
+        visibility?: 'PUBLIC' | 'PRIVATE';
     }): Promise<Workspace> {
         const payload: {
             workspaceId: string;
             name?: string;
             iconUrl?: string | null;
+            description?: string | null;
+            visibility?: 'PUBLIC' | 'PRIVATE';
         } = { workspaceId: input.workspaceId };
         if (input.name !== undefined) payload.name = input.name;
         if (input.iconUrl !== undefined) payload.iconUrl = input.iconUrl;
+        if (input.description !== undefined) payload.description = input.description;
+        if (input.visibility !== undefined) payload.visibility = input.visibility;
 
         const response = await this.emitWithAck<{ workspace: Workspace }>(
             "workspace:update",
@@ -928,6 +936,61 @@ export class ChatV2Service {
             { code },
         );
         return response.workspace;
+    }
+
+    // --- Workspace Discovery & Join Requests ---
+
+    async searchPublicWorkspaces(
+        query: string,
+        limit?: number,
+        offset?: number,
+    ): Promise<PublicWorkspacePreview[]> {
+        const payload: { query: string; limit?: number; offset?: number } = { query };
+        if (limit !== undefined) payload.limit = limit;
+        if (offset !== undefined) payload.offset = offset;
+        const response = await this.emitWithAck<{
+            workspaces: PublicWorkspacePreview[];
+        }>("workspace:search", payload);
+        return response.workspaces;
+    }
+
+    async requestToJoinWorkspace(
+        workspaceId: string,
+        message?: string,
+    ): Promise<JoinRequest> {
+        const payload: { workspaceId: string; message?: string } = { workspaceId };
+        if (message !== undefined) payload.message = message;
+        const response = await this.emitWithAck<{ request: JoinRequest }>(
+            "workspace:join-request:create",
+            payload,
+        );
+        return response.request;
+    }
+
+    async cancelJoinRequest(workspaceId: string): Promise<void> {
+        await this.emitWithAck<{ success: boolean }>(
+            "workspace:join-request:cancel",
+            { workspaceId },
+        );
+    }
+
+    async listJoinRequests(workspaceId: string): Promise<JoinRequest[]> {
+        const response = await this.emitWithAck<{ requests: JoinRequest[] }>(
+            "workspace:join-request:list",
+            { workspaceId },
+        );
+        return response.requests;
+    }
+
+    async reviewJoinRequest(
+        requestId: string,
+        decision: "APPROVED" | "DENIED",
+    ): Promise<JoinRequest> {
+        const response = await this.emitWithAck<{ request: JoinRequest }>(
+            "workspace:join-request:review",
+            { requestId, decision },
+        );
+        return response.request;
     }
 
     async listWorkspaceMembers(workspaceId: string): Promise<WorkspaceMember[]> {

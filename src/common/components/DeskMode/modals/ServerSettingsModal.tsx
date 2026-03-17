@@ -9,6 +9,7 @@ import {
     Smile,
     Trash2,
     UserMinus,
+    UserPlus,
     X,
 } from "lucide-react";
 import { CONFIG } from "@/common/utils/config";
@@ -32,8 +33,10 @@ const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"];
 const MAX_SERVER_NAME_LENGTH = 100;
 
 import EmojisTab from "./EmojisTab";
+import JoinRequestsTab from "./JoinRequestsTab";
+import { MediaTransportService } from "@/communication/mediaTransportService/mediaTransportServive";
 
-type SettingsTab = "overview" | "roles" | "emojis";
+type SettingsTab = "overview" | "roles" | "emojis" | "requests";
 
 const ROLE_COLORS = [
     0x5865F2, 0x57F287, 0xFEE75C, 0xEB459E, 0xED4245,
@@ -536,13 +539,45 @@ function ServerSettingsModal({
 
     const [editName, setEditName] = useState("");
     const [isRenaming, setIsRenaming] = useState(false);
+    const [visibility, setVisibility] = useState<"PUBLIC" | "PRIVATE">("PRIVATE");
+    const [initialVisibility, setInitialVisibility] = useState<"PUBLIC" | "PRIVATE">("PRIVATE");
+    const [description, setDescription] = useState("");
+    const [initialDescription, setInitialDescription] = useState("");
+    const [isSavingVisibility, setIsSavingVisibility] = useState(false);
 
-    const { canManageEmojis } = useWorkspacePermissions(serverId);
+    const { canManageEmojis, canManageWorkspace } = useWorkspacePermissions(serverId);
+    const [pendingRequestCount, setPendingRequestCount] = useState(0);
+    const showRequestsTab = visibility === "PUBLIC" && canManageWorkspace;
+
+    // If requests tab disappears (visibility toggled to PRIVATE), fallback to overview
+    useEffect(() => {
+        if (!showRequestsTab && activeTab === "requests") {
+            setActiveTab("overview");
+        }
+    }, [showRequestsTab, activeTab]);
 
     useEffect(() => {
         if (isOpen) {
             setEditName(serverName);
             setActiveTab("overview");
+
+            // Fetch current workspace visibility & description
+            if (serverId) {
+                const service = ChatV2Service.getInstance();
+                service.listWorkspaces().then((workspaces) => {
+                    const ws = workspaces.find((w) => w.id === serverId);
+                    if (ws) {
+                        const vis = ws.visibility ?? "PRIVATE";
+                        setVisibility(vis);
+                        setInitialVisibility(vis);
+                        const desc = ws.description ?? "";
+                        setDescription(desc);
+                        setInitialDescription(desc);
+                    }
+                }).catch(() => {
+                    // Non-critical — defaults to PRIVATE
+                });
+            }
         } else {
             setPreviewUrl(null);
             setSelectedFile(null);
@@ -550,8 +585,50 @@ function ServerSettingsModal({
             setIsUploading(false);
             setIsDeleting(false);
             setIsRenaming(false);
+            setIsSavingVisibility(false);
+            setPendingRequestCount(0);
         }
-    }, [isOpen, serverName]);
+    }, [isOpen, serverName, serverId]);
+
+    // Fetch pending join request count when modal opens (permission-gated)
+    useEffect(() => {
+        if (!isOpen || !serverId || !canManageWorkspace) return;
+        // Wait for visibility to be fetched before checking
+        if (visibility !== "PUBLIC") return;
+
+        const service = ChatV2Service.getInstance();
+        service.listJoinRequests(serverId).then((reqs) => {
+            setPendingRequestCount(reqs.length);
+        }).catch(() => {
+            // Non-critical — count stays 0
+        });
+    }, [isOpen, serverId, canManageWorkspace, visibility]);
+
+    // Real-time listeners for join request changes
+    useEffect(() => {
+        if (!isOpen || !serverId || !canManageWorkspace) return;
+
+        const transport = MediaTransportService.getInstance();
+        const socket = transport.socket;
+        if (!socket) return;
+
+        const handleNew = (payload: { workspaceId: string }) => {
+            if (payload.workspaceId !== serverId) return;
+            setPendingRequestCount((c) => c + 1);
+        };
+
+        const handleReviewed = (payload: { workspaceId: string }) => {
+            if (payload.workspaceId !== serverId) return;
+            setPendingRequestCount((c) => Math.max(0, c - 1));
+        };
+
+        socket.on("workspace:join-request:new", handleNew);
+        socket.on("workspace:join-request:reviewed", handleReviewed);
+        return () => {
+            socket.off("workspace:join-request:new", handleNew);
+            socket.off("workspace:join-request:reviewed", handleReviewed);
+        };
+    }, [isOpen, serverId, canManageWorkspace]);
 
     useEffect(() => {
         if (!isOpen) return undefined;
@@ -561,7 +638,8 @@ function ServerSettingsModal({
                 event.key === "Escape" &&
                 !isUploading &&
                 !isDeleting &&
-                !isRenaming
+                !isRenaming &&
+                !isSavingVisibility
             ) {
                 onClose();
             }
@@ -569,7 +647,7 @@ function ServerSettingsModal({
 
         window.addEventListener("keydown", onKeyDown);
         return () => window.removeEventListener("keydown", onKeyDown);
-    }, [isOpen, isUploading, isDeleting, isRenaming, onClose]);
+    }, [isOpen, isUploading, isDeleting, isRenaming, isSavingVisibility, onClose]);
 
     const handleFileSelect = useCallback(
         (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -731,9 +809,11 @@ function ServerSettingsModal({
     if (!isOpen || !serverId) return null;
 
     const displayImage = previewUrl || currentImageUrl;
-    const isBusy = isUploading || isDeleting || isRenaming;
+    const isBusy = isUploading || isDeleting || isRenaming || isSavingVisibility;
     const nameChanged = editName.trim() !== serverName && editName.trim().length > 0;
-    const hasUnsavedChanges = !!selectedFile || nameChanged;
+    const visibilityChanged = visibility !== initialVisibility;
+    const descriptionChanged = description !== initialDescription;
+    const hasUnsavedChanges = !!selectedFile || nameChanged || visibilityChanged || descriptionChanged;
 
     return (
         <div className="fixed inset-0 z-[290] flex items-center justify-center bg-black/70 backdrop-blur-[1px] p-4">
@@ -811,6 +891,32 @@ function ServerSettingsModal({
                                 Emojis
                             </span>
                         </button>
+                        {showRequestsTab && (
+                            <button
+                                type="button"
+                                onClick={() => setActiveTab("requests")}
+                                className={`relative px-3 py-1.5 text-xs font-semibold transition-colors border-b-2 ${
+                                    activeTab === "requests"
+                                        ? "border-[rgba(88,101,242,0.8)] wd-text-primary"
+                                        : "border-transparent wd-text-muted hover:wd-text-secondary"
+                                }`}
+                            >
+                                <span className="inline-flex items-center gap-1.5">
+                                    <UserPlus size={12} />
+                                    Join Requests
+                                </span>
+                                {pendingRequestCount > 0 && (
+                                    <span
+                                        className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full text-[9px] font-bold leading-none text-white"
+                                        style={{ backgroundColor: "var(--wd-danger)" }}
+                                    >
+                                        {pendingRequestCount > 99
+                                            ? "99+"
+                                            : pendingRequestCount}
+                                    </span>
+                                )}
+                            </button>
+                        )}
                     </div>
                 </div>
 
@@ -908,6 +1014,61 @@ function ServerSettingsModal({
                                 </p>
                             </div>
 
+                            {/* Description */}
+                            <div className="rounded-lg border wd-border-subtle wd-bg-panel-2 p-3">
+                                <p className="text-[11px] font-semibold uppercase tracking-wide wd-text-muted">
+                                    Description
+                                </p>
+                                <textarea
+                                    value={description}
+                                    onChange={(e) => setDescription(e.target.value)}
+                                    maxLength={500}
+                                    rows={2}
+                                    disabled={isBusy}
+                                    placeholder="What is this workspace about?"
+                                    className="mt-1.5 w-full rounded-md border wd-border-subtle wd-bg-elevated px-3 py-2 text-sm wd-text-primary outline-none focus:border-[var(--wd-border-strong)] disabled:opacity-50 resize-none"
+                                />
+                                <p className="mt-1 text-[10px] wd-text-muted">
+                                    {description.length}/500 — Shown when users browse public workspaces.
+                                </p>
+                            </div>
+
+                            {/* Visibility */}
+                            <div className="rounded-lg border wd-border-subtle wd-bg-panel-2 p-3">
+                                <p className="text-[11px] font-semibold uppercase tracking-wide wd-text-muted">
+                                    Visibility
+                                </p>
+                                <p className="mt-1 text-xs wd-text-secondary">
+                                    Public workspaces can be found and joined by anyone via search.
+                                </p>
+                                <div className="mt-3 flex gap-2">
+                                    <button
+                                        type="button"
+                                        disabled={isBusy}
+                                        onClick={() => setVisibility("PRIVATE")}
+                                        className={`flex-1 rounded-md border px-3 py-2 text-xs font-semibold transition-colors ${
+                                            visibility === "PRIVATE"
+                                                ? "border-[var(--wd-accent)] bg-[rgba(88,101,242,0.15)] wd-text-primary"
+                                                : "wd-border-subtle wd-text-muted hover:wd-text-secondary"
+                                        } disabled:opacity-50`}
+                                    >
+                                        Private
+                                    </button>
+                                    <button
+                                        type="button"
+                                        disabled={isBusy}
+                                        onClick={() => setVisibility("PUBLIC")}
+                                        className={`flex-1 rounded-md border px-3 py-2 text-xs font-semibold transition-colors ${
+                                            visibility === "PUBLIC"
+                                                ? "border-[var(--wd-accent)] bg-[rgba(88,101,242,0.15)] wd-text-primary"
+                                                : "wd-border-subtle wd-text-muted hover:wd-text-secondary"
+                                        } disabled:opacity-50`}
+                                    >
+                                        Public
+                                    </button>
+                                </div>
+                            </div>
+
                             {error && (
                                 <p className="rounded-md border border-[rgba(237,66,69,0.35)] bg-[rgba(237,66,69,0.12)] px-3 py-2 text-sm wd-text-danger">
                                     {error}
@@ -922,6 +1083,8 @@ function ServerSettingsModal({
                                             setSelectedFile(null);
                                             setPreviewUrl(null);
                                             setEditName(serverName);
+                                            setVisibility(initialVisibility);
+                                            setDescription(initialDescription);
                                             setError(null);
                                             if (fileInputRef.current) {
                                                 fileInputRef.current.value = "";
@@ -937,6 +1100,26 @@ function ServerSettingsModal({
                                         onClick={async () => {
                                             if (selectedFile) await handleUpload();
                                             if (nameChanged) await handleRename();
+                                            if ((visibilityChanged || descriptionChanged) && serverId) {
+                                                setIsSavingVisibility(true);
+                                                try {
+                                                    const service = ChatV2Service.getInstance();
+                                                    const updatePayload: {
+                                                        workspaceId: string;
+                                                        visibility?: "PUBLIC" | "PRIVATE";
+                                                        description?: string | null;
+                                                    } = { workspaceId: serverId };
+                                                    if (visibilityChanged) updatePayload.visibility = visibility;
+                                                    if (descriptionChanged) updatePayload.description = description || null;
+                                                    await service.updateWorkspace(updatePayload);
+                                                    setInitialVisibility(visibility);
+                                                    setInitialDescription(description);
+                                                } catch (err) {
+                                                    setError(err instanceof Error ? err.message : "Failed to update settings");
+                                                } finally {
+                                                    setIsSavingVisibility(false);
+                                                }
+                                            }
                                         }}
                                         disabled={isBusy}
                                         className="inline-flex h-9 items-center gap-2 rounded-md border border-[rgba(88,101,242,0.6)] bg-[rgba(88,101,242,0.2)] px-3 text-sm font-semibold wd-text-primary transition-colors hover:bg-[rgba(88,101,242,0.3)] disabled:opacity-60"
@@ -964,6 +1147,13 @@ function ServerSettingsModal({
 
                     {activeTab === "emojis" && (
                         <EmojisTab workspaceId={serverId} canManage={canManageEmojis} />
+                    )}
+
+                    {activeTab === "requests" && (
+                        <JoinRequestsTab
+                            workspaceId={serverId}
+                            onCountChange={setPendingRequestCount}
+                        />
                     )}
                 </div>
             </div>

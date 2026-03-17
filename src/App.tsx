@@ -34,6 +34,7 @@ import useUiStore, { InteractionMode } from "./common/store/uiStore";
 import useChatV2Store from "./common/store/chatV2Store";
 import DeskLayout from "./common/components/DeskMode/DeskLayout";
 import WorkspaceSelectorOverlay from "./common/components/WorkspaceSelector/WorkspaceSelectorOverlay";
+import useWorkspaceStore from "@/common/store/workspaceStore";
 import useCallStore from "@/common/store/callStore";
 import useMusicStore from "@/common/store/musicStore";
 import useThemeStore from "@/common/store/themeStore";
@@ -190,16 +191,26 @@ function App() {
     const openWorkspaceSelector = useUiStore(
         (state) => state.openWorkspaceSelector,
     );
+    const fetchMyWorkspaces = useWorkspaceStore(
+        (state) => state.fetchMyWorkspaces,
+    );
     useEffect(() => {
         if (!isInitialized) return;
-        const selectedId = useChatV2Store.getState().selectedWorkspaceId;
-        if (!selectedId) {
+
+        const resolveWorkspace = async () => {
+            // Always fetch workspace list first to validate membership
+            await fetchMyWorkspaces();
+            const workspaces = useWorkspaceStore.getState().workspaces;
+
+            const selectedId = useChatV2Store.getState().selectedWorkspaceId;
+            if (selectedId && workspaces.some((ws) => ws.id === selectedId)) {
+                return; // Already selected and valid
+            }
+
             const storedDefault = localStorage.getItem('workdash:defaultWorkspaceId');
-            if (storedDefault) {
+            if (storedDefault && workspaces.some((ws) => ws.id === storedDefault)) {
                 useChatV2Store.getState().setSelectedWorkspaceId(storedDefault);
                 EventBus.emit('workspace-switch', { workspaceId: storedDefault });
-                // Trigger room reload since initialize() may have already
-                // run (child effects fire before parent) with no workspace set
                 void useChatV2Store.getState().reloadRoomStructure().then(() => {
                     const roomId = useChatV2Store.getState().currentRoomId;
                     if (roomId) {
@@ -207,10 +218,14 @@ function App() {
                     }
                 });
             } else {
+                // Stale or missing — clear and show selector
+                localStorage.removeItem('workdash:defaultWorkspaceId');
                 openWorkspaceSelector();
             }
-        }
-    }, [isInitialized, openWorkspaceSelector]);
+        };
+
+        void resolveWorkspace();
+    }, [isInitialized, openWorkspaceSelector, fetchMyWorkspaces]);
 
     // On workspace switch, fetch the current music session state from the
     // server so the NowPlayingBar can render immediately. The server doesn't

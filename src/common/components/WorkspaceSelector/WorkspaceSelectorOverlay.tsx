@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { Building2, Check, Link, Loader2, Plus, Users, X } from "lucide-react";
+import { Check, Link, Loader2, Plus, Users, X } from "lucide-react";
+import NoWorkspaceLandingPage from "./NoWorkspaceLandingPage";
 import useWorkspaceStore from "@/common/store/workspaceStore";
 import useChatV2Store from "@/common/store/chatV2Store";
 import useUiStore from "@/common/store/uiStore";
@@ -68,14 +69,16 @@ function WorkspaceSelectorOverlay() {
     useEffect(() => {
         if (isLoading || hasAutoResolved.current) return;
 
-        // Case 1: Already selected and exists in list
-        if (
-            selectedWorkspaceId &&
-            workspaces.some((ws) => ws.id === selectedWorkspaceId)
-        ) {
-            hasAutoResolved.current = true;
-            closeWorkspaceSelector();
-            return;
+        // Case 1: Already selected — validate it exists in the list
+        if (selectedWorkspaceId) {
+            if (workspaces.some((ws) => ws.id === selectedWorkspaceId)) {
+                hasAutoResolved.current = true;
+                closeWorkspaceSelector();
+                return;
+            }
+            // Stale workspace ID — clear it and fall through to show UI
+            setSelectedWorkspaceId(null);
+            localStorage.removeItem(DEFAULT_WS_KEY);
         }
 
         // Case 2: Exactly one workspace
@@ -101,7 +104,7 @@ function WorkspaceSelectorOverlay() {
         }
 
         // Case 4 & 5: multiple or zero — show UI (no auto action)
-    }, [isLoading, workspaces, selectedWorkspaceId, closeWorkspaceSelector, handleSelect]);
+    }, [isLoading, workspaces, selectedWorkspaceId, closeWorkspaceSelector, handleSelect, setSelectedWorkspaceId]);
 
     // Escape key handler (capture phase)
     useEffect(() => {
@@ -124,53 +127,101 @@ function WorkspaceSelectorOverlay() {
 
     if (!showWorkspaceSelector) return null;
 
+    const hasWorkspaces = workspaces.length > 0;
+
     return (
         <div
-            className={`fixed inset-0 z-[150] flex items-center justify-center bg-black/80 backdrop-blur-sm overflow-y-auto p-8 ${
+            className={`fixed inset-0 z-[150] flex items-center justify-center overflow-y-auto p-6 ${
                 isDismissing
                     ? "animate-out fade-out duration-200"
                     : "animate-in fade-in duration-200"
             }`}
+            style={{ backgroundColor: "rgb(0 0 0 / 0.85)", backdropFilter: "blur(12px)" }}
             onAnimationEnd={handleAnimationEnd}
             onClick={(e) => {
                 if (e.target === e.currentTarget) handleClose();
             }}
         >
-            <div className="max-w-[640px] w-full flex flex-col gap-8">
-                {/* Header */}
-                <div className="text-center">
-                    <div className="text-[11px] font-bold tracking-[0.15em] uppercase text-[var(--wd-accent)] mb-2">
-                        WorkDash
+            {/* Decorative background orb */}
+            <div
+                className="wd-ws-float-orb pointer-events-none fixed w-[500px] h-[500px] rounded-full left-1/2 top-1/2"
+                style={{
+                    background: `radial-gradient(circle, rgb(var(--wd-accent-rgb) / 0.08) 0%, transparent 70%)`,
+                }}
+            />
+
+            <div className="relative max-w-[680px] w-full flex flex-col gap-6">
+                {/* Shared header area */}
+                <div className="text-center space-y-3">
+                    {/* Wordmark */}
+                    <div
+                        className="inline-flex items-center gap-2 px-3 py-1 rounded-full mx-auto"
+                        style={{
+                            backgroundColor: "rgb(var(--wd-accent-rgb) / 0.08)",
+                            border: "1px solid rgb(var(--wd-accent-rgb) / 0.15)",
+                        }}
+                    >
+                        <div
+                            className="w-2 h-2 rounded-full"
+                            style={{ backgroundColor: "var(--wd-accent)" }}
+                        />
+                        <span
+                            className="text-[11px] font-semibold tracking-[0.12em] uppercase"
+                            style={{ color: "var(--wd-accent)" }}
+                        >
+                            WorkDash
+                        </span>
                     </div>
-                    <h1 className="text-[28px] font-bold leading-tight wd-text-primary">
-                        Choose your workspace
-                    </h1>
-                    <p className="text-[15px] wd-text-secondary mt-1.5">
-                        Pick where you want to work today.
-                    </p>
+
+                    {hasWorkspaces ? (
+                        <>
+                            <h1 className="text-[32px] font-bold leading-[1.1] wd-text-primary tracking-[-0.02em]">
+                                Choose your workspace
+                            </h1>
+                            <p className="text-[15px] wd-text-muted max-w-[380px] mx-auto leading-relaxed">
+                                Pick where you want to work today.
+                            </p>
+                        </>
+                    ) : (
+                        <>
+                            <h1 className="text-[32px] font-bold leading-[1.1] wd-text-primary tracking-[-0.02em]">
+                                Welcome to WorkDash
+                            </h1>
+                            <p className="text-[15px] wd-text-muted max-w-[380px] mx-auto leading-relaxed">
+                                Find a workspace to join, or create your own.
+                            </p>
+                        </>
+                    )}
                 </div>
+
+                {/* Divider shimmer */}
+                <div className="wd-ws-shimmer h-px w-full rounded-full" />
 
                 {/* Content */}
                 {isLoading ? (
                     <SkeletonGrid />
-                ) : workspaces.length === 0 ? (
-                    <EmptyState
+                ) : !hasWorkspaces ? (
+                    <NoWorkspaceLandingPage
                         onCreateClick={() => setInlinePanel("create")}
                         onJoinClick={() => setInlinePanel("join")}
+                        onJoinedWorkspace={() => {
+                            hasAutoResolved.current = false;
+                        }}
                     />
                 ) : (
                     <>
                         <div
                             ref={gridRef}
-                            className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-3 max-h-[52vh] overflow-y-auto no-scrollbar relative"
+                            className="grid grid-cols-[repeat(auto-fill,minmax(190px,1fr))] gap-3 max-h-[50vh] overflow-y-auto no-scrollbar relative px-1 py-1"
                             role="listbox"
                             aria-label="Select workspace"
                         >
-                            {workspaces.map((ws) => (
+                            {workspaces.map((ws, i) => (
                                 <WorkspaceCard
                                     key={ws.id}
                                     workspace={ws}
                                     isDefault={defaultWorkspaceId === ws.id}
+                                    index={i}
                                     onSelect={() => handleSelect(ws.id)}
                                     onSetDefault={(isDefault) =>
                                         handleSetDefault(ws.id, isDefault)
@@ -180,21 +231,24 @@ function WorkspaceSelectorOverlay() {
                         </div>
 
                         {/* Action Row */}
-                        <div className="flex justify-center gap-3">
+                        <div className="flex justify-center gap-2">
                             <button
                                 type="button"
-                                className="wd-btn-ghost inline-flex items-center gap-1.5"
+                                className="wd-btn-ghost inline-flex items-center gap-1.5 text-[13px]"
                                 onClick={() => setInlinePanel("create")}
                             >
-                                <Plus size={15} />
+                                <Plus size={14} />
                                 Create workspace
                             </button>
+                            <span className="wd-text-muted self-center text-[11px] select-none">
+                                or
+                            </span>
                             <button
                                 type="button"
-                                className="wd-btn-ghost inline-flex items-center gap-1.5"
+                                className="wd-btn-ghost inline-flex items-center gap-1.5 text-[13px]"
                                 onClick={() => setInlinePanel("join")}
                             >
-                                <Link size={15} />
+                                <Link size={14} />
                                 Join by invite
                             </button>
                         </div>
@@ -225,56 +279,18 @@ function WorkspaceSelectorOverlay() {
 
 function SkeletonGrid() {
     return (
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-3">
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(190px,1fr))] gap-3 px-1">
             {Array.from({ length: 4 }).map((_, i) => (
                 <div
                     key={i}
-                    className="rounded-[14px] border wd-border-subtle wd-bg-panel p-5 flex flex-col items-center gap-3 min-h-[140px]"
+                    className="rounded-2xl border wd-border-subtle wd-bg-panel p-5 flex flex-col items-center gap-3 min-h-[152px]"
+                    style={{ opacity: 1 - i * 0.15 }}
                 >
-                    <div className="w-14 h-14 rounded-[14px] wd-bg-elevated animate-pulse" />
-                    <div className="h-3 w-20 rounded-full wd-bg-elevated animate-pulse" />
+                    <div className="w-[52px] h-[52px] rounded-xl wd-bg-elevated animate-pulse" />
+                    <div className="h-3 w-24 rounded-full wd-bg-elevated animate-pulse" />
+                    <div className="h-2.5 w-16 rounded-full wd-bg-elevated animate-pulse mt-auto" />
                 </div>
             ))}
-        </div>
-    );
-}
-
-function EmptyState({
-    onCreateClick,
-    onJoinClick,
-}: {
-    onCreateClick: () => void;
-    onJoinClick: () => void;
-}) {
-    return (
-        <div className="flex flex-col items-center gap-4 py-8">
-            <Building2 size={48} className="wd-text-muted opacity-40" />
-            <div className="text-center">
-                <p className="text-base font-semibold wd-text-primary">
-                    No workspaces yet
-                </p>
-                <p className="text-sm wd-text-muted mt-1">
-                    Create one to get started, or join an existing workspace.
-                </p>
-            </div>
-            <div className="flex gap-3">
-                <button
-                    type="button"
-                    className="wd-btn-primary inline-flex items-center gap-1.5"
-                    onClick={onCreateClick}
-                >
-                    <Plus size={15} />
-                    Create workspace
-                </button>
-                <button
-                    type="button"
-                    className="wd-btn-ghost inline-flex items-center gap-1.5"
-                    onClick={onJoinClick}
-                >
-                    <Link size={15} />
-                    Join by invite
-                </button>
-            </div>
         </div>
     );
 }
@@ -282,11 +298,13 @@ function EmptyState({
 function WorkspaceCard({
     workspace,
     isDefault,
+    index,
     onSelect,
     onSetDefault,
 }: {
     workspace: Workspace;
     isDefault: boolean;
+    index: number;
     onSelect: () => void;
     onSetDefault: (isDefault: boolean) => void;
 }) {
@@ -303,27 +321,55 @@ function WorkspaceCard({
             role="option"
             aria-selected={isDefault}
             onClick={onSelect}
-            className={`group relative rounded-[14px] border p-5 flex flex-col items-center gap-3 min-h-[140px] cursor-pointer transition-all duration-150 active:scale-[0.97] ${
+            className={`wd-ws-card-enter group relative rounded-2xl border p-5 flex flex-col items-center gap-2.5 min-h-[152px] cursor-pointer transition-all duration-200 active:scale-[0.97] ${
                 isDefault
-                    ? "border-[var(--wd-accent)] shadow-[0_0_0_2px_var(--wd-accent-soft)] wd-bg-panel"
-                    : "wd-border-subtle wd-bg-panel hover:border-[var(--wd-border-strong)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.28)] hover:-translate-y-0.5"
+                    ? "border-[var(--wd-accent)] wd-bg-panel"
+                    : "wd-border-subtle wd-bg-panel hover:border-[var(--wd-border-strong)] hover:-translate-y-0.5"
             }`}
+            style={{
+                animationDelay: `${index * 60}ms`,
+                boxShadow: isDefault
+                    ? `0 0 0 1px var(--wd-accent), 0 0 20px -4px rgb(var(--wd-accent-rgb) / 0.2)`
+                    : undefined,
+            }}
         >
+            {/* Hover glow (non-default only) */}
+            {!isDefault && (
+                <div
+                    className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+                    style={{
+                        boxShadow: `0 4px 24px -4px rgb(var(--wd-accent-rgb) / 0.12), 0 0 0 1px rgb(var(--wd-border-strong-rgb) / 0.3)`,
+                    }}
+                />
+            )}
+
             {/* Default Badge */}
             {isDefault && (
-                <span className="absolute top-2 right-2 bg-[var(--wd-accent-soft)] text-[var(--wd-accent)] text-[10px] font-bold tracking-wider uppercase px-1.5 py-0.5 rounded-full">
+                <span
+                    className="absolute top-2.5 right-2.5 text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 rounded-full"
+                    style={{
+                        backgroundColor: "rgb(var(--wd-accent-rgb) / 0.12)",
+                        color: "var(--wd-accent)",
+                    }}
+                >
                     Default
                 </span>
             )}
 
             {/* Avatar */}
-            <div className="w-14 h-14 rounded-[14px] wd-bg-elevated flex items-center justify-center text-xl font-bold wd-text-primary overflow-hidden shrink-0">
+            <div
+                className="w-[52px] h-[52px] rounded-xl flex items-center justify-center text-lg font-bold wd-text-primary overflow-hidden shrink-0 transition-transform duration-200 group-hover:scale-105"
+                style={{
+                    backgroundColor: "var(--wd-surface-elevated)",
+                    boxShadow: `inset 0 1px 2px rgb(0 0 0 / 0.08)`,
+                }}
+            >
                 {workspace.iconUrl ? (
                     <Image
                         src={workspace.iconUrl}
                         alt=""
-                        width={56}
-                        height={56}
+                        width={52}
+                        height={52}
                         unoptimized
                         className="w-full h-full object-cover"
                     />
@@ -333,20 +379,26 @@ function WorkspaceCard({
             </div>
 
             {/* Name */}
-            <span className="text-sm font-semibold wd-text-primary text-center w-full truncate leading-tight">
+            <span className="text-[13px] font-semibold wd-text-primary text-center w-full truncate leading-tight">
                 {workspace.name}
             </span>
 
             {/* Owner badge */}
             {isOwner && (
-                <span className="text-[10px] font-medium wd-text-muted uppercase tracking-wide">
+                <span
+                    className="text-[10px] font-medium uppercase tracking-wide px-1.5 py-0.5 rounded"
+                    style={{
+                        color: "var(--wd-accent)",
+                        backgroundColor: "rgb(var(--wd-accent-rgb) / 0.08)",
+                    }}
+                >
                     Owner
                 </span>
             )}
 
             {/* Default Toggle */}
             <label
-                className="mt-auto flex items-center gap-1.5 text-[11px] wd-text-muted cursor-pointer"
+                className="mt-auto flex items-center gap-1.5 text-[11px] wd-text-muted cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity duration-150"
                 onClick={(e) => e.stopPropagation()}
             >
                 <span
@@ -367,8 +419,11 @@ function WorkspaceCard({
                 Set as default
             </label>
 
-            {/* Hover enter text */}
-            <span className="absolute bottom-1.5 left-0 right-0 text-center text-[11px] font-semibold text-[var(--wd-accent)] opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-none">
+            {/* Hover enter hint */}
+            <span
+                className="absolute bottom-2 left-0 right-0 text-center text-[11px] font-semibold opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-none"
+                style={{ color: "var(--wd-accent)" }}
+            >
                 Enter &rarr;
             </span>
         </button>
@@ -408,23 +463,28 @@ function CreatePanel({
     };
 
     return (
-        <div className="rounded-xl border wd-border-subtle wd-bg-panel p-5 animate-in fade-in slide-in-from-bottom-2 duration-200">
-            <div className="flex items-center justify-between mb-4">
+        <div
+            className="rounded-2xl border wd-border-subtle wd-bg-panel p-6 animate-in fade-in slide-in-from-bottom-2 duration-200"
+            style={{
+                boxShadow: `0 8px 32px -8px rgb(0 0 0 / 0.3), 0 0 0 1px rgb(var(--wd-border-subtle-rgb) / 0.5)`,
+            }}
+        >
+            <div className="flex items-center justify-between mb-5">
                 <h3 className="text-[15px] font-semibold wd-text-primary">
                     Create Workspace
                 </h3>
                 <button
                     type="button"
-                    className="wd-btn-ghost p-1"
+                    className="wd-btn-ghost p-1 rounded-lg"
                     onClick={onClose}
                 >
                     <X size={16} />
                 </button>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-4">
                 <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wide wd-text-secondary mb-2">
+                    <label className="block text-[11px] font-semibold uppercase tracking-wide wd-text-muted mb-2">
                         Workspace Name
                     </label>
                     <input
@@ -442,12 +502,12 @@ function CreatePanel({
                 </div>
 
                 {error && (
-                    <p className="rounded-md border border-[rgba(237,66,69,0.35)] bg-[rgba(237,66,69,0.12)] px-3 py-2 text-xs wd-text-danger">
+                    <p className="rounded-lg border border-[rgba(237,66,69,0.35)] bg-[rgba(237,66,69,0.08)] px-3 py-2 text-xs wd-text-danger">
                         {error}
                     </p>
                 )}
 
-                <div className="flex justify-end gap-2">
+                <div className="flex justify-end gap-2 pt-1">
                     <button
                         type="button"
                         className="wd-btn-ghost"
@@ -570,14 +630,19 @@ function JoinPanel({
     };
 
     return (
-        <div className="rounded-xl border wd-border-subtle wd-bg-panel p-5 animate-in fade-in slide-in-from-bottom-2 duration-200">
-            <div className="flex items-center justify-between mb-4">
+        <div
+            className="rounded-2xl border wd-border-subtle wd-bg-panel p-6 animate-in fade-in slide-in-from-bottom-2 duration-200"
+            style={{
+                boxShadow: `0 8px 32px -8px rgb(0 0 0 / 0.3), 0 0 0 1px rgb(var(--wd-border-subtle-rgb) / 0.5)`,
+            }}
+        >
+            <div className="flex items-center justify-between mb-5">
                 <h3 className="text-[15px] font-semibold wd-text-primary">
                     Join a Workspace
                 </h3>
                 <button
                     type="button"
-                    className="wd-btn-ghost p-1"
+                    className="wd-btn-ghost p-1 rounded-lg"
                     onClick={onClose}
                 >
                     <X size={16} />
@@ -587,9 +652,15 @@ function JoinPanel({
             {/* Step 2: Preview */}
             {preview ? (
                 <div className="space-y-4">
-                    <div className="flex flex-col items-center gap-3 py-2">
+                    <div className="flex flex-col items-center gap-3 py-3">
                         {/* Workspace icon */}
-                        <div className="w-16 h-16 rounded-[14px] wd-bg-elevated flex items-center justify-center text-xl font-bold wd-text-primary overflow-hidden shrink-0">
+                        <div
+                            className="w-16 h-16 rounded-xl flex items-center justify-center text-xl font-bold wd-text-primary overflow-hidden shrink-0"
+                            style={{
+                                backgroundColor: "var(--wd-surface-elevated)",
+                                boxShadow: `inset 0 1px 2px rgb(0 0 0 / 0.08)`,
+                            }}
+                        >
                             {preview.iconUrl ? (
                                 <Image
                                     src={preview.iconUrl}
@@ -613,7 +684,7 @@ function JoinPanel({
                             </span>
                         </div>
                         {preview.inviterName && (
-                            <div className="flex items-center gap-1.5 text-xs wd-text-secondary">
+                            <div className="flex items-center gap-1.5 text-xs wd-text-muted">
                                 {preview.inviterAvatarUrl ? (
                                     <Image
                                         src={preview.inviterAvatarUrl}
@@ -632,12 +703,12 @@ function JoinPanel({
                     </div>
 
                     {error && (
-                        <p className="rounded-md border border-[rgba(237,66,69,0.35)] bg-[rgba(237,66,69,0.12)] px-3 py-2 text-xs wd-text-danger">
+                        <p className="rounded-lg border border-[rgba(237,66,69,0.35)] bg-[rgba(237,66,69,0.08)] px-3 py-2 text-xs wd-text-danger">
                             {error}
                         </p>
                     )}
 
-                    <div className="flex justify-end gap-2">
+                    <div className="flex justify-end gap-2 pt-1">
                         <button
                             type="button"
                             className="wd-btn-ghost"
@@ -665,9 +736,9 @@ function JoinPanel({
                 </div>
             ) : (
                 /* Step 1: Code input */
-                <div className="space-y-3">
+                <div className="space-y-4">
                     <div>
-                        <label className="block text-xs font-semibold uppercase tracking-wide wd-text-secondary mb-2">
+                        <label className="block text-[11px] font-semibold uppercase tracking-wide wd-text-muted mb-2">
                             Invite Code or Link
                         </label>
                         <input
@@ -685,12 +756,12 @@ function JoinPanel({
                     </div>
 
                     {error && (
-                        <p className="rounded-md border border-[rgba(237,66,69,0.35)] bg-[rgba(237,66,69,0.12)] px-3 py-2 text-xs wd-text-danger">
+                        <p className="rounded-lg border border-[rgba(237,66,69,0.35)] bg-[rgba(237,66,69,0.08)] px-3 py-2 text-xs wd-text-danger">
                             {error}
                         </p>
                     )}
 
-                    <div className="flex justify-end gap-2">
+                    <div className="flex justify-end gap-2 pt-1">
                         <button
                             type="button"
                             className="wd-btn-ghost"

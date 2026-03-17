@@ -304,11 +304,33 @@ export type Workspace = {
     id: string;
     name: string;
     iconUrl: string | null;
+    description?: string | null;
+    visibility?: 'PUBLIC' | 'PRIVATE';
     ownerId: number;
     createdAt: string | Date;
     updatedAt: string | Date;
     members?: WorkspaceMember[];
     roles?: WorkspaceRole[];
+};
+
+export type PublicWorkspacePreview = {
+    id: string;
+    name: string;
+    iconUrl: string | null;
+    description: string | null;
+    memberCount: number;
+    joinRequestStatus: 'PENDING' | 'APPROVED' | 'DENIED' | null;
+};
+
+export type JoinRequest = {
+    id: string;
+    workspaceId: string;
+    userId: number;
+    status: 'PENDING' | 'APPROVED' | 'DENIED';
+    message: string | null;
+    createdAt: string | Date;
+    workspace?: { id: string; name: string };
+    user?: { id: number; name: string | null; avatarUrl: string | null };
 };
 
 export type WorkspaceMember = {
