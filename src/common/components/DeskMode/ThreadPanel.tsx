@@ -17,7 +17,7 @@ import {
     downloadChatFile,
     getChatFilePreviewUrl,
 } from "@/communication/chatV2/uploadService";
-import { parseMessageContent } from "@/common/utils/linkParser";
+import { extractLinkParts } from "./MessageContentRenderer";
 import { UnifiedLinkPreview } from "@/common/components/TextChat/UnifiedLinkPreview";
 import { useLinkPreviews } from "@/common/hooks/useLinkPreviews";
 import {
@@ -26,6 +26,7 @@ import {
     type MentionMemberNameMap,
 } from "@/communication/chatV2/mentionUtils";
 import { getDisplayName } from "@/common/utils/displayName";
+import MessageContentRenderer from "./MessageContentRenderer";
 import { formatChatMessageTimestamp } from "@/common/utils/messageTimestamp";
 import {
     generateCharacterFaceDataUrl,
@@ -34,7 +35,6 @@ import {
 import Composer from "./Composer";
 import MessageHoverActions from "./MessageHoverActions";
 import InlineMessageEditor from "./InlineMessageEditor";
-import MentionHighlightedContent from "./MentionHighlightedContent";
 import MessageReactionChips from "./MessageReactionChips";
 import useMessageEdit from "@/common/hooks/useMessageEdit";
 import useUserStore from "@/common/store/useStore";
@@ -119,15 +119,9 @@ function ThreadMessageRow({
     const isBot = message.sender?.name === "Music Bot";
     const isSlashCommand = !!message.content?.startsWith("/");
     const skipLinkPreviews = isBot || isSlashCommand;
-    const parsedMessageParts =
-        message.content && !standaloneGifUrl
-            ? parseMessageContent(message.content)
-            : [];
-    const parsedMessageLinks = skipLinkPreviews
+    const parsedMessageLinks = skipLinkPreviews || !message.content || standaloneGifUrl
         ? []
-        : parsedMessageParts.filter(
-              (part) => part.type !== "text" && !!part.url,
-          );
+        : extractLinkParts(message.content);
     const parsedMessageLinkUrls = new Set(
         parsedMessageLinks.map((part) => part.url as string),
     );
@@ -242,38 +236,13 @@ function ThreadMessageRow({
                             ) : message.content ? (
                                 <div>
                                     <div className="text-sm wd-text-secondary whitespace-pre-wrap break-words">
-                                        {parsedMessageLinks.length > 0
-                                            ? parsedMessageParts.map((part, index) => {
-                                                if (part.type !== "text" && part.url) {
-                                                    return (
-                                                        <a
-                                                            key={`${message.id}-link-${index}`}
-                                                            href={part.url}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className="wd-text-accent hover:underline break-all"
-                                                        >
-                                                            {part.content}
-                                                        </a>
-                                                    );
-                                                }
-                                                if (part.type !== "text") return null;
-                                                return (
-                                                    <MentionHighlightedContent
-                                                        key={`${message.id}-text-${index}`}
-                                                        content={part.content}
-                                                        mentionedUserIds={effectiveMentionedUserIds}
-                                                        memberNameMap={memberNameMap}
-                                                    />
-                                                );
-                                            })
-                                            : (
-                                                    <MentionHighlightedContent
-                                                        content={message.content}
-                                                        mentionedUserIds={effectiveMentionedUserIds}
-                                                        memberNameMap={memberNameMap}
-                                                    />
-                                                )}
+                                        <MessageContentRenderer
+                                            content={message.content}
+                                            messageId={message.id}
+                                            mentionedUserIds={effectiveMentionedUserIds}
+                                            memberNameMap={memberNameMap}
+                                            skipLinkPreviews={skipLinkPreviews}
+                                        />
                                         {message.editedAt && (
                                             <span className="ml-1 text-[10px] wd-text-muted" title={`Edited ${formatChatMessageTimestamp(message.editedAt)}`}>(edited)</span>
                                         )}
@@ -282,12 +251,7 @@ function ThreadMessageRow({
                                     {(parsedMessageLinks.length > 0
                                         || fallbackGenericUrls.length > 0) && (
                                             <div className="mt-2">
-                                                {parsedMessageParts
-                                                    .filter(
-                                                        (part) =>
-                                                            part.type !== "text" && !!part.url,
-                                                    )
-                                                    .map((part, i) => (
+                                                {parsedMessageLinks.map((part, i) => (
                                                         <UnifiedLinkPreview
                                                             key={`${message.id}-preview-${i}`}
                                                             url={part.url!}

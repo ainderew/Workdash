@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "./wd-hljs-theme.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -173,6 +174,21 @@ body {
     --wd-bot-card-warning: var(--wd-warning);
     --wd-bot-card-danger: var(--wd-danger);
     --wd-bot-card-muted: var(--wd-text-muted);
+
+    /* Code block tokens (theme-invariant — Catppuccin Mocha palette) */
+    --wd-code-bg: #1e1e2e;
+    --wd-code-border: #313244;
+    --wd-code-header-bg: #181825;
+    --wd-code-text: #cdd6f4;
+    --wd-code-line-number: #6c7086;
+    --wd-code-inline-bg: rgba(203, 166, 247, 0.12);
+    --wd-code-inline-text: #cba6f7;
+    --wd-code-keyword: #cba6f7;
+    --wd-code-string: #a6e3a1;
+    --wd-code-comment: #6c7086;
+    --wd-code-function: #89b4fa;
+    --wd-code-number: #fab387;
+    --wd-code-type: #94e2d5;
 }
 
 :root,
@@ -231,6 +247,7 @@ body {
     --wd-neo-dark-alpha: 0.1;
     --wd-neo-light-alpha: 0.8;
     --wd-neo-highlight-alpha: 0.18;
+
 }
 
 [data-theme="cyber"] {
@@ -288,6 +305,7 @@ body {
     --wd-neo-dark-alpha: 0.5;
     --wd-neo-light-alpha: 0.2;
     --wd-neo-highlight-alpha: 0.04;
+
 }
 
 [data-theme="eco"] {
@@ -345,6 +363,7 @@ body {
     --wd-neo-dark-alpha: 0.1;
     --wd-neo-light-alpha: 0.8;
     --wd-neo-highlight-alpha: 0.18;
+
 }
 
 [data-theme="a11y"] {
@@ -402,6 +421,7 @@ body {
     --wd-neo-dark-alpha: 0.55;
     --wd-neo-light-alpha: 0.15;
     --wd-neo-highlight-alpha: 0.03;
+
 }
 
 [data-theme="discord"] {
@@ -459,6 +479,7 @@ body {
     --wd-neo-dark-alpha: 0.5;
     --wd-neo-light-alpha: 0.2;
     --wd-neo-highlight-alpha: 0.04;
+
 }
 
 /* Keep legacy dark-mode class behavior for out-of-scope marketing/auth pages. */

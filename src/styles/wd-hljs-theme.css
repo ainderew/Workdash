@@ -1,0 +1,80 @@
+/*
+ * highlight.js theme mapped to --wd-code-* design tokens.
+ * One CSS file works across all themes because token values change per [data-theme].
+ */
+
+.hljs {
+  color: var(--wd-code-text);
+  background: var(--wd-code-bg);
+}
+
+/* Keywords: if, return, const, let, var, function, class, import, export */
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-built_in,
+.hljs-deletion {
+  color: var(--wd-code-keyword);
+}
+
+/* Strings */
+.hljs-string,
+.hljs-regexp,
+.hljs-addition,
+.hljs-template-variable,
+.hljs-selector-attr,
+.hljs-selector-pseudo {
+  color: var(--wd-code-string);
+}
+
+/* Comments */
+.hljs-comment,
+.hljs-quote {
+  color: var(--wd-code-comment);
+  font-style: italic;
+}
+
+/* Function names */
+.hljs-title,
+.hljs-title.function_,
+.hljs-section {
+  color: var(--wd-code-function);
+}
+
+/* Numbers and literals */
+.hljs-number,
+.hljs-literal,
+.hljs-variable,
+.hljs-template-tag,
+.hljs-tag .hljs-attr {
+  color: var(--wd-code-number);
+}
+
+/* Type names */
+.hljs-type,
+.hljs-title.class_,
+.hljs-tag,
+.hljs-name,
+.hljs-attribute {
+  color: var(--wd-code-type);
+}
+
+/* Meta / preprocessor */
+.hljs-meta,
+.hljs-meta .hljs-keyword,
+.hljs-meta .hljs-string {
+  color: var(--wd-code-line-number);
+}
+
+/* Emphasis */
+.hljs-emphasis {
+  font-style: italic;
+}
+
+.hljs-strong {
+  font-weight: bold;
+}
+
+/* Links */
+.hljs-link {
+  text-decoration: underline;
+}
