@@ -5,6 +5,7 @@ import { AvailabilityStatus } from "@/game/player/_enums";
 import useAudioStore from "@/common/store/audioStore";
 import type { AudioQualityMode } from "@/common/store/audioStore";
 import { logger } from "@/common/utils/logger";
+import useCallStore from "@/common/store/callStore";
 import { RNNoiseService } from "./rnnoiseService";
 
 interface ConsumerServerResponse {
@@ -112,6 +113,10 @@ export class AudioChat {
                 );
 
                 if (data.zone === null) {
+                    if (useCallStore.getState().currentCall) {
+                        this.currentZone = null;
+                        return;
+                    }
                     this.closeAllAudioConsumers();
                     this.currentZone = null;
                     return;
@@ -136,6 +141,7 @@ export class AudioChat {
             "player-left-zone",
             (data: { socketId: string; playerId: string; zone: string }) => {
                 logger.log(`Player ${data.playerId} left zone ${data.zone}`);
+                if (useCallStore.getState().currentCall) return;
                 this.closeConsumersForSocket(data.socketId);
             },
         );
@@ -439,8 +445,10 @@ export class AudioChat {
                 kind: string;
                 source?: string;
             }) => {
-                if (data.source === "music-bot") {
+                if (this.producerToConsumerMap.has(data.producerId)) {
                     this.closeConsumerByProducerId(data.producerId);
+                }
+                if (data.source === "music-bot") {
                     this.musicBotProducerIds.delete(data.producerId);
                 }
             },
@@ -1113,6 +1121,14 @@ export class AudioChat {
         const gainNode = this.getGainNodeByUserId(userId);
         if (gainNode) {
             gainNode.gain.value = Math.max(0, Math.min(2.0, volume));
+        } else {
+            const producerId = this.findProducerIdForUserId(userId);
+            logger.warn(
+                `setUserVolume: no gain node for userId=${userId} ` +
+                `(producerId=${producerId ?? "none"}, ` +
+                `producerMapSize=${this.audioProducerUserIdMap.size}, ` +
+                `gainNodesSize=${this.gainNodes.size})`,
+            );
         }
     }
 
