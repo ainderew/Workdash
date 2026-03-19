@@ -58,6 +58,8 @@ import {
     toCharacterCustomization,
 } from "@/common/utils/characterFaceAvatar";
 import { getMusicBotAvatarSync } from "@/common/utils/botAvatar";
+import ImagePreviewLightbox from "./ImagePreviewLightbox";
+import type { LightboxImage } from "./ImagePreviewLightbox";
 
 interface MessageListProps {
     messages: ChatV2Message[];
@@ -233,6 +235,7 @@ function MessageList({
         useState<ProfilePopoverState | null>(null);
     const [isAddingFriend, setIsAddingFriend] = useState(false);
     const [flyoutMessageId, setFlyoutMessageId] = useState<string | null>(null);
+    const [lightboxState, setLightboxState] = useState<LightboxImage | null>(null);
     const [resolvedSenderImagesByUserId, setResolvedSenderImagesByUserId] =
         useState<Record<number, string>>({});
     const [
@@ -751,13 +754,10 @@ function MessageList({
         });
     };
 
-    const handleImageClick = (fileId: string) => {
+    const handleImageClick = (fileId: string, fileName: string) => {
         const current = attachmentUrls[fileId];
         if (current?.viewUrl) {
-            setAttachmentUrls((prev) => ({
-                ...prev,
-                [fileId]: { ...current, showFull: true },
-            }));
+            setLightboxState({ fileId, imageUrl: current.viewUrl, fileName });
             return;
         }
         void (async () => {
@@ -768,13 +768,18 @@ function MessageList({
                     [fileId]: {
                         thumbnailUrl: prev[fileId]?.thumbnailUrl ?? null,
                         viewUrl,
-                        showFull: true,
+                        showFull: false,
                     },
                 }));
+                setLightboxState({ fileId, imageUrl: viewUrl, fileName });
             } catch {
                 // Silently fail - user can try clicking again
             }
         })();
+    };
+
+    const handleGifClick = (gifUrl: string) => {
+        setLightboxState({ fileId: "", imageUrl: gifUrl, fileName: "GIF" });
     };
 
     const handleDownloadAttachment = (fileId: string, filename: string) => {
@@ -1135,7 +1140,7 @@ function MessageList({
                                         isThreadHighlighted
                                             ? "rounded-md bg-[var(--wd-accent-soft)]"
                                             : isCurrentUserMentioned
-                                              ? "border-l-2 border-l-[rgb(240,185,11)] bg-[rgba(240,185,11,0.06)]"
+                                              ? "border-l-2 border-l-[rgb(var(--wd-warning-rgb))] bg-[rgb(var(--wd-warning-rgb)/0.06)]"
                                               : pinnedMessageIds?.has(
                                                       message.id,
                                                   )
@@ -1328,16 +1333,23 @@ function MessageList({
                                             <div>
                                                 {standaloneGifUrl && (
                                                     <div className="mt-1">
-                                                        <Image
-                                                            src={
-                                                                standaloneGifUrl
-                                                            }
-                                                            alt="GIF"
-                                                            width={320}
-                                                            height={224}
-                                                            unoptimized
-                                                            className="rounded-md max-w-xs max-h-56 object-contain border wd-border-subtle"
-                                                        />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleGifClick(standaloneGifUrl)}
+                                                            className="relative block cursor-pointer group"
+                                                        >
+                                                            <Image
+                                                                src={standaloneGifUrl}
+                                                                alt="GIF"
+                                                                width={320}
+                                                                height={224}
+                                                                unoptimized
+                                                                className="rounded-md max-w-xs max-h-56 object-contain border wd-border-subtle"
+                                                            />
+                                                            <span className="absolute bottom-1 right-1 text-[10px] px-1.5 py-0.5 rounded bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                Click to expand
+                                                            </span>
+                                                        </button>
                                                     </div>
                                                 )}
 
@@ -1455,6 +1467,7 @@ function MessageList({
                                                                             onClick={() =>
                                                                                 handleImageClick(
                                                                                     attachment.id,
+                                                                                    attachment.originalFileName,
                                                                                 )
                                                                             }
                                                                             className="relative block cursor-pointer group"
@@ -1722,6 +1735,34 @@ function MessageList({
                 </button>
             ) : null}
             </div>
+
+            {lightboxState && (
+                <ImagePreviewLightbox
+                    current={lightboxState}
+                    gallery={messages
+                        .flatMap((msg) => {
+                            const gifUrl =
+                                msg.messageType === "IMAGE" && msg.attachments.length === 0
+                                    ? getStandaloneGifUrl(msg.content)
+                                    : null;
+                            if (gifUrl) {
+                                return [{ fileId: "", imageUrl: gifUrl, fileName: "GIF" }];
+                            }
+                            return msg.attachments
+                                .filter((a) => a.isImage)
+                                .map((a) => ({
+                                    fileId: a.id,
+                                    imageUrl:
+                                        attachmentUrls[a.id]?.viewUrl ??
+                                        attachmentUrls[a.id]?.thumbnailUrl ??
+                                        "",
+                                    fileName: a.originalFileName,
+                                }));
+                        })
+                        .filter((img) => img.imageUrl)}
+                    onClose={() => setLightboxState(null)}
+                />
+            )}
         </div>
     );
 }

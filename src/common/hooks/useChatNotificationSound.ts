@@ -10,10 +10,10 @@ const DEFAULT_TITLE = 'WorkDash';
 // Singleton state stored on window to survive HMR module reloads
 function getSingletonState() {
   const w = window as Window & {
-    __chatNotifSingleton?: { count: number; audio: HTMLAudioElement | null; enabled: boolean };
+    __chatNotifSingleton?: { count: number; audio: HTMLAudioElement | null; mentionAudio: HTMLAudioElement | null; enabled: boolean };
   };
   if (!w.__chatNotifSingleton) {
-    w.__chatNotifSingleton = { count: 0, audio: null, enabled: false };
+    w.__chatNotifSingleton = { count: 0, audio: null, mentionAudio: null, enabled: false };
   }
   return w.__chatNotifSingleton;
 }
@@ -54,20 +54,31 @@ export function useChatNotificationSound() {
     singleton.audio.volume = 0.3;
     singleton.audio.preload = 'auto';
 
+    singleton.mentionAudio = new Audio('/assets/sounds/mention.mp3');
+    singleton.mentionAudio.volume = 0.3;
+    singleton.mentionAudio.preload = 'auto';
+
+    const primeAudioElement = (el: HTMLAudioElement) => {
+      el.volume = 0;
+      return el
+        .play()
+        .then(() => {
+          el.pause();
+          el.currentTime = 0;
+          el.volume = 0.3;
+        })
+        .catch(() => {
+          el.volume = 0.3;
+        });
+    };
+
     const enableAudio = () => {
       if (!singleton.enabled && singleton.audio) {
-        singleton.audio.volume = 0;
-        singleton.audio
-          .play()
-          .then(() => {
-            singleton.audio?.pause();
-            singleton.audio!.currentTime = 0;
-            singleton.audio!.volume = 0.3;
-            singleton.enabled = true;
-          })
-          .catch(() => {
-            if (singleton.audio) singleton.audio.volume = 0.3;
-          });
+        const promises: Promise<void>[] = [primeAudioElement(singleton.audio)];
+        if (singleton.mentionAudio) promises.push(primeAudioElement(singleton.mentionAudio));
+        Promise.allSettled(promises).then(() => {
+          singleton.enabled = true;
+        });
       }
       requestNotificationPermission();
     };
@@ -84,6 +95,11 @@ export function useChatNotificationSound() {
           singleton.audio.pause();
           singleton.audio.src = '';
           singleton.audio = null;
+        }
+        if (singleton.mentionAudio) {
+          singleton.mentionAudio.pause();
+          singleton.mentionAudio.src = '';
+          singleton.mentionAudio = null;
         }
         singleton.enabled = false;
         isOwnerRef.current = false;
@@ -134,6 +150,10 @@ export function useChatNotificationSound() {
 
     prevUnreadRef.current = { ...unreadByRoomId };
 
+    // Consume mention flag unconditionally so it never bleeds into the next unrelated message
+    // Always consume to prevent bleed
+    const isMention = useChatV2Store.getState().consumePendingMention();
+
     if (!shouldPlay || SILENT_STATUSES.has(myStatusId)) return;
 
     const now = Date.now();
@@ -143,8 +163,11 @@ export function useChatNotificationSound() {
     if (!isThrottled && getIsNotifLeader()) {
       const singleton = getSingletonState();
       if (singleton.enabled && singleton.audio) {
-        singleton.audio.currentTime = 0;
-        singleton.audio.play().catch(() => {});
+        const soundToPlay = isMention ? singleton.mentionAudio : singleton.audio;
+        if (soundToPlay) {
+          soundToPlay.currentTime = 0;
+          soundToPlay.play().catch(() => {});
+        }
         lastPlayedRef.current = now;
       }
     }

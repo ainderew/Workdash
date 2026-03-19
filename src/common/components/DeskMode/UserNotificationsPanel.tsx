@@ -119,7 +119,7 @@ function UserNotificationsPanel({
                                             onClick={() =>
                                                 onRespond(request.friendshipId, "ACCEPT")
                                             }
-                                            className="h-7 rounded-md border border-emerald-700 bg-emerald-950/50 text-emerald-300 text-[11px] font-semibold transition-colors hover:bg-emerald-900/60 disabled:opacity-60 inline-flex items-center justify-center gap-1"
+                                            className="h-7 rounded-md border border-[rgb(var(--wd-success-rgb)/0.6)] bg-[rgb(var(--wd-success-rgb)/0.12)] text-[rgb(var(--wd-success-rgb))] text-[11px] font-semibold transition-colors hover:bg-[rgb(var(--wd-success-rgb)/0.22)] disabled:opacity-60 inline-flex items-center justify-center gap-1"
                                         >
                                             <Check size={11} />
                                             Accept
@@ -141,7 +141,7 @@ function UserNotificationsPanel({
                                             onClick={() =>
                                                 onRespond(request.friendshipId, "BLOCK")
                                             }
-                                            className="h-7 rounded-md border border-red-700 bg-red-950/50 text-red-300 text-[11px] font-semibold transition-colors hover:bg-red-900/60 disabled:opacity-60 inline-flex items-center justify-center gap-1"
+                                            className="h-7 rounded-md border border-[rgb(var(--wd-danger-rgb)/0.6)] bg-[rgb(var(--wd-danger-rgb)/0.12)] text-[rgb(var(--wd-danger-rgb))] text-[11px] font-semibold transition-colors hover:bg-[rgb(var(--wd-danger-rgb)/0.22)] disabled:opacity-60 inline-flex items-center justify-center gap-1"
                                         >
                                             <Ban size={11} />
                                             Block
@@ -219,15 +219,19 @@ function UserNotificationsPanel({
                                         `User ${notification.actorUser.id}`,
                                     );
                                 const isMention = notification.type === "MENTION";
-                                const previewText = isMention
+                                const isEveryoneMention = notification.type === "EVERYONE_MENTION";
+                                const isMentionType = isMention || isEveryoneMention;
+                                const previewText = isMentionType
                                     ? (notification.rootMessage.content?.trim() || "(no text)")
                                     : (notification.replyMessage?.content?.trim()
                                         || notification.rootMessage.content?.trim()
                                         || "(no text)");
-                                const notificationSuffix = isMention
+                                const notificationSuffix = isEveryoneMention
+                                    ? ` mentioned @everyone in #${notification.room.name}`
+                                    : isMention
                                     ? ` mentioned you in #${notification.room.name}`
                                     : ` replied in #${notification.room.name}`;
-                                const NotificationIcon = isMention
+                                const NotificationIcon = isMentionType
                                     ? AtSign
                                     : MessageSquareReply;
 
@@ -239,7 +243,7 @@ function UserNotificationsPanel({
                                         className={`w-full rounded-md border px-2 py-2 text-left transition-colors ${
                                             notification.readAt
                                                 ? "wd-border-subtle wd-bg-elevated"
-                                                : "wd-border-strong wd-bg-[var(--wd-accent-soft)]"
+                                                : "wd-border-strong bg-[var(--wd-accent-soft)]"
                                         }`}
                                     >
                                         <p className="text-xs font-semibold wd-text-primary inline-flex items-center gap-1">

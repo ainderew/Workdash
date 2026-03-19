@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
 import {
     ExternalLink,
     RefreshCw,
@@ -17,6 +18,8 @@ import {
     downloadChatFile,
     getChatFilePreviewUrl,
 } from "@/communication/chatV2/uploadService";
+import ImagePreviewLightbox from "./ImagePreviewLightbox";
+import type { LightboxImage } from "./ImagePreviewLightbox";
 import { extractLinkParts } from "./MessageContentRenderer";
 import { UnifiedLinkPreview } from "@/common/components/TextChat/UnifiedLinkPreview";
 import { useLinkPreviews } from "@/common/hooks/useLinkPreviews";
@@ -86,6 +89,8 @@ type ThreadMessageRowProps = {
     onCancelEdit?: () => void;
     members?: ChatV2RoomMember[];
     onDownloadAttachment: (fileId: string, filename: string) => void;
+    onImageClick: (fileId: string, fileName: string, imageUrl: string) => void;
+    onGifClick: (gifUrl: string) => void;
     resolvedSenderImage?: string;
     memberNameMap: MentionMemberNameMap;
 };
@@ -99,6 +104,8 @@ function ThreadMessageRow({
     canUnsendImage,
     onUnsendImage,
     onDownloadAttachment,
+    onImageClick,
+    onGifClick,
     resolvedSenderImage,
     memberNameMap,
     isEditing,
@@ -159,7 +166,7 @@ function ThreadMessageRow({
     return (
         <article
             className={`group relative px-0 py-1 ${
-                isCurrentUserMentioned ? "border-l-2 border-l-[rgb(240,185,11)] bg-[rgba(240,185,11,0.06)]" : ""
+                isCurrentUserMentioned ? "border-l-2 border-l-[rgb(var(--wd-warning-rgb))] bg-[rgb(var(--wd-warning-rgb)/0.06)]" : ""
             }${isEditing ? " z-[205]" : ""}`}
             data-chat-thread-message-id={message.id}
         >
@@ -228,11 +235,23 @@ function ThreadMessageRow({
                     ) : (
                         <div className="space-y-2">
                             {standaloneGifUrl ? (
-                                <img
-                                    src={standaloneGifUrl}
-                                    alt="GIF"
-                                    className="rounded-md max-w-xs max-h-56 object-contain border wd-border-subtle"
-                                />
+                                <button
+                                    type="button"
+                                    onClick={() => onGifClick(standaloneGifUrl)}
+                                    className="relative block cursor-pointer group"
+                                >
+                                    <Image
+                                        src={standaloneGifUrl}
+                                        alt="GIF"
+                                        width={320}
+                                        height={224}
+                                        unoptimized
+                                        className="rounded-md max-w-xs max-h-56 object-contain border wd-border-subtle"
+                                    />
+                                    <span className="absolute bottom-1 right-1 text-[10px] px-1.5 py-0.5 rounded bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                                        Click to expand
+                                    </span>
+                                </button>
                             ) : message.content ? (
                                 <div>
                                     <div className="text-sm wd-text-secondary whitespace-pre-wrap break-words">
@@ -303,12 +322,30 @@ function ThreadMessageRow({
 
                                         if (attachment.isImage) {
                                             return (
-                                                <img
+                                                <button
                                                     key={attachment.id}
-                                                    src={signedUrl}
-                                                    alt={attachment.originalFileName}
-                                                    className="rounded-md max-w-xs max-h-56 object-cover border wd-border-subtle"
-                                                />
+                                                    type="button"
+                                                    onClick={() =>
+                                                        onImageClick(
+                                                            attachment.id,
+                                                            attachment.originalFileName,
+                                                            signedUrl,
+                                                        )
+                                                    }
+                                                    className="relative block cursor-pointer group"
+                                                >
+                                                    <Image
+                                                        src={signedUrl}
+                                                        alt={attachment.originalFileName}
+                                                        width={320}
+                                                        height={224}
+                                                        unoptimized
+                                                        className="rounded-md max-w-xs max-h-56 object-cover border wd-border-subtle"
+                                                    />
+                                                    <span className="absolute bottom-1 right-1 text-[10px] px-1.5 py-0.5 rounded bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        Click to expand
+                                                    </span>
+                                                </button>
                                             );
                                         }
 
@@ -395,6 +432,7 @@ function ThreadPanel({
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const endRef = useRef<HTMLDivElement>(null);
     const [attachmentUrls, setAttachmentUrls] = useState<Record<string, string>>({});
+    const [lightboxState, setLightboxState] = useState<LightboxImage | null>(null);
     const [resolvedSenderImagesByUserId, setResolvedSenderImagesByUserId] = useState<
         Record<number, string>
     >({});
@@ -671,6 +709,25 @@ function ThreadPanel({
         })();
     };
 
+    const handleThreadImageClick = (fileId: string, fileName: string, imageUrl: string) => {
+        if (imageUrl) {
+            setLightboxState({ fileId, imageUrl, fileName });
+            return;
+        }
+        void (async () => {
+            try {
+                const url = await getChatFilePreviewUrl(fileId);
+                setLightboxState({ fileId, imageUrl: url, fileName });
+            } catch {
+                toast("Failed to load image preview");
+            }
+        })();
+    };
+
+    const handleThreadGifClick = (gifUrl: string) => {
+        setLightboxState({ fileId: "", imageUrl: gifUrl, fileName: "GIF" });
+    };
+
     return (
         <aside
             className={`flex h-full min-h-0 w-[370px] max-w-[45vw] min-w-[320px] flex-col border-l wd-border-subtle wd-bg-panel ${className ?? ""}`}
@@ -730,6 +787,8 @@ function ThreadPanel({
                             }
                             onUnsendImage={handleUnsendImage}
                             onDownloadAttachment={handleDownloadAttachment}
+                            onImageClick={handleThreadImageClick}
+                            onGifClick={handleThreadGifClick}
                             resolvedSenderImage={
                                 resolvedSenderImagesByUserId[rootMessage.senderUserId]
                             }
@@ -782,6 +841,8 @@ function ThreadPanel({
                                         }
                                         onUnsendImage={handleUnsendImage}
                                         onDownloadAttachment={handleDownloadAttachment}
+                                        onImageClick={handleThreadImageClick}
+                                        onGifClick={handleThreadGifClick}
                                         resolvedSenderImage={
                                             resolvedSenderImagesByUserId[reply.senderUserId]
                                         }
@@ -823,6 +884,31 @@ function ThreadPanel({
                 members={members}
                 onSend={onSendReply}
             />
+
+            {lightboxState && (
+                <ImagePreviewLightbox
+                    current={lightboxState}
+                    gallery={allMessages
+                        .flatMap((msg) => {
+                            const gifUrl =
+                                msg.messageType === "IMAGE" && msg.attachments.length === 0
+                                    ? getStandaloneGifUrl(msg.content)
+                                    : null;
+                            if (gifUrl) {
+                                return [{ fileId: "", imageUrl: gifUrl, fileName: "GIF" }];
+                            }
+                            return msg.attachments
+                                .filter((a) => a.isImage && attachmentUrls[a.id])
+                                .map((a) => ({
+                                    fileId: a.id,
+                                    imageUrl: attachmentUrls[a.id],
+                                    fileName: a.originalFileName,
+                                }));
+                        })
+                        .filter((img) => img.imageUrl)}
+                    onClose={() => setLightboxState(null)}
+                />
+            )}
         </aside>
     );
 }
