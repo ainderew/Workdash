@@ -124,6 +124,8 @@ export class AudioChat {
 
                 this.currentZone = data.zone;
 
+                if (useCallStore.getState().currentCall) return;
+
                 for (const player of data.players) {
                     this.socketToProducersMap.set(
                         player.socketId,
@@ -150,6 +152,7 @@ export class AudioChat {
             "player-joined-zone",
             async (data: PlayerJoinedZoneData) => {
                 logger.log(`Player ${data.playerId} joined zone ${data.zone}`);
+                if (useCallStore.getState().currentCall) return;
 
                 if (data.producerIds && data.producerIds.length > 0) {
                     this.socketToProducersMap.set(

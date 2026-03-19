@@ -315,7 +315,7 @@ describe('useChatV2Store', () => {
         roomId: 'room-1',
         content: 'hello',
       });
-      mockService.createMessage.mockResolvedValue(sentMessage);
+      mockService.createMessage.mockResolvedValue({ message: sentMessage, everyoneMentionSuppressed: false });
 
       const result = await useChatV2Store.getState().sendMessage('hello');
 
