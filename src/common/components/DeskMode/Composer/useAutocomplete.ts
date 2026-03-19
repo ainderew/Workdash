@@ -81,7 +81,10 @@ export function useAutocomplete({
                 fullName: "Notify all members in this channel",
                 nickname: null,
                 image: null,
-                cooldownSeconds: everyoneCooldownSeconds > 0 ? everyoneCooldownSeconds : undefined,
+                cooldownSeconds:
+                    everyoneCooldownSeconds > 0
+                        ? everyoneCooldownSeconds
+                        : undefined,
             });
         }
 
@@ -193,7 +196,8 @@ export function useAutocomplete({
     const handleMentionSelect = useCallback(
         (suggestion: MentionSuggestion) => {
             if (!mentionQuery) return;
-            if (suggestion.cooldownSeconds && suggestion.cooldownSeconds > 0) return;
+            if (suggestion.cooldownSeconds && suggestion.cooldownSeconds > 0)
+                return;
 
             const textarea = textareaRef.current;
             const cursorPos = textarea?.selectionStart ?? value.length;

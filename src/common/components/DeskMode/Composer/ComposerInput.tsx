@@ -29,10 +29,7 @@ function ComposerInput({
     handleKeyDown,
     handlePaste,
 }: ComposerInputProps) {
-    const hasCodeBlock = useMemo(
-        () => CODE_BLOCK_REGEX.test(value),
-        [value],
-    );
+    const hasCodeBlock = useMemo(() => CODE_BLOCK_REGEX.test(value), [value]);
 
     useEffect(() => {
         const ta = textareaRef.current;
@@ -45,10 +42,7 @@ function ComposerInput({
         <div className="min-w-0 flex flex-1 flex-col">
             {hasCodeBlock && (
                 <div className="flex items-center gap-1 px-2 pt-1.5 pb-0">
-                    <Code2
-                        size={14}
-                        className="wd-text-muted shrink-0"
-                    />
+                    <Code2 size={14} className="wd-text-muted shrink-0" />
                     <span className="text-xs wd-text-muted">
                         Contains code block
                     </span>
@@ -65,9 +59,7 @@ function ComposerInput({
                 rows={1}
                 placeholder={placeholder}
                 aria-expanded={isMentionFlyoutOpen}
-                aria-autocomplete={
-                    isMentionFlyoutOpen ? "list" : undefined
-                }
+                aria-autocomplete={isMentionFlyoutOpen ? "list" : undefined}
                 className={`min-h-[44px] text-sm max-h-[240px] w-full overflow-y-auto border-0 px-2 py-[11px] leading-5 shadow-none resize-none wd-text-primary outline-none focus:outline-none ${
                     hasCodeBlock
                         ? "font-mono text-[13px] rounded-md bg-[var(--wd-surface-base)]"

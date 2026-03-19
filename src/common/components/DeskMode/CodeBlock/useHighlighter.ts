@@ -61,7 +61,10 @@ async function loadHighlightJs(): Promise<HLJSApi> {
 
     hljsInstance = hljs;
     return hljs;
-  })();
+  })().catch((err) => {
+    loadPromise = null;
+    throw err;
+  });
 
   return loadPromise;
 }
@@ -81,11 +84,15 @@ export function useHighlighter(): UseHighlighterResult {
     }
 
     let cancelled = false;
-    void loadHighlightJs().then((instance) => {
-      if (!cancelled) {
-        setHljs(instance);
-      }
-    });
+    void loadHighlightJs()
+      .then((instance) => {
+        if (!cancelled) {
+          setHljs(instance);
+        }
+      })
+      .catch(() => {
+        // Import failed — loadPromise has been reset so next mount will retry
+      });
 
     return () => {
       cancelled = true;

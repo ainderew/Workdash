@@ -191,9 +191,7 @@ function Composer(props: ComposerProps) {
             )}
 
             {uploadError && (
-                <div className="mb-2 text-xs wd-text-danger">
-                    {uploadError}
-                </div>
+                <div className="mb-2 text-xs wd-text-danger">{uploadError}</div>
             )}
 
             <ComposerActions

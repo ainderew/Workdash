@@ -52,9 +52,7 @@ export function useSendMessage({
                 /:([a-z0-9_]{2,32}):/g,
                 (match, name: string) => {
                     const emoji = emojiMap.get(name);
-                    return emoji
-                        ? `<:${emoji.name}:${emoji.id}>`
-                        : match;
+                    return emoji ? `<:${emoji.name}:${emoji.id}>` : match;
                 },
             );
         },
@@ -130,25 +128,28 @@ export function useSendMessage({
         focusInput,
     ]);
 
-    const submitGif = useCallback(async (gifUrl: string) => {
-        if (!gifUrl.trim() || disabled || isSending || !roomId) return;
+    const submitGif = useCallback(
+        async (gifUrl: string) => {
+            if (!gifUrl.trim() || disabled || isSending || !roomId) return;
 
-        setUploadError(null);
+            setUploadError(null);
 
-        try {
-            await onSend(gifUrl);
-        } catch (error) {
-            setUploadError(
-                error instanceof Error
-                    ? error.message
-                    : "Failed to send GIF",
-            );
-        } finally {
-            window.requestAnimationFrame(() => {
-                focusInput();
-            });
-        }
-    }, [disabled, isSending, roomId, setUploadError, onSend, focusInput]);
+            try {
+                await onSend(gifUrl);
+            } catch (error) {
+                setUploadError(
+                    error instanceof Error
+                        ? error.message
+                        : "Failed to send GIF",
+                );
+            } finally {
+                window.requestAnimationFrame(() => {
+                    focusInput();
+                });
+            }
+        },
+        [disabled, isSending, roomId, setUploadError, onSend, focusInput],
+    );
 
     return { submit, submitGif };
 }

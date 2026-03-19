@@ -42,7 +42,7 @@ function GifBadgeIcon({ className }: { className?: string }) {
 }
 
 export const INLINE_ACTION_BUTTON_CLASS =
-    "group/inline relative z-[99] h-9 w-9 shrink-0 rounded-full overflow-hidden text-[var(--wd-text-muted)] motion-safe:transition-colors motion-safe:duration-300 hover:text-white focus-visible:text-white disabled:opacity-55 disabled:cursor-not-allowed";
+    "group/inline relative z-[99] h-9 w-9 shrink-0 rounded-full overflow-hidden text-[var(--wd-text-muted)] motion-safe:transition-colors motion-safe:duration-300 hover:text-[var(--wd-text-primary)] focus-visible:text-[var(--wd-text-primary)] disabled:opacity-55 disabled:cursor-not-allowed";
 
 export const HOVER_GLOW =
     "pointer-events-none absolute inset-0 rounded-full scale-50 opacity-0 motion-safe:transition-all motion-safe:duration-300 motion-safe:ease-out bg-[radial-gradient(circle_at_30%_25%,var(--wd-accent-hover),var(--wd-accent))] group-hover/inline:scale-100 group-hover/inline:opacity-100 group-focus-visible/inline:scale-100 group-focus-visible/inline:opacity-100";

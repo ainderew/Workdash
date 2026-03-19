@@ -251,7 +251,7 @@ export class AudioChat {
                     await ctx.resume();
                     logger.log("AudioContext resumed successfully");
                 } catch (error) {
-                    console.error("Failed to resume AudioContext:", error);
+                    logger.error("Failed to resume AudioContext:", error);
                 }
             }
         }
@@ -264,7 +264,7 @@ export class AudioChat {
             });
             stream.getTracks().forEach((track) => track.stop());
         } catch (error) {
-            console.error("Failed to get microphone permission:", error);
+            logger.error("Failed to get microphone permission:", error);
             throw error;
         }
 
@@ -467,7 +467,7 @@ export class AudioChat {
 
         if (!this.sfuService.device || !this.sfuService.recvTransport) {
             this.consumingInFlight.delete(producerId);
-            console.error("Cannot consume audio — SFU not initialized");
+            logger.error("Cannot consume audio — SFU not initialized");
             return;
         }
 
@@ -488,7 +488,7 @@ export class AudioChat {
             );
 
             if ((consumerData as unknown as { error: string }).error) {
-                console.error("Server rejected consume:", consumerData);
+                logger.error("Server rejected consume:", consumerData);
                 return;
             }
 
@@ -522,7 +522,7 @@ export class AudioChat {
                     typeof resumeResult === "object" &&
                     "error" in resumeResult
                 ) {
-                    console.error(
+                    logger.error(
                         "Failed to resume consumer:",
                         resumeResult.error,
                     );
@@ -628,7 +628,7 @@ export class AudioChat {
                 consumer.track.enabled,
             );
         } catch (error) {
-            console.error("Error consuming producer:", error);
+            logger.error("Error consuming producer:", error);
         } finally {
             this.consumingInFlight.delete(producerId);
         }
