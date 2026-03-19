@@ -201,22 +201,39 @@ class NoiseProcessor extends AudioWorkletProcessor {
     // Community consensus (werman/noise-suppression-for-voice, Jitsi) is
     // 0.85–0.95 for gating. We use a soft envelope so we can afford the
     // higher thresholds without hard-clipping speech onsets.
-    //   open  at VAD >= 0.85 (high confidence speech to open gate)
-    //   close at VAD <  0.65 (close promptly when speech fades)
-    // Fast attack (0.08) preserves speech onset; fast release (0.02) shuts
-    // the gate quickly to suppress fan/hiss between words.
+    //   open  at VAD >= 0.85 (high confidence speech)
+    //   close at VAD <  0.75 (close promptly when speech fades)
+    //   hysteresis zone 0.75–0.85: proportional target instead of binary
+    // Fast attack (0.08) preserves speech onset; fast release (0.05) shuts
+    // the gate in ~53ms to suppress fan/hiss between words.
     const vad = this._lastVad;
-    const gateOpen = vad >= 0.85 ? 1 : vad < 0.65 ? 0 : this._gateGain > 0 ? 1 : 0;
+    let gateTarget;
+    if (vad >= 0.85) {
+      gateTarget = 1;
+    } else if (vad < 0.75) {
+      gateTarget = 0;
+    } else {
+      // Hysteresis zone (0.75–0.85): proportional target based on VAD
+      // Maps vad 0.75→0.0, 0.85→1.0 linearly — partial attenuation
+      // instead of keeping gate fully open for steady-state noise
+      gateTarget = (vad - 0.75) / 0.10;
+    }
     const attackRate = 0.08;
-    const releaseRate = 0.02;
+    const releaseRate = 0.05;
+
+    // Residual noise attenuation: even when gate is open, apply mild
+    // attenuation proportional to noise confidence (1 - vad).
+    // At vad=0.85 (gate threshold): 0.5 + 0.5*0.85 = 0.925 (~8% atten)
+    // At vad=1.0 (certain speech): 0.5 + 0.5*1.0 = 1.0 (no atten)
+    const residualAtten = 0.5 + 0.5 * vad;
 
     for (let i = 0; i < output.length; i++) {
-      if (gateOpen) {
-        this._gateGain = Math.min(1, this._gateGain + attackRate);
+      if (this._gateGain < gateTarget) {
+        this._gateGain = Math.min(gateTarget, this._gateGain + attackRate);
       } else {
-        this._gateGain = Math.max(0, this._gateGain - releaseRate);
+        this._gateGain = Math.max(gateTarget, this._gateGain - releaseRate);
       }
-      output[i] *= this._gateGain;
+      output[i] *= this._gateGain * residualAtten;
     }
 
     return true;

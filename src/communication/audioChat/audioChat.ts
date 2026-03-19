@@ -696,7 +696,7 @@ export class AudioChat {
             compressor.attack.value = 0.003;
             compressor.release.value = 0.25;
         } else {
-            // Gentle compression — browser NS + RNNoise/FFT gate handle noise
+            // Standard-mode defaults — overridden below for RNNoise path
             compressor.threshold.value = -20;
             compressor.knee.value = 10;
             compressor.ratio.value = 2;
@@ -732,6 +732,22 @@ export class AudioChat {
             }
 
             if (rnnoiseNode) {
+                // RNNoise path: gentler compressor — RNNoise already reduces noise,
+                // so we only compress loud peaks without boosting quiet residual noise.
+                compressor.threshold.value = -12;
+                compressor.knee.value = 15;
+                compressor.ratio.value = 1.5;
+                compressor.release.value = 0.15;
+
+                // Recover from mid-session WASM crashes by falling back to FFT gate
+                rnnoiseNode.onprocessorerror = (event) => {
+                    logger.error('RNNoise worklet crashed, falling back to FFT gate:', event);
+                    this.rnnoiseNode = null;
+                    if (this.currentStream) {
+                        this.processAudioStream(this.currentStream);
+                    }
+                };
+
                 // RNNoise path: highPass → lowPass → RNNoise worklet → compressor → gain → dest
                 // lowPass(8kHz) cuts high-frequency hiss above voice range before
                 // RNNoise processes, so the model focuses on in-band noise.
