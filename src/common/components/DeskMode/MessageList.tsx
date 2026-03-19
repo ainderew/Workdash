@@ -82,6 +82,9 @@ type AvatarContextMenuState = {
     senderName: string;
 };
 
+const LOAD_COOLDOWN_MS = 500;
+const MAX_FOCUSED_MSG_RETRIES = 10;
+
 const isPreviewableAttachment = (attachment: ChatV2Attachment) =>
     attachment.isImage || attachment.mimeType === "application/pdf";
 const hasImageContent = (message: ChatV2Message) =>
@@ -203,6 +206,8 @@ function MessageList({
     const endRef = useRef<HTMLDivElement>(null);
     const topSentinelRef = useRef<HTMLDivElement>(null);
     const isLoadingOlderRef = useRef(false);
+    const lastLoadTimestampRef = useRef(0);
+    const focusedMessageRetriesRef = useRef(0);
     const [showNewMessagesPill, setShowNewMessagesPill] = useState(false);
     const [isScrolledFarBack, setIsScrolledFarBack] = useState(false);
     const user = useUserStore((state) => state.user);
@@ -342,7 +347,13 @@ function MessageList({
         const observer = new IntersectionObserver(
             (entries) => {
                 const entry = entries[0];
-                if (entry?.isIntersecting && !isLoadingOlderRef.current) {
+                const now = Date.now();
+                if (
+                    entry?.isIntersecting &&
+                    !isLoadingOlderRef.current &&
+                    now - lastLoadTimestampRef.current >= LOAD_COOLDOWN_MS
+                ) {
+                    lastLoadTimestampRef.current = now;
                     onLoadOlderMessages();
                 }
             },
@@ -467,6 +478,7 @@ function MessageList({
 
     useEffect(() => {
         if (!focusedMessageId) {
+            focusedMessageRetriesRef.current = 0;
             return;
         }
 
@@ -474,10 +486,16 @@ function MessageList({
             `[data-chat-message-id="${focusedMessageId}"]`,
         );
         if (targetNode instanceof HTMLElement) {
+            focusedMessageRetriesRef.current = 0;
             return;
         }
 
-        if (hasMoreMessages && !isLoadingOlderMessages) {
+        if (
+            hasMoreMessages &&
+            !isLoadingOlderMessages &&
+            focusedMessageRetriesRef.current < MAX_FOCUSED_MSG_RETRIES
+        ) {
+            focusedMessageRetriesRef.current += 1;
             onLoadOlderMessages?.();
         }
     }, [
