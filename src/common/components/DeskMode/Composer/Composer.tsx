@@ -50,6 +50,7 @@ function Composer(props: ComposerProps) {
         textareaRef,
         selectedWorkspaceId,
         localBackendUserId,
+        roomId,
     });
 
     const { submit, submitGif } = useSendMessage({

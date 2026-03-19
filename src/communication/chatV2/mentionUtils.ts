@@ -7,11 +7,12 @@ export type MentionQuery = {
 
 export type MentionContentSegment =
     | { type: "text"; content: string }
-    | { type: "mention"; userId: number; displayName: string };
+    | { type: "mention"; userId: number; displayName: string }
+    | { type: "everyone_mention" };
 
 const escapeRegExp = (value: string): string =>
     value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-const mentionTokenRegex = /<@(\d+)>/g;
+const MENTION_TOKEN_PATTERN = /<@(\d+)>/g;
 
 export type MentionMemberNameEntry = {
     displayName: string;
@@ -29,9 +30,9 @@ const extractMentionTokenUserIds = (content: string): number[] => {
     if (!content.trim()) return [];
 
     const matched = new Set<number>();
-    mentionTokenRegex.lastIndex = 0;
+    const regex = new RegExp(MENTION_TOKEN_PATTERN.source, "g");
     let tokenMatch: RegExpExecArray | null;
-    while ((tokenMatch = mentionTokenRegex.exec(content)) !== null) {
+    while ((tokenMatch = regex.exec(content)) !== null) {
         const parsedUserId = Number(tokenMatch[1]);
         if (!Number.isInteger(parsedUserId) || parsedUserId <= 0) continue;
         matched.add(parsedUserId);
@@ -173,6 +174,13 @@ export function serializeMentionContentForSend(
         .sort((a, b) => b.alias.length - a.alias.length);
 
     let serializedContent = textareaValue;
+
+    // Replace @everyone BEFORE alias loop
+    serializedContent = serializedContent.replace(
+        /(^|\s)@everyone(?=\s|$|[.,!?;:])/gi,
+        (_match, leadingWhitespace: string) => `${leadingWhitespace}<@everyone>`,
+    );
+
     for (const entry of aliasEntries) {
         const pattern = new RegExp(
             `(^|\\s)@${escapeRegExp(entry.alias)}(?=\\s|$|[.,!?;:])`,
@@ -206,15 +214,16 @@ export function parseContentWithMentions(
         return [{ type: "text", content }];
     }
 
-    if (extractMentionTokenUserIds(content).length > 0) {
+    const hasAnyMentionTokens = (c: string) => /<@(\d+|everyone)>/.test(c);
+
+    if (hasAnyMentionTokens(content)) {
         const segments: MentionContentSegment[] = [];
         let lastIndex = 0;
-        mentionTokenRegex.lastIndex = 0;
+        const allTokenRegex = /<@(\d+|everyone)>/g;
         let tokenMatch: RegExpExecArray | null;
 
-        while ((tokenMatch = mentionTokenRegex.exec(content)) !== null) {
-            const parsedUserId = Number(tokenMatch[1]);
-            if (!Number.isInteger(parsedUserId) || parsedUserId <= 0) continue;
+        while ((tokenMatch = allTokenRegex.exec(content)) !== null) {
+            const captured = tokenMatch[1];
 
             if (tokenMatch.index > lastIndex) {
                 segments.push({
@@ -223,13 +232,22 @@ export function parseContentWithMentions(
                 });
             }
 
-            segments.push({
-                type: "mention",
-                userId: parsedUserId,
-                displayName:
-                    getMemberDisplayName(memberNameMap, parsedUserId) ||
-                    `User ${parsedUserId}`,
-            });
+            if (captured === "everyone") {
+                segments.push({ type: "everyone_mention" });
+            } else {
+                const parsedUserId = Number(captured);
+                if (!Number.isInteger(parsedUserId) || parsedUserId <= 0) {
+                    lastIndex = tokenMatch.index + tokenMatch[0].length;
+                    continue;
+                }
+                segments.push({
+                    type: "mention",
+                    userId: parsedUserId,
+                    displayName:
+                        getMemberDisplayName(memberNameMap, parsedUserId) ||
+                        `User ${parsedUserId}`,
+                });
+            }
 
             lastIndex = tokenMatch.index + tokenMatch[0].length;
         }
@@ -318,11 +336,13 @@ export function deserializeMentionContent(
     content: string,
     memberNameMap: MentionMemberNameMap,
 ): string {
-    return content.replace(/<@(\d+)>/g, (_match, userIdStr: string) => {
-        const userId = Number(userIdStr);
-        const entry = memberNameMap.get(userId);
-        return entry ? `@${entry.displayName}` : `@Unknown`;
-    });
+    return content
+        .replace(/<@everyone>/g, "@everyone")
+        .replace(/<@(\d+)>/g, (_match, userIdStr: string) => {
+            const userId = Number(userIdStr);
+            const entry = memberNameMap.get(userId);
+            return entry ? `@${entry.displayName}` : `@Unknown`;
+        });
 }
 
 export function getMemberDisplayName(

@@ -117,6 +117,7 @@ export type ChatV2Message = {
     }>;
     reactions?: ChatV2MessageReaction[];
     mentionedUserIds?: number[];
+    mentionedEveryone?: boolean;
     botCard?: BotCardPayload;
     replacesMessageId?: string;
 };
@@ -244,7 +245,7 @@ export type ChatV2UserProfile = {
     canSendDirectMessage: boolean;
 };
 
-export type ChatV2UserNotificationType = "REPLY_TO_MESSAGE" | "MENTION";
+export type ChatV2UserNotificationType = "REPLY_TO_MESSAGE" | "MENTION" | "EVERYONE_MENTION";
 
 export type ChatV2UserNotification = {
     id: string;
@@ -531,6 +532,11 @@ export type BotCardPayload =
     | BotCardError
     | BotCardSessionEnded
     | BotCardGenericInfo;
+
+export type CreateMessageResponse = {
+    message: ChatV2Message | null;
+    everyoneMentionSuppressed?: boolean;
+};
 
 export type BetrayalStats = {
     friendCode: string;

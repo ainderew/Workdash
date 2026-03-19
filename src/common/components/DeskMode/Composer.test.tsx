@@ -598,9 +598,9 @@ describe('Composer', () => {
         target: { value: '@', selectionStart: 1 },
       });
 
-      // ArrowUp from 0 wraps to last
+      // ArrowUp from 0 wraps to last (everyone + Alice + Bob = 3 suggestions)
       fireEvent.keyDown(textarea, { key: 'ArrowUp' });
-      expect(screen.getByTestId('mention-selected')).toHaveTextContent('1');
+      expect(screen.getByTestId('mention-selected')).toHaveTextContent('2');
     });
 
     it('inserts mention on Enter', () => {

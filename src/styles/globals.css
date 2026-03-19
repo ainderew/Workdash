@@ -1569,3 +1569,52 @@ input[type="range"].wd-volume-slider::-moz-range-progress {
         transition: none;
     }
 }
+
+/* ── Image lightbox enter animation ─────────────────────────────────── */
+
+@keyframes wd-lightbox-in {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.wd-anim-lightbox-in {
+    animation: wd-lightbox-in 150ms ease-out both;
+}
+
+.wd-lightbox-overlay {
+    background-color: rgb(0 0 0 / 0.9);
+}
+
+.wd-lightbox-control {
+    background-color: rgb(255 255 255 / 0.1);
+    color: rgb(255 255 255 / 0.8);
+}
+
+.wd-lightbox-control-hover {
+    background-color: rgb(255 255 255 / 0.2);
+    color: rgb(255 255 255 / 1);
+}
+
+.wd-lightbox-toolbar {
+    background-color: rgb(0 0 0 / 0.6);
+}
+
+.wd-lightbox-text {
+    color: rgb(255 255 255 / 0.8);
+}
+
+.wd-lightbox-muted {
+    color: rgb(255 255 255 / 0.5);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .wd-anim-lightbox-in {
+        animation: none;
+    }
+}

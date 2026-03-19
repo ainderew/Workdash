@@ -8,6 +8,7 @@ import type {
     ChannelOverwrite,
     ChatV2CreateAttachment,
     ChatV2DirectRoom,
+    CreateMessageResponse,
     ChatV2Friend,
     ChatV2FriendshipStatus,
     ChatV2FrequentEmoji,
@@ -633,7 +634,7 @@ export class ChatV2Service {
             replyToMessageId?: string;
             mentionedUserIds?: number[];
         },
-    ): Promise<ChatV2Message | null> {
+    ): Promise<CreateMessageResponse> {
         const clientMessageId =
             typeof crypto.randomUUID === "function"
                 ? crypto.randomUUID()
@@ -672,10 +673,14 @@ export class ChatV2Service {
             message?: ChatV2Message;
             deduplicated?: boolean;
             ephemeral?: boolean;
+            everyoneMentionSuppressed?: boolean;
         }>("chat:v2:message:create", payload);
 
-        if (response.ephemeral) return null;
-        return response.message ?? null;
+        if (response.ephemeral) return { message: null };
+        return {
+            message: response.message ?? null,
+            everyoneMentionSuppressed: response.everyoneMentionSuppressed,
+        };
     }
 
     async deleteMessage(

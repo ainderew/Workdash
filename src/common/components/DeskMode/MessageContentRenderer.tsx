@@ -11,7 +11,7 @@ interface MessageContentRendererProps {
   messageId: string;
   mentionedUserIds: number[];
   memberNameMap: MentionMemberNameMap;
-  onClickMention?: (event: React.MouseEvent, userId: number, displayName: string) => void;
+  onClickMention?: (event: React.MouseEvent | React.KeyboardEvent, userId: number, displayName: string) => void;
   skipLinkPreviews?: boolean;
 }
 
@@ -31,7 +31,7 @@ function TextSegmentRenderer({
   messageId: string;
   mentionedUserIds: number[];
   memberNameMap: MentionMemberNameMap;
-  onClickMention?: (event: React.MouseEvent, userId: number, displayName: string) => void;
+  onClickMention?: (event: React.MouseEvent | React.KeyboardEvent, userId: number, displayName: string) => void;
   skipLinkPreviews?: boolean;
 }) {
   const parsedParts = parseMessageContent(text);

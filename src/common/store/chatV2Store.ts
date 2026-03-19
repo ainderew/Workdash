@@ -27,6 +27,8 @@ import {
 import { getDisplayName } from "@/common/utils/displayName";
 import useUserStore from "@/common/store/useStore";
 import { getIsDocumentFocused } from "@/common/hooks/useDocumentFocus";
+import { toast } from "sonner";
+import { setEveryoneCooldown } from "@/communication/chatV2/everyoneCooldown";
 
 type MessageDeletePayload = {
     roomId: string;
@@ -110,6 +112,8 @@ type ChatV2State = {
     roomsById: Record<string, ChatV2Room>;
     roomOrder: string[];
     unreadByRoomId: Record<string, number>;
+    hasPendingMention: boolean;
+    consumePendingMention: () => boolean;
     directRoomsById: Record<string, ChatV2DirectRoom>;
     directRoomOrder: string[];
     frequentEmojis: ChatV2FrequentEmoji[];
@@ -500,6 +504,12 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
     roomsById: {},
     roomOrder: [],
     unreadByRoomId: {},
+    hasPendingMention: false,
+    consumePendingMention: () => {
+        const current = get().hasPendingMention;
+        if (current) set({ hasPendingMention: false });
+        return current;
+    },
     directRoomsById: {},
     directRoomOrder: [],
     frequentEmojis: [],
@@ -533,7 +543,9 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
                     categoriesById: toCategoriesById(categories),
                     categoryOrder: toCategoryOrder(categories),
                 });
-            }).catch(() => {});
+            }).catch(() => {
+                set({ error: 'Failed to load categories' });
+            });
         }
     },
 
@@ -569,15 +581,24 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
                                 )
                                 : upsertResult.messages;
 
+                        const localUserId =
+                            useUserStore.getState().backendUser?.id;
+                        const isOwnMessage =
+                            typeof localUserId === "number"
+                            && localUserId === message.senderUserId;
+                        const isMentioned = typeof localUserId === "number"
+                            && !isOwnMessage
+                            && (
+                                message.mentionedEveryone === true
+                                || (Array.isArray(message.mentionedUserIds)
+                                    && message.mentionedUserIds.includes(localUserId))
+                            );
+
                         return {
+                            ...(isMentioned ? { hasPendingMention: true } : {}),
                             unreadByRoomId: {
                                 ...state.unreadByRoomId,
                                 [message.roomId]: (() => {
-                                    const localUserId =
-                                        useUserStore.getState().backendUser?.id;
-                                    const isOwnMessage =
-                                        typeof localUserId === "number"
-                                        && localUserId === message.senderUserId;
                                     if (isOwnMessage || (state.currentRoomId === message.roomId && getIsDocumentFocused())) {
                                         return state.unreadByRoomId[message.roomId] ?? 0;
                                     }
@@ -1085,7 +1106,7 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
 
         try {
             const chatV2Service = getChatV2Service();
-            const message = await chatV2Service.createMessage(
+            const { message, everyoneMentionSuppressed } = await chatV2Service.createMessage(
                 roomId,
                 trimmed,
                 attachments,
@@ -1125,6 +1146,17 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
                 };
             });
             await get().markRoomRead(roomId, message.id);
+
+            if (everyoneMentionSuppressed) {
+                toast("@everyone was not sent", {
+                    description: "You can mention everyone again in 30 seconds.",
+                });
+                setEveryoneCooldown(roomId);
+            } else if (/<@everyone>/.test(trimmed)) {
+                // Successful @everyone — start cooldown for next attempt
+                setEveryoneCooldown(roomId);
+            }
+
             return message;
         } catch (error) {
             set({
@@ -1975,6 +2007,7 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
             roomsById: {},
             roomOrder: [],
             unreadByRoomId: {},
+            hasPendingMention: false,
             directRoomsById: {},
             directRoomOrder: [],
             frequentEmojis: [],

@@ -10,7 +10,7 @@ interface MentionHighlightedContentProps {
   content: string;
   mentionedUserIds: number[];
   memberNameMap: MentionMemberNameMap;
-  onClickMention?: (event: React.MouseEvent, userId: number, displayName: string) => void;
+  onClickMention?: (event: React.MouseEvent | React.KeyboardEvent, userId: number, displayName: string) => void;
 }
 
 /** Renders a plain text string with **bold** markdown parsed into <strong> elements. */
@@ -70,6 +70,17 @@ function MentionHighlightedContent({
   return (
     <>
       {segments.map((segment, index) => {
+        if (segment.type === 'everyone_mention') {
+          return (
+            <span
+              key={`everyone-${index}`}
+              className="bg-[var(--wd-accent-soft)] text-[var(--wd-accent)] font-medium rounded px-0.5"
+            >
+              @everyone
+            </span>
+          );
+        }
+
         if (segment.type === 'mention') {
           return (
             <span
@@ -78,6 +89,12 @@ function MentionHighlightedContent({
               role={onClickMention ? 'button' : undefined}
               tabIndex={onClickMention ? 0 : undefined}
               onClick={onClickMention ? (e) => onClickMention(e, segment.userId, segment.displayName) : undefined}
+              onKeyDown={onClickMention ? (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onClickMention(e, segment.userId, segment.displayName);
+                }
+              } : undefined}
             >
               @{segment.displayName}
             </span>

@@ -58,27 +58,24 @@ export function useChatNotificationSound() {
     singleton.mentionAudio.volume = 0.3;
     singleton.mentionAudio.preload = 'auto';
 
-    const primeAudioElement = (el: HTMLAudioElement) => {
+    const primeAudioElement = async (el: HTMLAudioElement) => {
       el.volume = 0;
-      return el
-        .play()
-        .then(() => {
-          el.pause();
-          el.currentTime = 0;
-          el.volume = 0.3;
-        })
-        .catch(() => {
-          el.volume = 0.3;
-        });
+      try {
+        await el.play();
+        el.pause();
+        el.currentTime = 0;
+        el.volume = 0.3;
+      } catch {
+        el.volume = 0.3;
+      }
     };
 
-    const enableAudio = () => {
+    const enableAudio = async () => {
       if (!singleton.enabled && singleton.audio) {
         const promises: Promise<void>[] = [primeAudioElement(singleton.audio)];
         if (singleton.mentionAudio) promises.push(primeAudioElement(singleton.mentionAudio));
-        Promise.allSettled(promises).then(() => {
-          singleton.enabled = true;
-        });
+        await Promise.allSettled(promises);
+        singleton.enabled = true;
       }
       requestNotificationPermission();
     };
@@ -150,17 +147,17 @@ export function useChatNotificationSound() {
 
     prevUnreadRef.current = { ...unreadByRoomId };
 
-    // Consume mention flag unconditionally so it never bleeds into the next unrelated message
-    // Always consume to prevent bleed
-    const isMention = useChatV2Store.getState().consumePendingMention();
-
-    if (!shouldPlay || SILENT_STATUSES.has(myStatusId)) return;
+    if (!shouldPlay || SILENT_STATUSES.has(myStatusId)) {
+      // Don't consume mention flag when we can't play — preserve it for the next eligible event
+      return;
+    }
 
     const now = Date.now();
     const isThrottled = now - lastPlayedRef.current < SOUND_COOLDOWN_MS;
 
     // Sound (with throttle + multi-tab guard)
     if (!isThrottled && getIsNotifLeader()) {
+      const isMention = useChatV2Store.getState().consumePendingMention();
       const singleton = getSingletonState();
       if (singleton.enabled && singleton.audio) {
         const soundToPlay = isMention ? singleton.mentionAudio : singleton.audio;

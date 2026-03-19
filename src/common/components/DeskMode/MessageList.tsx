@@ -591,16 +591,17 @@ function MessageList({
             processedCharacterUserIds.current.add(message.senderUserId);
             const cc = message.sender!.characterCustomization!;
 
-            void generateCharacterFaceDataUrl(
-                toCharacterCustomization(cc),
-            ).then((url) => {
+            void (async () => {
+                const url = await generateCharacterFaceDataUrl(
+                    toCharacterCustomization(cc),
+                );
                 if (url) {
                     setResolvedSenderImagesByUserId((prev) => ({
                         ...prev,
                         [message.senderUserId]: url,
                     }));
                 }
-            });
+            })();
         }
     }, [messages, localBackendUserId]);
 
@@ -834,7 +835,7 @@ function MessageList({
     };
 
     const handleMentionClick = (
-        event: React.MouseEvent,
+        event: React.MouseEvent | React.KeyboardEvent,
         userId: number,
         displayName: string,
     ) => {
@@ -847,8 +848,10 @@ function MessageList({
         const popoverHeight = 420;
         const maxX = Math.max(8, window.innerWidth - popoverWidth - 8);
         const maxY = Math.max(8, window.innerHeight - popoverHeight - 8);
-        const desiredX = event.clientX + 12;
-        const desiredY = event.clientY - 16;
+        const isKeyboard = !('clientX' in event) || (event.clientX === 0 && event.clientY === 0);
+        const rect = (event.target as HTMLElement).getBoundingClientRect();
+        const desiredX = isKeyboard ? rect.left + rect.width / 2 : event.clientX + 12;
+        const desiredY = isKeyboard ? rect.bottom + 4 : event.clientY - 16;
         const resolvedDisplayName =
             getMemberDisplayName(memberNameMap, userId) || displayName;
 
@@ -1194,6 +1197,7 @@ function MessageList({
                                                         ? senderAvatar.src
                                                         : null
                                                 }
+                                                size="lg"
                                                 className="cursor-pointer"
                                             />
                                         </div>
@@ -1697,7 +1701,7 @@ function MessageList({
                                 {avatarFriendActionMeta.isAccepted ? (
                                     <UserCheck
                                         size={14}
-                                        className="text-emerald-400"
+                                        className="text-[var(--wd-success)]"
                                     />
                                 ) : (
                                     <UserRoundPlus

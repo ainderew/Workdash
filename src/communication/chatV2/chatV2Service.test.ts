@@ -275,7 +275,7 @@ describe('ChatV2Service', () => {
         },
         expect.any(Function),
       );
-      expect(result).toEqual(message);
+      expect(result).toEqual({ message, everyoneMentionSuppressed: undefined });
     });
 
     it('createMessage with a standalone gif URL sets messageType to "IMAGE"', async () => {

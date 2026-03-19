@@ -1,5 +1,7 @@
 import React, { useEffect, useRef } from 'react';
+import { Users } from 'lucide-react';
 import UserAvatar from './UserAvatar';
+import { EVERYONE_SENTINEL_ID } from './Composer/useAutocomplete';
 
 export type MentionSuggestion = {
   userId: number;
@@ -7,6 +9,7 @@ export type MentionSuggestion = {
   fullName?: string | null;
   nickname?: string | null;
   image?: string | null;
+  cooldownSeconds?: number;
 };
 
 interface MentionSuggestionFlyoutProps {
@@ -58,41 +61,66 @@ function MentionSuggestionFlyout({
       </div>
       {suggestions.map((suggestion, index) => {
         const isSelected = index === selectedIndex;
+        const isEveryone = suggestion.userId === EVERYONE_SENTINEL_ID;
+        const isOnCooldown = isEveryone && !!suggestion.cooldownSeconds && suggestion.cooldownSeconds > 0;
         const hasSecondaryName =
+          !isEveryone &&
           !!suggestion.nickname &&
           !!suggestion.fullName &&
           suggestion.nickname !== suggestion.fullName;
 
         return (
           <button
-            key={suggestion.userId}
+            key={isEveryone ? 'everyone' : suggestion.userId}
             ref={isSelected ? selectedRef : undefined}
             type="button"
             role="option"
             aria-selected={isSelected}
+            aria-disabled={isOnCooldown || undefined}
             onMouseDown={(event) => {
               event.preventDefault();
+              if (isOnCooldown) return;
               onSelect(suggestion);
             }}
             className={`w-full flex items-center gap-2.5 px-2.5 py-1.5 text-left text-sm transition-colors ${
-              isSelected
-                ? 'wd-bg-accent-soft wd-text-accent'
-                : 'wd-text-primary hover:bg-[var(--wd-surface-elevated)]'
+              isOnCooldown
+                ? 'opacity-50 cursor-not-allowed pointer-events-auto'
+                : isSelected
+                  ? 'wd-bg-accent-soft wd-text-accent'
+                  : 'wd-text-primary hover:bg-[var(--wd-surface-elevated)]'
             }`}
           >
-            <UserAvatar
-              name={suggestion.name || 'U'}
-              image={suggestion.image}
-              size="xs"
-            />
-            <div className="min-w-0">
+            {isEveryone ? (
+              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--wd-accent-soft)]">
+                <Users size={14} className="text-[var(--wd-accent)]" />
+              </div>
+            ) : (
+              <UserAvatar
+                name={suggestion.name || 'U'}
+                image={suggestion.image}
+                size="xs"
+              />
+            )}
+            <div className="min-w-0 flex-1">
               <p className="truncate">{suggestion.name}</p>
+              {isEveryone && (
+                <p className="truncate text-[11px] wd-text-muted">
+                  {isOnCooldown
+                    ? `Available in ${suggestion.cooldownSeconds}s`
+                    : suggestion.fullName}
+                </p>
+              )}
               {hasSecondaryName && (
                 <p className="truncate text-[11px] wd-text-muted">
                   {suggestion.fullName}
                 </p>
               )}
             </div>
+            {isOnCooldown && (
+              <span className="shrink-0 rounded-full border border-[var(--wd-border-subtle)] px-1.5 py-0.5 text-[10px] text-[var(--wd-text-muted)]">
+                {suggestion.cooldownSeconds}s
+              </span>
+            )}
           </button>
         );
       })}

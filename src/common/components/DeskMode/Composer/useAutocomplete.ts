@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { MentionSuggestion } from "../MentionSuggestionFlyout";
 import type { CustomEmoji } from "@/common/store/customEmojiStore";
 import type { BotCommandEntry } from "../BotCommandAutocomplete";
@@ -10,8 +10,13 @@ import {
 } from "@/communication/chatV2/mentionUtils";
 import { getDisplayName, getNameAliases } from "@/common/utils/displayName";
 import type { ChatV2RoomMember } from "@/communication/chatV2/_types";
+import {
+    getEveryoneCooldownRemaining,
+    subscribeEveryoneCooldown,
+} from "@/communication/chatV2/everyoneCooldown";
 
 const MAX_MENTION_SUGGESTIONS = 25;
+export const EVERYONE_SENTINEL_ID = -1;
 
 interface UseAutocompleteArgs {
     members?: ChatV2RoomMember[];
@@ -20,6 +25,7 @@ interface UseAutocompleteArgs {
     textareaRef: React.RefObject<HTMLTextAreaElement | null>;
     selectedWorkspaceId: string | null;
     localBackendUserId?: number;
+    roomId?: string | null;
 }
 
 export function useAutocomplete({
@@ -29,7 +35,26 @@ export function useAutocomplete({
     textareaRef,
     selectedWorkspaceId,
     localBackendUserId,
+    roomId,
 }: UseAutocompleteArgs) {
+    const [everyoneCooldownSeconds, setEveryoneCooldownSeconds] = useState(
+        () => (roomId ? getEveryoneCooldownRemaining(roomId) : 0),
+    );
+
+    useEffect(() => {
+        if (!roomId) return;
+        const tick = () => {
+            setEveryoneCooldownSeconds(getEveryoneCooldownRemaining(roomId));
+        };
+        tick();
+        const unsubscribe = subscribeEveryoneCooldown(tick);
+        const interval = setInterval(tick, 1000);
+        return () => {
+            unsubscribe();
+            clearInterval(interval);
+        };
+    }, [roomId]);
+
     const [mentionQuery, setMentionQuery] = useState<{
         query: string;
         atIndex: number;
@@ -47,8 +72,20 @@ export function useAutocomplete({
         if (!mentionQuery || !members) return [];
 
         const queryLower = mentionQuery.query.toLowerCase();
+        const results: MentionSuggestion[] = [];
 
-        return members
+        if ("everyone".startsWith(queryLower)) {
+            results.push({
+                userId: EVERYONE_SENTINEL_ID,
+                name: "everyone",
+                fullName: "Notify all members in this channel",
+                nickname: null,
+                image: null,
+                cooldownSeconds: everyoneCooldownSeconds > 0 ? everyoneCooldownSeconds : undefined,
+            });
+        }
+
+        const memberResults = members
             .filter((member) => {
                 if (member.status !== "ACTIVE") return false;
                 if (
@@ -66,7 +103,6 @@ export function useAutocomplete({
                     alias.toLowerCase().includes(queryLower),
                 );
             })
-            .slice(0, MAX_MENTION_SUGGESTIONS)
             .map((member) => ({
                 userId: member.userId,
                 name: getDisplayName(member.user, `User ${member.userId}`),
@@ -74,7 +110,9 @@ export function useAutocomplete({
                 nickname: member.user.nickname ?? null,
                 image: member.user.image ?? null,
             }));
-    }, [members, mentionQuery, localBackendUserId]);
+
+        return [...results, ...memberResults].slice(0, MAX_MENTION_SUGGESTIONS);
+    }, [members, mentionQuery, localBackendUserId, everyoneCooldownSeconds]);
 
     const emojiSuggestions = useCustomEmojiSearch(
         selectedWorkspaceId,
@@ -155,6 +193,7 @@ export function useAutocomplete({
     const handleMentionSelect = useCallback(
         (suggestion: MentionSuggestion) => {
             if (!mentionQuery) return;
+            if (suggestion.cooldownSeconds && suggestion.cooldownSeconds > 0) return;
 
             const textarea = textareaRef.current;
             const cursorPos = textarea?.selectionStart ?? value.length;
@@ -339,6 +378,8 @@ export function useAutocomplete({
     );
 
     return {
+        // Cooldown
+        everyoneCooldownSeconds,
         // Flyout state
         mentionQuery,
         emojiQuery,

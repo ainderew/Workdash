@@ -1,4 +1,5 @@
 import React from "react";
+import Image from "next/image";
 import type { ChatV2CharacterCustomization } from "@/communication/chatV2/_types";
 import { useCharacterFaceAvatar } from "@/common/utils/characterFaceAvatar";
 
@@ -16,7 +17,7 @@ const sizeClasses = {
     xs: "h-7 w-7 text-[11px]",
     sm: "h-8 w-8 text-xs",
     md: "h-9 w-9 text-[10px]",
-    lg: "h-10 w-10 text-[0.85rem]",
+    lg: "h-11 w-11 text-[0.85rem]",
     xl: "h-16 w-16 text-xl",
 } as const;
 
@@ -34,13 +35,15 @@ function UserAvatar({
 
     return (
         <div
-            className={`shrink-0 rounded-full wd-bg-elevated wd-text-secondary flex items-center justify-center font-semibold overflow-hidden border wd-border-subtle ${sizeClasses[size]} ${className ?? ""}`}
+            className={`relative shrink-0 rounded-full wd-bg-elevated wd-text-secondary flex items-center justify-center font-semibold overflow-hidden border wd-border-subtle ${sizeClasses[size]} ${className ?? ""}`}
         >
             {imageUrl ? (
-                <img
+                <Image
                     src={imageUrl}
                     alt={name}
-                    className="w-full h-full object-cover"
+                    fill
+                    unoptimized
+                    className="object-cover"
                     onError={onImageError}
                 />
             ) : spriteStyle ? (
@@ -49,11 +52,12 @@ function UserAvatar({
                     style={spriteStyle}
                 />
             ) : faceDataUrl ? (
-                <img
+                <Image
                     src={faceDataUrl}
                     alt={name}
-                    className="w-full h-full object-cover"
-                    style={{ imageRendering: "pixelated" }}
+                    fill
+                    unoptimized
+                    className="object-cover [image-rendering:pixelated]"
                 />
             ) : (
                 <span>{name.charAt(0).toUpperCase()}</span>
