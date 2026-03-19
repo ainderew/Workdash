@@ -4,6 +4,7 @@ export const THEME_IDS = [
     "eco",
     "a11y",
     "discord",
+    "discord-classic",
 ] as const;
 
 export type ThemeId = (typeof THEME_IDS)[number];

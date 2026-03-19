@@ -56,6 +56,16 @@ const THEME_REGISTRY: Record<ThemeId, ThemeDefinition> = {
             accent: "88 101 242",
         },
     },
+    "discord-classic": {
+        id: "discord-classic",
+        label: "Discord Classic",
+        description: "Classic Discord warm dark theme",
+        swatch: {
+            base: "54 57 63",
+            surface: "47 49 54",
+            accent: "88 101 242",
+        },
+    },
 };
 
 export const THEME_OPTIONS: ThemeDefinition[] = THEME_IDS.map((id) => {

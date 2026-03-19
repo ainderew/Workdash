@@ -9,7 +9,7 @@ export default function Document() {
                     dangerouslySetInnerHTML={{
                         __html: `
                             try {
-                                const allowedThemes = ['classic', 'cyber', 'eco', 'a11y', 'discord'];
+                                const allowedThemes = ['classic', 'cyber', 'eco', 'a11y', 'discord', 'discord-classic'];
                                 const storedTheme = localStorage.getItem('workdash:theme');
                                 if (storedTheme && allowedThemes.includes(storedTheme)) {
                                     document.documentElement.setAttribute('data-theme', storedTheme);
