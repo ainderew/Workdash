@@ -1,8 +1,7 @@
 import React, { useMemo, useState } from "react";
 import useUserStore from "@/common/store/useStore";
 import { UserStore } from "@/common/store/_types";
-import { AudioChat } from "@/communication/audioChat/audioChat";
-import { AvailabilityStatus } from "@/game/player/_enums";
+import { useFocusToggle } from "@/common/hooks/useFocusToggle";
 import { useSession } from "next-auth/react";
 import {
     Tooltip,
@@ -17,9 +16,7 @@ function CharacterButton() {
     const { data: session } = useSession();
     const user = useUserStore((state: UserStore) => state.user);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-    const [focusState, setFocusState] = useState<AvailabilityStatus>(
-        AvailabilityStatus.ONLINE,
-    );
+    const { isInFocusMode, toggleFocusMode } = useFocusToggle();
     const displayName = useMemo(
         () =>
             getDisplayName(
@@ -35,20 +32,6 @@ function CharacterButton() {
 
     const spriteSheetDataUrl = user?.spriteSheetDataUrl;
     const googleImage = user?.image || session?.user?.image;
-
-    const audioChatService = AudioChat.getInstance();
-
-    function toggleFocusMode() {
-        if (focusState === AvailabilityStatus.ONLINE) {
-            audioChatService.enableFocusMode();
-            audioChatService.emitFocusModeChange();
-            setFocusState(AvailabilityStatus.FOCUS);
-        } else {
-            audioChatService.disableFocusMode();
-            audioChatService.emitFocusModeChange();
-            setFocusState(AvailabilityStatus.ONLINE);
-        }
-    }
 
     let backgroundStyles: React.CSSProperties = {};
     if (spriteSheetDataUrl) {
@@ -84,7 +67,7 @@ function CharacterButton() {
                                 onClick={toggleFocusMode}
                                 className={`relative outline-none shrink-0 w-10 h-10 rounded-full border-2 border-solid bg-no-repeat overflow-hidden cursor-pointer transition-all duration-300 bg-neutral-700 flex items-center justify-center
                 ${
-                    focusState === AvailabilityStatus.FOCUS
+                    isInFocusMode
                         ? "border-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]"
                         : "border-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]"
                 }`}
@@ -97,7 +80,7 @@ function CharacterButton() {
                         </TooltipTrigger>
                         <TooltipContent side="top">
                             <p>
-                                {focusState === AvailabilityStatus.FOCUS
+                                {isInFocusMode
                                     ? "Disable Focus Mode"
                                     : "Enable Focus Mode"}
                             </p>
@@ -107,7 +90,7 @@ function CharacterButton() {
                     {/* Status Indicator Dot */}
                     <div
                         className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border border-neutral-800 z-10 ${
-                            focusState === AvailabilityStatus.FOCUS
+                            isInFocusMode
                                 ? "bg-amber-500"
                                 : "bg-green-500"
                         }`}
@@ -128,12 +111,12 @@ function CharacterButton() {
 
                     <span
                         className={`text-[10px] uppercase tracking-wider font-bold ${
-                            focusState === AvailabilityStatus.FOCUS
+                            isInFocusMode
                                 ? "text-amber-500"
                                 : "text-green-500"
                         }`}
                     >
-                        {focusState === AvailabilityStatus.FOCUS
+                        {isInFocusMode
                             ? "BUSY"
                             : "ONLINE"}
                     </span>

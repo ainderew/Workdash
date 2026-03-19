@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useMemo, useState, useCallback } from 'react';
-import { Mic, MicOff, Video, Monitor, Pin, PinOff } from 'lucide-react';
+import { Mic, MicOff, Video, Monitor, Pin, PinOff, HeadphoneOff } from 'lucide-react';
+import useFocusStore from '@/common/store/focusStore';
 import type { CallParticipant } from '@/common/store/callStore';
 import useCallStore from '@/common/store/callStore';
 import useChatV2Store from '@/common/store/chatV2Store';
@@ -39,6 +40,10 @@ export default function CallParticipantTile({
       setVolumeMenu({ x: e.clientX, y: e.clientY });
     },
     [isLocal],
+  );
+
+  const isRemoteFocused = useFocusStore(
+    (s) => !isLocal && (s.remoteFocusByUserId[participant.userId] ?? false),
   );
 
   // For local user, use uiStore.isMuted (updates instantly on toggle).
@@ -181,6 +186,23 @@ export default function CallParticipantTile({
             <Pin size={12} className="text-white" />
           )}
         </button>
+      )}
+
+      {/* Focus mode overlay + badge */}
+      {isRemoteFocused && (
+        <>
+          <div className="absolute inset-0 z-[5] pointer-events-none rounded-lg bg-black/45 wd-focus-overlay" />
+          <span
+            className="absolute top-1 left-1 z-10 inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
+            style={{
+              backgroundColor: 'var(--wd-warning)',
+              color: 'var(--wd-surface-base)',
+            }}
+          >
+            <HeadphoneOff size={10} />
+            Focused
+          </span>
+        </>
       )}
 
       {/* Background layer: profile pic → sprite → initials */}

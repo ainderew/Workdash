@@ -3,6 +3,7 @@ import { Settings } from 'lucide-react';
 import useUserStore from '@/common/store/useStore';
 import { getDisplayName } from '@/common/utils/displayName';
 import DeskModeControls from '../DeskModeControls';
+import FocusToggleButton from '../FocusToggleButton';
 import UserAvatar from '../UserAvatar';
 import PresenceDot from '../PresenceDot';
 import StatusLabel from '../StatusLabel';
@@ -116,6 +117,7 @@ function SidebarFooter({ onOpenSettings }: SidebarFooterProps) {
           </button>
 
           <div className="relative flex items-center gap-1.5 shrink-0">
+            <FocusToggleButton />
             <DeskModeControls compact showMicrophoneSelector={false} />
 
             <button

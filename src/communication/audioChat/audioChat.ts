@@ -6,6 +6,8 @@ import useAudioStore from "@/common/store/audioStore";
 import type { AudioQualityMode } from "@/common/store/audioStore";
 import { logger } from "@/common/utils/logger";
 import useCallStore from "@/common/store/callStore";
+import useFocusStore from "@/common/store/focusStore";
+import useUserStore from "@/common/store/useStore";
 import { RNNoiseService } from "./rnnoiseService";
 
 interface ConsumerServerResponse {
@@ -41,6 +43,7 @@ export class AudioChat {
     private audioDestination?: MediaStreamAudioDestinationNode;
     private consumers: Map<string, Consumer> = new Map();
     private isInFocusMode: boolean = false;
+    private _focusModeListenerAttached: boolean = false;
     private currentStream: MediaStream | null = null;
     private currentDeviceId: string | null = null;
     private currentZone: string | null = null;
@@ -914,25 +917,46 @@ export class AudioChat {
         this.sfuService.socket.emit("focusModeChange", {
             playerId: localPlayerId,
             isInFocusMode: this.isInFocusMode,
+            userId: useUserStore.getState().backendUser?.id ?? null,
         });
     }
 
+    public getIsInFocusMode(): boolean {
+        return this.isInFocusMode;
+    }
+
     public watchFocusModeChanges() {
+        if (this._focusModeListenerAttached) return;
+        this._focusModeListenerAttached = true;
+
+        // Sync local focus state into the store on (re)mount
+        useFocusStore.getState().setLocalFocusMode(this.isInFocusMode);
+
         this.sfuService.socket.on(
             "playerFocusModeChanged",
             (data: {
                 playerId: string;
                 isInFocusMode: boolean;
                 socketId: string;
+                userId?: number | null;
             }) => {
+                // Update Phaser player if it exists (no-op in desk mode)
                 const playerMap = usePlayersStore.getState().playerMap;
                 const player = playerMap[data.playerId];
-                if (!player) return;
-                player.changePlayerAvailabilityStatus(
-                    data.isInFocusMode
-                        ? AvailabilityStatus.FOCUS
-                        : AvailabilityStatus.ONLINE,
-                );
+                if (player) {
+                    player.changePlayerAvailabilityStatus(
+                        data.isInFocusMode
+                            ? AvailabilityStatus.FOCUS
+                            : AvailabilityStatus.ONLINE,
+                    );
+                }
+
+                // Always update focus store for desk mode tile indicators
+                if (data.userId != null) {
+                    useFocusStore
+                        .getState()
+                        .setRemoteFocusMode(data.userId, data.isInFocusMode);
+                }
             },
         );
     }

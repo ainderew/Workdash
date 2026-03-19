@@ -1686,3 +1686,20 @@ input[type="range"].wd-volume-slider::-moz-range-progress {
         animation: none;
     }
 }
+
+/* ── Focus mode ──────────────────────────────────────────────────── */
+
+.wd-focus-dot-transition {
+    transition: background-color 200ms ease;
+}
+
+.wd-focus-overlay {
+    transition: opacity 200ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .wd-focus-dot-transition,
+    .wd-focus-overlay {
+        transition: none;
+    }
+}
