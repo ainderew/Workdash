@@ -421,6 +421,31 @@ export class AudioChat {
                 ) {
                     return;
                 }
+
+                // Guard: don't consume call audio if we're not in that call
+                if (data.source === "microphone" && data.userId != null) {
+                    const { currentCall, activeCallsByChannel } =
+                        useCallStore.getState();
+                    const producerIsInCall = Object.values(
+                        activeCallsByChannel,
+                    ).some((call) =>
+                        call.participants.some(
+                            (p) => p.userId === data.userId,
+                        ),
+                    );
+                    if (producerIsInCall) {
+                        if (!currentCall) return;
+                        const ourCall =
+                            activeCallsByChannel[currentCall.channelId];
+                        if (
+                            !ourCall?.participants.some(
+                                (p) => p.userId === data.userId,
+                            )
+                        )
+                            return;
+                    }
+                }
+
                 if (data.userName) {
                     this.audioOwnerMap[data.producerId] = data.userName;
                 }
