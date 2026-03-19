@@ -39,6 +39,7 @@ export function useChatNotificationSound() {
   const currentRoomId = useChatV2Store((state) => state.currentRoomId);
   const selectedWorkspaceId = useChatV2Store((state) => state.selectedWorkspaceId);
   const roomsById = useChatV2Store((state) => state.roomsById);
+  const hasPendingMention = useChatV2Store((state) => state.hasPendingMention);
   const myStatusId = usePresenceStore((state) => state.myStatus.statusId);
   const isDocumentFocused = useDocumentFocus();
 
@@ -147,6 +148,13 @@ export function useChatNotificationSound() {
 
     prevUnreadRef.current = { ...unreadByRoomId };
 
+    // Mentions in the focused room bypass the unread-count gate
+    let isMentionTriggered = false;
+    if (!shouldPlay && hasPendingMention) {
+      shouldPlay = true;
+      isMentionTriggered = true;
+    }
+
     if (!shouldPlay || SILENT_STATUSES.has(myStatusId)) {
       // Don't consume mention flag when we can't play — preserve it for the next eligible event
       return;
@@ -157,7 +165,7 @@ export function useChatNotificationSound() {
 
     // Sound (with throttle + multi-tab guard)
     if (!isThrottled && getIsNotifLeader()) {
-      const isMention = useChatV2Store.getState().consumePendingMention();
+      const isMention = isMentionTriggered || useChatV2Store.getState().consumePendingMention();
       const singleton = getSingletonState();
       if (singleton.enabled && singleton.audio) {
         const soundToPlay = isMention ? singleton.mentionAudio : singleton.audio;
@@ -167,6 +175,9 @@ export function useChatNotificationSound() {
         }
         lastPlayedRef.current = now;
       }
+    } else if (isMentionTriggered) {
+      // Throttled or not leader — consume the flag so it doesn't trigger a stale replay
+      useChatV2Store.getState().consumePendingMention();
     }
 
     // Browser notification (only when unfocused + leader)
@@ -186,7 +197,7 @@ export function useChatNotificationSound() {
         // Notification API not available or blocked
       }
     }
-  }, [unreadByRoomId, currentRoomId, myStatusId, selectedWorkspaceId, roomsById, isDocumentFocused]);
+  }, [unreadByRoomId, currentRoomId, myStatusId, selectedWorkspaceId, roomsById, isDocumentFocused, hasPendingMention]);
 
   // Tab title unread badge
   useEffect(() => {
