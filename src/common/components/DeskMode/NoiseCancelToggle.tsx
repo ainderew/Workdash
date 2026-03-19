@@ -54,14 +54,9 @@ export default function NoiseCancelToggle({ size = 'md' }: NoiseCancelToggleProp
             isToggling
               ? 'opacity-60 cursor-wait'
               : noiseCancellation
-                ? 'wd-border-subtle wd-text-secondary hover:wd-text-primary'
-                : 'border-[var(--wd-warning)] text-[var(--wd-warning)]'
+                ? 'border-[var(--wd-success)] text-[var(--wd-success)]'
+                : 'wd-border-subtle wd-text-secondary hover:wd-text-primary'
           }`}
-          style={
-            !noiseCancellation && !isToggling
-              ? { backgroundColor: 'color-mix(in srgb, var(--wd-warning) 12%, transparent)' }
-              : undefined
-          }
         >
           <AudioLines size={icon} />
         </button>
