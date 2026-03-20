@@ -1,5 +1,5 @@
 import React from "react";
-import type { ChatV2RoomMember } from "@/communication/chatV2/_types";
+import type { ChatV2RoomMember, WorkspaceMember } from "@/communication/chatV2/_types";
 import AddMemberModal from "./modals/AddMemberModal";
 import { getDisplayName } from "@/common/utils/displayName";
 import { Search, UserRoundX } from "lucide-react";
@@ -33,6 +33,7 @@ interface MemberPanelProps {
     members: ChatV2RoomMember[];
     memberRoleColors?: Map<number, string>;
     isLoading: boolean;
+    workspaceMembers: WorkspaceMember[];
     onAddMember: (userId: number) => void;
     onRemoveMember: (userId: number) => void;
 }
@@ -41,12 +42,21 @@ function MemberPanel({
     members,
     memberRoleColors,
     isLoading,
+    workspaceMembers,
     onAddMember,
     onRemoveMember,
 }: MemberPanelProps) {
+    const selectedWorkspaceId = useChatV2Store(
+        (s) => s.selectedWorkspaceId,
+    );
     const [isAddMemberModalOpen, setIsAddMemberModalOpen] =
         React.useState(false);
     const [searchQuery, setSearchQuery] = React.useState("");
+
+    const existingMemberIds = React.useMemo(
+        () => new Set(members.map((m) => m.userId)),
+        [members],
+    );
 
     const filteredMembers = React.useMemo(() => {
         if (!searchQuery.trim()) return members;
@@ -149,7 +159,9 @@ function MemberPanel({
 
             <AddMemberModal
                 isOpen={isAddMemberModalOpen}
-                isSubmitting={isLoading}
+                workspaceId={selectedWorkspaceId}
+                workspaceMembers={workspaceMembers}
+                existingMemberIds={existingMemberIds}
                 onClose={() => setIsAddMemberModalOpen(false)}
                 onSubmit={(userId) => {
                     onAddMember(userId);

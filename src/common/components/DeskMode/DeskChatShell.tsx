@@ -17,6 +17,7 @@ import type {
     ChatV2Room,
     ChatV2RoomCategory,
     ChatV2SearchUser,
+    WorkspaceMember,
 } from "@/communication/chatV2/_types";
 import ChannelSidebar from "./ChannelSidebar";
 import Composer from "./Composer";
@@ -433,10 +434,12 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
     } = useWorkspacePermissions(selectedWorkspaceId);
 
     const [memberRoleColors, setMemberRoleColors] = useState<Map<number, string>>(new Map());
+    const [wsMembers, setWsMembers] = useState<WorkspaceMember[]>([]);
 
     useEffect(() => {
         if (!selectedWorkspaceId) {
             setMemberRoleColors(new Map());
+            setWsMembers([]);
             return;
         }
         let cancelled = false;
@@ -448,6 +451,7 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
                 if (cancelled) return;
                 const ownerUserId = selectedWorkspace?.ownerId ?? 0;
                 setMemberRoleColors(buildMemberColorMap(members, ownerUserId));
+                setWsMembers(members);
             } catch {
                 // Non-critical — names just won't be colored
             }
@@ -1107,6 +1111,7 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
                                 members={roomMembers}
                                 memberRoleColors={memberRoleColors}
                                 isLoading={isManagingMembers}
+                                workspaceMembers={wsMembers}
                                 onAddMember={(userId) => {
                                     void addRoomMember(userId);
                                 }}
