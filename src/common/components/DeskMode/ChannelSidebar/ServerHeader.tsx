@@ -5,11 +5,17 @@ import {
   ChevronDown,
   FolderPlus,
   LogOut,
+  PanelLeftClose,
   Plus,
   Settings,
   UserPlus,
   Users,
 } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from '@/components/ui/tooltip';
 
 interface ServerHeaderProps {
   normalizedServerName: string;
@@ -24,6 +30,7 @@ interface ServerHeaderProps {
   onOpenMembers?: () => void;
   onInvitePeople?: () => void;
   onOpenServerSettings: () => void;
+  onCollapseSidebar?: () => void;
 }
 
 function ServerHeader({
@@ -39,6 +46,7 @@ function ServerHeader({
   onOpenMembers,
   onInvitePeople,
   onOpenServerSettings,
+  onCollapseSidebar,
 }: ServerHeaderProps) {
   return (
     <div className="px-4 h-14 border-b wd-border-subtle flex items-center justify-between gap-2 relative">
@@ -72,15 +80,32 @@ function ServerHeader({
         />
       </button>
 
-      <button
-        type="button"
-        onClick={onCreateRoom}
-        disabled={isCreatingRoom}
-        className="inline-flex h-8 w-8 items-center justify-center rounded-md wd-text-secondary transition-colors hover:bg-[var(--wd-surface-elevated)] hover:text-[var(--wd-text-primary)] disabled:opacity-50"
-        aria-label="Create room"
-      >
-        <UserPlus size={17} />
-      </button>
+      <div className="flex items-center gap-0.5 shrink-0">
+        <button
+          type="button"
+          onClick={onCreateRoom}
+          disabled={isCreatingRoom}
+          className="inline-flex h-8 w-8 items-center justify-center rounded-md wd-text-secondary transition-colors hover:bg-[var(--wd-surface-elevated)] hover:text-[var(--wd-text-primary)] disabled:opacity-50"
+          aria-label="Create room"
+        >
+          <UserPlus size={17} />
+        </button>
+        {onCollapseSidebar && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={onCollapseSidebar}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-md wd-text-secondary transition-colors hover:bg-[var(--wd-surface-elevated)] hover:text-[var(--wd-text-primary)]"
+                aria-label="Collapse sidebar"
+              >
+                <PanelLeftClose size={16} />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">Collapse sidebar</TooltipContent>
+          </Tooltip>
+        )}
+      </div>
 
       {isServerActionsMenuOpen && (
         <div

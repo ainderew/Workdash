@@ -5,6 +5,7 @@ import React, {
     useState,
 } from "react";
 import {
+    PanelLeftClose,
     Plus,
     Search,
     Settings,
@@ -40,6 +41,7 @@ interface DirectMessageSidebarProps {
     onClosePanel?: () => void;
     onSelectRoom: (roomId: string) => void;
     onOpenDirectMessage: (userId: number) => void;
+    onCollapseSidebar?: () => void;
 }
 
 function DirectMessageSidebar({
@@ -52,6 +54,7 @@ function DirectMessageSidebar({
     onClosePanel,
     onSelectRoom,
     onOpenDirectMessage,
+    onCollapseSidebar,
 }: DirectMessageSidebarProps) {
     const setInteractionMode = useUiStore((state) => state.setInteractionMode);
     const user = useUserStore((state) => state.user);
@@ -136,11 +139,28 @@ function DirectMessageSidebar({
 
     return (
         <>
-            <aside className="w-80 wd-bg-panel border-r wd-border-subtle flex flex-col min-h-0">
-                <div className="px-4 h-14 border-b wd-border-subtle flex items-center">
+            <aside className="w-80 h-full wd-bg-panel border-r wd-border-subtle flex flex-col min-h-0">
+                <div className="px-4 h-14 border-b wd-border-subtle flex items-center justify-between gap-2">
                     <p className="text-base font-semibold wd-text-primary">
                         Direct Messages
                     </p>
+                    {onCollapseSidebar && (
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <button
+                                    type="button"
+                                    onClick={onCollapseSidebar}
+                                    className="inline-flex h-8 w-8 items-center justify-center rounded-md wd-text-secondary transition-colors hover:bg-[var(--wd-surface-elevated)] hover:wd-text-primary"
+                                    aria-label="Collapse sidebar"
+                                >
+                                    <PanelLeftClose size={16} />
+                                </button>
+                            </TooltipTrigger>
+                            <TooltipContent side="bottom">
+                                Collapse sidebar
+                            </TooltipContent>
+                        </Tooltip>
+                    )}
                 </div>
 
                 <div className="px-3 py-2 border-b wd-border-subtle">

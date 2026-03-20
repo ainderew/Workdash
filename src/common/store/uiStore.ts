@@ -106,6 +106,10 @@ interface UiState {
 
     openAchievementsModal: () => void;
     closeAchievementsModal: () => void;
+
+    isSidebarCollapsed: boolean;
+    toggleSidebar: () => void;
+    setSidebarCollapsed: (collapsed: boolean) => void;
 }
 
 const useUiStore = create<UiState>((set) => ({
@@ -222,6 +226,19 @@ const useUiStore = create<UiState>((set) => ({
     openAchievementsModal: () => set({ isAchievementsModalOpen: true }),
     closeAchievementsModal: () => set({ isAchievementsModalOpen: false }),
 
+    isSidebarCollapsed:
+        typeof window !== "undefined" &&
+        localStorage.getItem("wd-sidebar-collapsed") === "true",
+    toggleSidebar: () =>
+        set((state) => {
+            const next = !state.isSidebarCollapsed;
+            localStorage.setItem("wd-sidebar-collapsed", String(next));
+            return { isSidebarCollapsed: next };
+        }),
+    setSidebarCollapsed: (collapsed) => {
+        localStorage.setItem("wd-sidebar-collapsed", String(collapsed));
+        set({ isSidebarCollapsed: collapsed });
+    },
 
     setPing: (ping) => set({ ping }),
     setInteractionMode: (mode) => set({ interactionMode: mode }),

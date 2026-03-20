@@ -40,6 +40,7 @@ import ThreadPanel from "./ThreadPanel";
 import CallBanner from "./CallBanner";
 import TypingIndicator from "./TypingIndicator";
 import FloatingCallWindow from "./FloatingCallWindow";
+import CollapsedSidebarRail from "./CollapsedSidebarRail";
 import { CallSignalingService } from "@/communication/callSignaling/callSignalingService";
 import useCallStore from "@/common/store/callStore";
 import { useCustomEmojiList } from "@/common/hooks/useCustomEmojiList";
@@ -416,6 +417,8 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
     const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
     const isAchievementsModalOpen = useUiStore((s) => s.isAchievementsModalOpen);
     const closeAchievementsModal = useUiStore((s) => s.closeAchievementsModal);
+    const isSidebarCollapsed = useUiStore((s) => s.isSidebarCollapsed);
+    const toggleSidebar = useUiStore((s) => s.toggleSidebar);
     const [joinInviteCode, setJoinInviteCode] = useState<string | undefined>(
         undefined,
     );
@@ -802,85 +805,118 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
 
                 <div className="flex-1 min-w-0 pb-2">
                     <div className="h-full min-h-0 flex rounded-lg overflow-visible outline-1 outline-[color:var(--wd-border-subtle)] shadow-[0_8px_24px_rgba(0,0,0,0.22),0_0_14px_rgba(88,101,242,0.08)]">
-                        {railView === "server" ? (
-                            <ChannelSidebar
-                                serverName={serverName}
-                                serverImageUrl={serverImageUrl}
-                                serverId={selectedWorkspaceId}
-                                rooms={serverRooms}
-                                currentRoomId={currentRoomId}
-                                isLoading={isLoadingRooms}
-                                isCreatingRoom={isCreatingRoom}
-                                isCreatingCategory={isCreatingCategory}
-                                isArranging={isArrangingRooms}
-                                isUpdatingRoom={isUpdatingRoom}
-                                categories={categories}
-                                presentation={mode}
-                                onClosePanel={onClose}
-                                onSelectRoom={(roomId) => {
-                                    void selectRoom(roomId);
-                                }}
-                                onCreateRoom={(name, categoryId) => {
-                                    void createRoom({
-                                        name,
+                        <div
+                            className="shrink-0 overflow-hidden transition-[width] duration-50 ease-out h-full"
+                            style={{
+                                width: isSidebarCollapsed
+                                    ? 48
+                                    : railView === "server"
+                                      ? 300
+                                      : 320,
+                            }}
+                        >
+                            {isSidebarCollapsed ? (
+                                <CollapsedSidebarRail
+                                    mode={railView}
+                                    rooms={serverRooms}
+                                    directRooms={directRooms}
+                                    currentRoomId={currentRoomId}
+                                    unreadByRoomId={unreadByRoomId}
+                                    onSelectRoom={(roomId) => {
+                                        void selectRoom(roomId);
+                                    }}
+                                    onExpand={toggleSidebar}
+                                />
+                            ) : railView === "server" ? (
+                                <ChannelSidebar
+                                    serverName={serverName}
+                                    serverImageUrl={serverImageUrl}
+                                    serverId={selectedWorkspaceId}
+                                    rooms={serverRooms}
+                                    currentRoomId={currentRoomId}
+                                    isLoading={isLoadingRooms}
+                                    isCreatingRoom={isCreatingRoom}
+                                    isCreatingCategory={isCreatingCategory}
+                                    isArranging={isArrangingRooms}
+                                    isUpdatingRoom={isUpdatingRoom}
+                                    categories={categories}
+                                    presentation={mode}
+                                    onClosePanel={onClose}
+                                    onSelectRoom={(roomId) => {
+                                        void selectRoom(roomId);
+                                    }}
+                                    onCreateRoom={(name, categoryId) => {
+                                        void createRoom({
+                                            name,
+                                            categoryId,
+                                            visibility: "PUBLIC",
+                                        });
+                                    }}
+                                    onCreateCategory={(name) => {
+                                        void createCategory(name);
+                                    }}
+                                    onRenameCategory={(categoryId, name) => {
+                                        void renameCategory(categoryId, name);
+                                    }}
+                                    onArrangeCategory={(
                                         categoryId,
-                                        visibility: "PUBLIC",
-                                    });
-                                }}
-                                onCreateCategory={(name) => {
-                                    void createCategory(name);
-                                }}
-                                onRenameCategory={(categoryId, name) => {
-                                    void renameCategory(categoryId, name);
-                                }}
-                                onArrangeCategory={(categoryId, position) => {
-                                    void arrangeCategory(categoryId, position);
-                                }}
-                                onArrangeRoom={(
-                                    roomId,
-                                    categoryId,
-                                    position,
-                                ) => {
-                                    void arrangeRoom(
+                                        position,
+                                    ) => {
+                                        void arrangeCategory(
+                                            categoryId,
+                                            position,
+                                        );
+                                    }}
+                                    onArrangeRoom={(
                                         roomId,
                                         categoryId,
                                         position,
-                                    );
-                                }}
-                                onRenameRoom={(roomId, name) => {
-                                    void renameRoom(roomId, name);
-                                }}
-                                onDeleteRoom={(roomId) => {
-                                    void deleteRoom(roomId);
-                                }}
-                                onServerImageChanged={handleServerImageChanged}
-                                onServerRenamed={handleServerRenamed}
-                                onOpenMembers={() => {
-                                    setMembersModalTab("members");
-                                    setIsMembersModalOpen(true);
-                                }}
-                                onInvitePeople={() => {
-                                    setMembersModalTab("invites");
-                                    setIsMembersModalOpen(true);
-                                }}
-                            />
-                        ) : (
-                            <DirectMessageSidebar
-                                directRooms={directRooms}
-                                friends={friends}
-                                currentRoomId={currentRoomId}
-                                isLoadingDirectRooms={isLoadingDirectRooms}
-                                isLoadingFriends={isLoadingFriends}
-                                presentation={mode}
-                                onClosePanel={onClose}
-                                onSelectRoom={(roomId) => {
-                                    void selectRoom(roomId);
-                                }}
-                                onOpenDirectMessage={(userId) => {
-                                    void openDirectMessage(userId);
-                                }}
-                            />
-                        )}
+                                    ) => {
+                                        void arrangeRoom(
+                                            roomId,
+                                            categoryId,
+                                            position,
+                                        );
+                                    }}
+                                    onRenameRoom={(roomId, name) => {
+                                        void renameRoom(roomId, name);
+                                    }}
+                                    onDeleteRoom={(roomId) => {
+                                        void deleteRoom(roomId);
+                                    }}
+                                    onServerImageChanged={
+                                        handleServerImageChanged
+                                    }
+                                    onServerRenamed={handleServerRenamed}
+                                    onOpenMembers={() => {
+                                        setMembersModalTab("members");
+                                        setIsMembersModalOpen(true);
+                                    }}
+                                    onInvitePeople={() => {
+                                        setMembersModalTab("invites");
+                                        setIsMembersModalOpen(true);
+                                    }}
+                                    onCollapseSidebar={toggleSidebar}
+                                />
+                            ) : (
+                                <DirectMessageSidebar
+                                    directRooms={directRooms}
+                                    friends={friends}
+                                    currentRoomId={currentRoomId}
+                                    isLoadingDirectRooms={isLoadingDirectRooms}
+                                    isLoadingFriends={isLoadingFriends}
+                                    presentation={mode}
+                                    onClosePanel={onClose}
+                                    onSelectRoom={(roomId) => {
+                                        void selectRoom(roomId);
+                                    }}
+                                    onOpenDirectMessage={(userId) => {
+                                        void openDirectMessage(userId);
+                                    }}
+                                    onCollapseSidebar={toggleSidebar}
+                                />
+                            )}
+                        </div>
 
                         <div ref={channelContentRef} className="flex-1 min-w-0 flex flex-col">
                             <RoomHeader

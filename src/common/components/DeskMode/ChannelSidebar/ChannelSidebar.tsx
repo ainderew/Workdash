@@ -40,6 +40,7 @@ function ChannelSidebar({
   onServerRenamed,
   onOpenMembers,
   onInvitePeople,
+  onCollapseSidebar,
 }: ChannelSidebarProps) {
   const unreadByRoomId = useChatV2Store((state) => state.unreadByRoomId);
 
@@ -166,7 +167,7 @@ function ChannelSidebar({
   return (
     <aside
       id="category-aside"
-      className="w-75 wd-bg-panel border-r wd-border-subtle flex flex-col min-h-0"
+      className="w-75 h-full wd-bg-panel border-r wd-border-subtle flex flex-col min-h-0"
     >
       <ServerHeader
         normalizedServerName={normalizedServerName}
@@ -185,6 +186,7 @@ function ChannelSidebar({
         onOpenMembers={onOpenMembers}
         onInvitePeople={onInvitePeople}
         onOpenServerSettings={() => setIsServerSettingsModalOpen(true)}
+        onCollapseSidebar={onCollapseSidebar}
       />
 
       <CategoryList

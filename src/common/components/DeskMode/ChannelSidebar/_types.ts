@@ -73,4 +73,5 @@ export interface ChannelSidebarProps {
   onServerRenamed?: (serverId: string, name: string) => void;
   onOpenMembers?: () => void;
   onInvitePeople?: () => void;
+  onCollapseSidebar?: () => void;
 }
