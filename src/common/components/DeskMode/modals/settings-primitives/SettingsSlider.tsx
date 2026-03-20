@@ -25,10 +25,16 @@ function SettingsSlider({
   const displayValue = formatValue ? formatValue(value) : String(value);
 
   return (
-    <div className="py-1.5">
-      <div className="flex items-center justify-between mb-1.5">
-        <span className="text-xs font-medium wd-text-primary">{label}</span>
-        <span className="text-[10px] font-medium wd-text-muted">
+    <div className="py-2">
+      <div className="flex items-center justify-between mb-2.5">
+        <span className="text-[13px] font-medium wd-text-primary">{label}</span>
+        <span
+          className="text-[10px] font-bold tabular-nums rounded-md px-2 py-0.5"
+          style={{
+            backgroundColor: 'var(--wd-accent-soft)',
+            color: 'var(--wd-accent)',
+          }}
+        >
           {displayValue}
         </span>
       </div>
@@ -40,9 +46,9 @@ function SettingsSlider({
         value={value}
         onChange={(e) => onChange(parseFloat(e.target.value))}
         disabled={disabled}
-        className="w-full h-1.5 rounded-lg appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-default"
+        className="wd-settings-slider w-full h-[5px] rounded-full appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-default"
         style={{
-          background: `linear-gradient(to right, rgba(88,101,242,0.7) 0%, rgba(88,101,242,0.7) ${percentage}%, var(--wd-surface-elevated) ${percentage}%, var(--wd-surface-elevated) 100%)`,
+          background: `linear-gradient(to right, var(--wd-accent) 0%, var(--wd-accent) ${percentage}%, var(--wd-surface-elevated) ${percentage}%, var(--wd-surface-elevated) 100%)`,
         }}
       />
     </div>

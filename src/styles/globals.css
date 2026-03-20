@@ -1879,3 +1879,78 @@ input[type="range"].wd-volume-slider::-moz-range-progress {
         transition: none;
     }
 }
+
+/* ── Settings modal ────────────────────────────────────────────── */
+
+.wd-settings-modal {
+    box-shadow:
+        0 32px 80px rgba(0, 0, 0, 0.5),
+        0 12px 24px rgba(0, 0, 0, 0.3),
+        0 0 1px rgba(0, 0, 0, 0.2);
+}
+
+/* Slider thumb — WebKit */
+.wd-settings-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 9999px;
+    background: white;
+    border: 2.5px solid var(--wd-accent);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.wd-settings-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+    box-shadow: 0 0 0 4px var(--wd-accent-soft), 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+.wd-settings-slider::-webkit-slider-thumb:active {
+    transform: scale(1.05);
+}
+
+/* Slider thumb — Firefox */
+.wd-settings-slider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 9999px;
+    background: white;
+    border: 2.5px solid var(--wd-accent);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.wd-settings-slider::-moz-range-thumb:hover {
+    transform: scale(1.2);
+    box-shadow: 0 0 0 4px var(--wd-accent-soft), 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Select dropdown caret override */
+.wd-settings-select {
+    background-image: none; /* Remove native caret in favor of Lucide icon */
+}
+
+/* Reduced motion overrides */
+@media (prefers-reduced-motion: reduce) {
+    .wd-settings-slider::-webkit-slider-thumb,
+    .wd-settings-slider::-moz-range-thumb {
+        transition: none;
+    }
+
+    .wd-settings-toggle,
+    .wd-settings-toggle-thumb,
+    .wd-settings-section,
+    .wd-settings-input,
+    .wd-settings-select,
+    .wd-settings-search {
+        transition: none !important;
+    }
+
+    .wd-settings-sidebar button {
+        transition: none !important;
+    }
+}

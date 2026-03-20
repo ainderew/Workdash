@@ -106,12 +106,15 @@ function AccountPanel({ onClose }: AccountPanelProps) {
   return (
     <form onSubmit={handleSave} className="space-y-4">
       {/* ── Hero Profile Card ── */}
-      <div className="rounded-xl border wd-border-subtle wd-bg-panel-2 overflow-hidden">
+      <div
+        className="rounded-xl border wd-border-subtle overflow-hidden"
+        style={{ backgroundColor: 'var(--wd-surface-panel-2)' }}
+      >
         {/* Banner area */}
         <div className="relative">
           {isBannerLoading ? (
             <div
-              className="h-[120px] flex items-center justify-center"
+              className="h-[100px] flex items-center justify-center"
               style={getBannerStyle(null)}
             >
               <Loader2 size={18} className="animate-spin wd-text-muted" />
@@ -119,11 +122,11 @@ function AccountPanel({ onClose }: AccountPanelProps) {
           ) : (
             <>
               <div
-                className="h-[120px] transition-all duration-300"
+                className="h-[100px] transition-all duration-300"
                 style={getBannerStyle(banner.displayBanner)}
               >
                 {banner.displayBanner?.type === 'image' && (
-                  <div className="absolute inset-0 h-[120px] bg-black/10" aria-hidden="true" />
+                  <div className="absolute inset-0 h-[100px] bg-black/10" aria-hidden="true" />
                 )}
               </div>
 
@@ -133,9 +136,9 @@ function AccountPanel({ onClose }: AccountPanelProps) {
                   type="button"
                   onClick={banner.openEditor}
                   disabled={isBusy}
-                  className="absolute inset-0 h-[120px] flex items-center justify-center bg-black/0 opacity-0 transition-all duration-200 hover:bg-black/40 hover:opacity-100 cursor-pointer disabled:cursor-not-allowed"
+                  className="absolute inset-0 h-[100px] flex items-center justify-center bg-black/0 opacity-0 transition-all duration-200 hover:bg-black/40 hover:opacity-100 cursor-pointer disabled:cursor-not-allowed"
                 >
-                  <span className="inline-flex items-center gap-1.5 rounded-md bg-black/60 backdrop-blur-sm px-3 py-1.5 text-[11px] font-medium text-white/90">
+                  <span className="inline-flex items-center gap-1.5 rounded-lg bg-black/60 backdrop-blur-sm px-3 py-1.5 text-[11px] font-medium text-white/90">
                     <Pencil size={12} />
                     Edit Banner
                   </span>
@@ -144,7 +147,7 @@ function AccountPanel({ onClose }: AccountPanelProps) {
             </>
           )}
 
-          {/* Banner editor panel (slides in below banner) */}
+          {/* Banner editor panel */}
           {banner.isEditing && (
             <div className="border-t wd-border-subtle">
               <ProfileBannerEditor
@@ -161,16 +164,18 @@ function AccountPanel({ onClose }: AccountPanelProps) {
           )}
         </div>
 
-        {/* Identity row: avatar overlapping banner + name/ID */}
+        {/* Identity row */}
         <div className="relative px-5 pb-4">
-          {/* Avatar — pulls up into banner */}
-          <div className="-mt-10 mb-3 flex items-end gap-4">
+          <div className="-mt-9 mb-3 flex items-end gap-4">
             <button
               type="button"
               onClick={() => avatar.fileInputRef.current?.click()}
               disabled={isBusy}
-              className="group relative h-20 w-20 shrink-0 rounded-full overflow-hidden border-[3px] border-[var(--wd-surface-panel-2)] ring-1 ring-white/[0.06] disabled:opacity-50 cursor-pointer"
-              style={{ background: 'var(--wd-surface-elevated)' }}
+              className="group relative h-[72px] w-[72px] shrink-0 rounded-full overflow-hidden border-[3px] ring-1 ring-white/[0.06] disabled:opacity-50 cursor-pointer"
+              style={{
+                borderColor: 'var(--wd-surface-panel-2)',
+                background: 'var(--wd-surface-elevated)',
+              }}
             >
               {displayImage ? (
                 <img
@@ -185,17 +190,17 @@ function AccountPanel({ onClose }: AccountPanelProps) {
                 </span>
               )}
               <span className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity duration-150 group-hover:opacity-100">
-                <ImagePlus size={20} className="text-white" />
+                <ImagePlus size={18} className="text-white" />
               </span>
             </button>
 
-            {/* Avatar action buttons */}
+            {/* Avatar actions */}
             <div className="flex items-center gap-1.5 pb-1">
               <button
                 type="button"
                 disabled={isBusy}
                 onClick={() => avatar.fileInputRef.current?.click()}
-                className="inline-flex items-center gap-1.5 rounded-md border wd-border-subtle px-2.5 py-1 text-[11px] font-semibold wd-text-primary transition-colors hover:bg-[var(--wd-surface-elevated)] disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 rounded-lg border wd-border-subtle px-2.5 py-1 text-[11px] font-semibold wd-text-primary transition-colors hover:bg-[var(--wd-surface-elevated)] disabled:opacity-50"
               >
                 <ImagePlus size={12} />
                 {displayImage ? 'Change' : 'Upload'}
@@ -206,7 +211,7 @@ function AccountPanel({ onClose }: AccountPanelProps) {
                   type="button"
                   disabled={isBusy}
                   onClick={avatar.handleDelete}
-                  className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-semibold text-[var(--wd-danger)] transition-colors hover:bg-[color:var(--wd-danger-soft)] disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-semibold text-[var(--wd-danger)] transition-colors hover:bg-[color:var(--wd-danger-soft)] disabled:opacity-50"
                 >
                   {avatar.isDeleting ? (
                     <>
@@ -234,7 +239,8 @@ function AccountPanel({ onClose }: AccountPanelProps) {
               onClick={() => { void handleCopyUserId(); }}
               disabled={typeof localBackendUserId !== 'number'}
               title="Click to copy User ID"
-              className="shrink-0 inline-flex items-center gap-1 rounded-md bg-[var(--wd-surface-elevated)] border wd-border-subtle px-2 py-0.5 text-[10px] font-mono wd-text-muted transition-all hover:wd-text-primary hover:border-[var(--wd-border-strong)] disabled:opacity-50 disabled:cursor-not-allowed"
+              className="shrink-0 inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-mono wd-text-muted border wd-border-subtle transition-all hover:wd-text-primary hover:border-[var(--wd-border-strong)] disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ backgroundColor: 'var(--wd-surface-elevated)' }}
             >
               {userIdCopyState === 'copied' ? (
                 <>
@@ -245,7 +251,7 @@ function AccountPanel({ onClose }: AccountPanelProps) {
                 <>
                   <Copy size={10} />
                   <span>
-                    ID {typeof localBackendUserId === 'number' ? localBackendUserId : '—'}
+                    ID {typeof localBackendUserId === 'number' ? localBackendUserId : '\u2014'}
                   </span>
                 </>
               )}
@@ -267,9 +273,17 @@ function AccountPanel({ onClose }: AccountPanelProps) {
         />
       </div>
 
-      {/* ── Profile Details Card ── */}
-      <div className="rounded-xl border wd-border-subtle wd-bg-panel-2 p-4 space-y-4">
-        <p className="text-[11px] font-semibold uppercase tracking-wide wd-text-muted">
+      {/* ── Profile Details ── */}
+      <div
+        className="rounded-xl border wd-border-subtle p-4 space-y-4"
+        style={{ backgroundColor: 'var(--wd-surface-panel-2)' }}
+      >
+        <p className="text-[10px] font-bold uppercase tracking-widest wd-text-muted flex items-center gap-2">
+          <span
+            className="h-1.5 w-1.5 rounded-full"
+            style={{ backgroundColor: 'var(--wd-accent)' }}
+            aria-hidden="true"
+          />
           Profile Details
         </p>
 
@@ -292,15 +306,15 @@ function AccountPanel({ onClose }: AccountPanelProps) {
           />
         </div>
 
-        <div className="border-t wd-border-subtle" />
+        <div className="h-px" style={{ backgroundColor: 'var(--wd-border-subtle)' }} />
 
         {/* Bio */}
         <div>
           <div className="flex items-center justify-between mb-1.5">
-            <label className="text-xs font-semibold uppercase tracking-wide wd-text-muted">
+            <label className="text-[10px] font-bold uppercase tracking-widest wd-text-muted">
               About Me
             </label>
-            <span className="text-[10px] tabular-nums wd-text-muted">
+            <span className="text-[9px] tabular-nums wd-text-muted opacity-60">
               {profile.bio.length}/{profile.maxBioLength}
             </span>
           </div>
@@ -311,7 +325,8 @@ function AccountPanel({ onClose }: AccountPanelProps) {
             maxLength={profile.maxBioLength}
             placeholder="Write a short bio..."
             disabled={isBusy}
-            className="w-full rounded-md border wd-border-subtle wd-bg-elevated px-3 py-2 text-sm wd-text-primary outline-none resize-none transition-colors focus:border-[var(--wd-border-strong)] disabled:opacity-50"
+            className="wd-settings-input w-full rounded-lg border wd-border-subtle px-3 py-2.5 text-sm wd-text-primary outline-none resize-none transition-all duration-150 focus:border-[var(--wd-accent)] focus:shadow-[0_0_0_3px_var(--wd-accent-soft)] disabled:opacity-50"
+            style={{ backgroundColor: 'var(--wd-surface-elevated)' }}
           />
         </div>
       </div>
@@ -319,19 +334,20 @@ function AccountPanel({ onClose }: AccountPanelProps) {
       {/* ── Error + Actions ── */}
       <SettingsErrorBanner message={combinedError} />
 
-      <div className="flex items-center justify-end gap-2 pt-1">
+      <div className="flex items-center justify-end gap-2.5 pt-1">
         <button
           type="button"
           onClick={onClose}
           disabled={isBusy}
-          className="h-9 rounded-md border wd-border-subtle px-4 text-sm wd-text-secondary transition-colors hover:bg-[var(--wd-surface-elevated)] hover:wd-text-primary disabled:opacity-60"
+          className="h-9 rounded-lg border wd-border-subtle px-4 text-sm font-medium wd-text-secondary transition-all duration-150 hover:bg-[var(--wd-surface-elevated)] hover:wd-text-primary disabled:opacity-60"
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={isBusy}
-          className="inline-flex h-9 items-center gap-2 rounded-md bg-[var(--wd-accent)] px-4 text-sm font-semibold text-white transition-colors hover:bg-[var(--wd-accent-hover)] disabled:opacity-60"
+          className="inline-flex h-9 items-center gap-2 rounded-lg px-5 text-sm font-semibold text-white transition-all duration-150 hover:brightness-110 disabled:opacity-60"
+          style={{ backgroundColor: 'var(--wd-accent)' }}
         >
           {isBusy ? (
             <>

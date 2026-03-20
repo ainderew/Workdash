@@ -219,20 +219,23 @@ function ConnectionsPanel() {
     }
 
     return (
-        <div className="space-y-6">
-            <div>
-                <h2 className="text-lg font-semibold wd-text-primary">
+        <div className="space-y-4">
+            <div className="mb-1">
+                <h2 className="text-[15px] font-semibold wd-text-primary">
                     Connections
                 </h2>
-                <p className="text-sm wd-text-muted mt-1">
+                <p className="text-[12px] wd-text-muted mt-0.5">
                     Link external accounts to display on your profile.
                 </p>
             </div>
 
             {/* Steam / Dota 2 Section */}
-            <div className="rounded-lg border wd-border-subtle wd-bg-elevated p-4">
+            <div
+                className="rounded-xl border wd-border-subtle p-4 transition-colors duration-150 hover:border-[var(--wd-border-strong)]"
+                style={{ backgroundColor: 'var(--wd-surface-panel-2)' }}
+            >
                 <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-semibold wd-text-primary">
+                    <h3 className="text-[13px] font-semibold wd-text-primary">
                         Dota 2 (Steam)
                     </h3>
                     {stats && (
@@ -241,22 +244,21 @@ function ConnectionsPanel() {
                                 type="button"
                                 onClick={handleRefresh}
                                 disabled={isSyncing}
-                                className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium wd-text-secondary hover:wd-text-primary hover:wd-bg-elevated transition-colors disabled:opacity-50"
+                                className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-medium wd-text-muted hover:wd-text-primary transition-colors disabled:opacity-50"
+                                style={{ backgroundColor: 'var(--wd-surface-elevated)' }}
                             >
                                 <RefreshCw
-                                    size={12}
-                                    className={
-                                        isSyncing ? 'animate-spin' : ''
-                                    }
+                                    size={11}
+                                    className={isSyncing ? 'animate-spin' : ''}
                                 />
                                 Refresh
                             </button>
                             <button
                                 type="button"
                                 onClick={handleUnlink}
-                                className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium wd-text-danger hover:opacity-80 transition-colors"
+                                className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-medium wd-text-danger hover:opacity-80 transition-colors"
                             >
-                                <Unlink size={12} />
+                                <Unlink size={11} />
                                 Unlink
                             </button>
                         </div>
@@ -266,9 +268,9 @@ function ConnectionsPanel() {
                 {stats ? (
                     <div className="space-y-2">
                         {stats.personaName && (
-                            <p className="text-sm wd-text-secondary">
+                            <p className="text-[12px] wd-text-secondary">
                                 Linked as{' '}
-                                <span className="font-medium wd-text-primary">
+                                <span className="font-semibold wd-text-primary">
                                     {stats.personaName}
                                 </span>
                             </p>
@@ -281,25 +283,25 @@ function ConnectionsPanel() {
                                         alt={medal.label}
                                         className="h-6 w-6 object-contain"
                                     />
-                                    <span className="text-sm wd-text-primary font-medium">
+                                    <span className="text-[13px] wd-text-primary font-medium">
                                         {medal.label}
                                     </span>
                                 </>
                             ) : (
-                                <span className="text-sm wd-text-secondary">
+                                <span className="text-[12px] wd-text-secondary">
                                     {stats.isPrivate
                                         ? 'Private Profile'
                                         : 'Unranked'}
                                 </span>
                             )}
                             {stats.mmrEstimate && (
-                                <span className="text-xs wd-text-muted">
+                                <span className="text-[11px] wd-text-muted">
                                     ~{stats.mmrEstimate} MMR
                                 </span>
                             )}
                         </div>
                         {stats.lastSyncedAt && (
-                            <p className="text-[11px] wd-text-muted">
+                            <p className="text-[10px] wd-text-muted">
                                 Last synced:{' '}
                                 {new Date(
                                     stats.lastSyncedAt,
@@ -309,7 +311,7 @@ function ConnectionsPanel() {
                     </div>
                 ) : (
                     <div className="space-y-3">
-                        <p className="text-sm wd-text-muted">
+                        <p className="text-[12px] wd-text-muted">
                             Link your Steam account to display your Dota 2 rank
                             on your profile.
                         </p>
@@ -317,18 +319,18 @@ function ConnectionsPanel() {
                             type="button"
                             onClick={handleSteamSignIn}
                             disabled={isLinking}
-                            className="inline-flex items-center gap-2 h-10 px-5 rounded-md text-sm font-medium text-white bg-[#171a21] hover:bg-[#2a475e] transition-colors disabled:opacity-50"
+                            className="inline-flex items-center gap-2 h-9 px-4 rounded-lg text-[12px] font-semibold text-white bg-[#171a21] hover:bg-[#2a475e] transition-colors disabled:opacity-50"
                         >
                             {isLinking ? (
                                 <Loader2
-                                    size={16}
+                                    size={14}
                                     className="animate-spin"
                                 />
                             ) : (
                                 <svg
                                     viewBox="0 0 256 259"
-                                    width="16"
-                                    height="16"
+                                    width="14"
+                                    height="14"
                                     fill="currentColor"
                                 >
                                     <path d="M127.779 0C57.865 0 .584 55.32 0 124.903l68.722 28.399a36.14 36.14 0 0 1 20.454-6.305h1.911l30.603-44.305v-.621c0-26.856 21.861-48.715 48.717-48.715 26.855 0 48.716 21.862 48.716 48.726 0 26.856-21.864 48.716-48.72 48.716h-1.132l-43.593 31.109v1.705c0 20.143-16.371 36.523-36.519 36.523a36.64 36.64 0 0 1-35.843-29.213L2.075 168.451C14.758 219.254 65.862 258.278 127.779 258.278 198.402 258.278 256 200.678 256 129.136 256 57.606 198.402 0 127.779 0" />
@@ -341,9 +343,12 @@ function ConnectionsPanel() {
             </div>
 
             {/* Betrayal.io Section */}
-            <div className="rounded-lg border wd-border-subtle wd-bg-elevated p-4">
+            <div
+                className="rounded-xl border wd-border-subtle p-4 transition-colors duration-150 hover:border-[var(--wd-border-strong)]"
+                style={{ backgroundColor: 'var(--wd-surface-panel-2)' }}
+            >
                 <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-semibold wd-text-primary flex items-center gap-1.5">
+                    <h3 className="text-[13px] font-semibold wd-text-primary flex items-center gap-1.5">
                         <img
                             src="/assets/betrayal-icon.webp"
                             alt="Betrayal.io"
@@ -357,10 +362,11 @@ function ConnectionsPanel() {
                                 type="button"
                                 onClick={handleBetrayalRefresh}
                                 disabled={isBetrayalSyncing}
-                                className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium wd-text-secondary hover:wd-text-primary hover:wd-bg-elevated transition-colors disabled:opacity-50"
+                                className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-medium wd-text-muted hover:wd-text-primary transition-colors disabled:opacity-50"
+                                style={{ backgroundColor: 'var(--wd-surface-elevated)' }}
                             >
                                 <RefreshCw
-                                    size={12}
+                                    size={11}
                                     className={
                                         isBetrayalSyncing
                                             ? 'animate-spin'
@@ -372,9 +378,9 @@ function ConnectionsPanel() {
                             <button
                                 type="button"
                                 onClick={handleBetrayalUnlink}
-                                className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium wd-text-danger hover:opacity-80 transition-colors"
+                                className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-medium wd-text-danger hover:opacity-80 transition-colors"
                             >
-                                <Unlink size={12} />
+                                <Unlink size={11} />
                                 Unlink
                             </button>
                         </div>
@@ -390,22 +396,25 @@ function ConnectionsPanel() {
                     </div>
                 ) : betrayalStats ? (
                     <div className="space-y-2">
-                        <p className="text-sm wd-text-secondary">
+                        <p className="text-[12px] wd-text-secondary">
                             Linked as{' '}
-                            <span className="font-medium wd-text-primary">
+                            <span className="font-semibold wd-text-primary">
                                 {betrayalStats.friendCode}
                             </span>
                         </p>
                         <div className="grid grid-cols-2 gap-3">
-                            <div>
-                                <p className="text-xs wd-text-muted mb-0.5 flex items-center gap-1">
+                            <div
+                                className="rounded-lg p-2.5"
+                                style={{ backgroundColor: 'var(--wd-surface-elevated)' }}
+                            >
+                                <p className="text-[10px] wd-text-muted mb-0.5 flex items-center gap-1">
                                     <img src="/assets/betrayal/shield.png" alt="" className="h-3 w-3" />
                                     Crewmate
                                 </p>
-                                <p className="text-sm font-medium wd-text-primary tabular-nums">
+                                <p className="text-[13px] font-semibold wd-text-primary tabular-nums">
                                     {betrayalStats.crewmateWinrate}% WR
                                 </p>
-                                <p className="text-xs wd-text-muted tabular-nums">
+                                <p className="text-[10px] wd-text-muted tabular-nums">
                                     {betrayalStats.crewmateWins}W /{' '}
                                     {betrayalStats.crewmateRounds -
                                         betrayalStats.crewmateWins}
@@ -413,15 +422,18 @@ function ConnectionsPanel() {
                                     {betrayalStats.crewmateRounds} rounds
                                 </p>
                             </div>
-                            <div>
-                                <p className="text-xs wd-text-muted mb-0.5 flex items-center gap-1">
+                            <div
+                                className="rounded-lg p-2.5"
+                                style={{ backgroundColor: 'var(--wd-surface-elevated)' }}
+                            >
+                                <p className="text-[10px] wd-text-muted mb-0.5 flex items-center gap-1">
                                     <img src="/assets/betrayal/death.png" alt="" className="h-3 w-3" />
                                     Betrayer
                                 </p>
-                                <p className="text-sm font-medium wd-text-primary tabular-nums">
+                                <p className="text-[13px] font-semibold wd-text-primary tabular-nums">
                                     {betrayalStats.betrayerWinrate}% WR
                                 </p>
-                                <p className="text-xs wd-text-muted tabular-nums">
+                                <p className="text-[10px] wd-text-muted tabular-nums">
                                     {betrayalStats.betrayerWins}W /{' '}
                                     {betrayalStats.betrayerRounds -
                                         betrayalStats.betrayerWins}
@@ -431,7 +443,7 @@ function ConnectionsPanel() {
                             </div>
                         </div>
                         {betrayalStats.lastSyncedAt && (
-                            <p className="text-[11px] wd-text-muted">
+                            <p className="text-[10px] wd-text-muted">
                                 Last synced:{' '}
                                 {new Date(
                                     betrayalStats.lastSyncedAt,
@@ -441,7 +453,7 @@ function ConnectionsPanel() {
                     </div>
                 ) : (
                     <div className="space-y-3">
-                        <p className="text-sm wd-text-muted">
+                        <p className="text-[12px] wd-text-muted">
                             Link your Betrayal.io account to display your stats
                             on your profile.
                         </p>
@@ -453,7 +465,8 @@ function ConnectionsPanel() {
                                     setBetrayalFriendCode(e.target.value)
                                 }
                                 placeholder="name#1234"
-                                className="flex-1 h-10 px-3 rounded-md text-sm wd-bg-surface wd-text-primary border wd-border-subtle placeholder:wd-text-muted focus:outline-none focus:ring-1 focus:ring-[var(--wd-accent)]"
+                                className="wd-settings-input flex-1 h-9 px-3 rounded-lg text-[12px] wd-text-primary border wd-border-subtle placeholder:wd-text-muted outline-none transition-all duration-150 focus:border-[var(--wd-accent)] focus:shadow-[0_0_0_3px_var(--wd-accent-soft)]"
+                                style={{ backgroundColor: 'var(--wd-surface-elevated)' }}
                                 onKeyDown={(e) => {
                                     if (e.key === 'Enter')
                                         void handleBetrayalLink();
@@ -463,18 +476,18 @@ function ConnectionsPanel() {
                                 type="button"
                                 onClick={handleBetrayalLink}
                                 disabled={isBetrayalLinking}
-                                className="inline-flex items-center gap-2 h-10 px-5 rounded-md text-sm font-medium text-white bg-[#E74C3C] hover:bg-[#C0392B] transition-colors disabled:opacity-50"
+                                className="inline-flex items-center gap-2 h-9 px-4 rounded-lg text-[12px] font-semibold text-white bg-[#E74C3C] hover:bg-[#C0392B] transition-colors disabled:opacity-50"
                             >
                                 {isBetrayalLinking && (
                                     <Loader2
-                                        size={16}
+                                        size={14}
                                         className="animate-spin"
                                     />
                                 )}
                                 Link
                             </button>
                         </div>
-                        <p className="text-[11px] wd-text-muted">
+                        <p className="text-[10px] wd-text-muted">
                             Enter your friend code (e.g. ddrw#9247)
                         </p>
                     </div>

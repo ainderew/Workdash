@@ -19,9 +19,16 @@ function SettingsTextField({
 }: SettingsTextFieldProps) {
   return (
     <div>
-      <label className="text-xs font-semibold uppercase tracking-wide wd-text-muted">
-        {label}
-      </label>
+      <div className="flex items-center justify-between mb-1.5">
+        <label className="text-[10px] font-bold uppercase tracking-widest wd-text-muted">
+          {label}
+        </label>
+        {maxLength !== undefined && (
+          <span className="text-[9px] tabular-nums wd-text-muted opacity-60">
+            {value.length}/{maxLength}
+          </span>
+        )}
+      </div>
       <input
         type="text"
         value={value}
@@ -29,7 +36,8 @@ function SettingsTextField({
         placeholder={placeholder}
         maxLength={maxLength}
         disabled={disabled}
-        className="mt-1 h-10 w-full rounded-md border wd-border-subtle wd-bg-elevated px-3 text-sm wd-text-primary outline-none focus:border-[var(--wd-border-strong)] disabled:opacity-50"
+        className="wd-settings-input h-9 w-full rounded-lg border wd-border-subtle px-3 text-sm wd-text-primary outline-none transition-all duration-150 focus:border-[var(--wd-accent)] focus:shadow-[0_0_0_3px_var(--wd-accent-soft)] disabled:opacity-50"
+        style={{ backgroundColor: 'var(--wd-surface-elevated)' }}
       />
     </div>
   );

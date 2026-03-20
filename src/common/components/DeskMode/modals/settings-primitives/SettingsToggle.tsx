@@ -16,11 +16,15 @@ function SettingsToggle({
   disabled = false,
 }: SettingsToggleProps) {
   return (
-    <label className="flex items-center justify-between py-1.5 cursor-pointer group">
-      <div className="pr-3">
-        <span className="text-xs font-medium wd-text-primary">{label}</span>
+    <label className="flex items-center justify-between py-2 cursor-pointer group">
+      <div className="pr-4 min-w-0">
+        <span className="text-[13px] font-medium wd-text-primary leading-tight">
+          {label}
+        </span>
         {description && (
-          <p className="mt-0.5 text-[10px] wd-text-muted">{description}</p>
+          <p className="mt-0.5 text-[11px] wd-text-muted leading-snug">
+            {description}
+          </p>
         )}
       </div>
       <button
@@ -29,16 +33,22 @@ function SettingsToggle({
         aria-checked={checked}
         onClick={() => onChange(!checked)}
         disabled={disabled}
-        className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${
-          checked
-            ? 'bg-[rgba(88,101,242,0.7)]'
-            : 'bg-[var(--wd-surface-elevated)]'
-        } disabled:opacity-50`}
+        className="wd-settings-toggle relative h-6 w-[44px] shrink-0 rounded-full transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+        style={{
+          backgroundColor: checked
+            ? 'var(--wd-accent)'
+            : 'var(--wd-surface-elevated)',
+          boxShadow: checked
+            ? '0 0 12px var(--wd-accent-soft), inset 0 1px 2px rgba(0,0,0,0.08)'
+            : 'inset 0 2px 4px rgba(0,0,0,0.12)',
+        }}
       >
         <span
-          className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform ${
-            checked ? 'left-[18px]' : 'left-0.5'
-          }`}
+          className="wd-settings-toggle-thumb absolute top-[3px] h-[18px] w-[18px] rounded-full bg-white transition-all duration-200"
+          style={{
+            left: checked ? '22px' : '3px',
+            boxShadow: '0 1px 4px rgba(0,0,0,0.18), 0 0 1px rgba(0,0,0,0.08)',
+          }}
         />
       </button>
     </label>
