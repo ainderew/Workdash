@@ -4,6 +4,7 @@ import {
   type MentionMemberNameMap,
 } from '@/communication/chatV2/mentionUtils';
 import { parseCustomEmojis } from '@/common/utils/customEmojiParser';
+import { parseInlineMarkdown } from '@/common/utils/inlineMarkdownParser';
 import CustomEmojiInline from './CustomEmojiInline';
 
 interface MentionHighlightedContentProps {
@@ -13,33 +14,43 @@ interface MentionHighlightedContentProps {
   onClickMention?: (event: React.MouseEvent | React.KeyboardEvent, userId: number, displayName: string) => void;
 }
 
-/** Renders a plain text string with **bold** markdown parsed into <strong> elements. */
-function renderBoldMarkdown(text: string, keyPrefix: string): React.ReactNode[] {
-  const parts: React.ReactNode[] = [];
-  const boldRegex = /\*\*(.+?)\*\*/g;
-  let lastIndex = 0;
-  let match: RegExpExecArray | null;
-
-  while ((match = boldRegex.exec(text)) !== null) {
-    if (match.index > lastIndex) {
-      parts.push(<span key={`${keyPrefix}-plain-${lastIndex}`}>{text.slice(lastIndex, match.index)}</span>);
+/** Renders inline markdown tokens (bold, italic, underline, hyperlink) as React elements. */
+function renderInlineMarkdown(text: string, keyPrefix: string): React.ReactNode[] {
+  const tokens = parseInlineMarkdown(text);
+  return tokens.map((token, i) => {
+    const key = `${keyPrefix}-${token.type}-${i}`;
+    switch (token.type) {
+      case 'bold':
+        return <strong key={key}>{token.content}</strong>;
+      case 'italic':
+        return <em key={key}>{token.content}</em>;
+      case 'underline':
+        return <span key={key} className="underline">{token.content}</span>;
+      case 'hyperlink':
+        return (
+          <a
+            key={key}
+            href={token.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="wd-text-accent hover:underline"
+            title={token.url}
+          >
+            {token.text}
+          </a>
+        );
+      case 'text':
+      default:
+        return <span key={key}>{token.content}</span>;
     }
-    parts.push(<strong key={`${keyPrefix}-bold-${match.index}`}>{match[1]}</strong>);
-    lastIndex = match.index + match[0].length;
-  }
-
-  if (lastIndex < text.length) {
-    parts.push(<span key={`${keyPrefix}-plain-${lastIndex}`}>{text.slice(lastIndex)}</span>);
-  }
-
-  return parts.length > 0 ? parts : [<span key={keyPrefix}>{text}</span>];
+  });
 }
 
 /** Renders text with custom emoji tokens replaced by inline images. */
 function renderTextWithCustomEmojis(text: string, keyPrefix: string) {
   const tokens = parseCustomEmojis(text);
   if (tokens.length === 1 && tokens[0].type === 'text') {
-    return renderBoldMarkdown(text, keyPrefix);
+    return renderInlineMarkdown(text, keyPrefix);
   }
   return tokens.map((token, i) => {
     if (token.type === 'custom_emoji' && token.emojiId && token.emojiName) {
@@ -51,7 +62,7 @@ function renderTextWithCustomEmojis(text: string, keyPrefix: string) {
         />
       );
     }
-    return <React.Fragment key={`${keyPrefix}-t-${i}`}>{renderBoldMarkdown(token.content, `${keyPrefix}-t-${i}`)}</React.Fragment>;
+    return <React.Fragment key={`${keyPrefix}-t-${i}`}>{renderInlineMarkdown(token.content, `${keyPrefix}-t-${i}`)}</React.Fragment>;
   });
 }
 

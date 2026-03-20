@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Users } from 'lucide-react';
 import UserAvatar from './UserAvatar';
-import { EVERYONE_SENTINEL_ID } from './Composer/useAutocomplete';
+const EVERYONE_SENTINEL_ID = -1;
 
 export type MentionSuggestion = {
   userId: number;

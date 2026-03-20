@@ -1,13 +1,16 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useState } from "react";
 import { AttachmentPreview } from "../AttachmentPreview";
 import DeskGifPicker from "../DeskGifPicker";
 import MentionSuggestionFlyout from "../MentionSuggestionFlyout";
 import EmojiAutocompleteFlyout from "../EmojiAutocompleteFlyout";
 import { BotCommandFlyout } from "../BotCommandAutocomplete";
-import ComposerInput from "./ComposerInput";
+import TiptapEditorContent from "./TiptapEditorContent";
+import FormattingToolbar from "./FormattingToolbar";
+import LinkPopover from "./LinkPopover";
 import ComposerActions from "./ComposerActions";
 import { useComposerState } from "./useComposerState";
-import { useAutocomplete } from "./useAutocomplete";
+import { useTiptapEditor } from "./useTiptapEditor";
+import { useTiptapAutocomplete } from "./useTiptapAutocomplete";
 import { useSendMessage } from "./useSendMessage";
 import type { ComposerProps } from "./_types";
 
@@ -25,8 +28,6 @@ function Composer(props: ComposerProps) {
 
     const state = useComposerState(props);
     const {
-        value,
-        setValue,
         selectedFile,
         setSelectedFile,
         uploadError,
@@ -34,28 +35,41 @@ function Composer(props: ComposerProps) {
         showGifPicker,
         setShowGifPicker,
         fileInputRef,
-        textareaRef,
         inputElementId,
         localBackendUserId,
         selectedWorkspaceId,
         memberNameMap,
-        handlePaste,
-        focusInput,
+        handleImagePaste,
     } = state;
 
-    const autocomplete = useAutocomplete({
+    const [showLinkPopover, setShowLinkPopover] = useState(false);
+
+    // Create a stable submit ref that we'll wire after useSendMessage
+    const submitRef = React.useRef<() => void>(() => {});
+
+    const tiptap = useTiptapEditor({
+        placeholder,
+        disabled: disabled || isSending,
+        onSubmit: () => submitRef.current(),
+        onEditLastMessage,
+        onTyping,
+        onImagePaste: handleImagePaste,
+        onLinkShortcut: () => setShowLinkPopover((prev) => !prev),
+    });
+
+    const autocomplete = useTiptapAutocomplete({
+        editor: tiptap.editor,
         members,
-        value,
-        setValue,
-        textareaRef,
         selectedWorkspaceId,
         localBackendUserId,
         roomId,
     });
 
     const { submit, submitGif } = useSendMessage({
-        value,
-        setValue,
+        getContent: tiptap.getMarkdownContent,
+        clearContent: () => {
+            tiptap.editor?.commands.clearContent();
+        },
         selectedFile,
         setSelectedFile,
         setUploadError,
@@ -64,73 +78,17 @@ function Composer(props: ComposerProps) {
         isSending,
         memberNameMap,
         closeMentionFlyout: autocomplete.closeMentionFlyout,
-        focusInput,
+        focusInput: tiptap.focus,
         onSend,
         selectedWorkspaceId,
     });
 
-    const handleChange = useCallback(
-        (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-            const nextValue = event.target.value;
-            setValue(nextValue);
-
-            if (nextValue.length > 0) {
-                onTyping?.();
-            }
-
-            autocomplete.handleAutocompleteChange(
-                nextValue,
-                event.target.selectionStart,
-            );
-        },
-        [setValue, onTyping, autocomplete.handleAutocompleteChange],
-    );
-
-    const handleKeyDown = useCallback(
-        (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
-            event.stopPropagation();
-
-            if (autocomplete.handleAutocompleteKeyDown(event)) return;
-
-            if (
-                event.key === "ArrowUp" &&
-                onEditLastMessage &&
-                value === "" &&
-                event.currentTarget.selectionStart === 0
-            ) {
-                event.preventDefault();
-                onEditLastMessage();
-                return;
-            }
-
-            if (event.key === "Enter" && !event.shiftKey) {
-                event.preventDefault();
-                void submit();
-            }
-        },
-        [
-            autocomplete.handleAutocompleteKeyDown,
-            onEditLastMessage,
-            submit,
-            value,
-        ],
-    );
+    // Wire up the submit ref so the keyboard shortcut can call submit
+    submitRef.current = () => void submit();
 
     const handleToggleCodeBlock = useCallback(() => {
-        const trimmed = value.trim();
-        if (trimmed.startsWith("```") && trimmed.endsWith("```")) {
-            const withoutFences = trimmed.slice(3, -3);
-            const firstNewline = withoutFences.indexOf("\n");
-            const inner =
-                firstNewline >= 0
-                    ? withoutFences.slice(firstNewline + 1).trim()
-                    : withoutFences.trim();
-            setValue(inner);
-        } else {
-            setValue(`\`\`\`\n${value}\n\`\`\``);
-        }
-        textareaRef.current?.focus();
-    }, [value, setValue, textareaRef]);
+        tiptap.editor?.chain().focus().toggleCodeBlock().run();
+    }, [tiptap.editor]);
 
     const handleFileSelect = useCallback(
         (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -141,8 +99,12 @@ function Composer(props: ComposerProps) {
         [setSelectedFile],
     );
 
+    const handleLinkClick = useCallback(() => {
+        setShowLinkPopover((prev) => !prev);
+    }, []);
+
     return (
-        <div className="min-h-[var(--wd-panel-height)] relative border-t wd-border-subtle p-3 wd-bg-panel-2">
+        <div className="relative min-h-[var(--wd-panel-height)] border-t wd-border-subtle wd-bg-panel-2 px-3 pb-3 pt-2">
             {autocomplete.isCommandFlyoutOpen && (
                 <BotCommandFlyout
                     entries={autocomplete.commandSuggestions}
@@ -184,38 +146,44 @@ function Composer(props: ComposerProps) {
             )}
 
             {selectedFile && (
-                <AttachmentPreview
-                    file={selectedFile}
-                    onRemove={() => setSelectedFile(null)}
-                />
+                <div className="mb-2">
+                    <AttachmentPreview
+                        file={selectedFile}
+                        onRemove={() => setSelectedFile(null)}
+                    />
+                </div>
             )}
 
             {uploadError && (
                 <div className="mb-2 text-xs wd-text-danger">{uploadError}</div>
             )}
 
+            {showLinkPopover && tiptap.editor && (
+                <LinkPopover
+                    editor={tiptap.editor}
+                    onClose={() => setShowLinkPopover(false)}
+                />
+            )}
+
             <ComposerActions
                 disabled={disabled}
                 isSending={isSending}
                 fileInputRef={fileInputRef}
-                value={value}
+                editor={tiptap.editor}
                 selectedFile={selectedFile}
                 setShowGifPicker={setShowGifPicker}
                 onFileSelect={handleFileSelect}
                 onSubmit={() => void submit()}
                 onToggleCodeBlock={handleToggleCodeBlock}
             >
-                <ComposerInput
-                    textareaRef={textareaRef}
+                <TiptapEditorContent
+                    editor={tiptap.editor}
                     inputElementId={inputElementId}
-                    value={value}
-                    disabled={disabled}
-                    isSending={isSending}
-                    placeholder={placeholder}
-                    isMentionFlyoutOpen={autocomplete.isMentionFlyoutOpen}
-                    handleChange={handleChange}
-                    handleKeyDown={handleKeyDown}
-                    handlePaste={handlePaste}
+                />
+                <FormattingToolbar
+                    editor={tiptap.editor}
+                    disabled={disabled || isSending}
+                    onLinkClick={handleLinkClick}
                 />
             </ComposerActions>
         </div>

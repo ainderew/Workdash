@@ -15,9 +15,76 @@ interface MessageContentRendererProps {
   skipLinkPreviews?: boolean;
 }
 
+/** Renders a single line of text through the URL + mention pipeline. */
+function renderTextLine(
+  text: string,
+  messageId: string,
+  mentionedUserIds: number[],
+  memberNameMap: MentionMemberNameMap,
+  onClickMention: MessageContentRendererProps['onClickMention'],
+  skipLinkPreviews: boolean | undefined,
+  keyPrefix: string,
+) {
+  // Check for hyperlink markdown [text](url) to avoid double-matching with bare URL detection.
+  // Strip hyperlinks before passing to parseMessageContent so they aren't detected as bare URLs.
+  const hyperlinkRegex = /\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g;
+  const hasHyperlinks = hyperlinkRegex.test(text);
+
+  // If the text has no hyperlinks, use the existing URL detection pipeline
+  if (!hasHyperlinks) {
+    const parsedParts = parseMessageContent(text);
+    const hasLinks = !skipLinkPreviews && parsedParts.some(
+      (part) => part.type !== 'text' && !!part.url,
+    );
+
+    if (hasLinks) {
+      return (
+        <>
+          {parsedParts.map((part, index) => {
+            if (part.type !== 'text' && part.url) {
+              return (
+                <a
+                  key={`${keyPrefix}-link-${index}`}
+                  href={part.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="wd-text-accent hover:underline break-all"
+                >
+                  {part.content}
+                </a>
+              );
+            }
+            if (part.type !== 'text') return null;
+            return (
+              <MentionHighlightedContent
+                key={`${keyPrefix}-text-${index}`}
+                content={part.content}
+                mentionedUserIds={mentionedUserIds}
+                memberNameMap={memberNameMap}
+                onClickMention={onClickMention}
+              />
+            );
+          })}
+        </>
+      );
+    }
+  }
+
+  // For text with hyperlinks or no detected bare URLs, use MentionHighlightedContent
+  // which handles inline markdown (including [text](url) tokens)
+  return (
+    <MentionHighlightedContent
+      content={text}
+      mentionedUserIds={mentionedUserIds}
+      memberNameMap={memberNameMap}
+      onClickMention={onClickMention}
+    />
+  );
+}
+
 /**
  * Renders text segments through the URL + mention pipeline.
- * Handles link detection and mention/emoji/bold highlighting.
+ * Handles link detection, bullet lists, and mention/emoji/inline-markdown highlighting.
  */
 function TextSegmentRenderer({
   text,
@@ -34,58 +101,68 @@ function TextSegmentRenderer({
   onClickMention?: (event: React.MouseEvent | React.KeyboardEvent, userId: number, displayName: string) => void;
   skipLinkPreviews?: boolean;
 }) {
-  const parsedParts = parseMessageContent(text);
-  const hasLinks = !skipLinkPreviews && parsedParts.some(
-    (part) => part.type !== 'text' && !!part.url,
-  );
+  // Split text into lines and detect bullet list blocks
+  const lines = text.split('\n');
+  const elements: React.ReactNode[] = [];
+  let i = 0;
 
-  if (hasLinks) {
-    return (
-      <>
-        {parsedParts.map((part, index) => {
-          if (part.type !== 'text' && part.url) {
-            return (
-              <a
-                key={`${messageId}-link-${index}`}
-                href={part.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="wd-text-accent hover:underline break-all"
-              >
-                {part.content}
-              </a>
-            );
-          }
-          if (part.type !== 'text') return null;
-          return (
-            <MentionHighlightedContent
-              key={`${messageId}-text-${index}`}
-              content={part.content}
-              mentionedUserIds={mentionedUserIds}
-              memberNameMap={memberNameMap}
-              onClickMention={onClickMention}
-            />
-          );
-        })}
-      </>
-    );
+  while (i < lines.length) {
+    // Detect consecutive bullet list lines
+    if (lines[i].startsWith('- ')) {
+      const listItems: string[] = [];
+      while (i < lines.length && lines[i].startsWith('- ')) {
+        listItems.push(lines[i].slice(2));
+        i++;
+      }
+      elements.push(
+        <ul key={`${messageId}-list-${i}`} className="list-disc pl-5 my-1">
+          {listItems.map((item, idx) => (
+            <li key={`${messageId}-li-${i}-${idx}`}>
+              {renderTextLine(
+                item,
+                messageId,
+                mentionedUserIds,
+                memberNameMap,
+                onClickMention,
+                skipLinkPreviews,
+                `${messageId}-li-${i}-${idx}`,
+              )}
+            </li>
+          ))}
+        </ul>,
+      );
+      continue;
+    }
+
+    // Regular text line
+    const line = lines[i];
+    if (i > 0 && elements.length > 0) {
+      elements.push(<br key={`${messageId}-br-${i}`} />);
+    }
+    if (line) {
+      elements.push(
+        <React.Fragment key={`${messageId}-line-${i}`}>
+          {renderTextLine(
+            line,
+            messageId,
+            mentionedUserIds,
+            memberNameMap,
+            onClickMention,
+            skipLinkPreviews,
+            `${messageId}-seg-${i}`,
+          )}
+        </React.Fragment>,
+      );
+    }
+    i++;
   }
 
-  return (
-    <MentionHighlightedContent
-      content={text}
-      mentionedUserIds={mentionedUserIds}
-      memberNameMap={memberNameMap}
-      onClickMention={onClickMention}
-    />
-  );
+  return <>{elements}</>;
 }
 
 /**
  * Shared message content renderer that owns the full pipeline:
- * code block parsing → URL splitting → mention/emoji/bold rendering.
- *
- * Returns the parsed link parts for use by the parent (link previews).
+ * code block parsing → URL splitting → mention/emoji/inline-markdown rendering.
  */
 function MessageContentRenderer({
   content,

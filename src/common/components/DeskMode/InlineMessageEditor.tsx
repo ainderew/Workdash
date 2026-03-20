@@ -1,433 +1,233 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { ChatV2RoomMember } from "@/communication/chatV2/_types";
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import type { ChatV2RoomMember } from '@/communication/chatV2/_types';
 import {
-    buildMemberNameMap,
-    deserializeMentionContent,
-    getMentionQueryAtCursor,
-    insertMentionIntoValue,
-    serializeMentionContentForSend,
-} from "@/communication/chatV2/mentionUtils";
-import useUserStore from "@/common/store/useStore";
-import useChatV2Store from "@/common/store/chatV2Store";
-import MentionSuggestionFlyout, {
-    type MentionSuggestion,
-} from "./MentionSuggestionFlyout";
-import EmojiAutocompleteFlyout from "./EmojiAutocompleteFlyout";
-import { getDisplayName, getNameAliases } from "@/common/utils/displayName";
-import { useCustomEmojiSearch } from "@/common/hooks/useCustomEmojiSearch";
-import useCustomEmojiStore from "@/common/store/customEmojiStore";
-import { Check, Pencil, X } from "lucide-react";
-
-const MAX_MENTION_SUGGESTIONS = 25;
+  buildMemberNameMap,
+  deserializeMentionContent,
+  serializeMentionContentForSend,
+} from '@/communication/chatV2/mentionUtils';
+import useUserStore from '@/common/store/useStore';
+import useChatV2Store from '@/common/store/chatV2Store';
+import useCustomEmojiStore from '@/common/store/customEmojiStore';
+import MentionSuggestionFlyout from './MentionSuggestionFlyout';
+import EmojiAutocompleteFlyout from './EmojiAutocompleteFlyout';
+import { useTiptapEditor } from './Composer/useTiptapEditor';
+import { useTiptapAutocomplete } from './Composer/useTiptapAutocomplete';
+import TiptapEditorContent from './Composer/TiptapEditorContent';
+import FormattingToolbar from './Composer/FormattingToolbar';
+import LinkPopover from './Composer/LinkPopover';
+import {
+  serializeTiptapToMarkdown,
+  deserializeMarkdownToTiptap,
+} from '@/common/utils/richTextSerializer';
+import { Check, Pencil, X } from 'lucide-react';
 
 interface InlineMessageEditorProps {
-    initialContent: string;
-    members?: ChatV2RoomMember[];
-    onSave: (content: string) => Promise<void>;
-    onCancel: () => void;
+  initialContent: string;
+  members?: ChatV2RoomMember[];
+  onSave: (content: string) => Promise<void>;
+  onCancel: () => void;
 }
 
 function InlineMessageEditor({
-    initialContent,
-    members,
-    onSave,
-    onCancel,
+  initialContent,
+  members,
+  onSave,
+  onCancel,
 }: InlineMessageEditorProps) {
-    const backendUser = useUserStore((s) => s.backendUser);
-    const selectedWorkspaceId = useChatV2Store((s) => s.selectedWorkspaceId);
-    const localBackendUserId = backendUser?.id;
-    const textareaRef = useRef<HTMLTextAreaElement>(null);
-    const [isSaving, setIsSaving] = useState(false);
-    const [validationError, setValidationError] = useState<string | null>(null);
+  const backendUser = useUserStore((s) => s.backendUser);
+  const selectedWorkspaceId = useChatV2Store((s) => s.selectedWorkspaceId);
+  const localBackendUserId = backendUser?.id;
+  const [isSaving, setIsSaving] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
+  const [showLinkPopover, setShowLinkPopover] = useState(false);
 
-    const memberNameMap = useMemo(
-        () => buildMemberNameMap(members || []),
-        [members],
-    );
+  const memberNameMap = useMemo(
+    () => buildMemberNameMap(members || []),
+    [members],
+  );
 
-    const deserializedContent = useMemo(
-        () => deserializeMentionContent(initialContent, memberNameMap),
-        [initialContent, memberNameMap],
-    );
+  const deserializedContent = useMemo(
+    () => deserializeMentionContent(initialContent, memberNameMap),
+    [initialContent, memberNameMap],
+  );
 
-    const [value, setValue] = useState(deserializedContent);
-    const [mentionQuery, setMentionQuery] = useState<{
-        query: string;
-        atIndex: number;
-    } | null>(null);
-    const [mentionSelectedIndex, setMentionSelectedIndex] = useState(0);
-    const [emojiQuery, setEmojiQuery] = useState<{
-        query: string;
-        colonIndex: number;
-    } | null>(null);
-    const [emojiSelectedIndex, setEmojiSelectedIndex] = useState(0);
-
-    const mentionSuggestions = useMemo<MentionSuggestion[]>(() => {
-        if (!mentionQuery || !members) return [];
-        const queryLower = mentionQuery.query.toLowerCase();
-        return members
-            .filter((member) => {
-                if (member.status !== "ACTIVE") return false;
-                if (
-                    typeof localBackendUserId === "number" &&
-                    member.userId === localBackendUserId
-                )
-                    return false;
-                const aliases = getNameAliases({
-                    nickname: member.user.nickname,
-                    name: member.user.name,
-                });
-                if (aliases.length === 0) return false;
-                return aliases.some((alias) =>
-                    alias.toLowerCase().includes(queryLower),
-                );
-            })
-            .slice(0, MAX_MENTION_SUGGESTIONS)
-            .map((member) => ({
-                userId: member.userId,
-                name: getDisplayName(member.user, `User ${member.userId}`),
-                fullName: member.user.name,
-                nickname: member.user.nickname ?? null,
-                image: member.user.image ?? null,
-            }));
-    }, [members, mentionQuery, localBackendUserId]);
-
-    const emojiSuggestions = useCustomEmojiSearch(
-        selectedWorkspaceId,
-        emojiQuery?.query ?? "",
-    );
-
-    const isEmojiFlyoutOpen =
-        emojiQuery !== null && emojiSuggestions.length > 0;
-    const isMentionFlyoutOpen =
-        mentionQuery !== null && mentionSuggestions.length > 0;
-
-    const closeEmojiFlyout = useCallback(() => {
-        setEmojiQuery(null);
-        setEmojiSelectedIndex(0);
-    }, []);
-
-    const closeMentionFlyout = useCallback(() => {
-        setMentionQuery(null);
-        setMentionSelectedIndex(0);
-    }, []);
-
-    const handleEmojiSelect = useCallback(
-        (emoji: { name: string; id: string }) => {
-            if (!emojiQuery) return;
-            const cursorPos =
-                textareaRef.current?.selectionStart ?? value.length;
-            const before = value.slice(0, emojiQuery.colonIndex);
-            const after = value.slice(cursorPos);
-            const shortcode = `:${emoji.name}: `;
-            const newValue = before + shortcode + after;
-            const newCursorPos = before.length + shortcode.length;
-            setValue(newValue);
-            closeEmojiFlyout();
-            window.requestAnimationFrame(() => {
-                const input = textareaRef.current;
-                if (input) {
-                    input.focus();
-                    input.setSelectionRange(newCursorPos, newCursorPos);
-                }
-            });
+  const serializeCustomEmojis = useCallback(
+    (text: string): string => {
+      const emojis =
+        useCustomEmojiStore.getState().emojisByWorkspace[
+          selectedWorkspaceId ?? ''
+        ] ?? [];
+      if (emojis.length === 0) return text;
+      const emojiMap = new Map(emojis.map((e) => [e.name, e]));
+      return text.replace(
+        /:([a-z0-9_]{2,32}):/g,
+        (match, name: string) => {
+          const emoji = emojiMap.get(name);
+          return emoji ? `<:${emoji.name}:${emoji.id}>` : match;
         },
-        [closeEmojiFlyout, emojiQuery, value],
+      );
+    },
+    [selectedWorkspaceId],
+  );
+
+  // Ref for save handler so keyboard shortcut can call it
+  const saveRef = React.useRef<() => void>(() => {});
+
+  const tiptap = useTiptapEditor({
+    placeholder: 'Edit message...',
+    disabled: isSaving,
+    onSubmit: () => saveRef.current(),
+    onLinkShortcut: () => setShowLinkPopover((prev) => !prev),
+  });
+
+  const autocomplete = useTiptapAutocomplete({
+    editor: tiptap.editor,
+    members,
+    selectedWorkspaceId,
+    localBackendUserId,
+  });
+
+  // Initialize editor content from deserialized markdown
+  useEffect(() => {
+    if (tiptap.editor && deserializedContent) {
+      const json = deserializeMarkdownToTiptap(deserializedContent);
+      tiptap.editor.commands.setContent(json);
+      // Move cursor to end
+      tiptap.editor.commands.focus('end');
+    }
+  }, [tiptap.editor, deserializedContent]);
+
+  const handleSave = useCallback(async () => {
+    if (!tiptap.editor) return;
+
+    const rawContent = serializeTiptapToMarkdown(tiptap.editor.getJSON());
+    const trimmed = rawContent.trim();
+    if (!trimmed) {
+      setValidationError('Message cannot be empty');
+      return;
+    }
+
+    const serialized = serializeMentionContentForSend(
+      rawContent,
+      memberNameMap,
     );
+    const content = serializeCustomEmojis(serialized.content.trim());
 
-    const handleMentionSelect = useCallback(
-        (suggestion: MentionSuggestion) => {
-            if (!mentionQuery) return;
-            const cursorPos =
-                textareaRef.current?.selectionStart ?? value.length;
-            const { newValue, newCursorPosition } = insertMentionIntoValue(
-                value,
-                mentionQuery.atIndex,
-                cursorPos,
-                suggestion.name,
-            );
-            setValue(newValue);
-            closeMentionFlyout();
-            window.requestAnimationFrame(() => {
-                const input = textareaRef.current;
-                if (input) {
-                    input.focus();
-                    input.setSelectionRange(
-                        newCursorPosition,
-                        newCursorPosition,
-                    );
-                }
-            });
-        },
-        [closeMentionFlyout, mentionQuery, value],
-    );
+    if (content === initialContent) {
+      onCancel();
+      return;
+    }
 
-    const handleChange = useCallback(
-        (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-            const nextValue = event.target.value;
-            setValue(nextValue);
-            setValidationError(null);
+    setIsSaving(true);
+    try {
+      await onSave(content);
+    } finally {
+      setIsSaving(false);
+    }
+  }, [
+    tiptap.editor,
+    memberNameMap,
+    serializeCustomEmojis,
+    initialContent,
+    onCancel,
+    onSave,
+  ]);
 
-            const cursorPos = event.target.selectionStart;
-            const query = getMentionQueryAtCursor(nextValue, cursorPos);
-            if (query) {
-                setMentionQuery(query);
-                setMentionSelectedIndex(0);
-                closeEmojiFlyout();
-            } else {
-                closeMentionFlyout();
-                const beforeCursor = nextValue.slice(0, cursorPos);
-                const colonMatch = beforeCursor.match(/:([a-z0-9_]{2,32})$/);
-                if (colonMatch) {
-                    const colonIndex = cursorPos - colonMatch[0].length;
-                    const charBefore =
-                        colonIndex > 0 ? nextValue[colonIndex - 1] : "";
-                    if (charBefore !== "<") {
-                        setEmojiQuery({
-                            query: colonMatch[1],
-                            colonIndex,
-                        });
-                        setEmojiSelectedIndex(0);
-                    } else {
-                        closeEmojiFlyout();
-                    }
-                } else {
-                    closeEmojiFlyout();
-                }
-            }
-        },
-        [closeMentionFlyout, closeEmojiFlyout],
-    );
+  saveRef.current = () => void handleSave();
 
-    const serializeCustomEmojis = useCallback(
-        (text: string): string => {
-            const emojis =
-                useCustomEmojiStore.getState().emojisByWorkspace[
-                    selectedWorkspaceId ?? ""
-                ] ?? [];
-            if (emojis.length === 0) return text;
-            const emojiMap = new Map(emojis.map((e) => [e.name, e]));
-            return text.replace(
-                /:([a-z0-9_]{2,32}):/g,
-                (match, name: string) => {
-                    const emoji = emojiMap.get(name);
-                    return emoji ? `<:${emoji.name}:${emoji.id}>` : match;
-                },
-            );
-        },
-        [selectedWorkspaceId],
-    );
+  // Register Escape to cancel — use editor keydown handler
+  useEffect(() => {
+    if (!tiptap.editor) return;
+    const editorElement = tiptap.editor.view.dom;
 
-    const handleSave = useCallback(async () => {
-        const trimmed = value.trim();
-        if (!trimmed) {
-            setValidationError("Message cannot be empty");
-            return;
-        }
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onCancel();
+      }
+    };
 
-        const serialized = serializeMentionContentForSend(
-            value,
-            memberNameMap,
-        );
-        const content = serializeCustomEmojis(serialized.content.trim());
+    editorElement.addEventListener('keydown', handleKeyDown);
+    return () => editorElement.removeEventListener('keydown', handleKeyDown);
+  }, [tiptap.editor, onCancel]);
 
-        if (content === initialContent) {
-            onCancel();
-            return;
-        }
+  return (
+    <div className="relative">
+      <div className="mb-1 flex items-center gap-1.5 text-[11px] font-medium text-[var(--wd-accent)]">
+        <Pencil size={11} />
+        Editing message
+      </div>
 
-        setIsSaving(true);
-        try {
-            await onSave(content);
-        } finally {
-            setIsSaving(false);
-        }
-    }, [
-        value,
-        memberNameMap,
-        serializeCustomEmojis,
-        initialContent,
-        onCancel,
-        onSave,
-    ]);
+      {autocomplete.isEmojiFlyoutOpen && (
+        <EmojiAutocompleteFlyout
+          emojis={autocomplete.emojiSuggestions}
+          query={autocomplete.emojiQuery?.query ?? ''}
+          selectedIndex={autocomplete.emojiSelectedIndex}
+          onSelect={autocomplete.handleEmojiSelect}
+          onClose={autocomplete.closeEmojiFlyout}
+        />
+      )}
 
-    const handleKeyDown = useCallback(
-        (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
-            event.stopPropagation();
+      {autocomplete.isMentionFlyoutOpen && (
+        <MentionSuggestionFlyout
+          suggestions={autocomplete.mentionSuggestions}
+          query={autocomplete.mentionQuery?.query ?? ''}
+          selectedIndex={autocomplete.mentionSelectedIndex}
+          onSelect={autocomplete.handleMentionSelect}
+          onClose={autocomplete.closeMentionFlyout}
+        />
+      )}
 
-            if (isEmojiFlyoutOpen) {
-                if (event.key === "ArrowDown") {
-                    event.preventDefault();
-                    setEmojiSelectedIndex((c) =>
-                        c < emojiSuggestions.length - 1 ? c + 1 : 0,
-                    );
-                    return;
-                }
-                if (event.key === "ArrowUp") {
-                    event.preventDefault();
-                    setEmojiSelectedIndex((c) =>
-                        c > 0 ? c - 1 : emojiSuggestions.length - 1,
-                    );
-                    return;
-                }
-                if (event.key === "Enter" || event.key === "Tab") {
-                    event.preventDefault();
-                    const selected = emojiSuggestions[emojiSelectedIndex];
-                    if (selected) handleEmojiSelect(selected);
-                    return;
-                }
-                if (event.key === "Escape") {
-                    event.preventDefault();
-                    closeEmojiFlyout();
-                    return;
-                }
-            }
+      {showLinkPopover && tiptap.editor && (
+        <LinkPopover
+          editor={tiptap.editor}
+          onClose={() => setShowLinkPopover(false)}
+        />
+      )}
 
-            if (isMentionFlyoutOpen) {
-                if (event.key === "ArrowDown") {
-                    event.preventDefault();
-                    setMentionSelectedIndex((c) =>
-                        c < mentionSuggestions.length - 1 ? c + 1 : 0,
-                    );
-                    return;
-                }
-                if (event.key === "ArrowUp") {
-                    event.preventDefault();
-                    setMentionSelectedIndex((c) =>
-                        c > 0 ? c - 1 : mentionSuggestions.length - 1,
-                    );
-                    return;
-                }
-                if (event.key === "Enter" || event.key === "Tab") {
-                    event.preventDefault();
-                    const selected = mentionSuggestions[mentionSelectedIndex];
-                    if (selected) handleMentionSelect(selected);
-                    return;
-                }
-                if (event.key === "Escape") {
-                    event.preventDefault();
-                    closeMentionFlyout();
-                    return;
-                }
-            }
+      <FormattingToolbar
+        editor={tiptap.editor}
+        disabled={isSaving}
+        onLinkClick={() => setShowLinkPopover((prev) => !prev)}
+      />
 
-            if (event.key === "Escape") {
-                event.preventDefault();
-                onCancel();
-                return;
-            }
+      <div className="rounded-md border wd-border-subtle bg-[var(--wd-surface-panel-2)] focus-within:border-[var(--wd-accent)]">
+        <TiptapEditorContent editor={tiptap.editor} />
+      </div>
 
-            if (event.key === "Enter" && !event.shiftKey) {
-                event.preventDefault();
-                void handleSave();
-            }
-        },
-        [
-            isEmojiFlyoutOpen,
-            isMentionFlyoutOpen,
-            emojiSuggestions,
-            emojiSelectedIndex,
-            mentionSuggestions,
-            mentionSelectedIndex,
-            handleEmojiSelect,
-            handleMentionSelect,
-            closeEmojiFlyout,
-            closeMentionFlyout,
-            onCancel,
-            handleSave,
-        ],
-    );
-
-    useEffect(() => {
-        const textarea = textareaRef.current;
-        if (textarea) {
-            textarea.focus();
-            textarea.setSelectionRange(
-                textarea.value.length,
-                textarea.value.length,
-            );
-        }
-    }, []);
-
-    return (
-        <div className="relative">
-            <div className="mb-1 flex items-center gap-1.5 text-[11px] font-medium text-[var(--wd-accent)]">
-                <Pencil size={11} />
-                Editing message
-            </div>
-
-            {isEmojiFlyoutOpen && (
-                <EmojiAutocompleteFlyout
-                    emojis={emojiSuggestions}
-                    query={emojiQuery?.query ?? ""}
-                    selectedIndex={emojiSelectedIndex}
-                    onSelect={handleEmojiSelect}
-                    onClose={closeEmojiFlyout}
-                />
-            )}
-
-            {isMentionFlyoutOpen && (
-                <MentionSuggestionFlyout
-                    suggestions={mentionSuggestions}
-                    query={mentionQuery?.query ?? ""}
-                    selectedIndex={mentionSelectedIndex}
-                    onSelect={handleMentionSelect}
-                    onClose={closeMentionFlyout}
-                />
-            )}
-
-            <textarea
-                ref={textareaRef}
-                value={value}
-                onChange={handleChange}
-                onKeyDown={handleKeyDown}
-                disabled={isSaving}
-                rows={1}
-                className="text-sm wd-text-secondary bg-[var(--wd-surface-panel-2)] border wd-border-subtle rounded-md px-2 py-1.5 w-full resize-none outline-none focus:border-[var(--wd-accent)]"
-                style={{
-                    minHeight: "2.25rem",
-                    height: "auto",
-                }}
-                onInput={(e) => {
-                    const target = e.target as HTMLTextAreaElement;
-                    target.style.height = "auto";
-                    target.style.height = `${target.scrollHeight}px`;
-                }}
-            />
-
-            {validationError && (
-                <div className="text-[11px] text-red-400 mt-0.5">
-                    {validationError}
-                </div>
-            )}
-
-            <div className="mt-1 flex items-center justify-between">
-                <span className="text-[11px] wd-text-muted">
-                    escape to cancel · enter to save
-                </span>
-                <div className="flex items-center gap-1">
-                    <button
-                        type="button"
-                        onClick={onCancel}
-                        disabled={isSaving}
-                        title="Cancel (Escape)"
-                        className="inline-flex h-7 w-7 items-center justify-center rounded wd-text-muted transition-colors hover:wd-text-primary hover:bg-[var(--wd-surface-elevated)] disabled:opacity-50"
-                    >
-                        <X size={15} />
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => void handleSave()}
-                        disabled={isSaving}
-                        title="Save (Enter)"
-                        className="inline-flex h-7 w-7 items-center justify-center rounded text-green-400 transition-colors hover:text-green-300 hover:bg-[rgba(74,222,128,0.1)] disabled:opacity-50"
-                    >
-                        <Check size={15} />
-                    </button>
-                </div>
-            </div>
+      {validationError && (
+        <div className="text-[11px] text-red-400 mt-0.5">
+          {validationError}
         </div>
-    );
+      )}
+
+      <div className="mt-1 flex items-center justify-between">
+        <span className="text-[11px] wd-text-muted">
+          escape to cancel · enter to save
+        </span>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={isSaving}
+            title="Cancel (Escape)"
+            className="inline-flex h-7 w-7 items-center justify-center rounded wd-text-muted transition-colors hover:wd-text-primary hover:bg-[var(--wd-surface-elevated)] disabled:opacity-50"
+          >
+            <X size={15} />
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleSave()}
+            disabled={isSaving}
+            title="Save (Enter)"
+            className="inline-flex h-7 w-7 items-center justify-center rounded text-green-400 transition-colors hover:text-green-300 hover:bg-[rgba(74,222,128,0.1)] disabled:opacity-50"
+          >
+            <Check size={15} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default InlineMessageEditor;

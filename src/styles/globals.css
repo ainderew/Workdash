@@ -1703,3 +1703,84 @@ input[type="range"].wd-volume-slider::-moz-range-progress {
         transition: none;
     }
 }
+
+/* ── Composer shell ── */
+.wd-composer-shell {
+    transition: border-color 0.2s ease;
+}
+
+.wd-composer-shell:focus-within {
+    border-color: var(--wd-accent);
+}
+
+.wd-composer-shell:focus-within .wd-composer-shell-focus-visible {
+    display: flex;
+}
+
+/* ── Tiptap / ProseMirror editor styles ── */
+.ProseMirror:focus {
+    outline: none;
+}
+
+.ProseMirror p.is-editor-empty:first-child::before {
+    content: attr(data-placeholder);
+    color: var(--wd-text-muted);
+    pointer-events: none;
+    float: left;
+    height: 0;
+    opacity: 0.7;
+}
+
+.ProseMirror p {
+    margin: 0;
+}
+
+.ProseMirror ul {
+    list-style-type: disc;
+    padding-left: 1.25rem;
+    margin: 0.25rem 0;
+}
+
+.ProseMirror li {
+    margin: 0;
+}
+
+.ProseMirror pre {
+    background: var(--wd-surface-base);
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 13px;
+    margin: 0.25rem 0;
+}
+
+.ProseMirror code {
+    background: var(--wd-surface-base);
+    border-radius: 0.25rem;
+    padding: 0.125rem 0.375rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 13px;
+}
+
+.ProseMirror a {
+    color: var(--wd-accent);
+    text-decoration: none;
+}
+
+.ProseMirror a:hover {
+    text-decoration: underline;
+}
+
+/* ── Composer reduced-motion overrides ── */
+@media (prefers-reduced-motion: reduce) {
+    .wd-composer-shell,
+    .wd-composer-shell:focus-within {
+        transition: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .wd-formatting-toolbar button {
+        transition: none;
+    }
+}
