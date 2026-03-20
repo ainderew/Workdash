@@ -138,19 +138,70 @@ describe('parseCodeBlocks', () => {
     expect(result).toEqual([]);
   });
 
-  it('parses closing fence on same line as code', () => {
+  it('treats closing fence on same line as code as plain text', () => {
     const input = '```js\nconst x = 1;```';
     const result = parseCodeBlocks(input);
+    // Closing fence must be on its own line to be recognized
     expect(result).toEqual([
-      { type: 'code_block', language: 'js', code: 'const x = 1;' },
+      { type: 'text', content: '```js\nconst x = 1;```' },
     ]);
   });
 
-  it('parses multiline block with closing fence on last code line', () => {
+  it('treats multiline block with closing fence on last code line as plain text', () => {
     const input = '```ts\nfunction foo() {\n  return 1;\n}```';
     const result = parseCodeBlocks(input);
+    // Closing fence must be on its own line to be recognized
     expect(result).toEqual([
-      { type: 'code_block', language: 'ts', code: 'function foo() {\n  return 1;\n}' },
+      { type: 'text', content: '```ts\nfunction foo() {\n  return 1;\n}```' },
+    ]);
+  });
+
+  it('keeps markdown link syntax inside code block as code', () => {
+    const input = '```\n[click here](https://example.com)\n```';
+    const result = parseCodeBlocks(input);
+    expect(result).toEqual([
+      { type: 'code_block', language: '', code: '[click here](https://example.com)\n' },
+    ]);
+  });
+
+  it('keeps bold/italic markdown inside code block as code', () => {
+    const input = '```\n**bold** and *italic*\n```';
+    const result = parseCodeBlocks(input);
+    expect(result).toEqual([
+      { type: 'code_block', language: '', code: '**bold** and *italic*\n' },
+    ]);
+  });
+
+  it('code block as first content in message (no preceding newline)', () => {
+    const input = '```js\nconst x = 1;\n```';
+    const result = parseCodeBlocks(input);
+    expect(result).toEqual([
+      { type: 'code_block', language: 'js', code: 'const x = 1;\n' },
+    ]);
+  });
+
+  it('separates URLs in code blocks from URLs in text segments', () => {
+    const input =
+      'Check https://real-link.com\n```\nhttps://code-url.com\n```\nAlso https://another-link.com';
+    const result = parseCodeBlocks(input);
+    expect(result).toEqual([
+      { type: 'text', content: 'Check https://real-link.com\n' },
+      { type: 'code_block', language: '', code: 'https://code-url.com\n' },
+      { type: 'text', content: '\nAlso https://another-link.com' },
+    ]);
+
+    const textSegments = result.filter((s) => s.type === 'text');
+    const codeSegments = result.filter((s) => s.type === 'code_block');
+    expect(textSegments).toHaveLength(2);
+    expect(codeSegments).toHaveLength(1);
+  });
+
+  it('handles code block immediately after inline text on same line', () => {
+    const input = 'some text```\ncode\n```';
+    const result = parseCodeBlocks(input);
+    // The fenced regex requires ``` at start of line, so this won't match as a code block
+    expect(result).toEqual([
+      { type: 'text', content: 'some text```\ncode\n```' },
     ]);
   });
 });

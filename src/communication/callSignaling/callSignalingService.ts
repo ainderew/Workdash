@@ -95,7 +95,11 @@ export class CallSignalingService {
     this.socket.on(
       "call:participant_left",
       ({ channelId, userId }: { channelId: string; userId: number }) => {
+        const isInCall = store().currentCall?.channelId === channelId;
         store().handleParticipantLeft(channelId, userId);
+        if (isInCall) {
+          playCallSound("end-call");
+        }
       },
     );
 

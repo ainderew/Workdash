@@ -20,7 +20,32 @@ export function serializeTiptapToMarkdown(doc: JSONContent): string {
 }
 
 function serializeNodes(nodes: JSONContent[]): string {
-  return nodes.map(serializeNode).join('');
+  const merged: JSONContent[] = [];
+
+  for (const node of nodes) {
+    const prev = merged[merged.length - 1];
+    // Merge consecutive codeBlock nodes into a single node
+    if (
+      node.type === 'codeBlock' &&
+      prev?.type === 'codeBlock'
+    ) {
+      const prevText = prev.content
+        ? prev.content.map((n) => n.text ?? '').join('')
+        : '';
+      const curText = node.content
+        ? node.content.map((n) => n.text ?? '').join('')
+        : '';
+      prev.content = [{ type: 'text', text: prevText + '\n' + curText }];
+      // Keep the language from whichever has one
+      if (!prev.attrs?.language && node.attrs?.language) {
+        prev.attrs = { ...prev.attrs, language: node.attrs.language };
+      }
+      continue;
+    }
+    merged.push(node);
+  }
+
+  return merged.map(serializeNode).join('');
 }
 
 function serializeNode(node: JSONContent): string {

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { ChatV2Message } from "@/communication/chatV2/_types";
 import { getStandaloneGifUrl } from "@/communication/chatV2/gifUrl";
 import { parseMessageContent } from "@/common/utils/linkParser";
+import { parseCodeBlocks } from "@/common/utils/codeBlockParser";
 
 export type LinkPreviewMetadata = {
     url: string;
@@ -39,7 +40,7 @@ async function fetchYouTubeOembed(url: string): Promise<LinkPreviewMetadata | nu
     }
 }
 
-function collectUnresolvedUrls(
+export function collectUnresolvedUrls(
     messages: ChatV2Message[],
     previews: Record<string, LinkPreviewMetadata | null>,
     retryCounts: Record<string, number>,
@@ -50,22 +51,17 @@ function collectUnresolvedUrls(
         if (!message.content || message.deletedAt) continue;
         if (getStandaloneGifUrl(message.content)) continue;
 
-        const parsedParts = parseMessageContent(message.content);
+        const segments = parseCodeBlocks(message.content);
+        const textOnly = segments
+            .filter((s) => s.type === "text")
+            .map((s) => (s as { type: "text"; content: string }).content)
+            .join("\n");
+        const parsedParts = parseMessageContent(textOnly);
         const allUrls = new Set(
             parsedParts
                 .filter((part) => part.type !== "text" && !!part.url)
                 .map((part) => part.url as string),
         );
-        const extractedUrls = Array.from(
-            new Set(
-                (message.content.match(/https?:\/\/[^\s]+/gi) || []).map(
-                    (url) => url.trim(),
-                ),
-            ),
-        );
-        for (const url of extractedUrls) {
-            allUrls.add(url);
-        }
 
         for (const url of allUrls) {
             const existingPreview = previews[url];

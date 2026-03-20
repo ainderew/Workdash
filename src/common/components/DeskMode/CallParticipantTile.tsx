@@ -42,8 +42,10 @@ export default function CallParticipantTile({
     [isLocal],
   );
 
-  const isRemoteFocused = useFocusStore(
-    (s) => !isLocal && (s.remoteFocusByUserId[participant.userId] ?? false),
+  const isFocused = useFocusStore((s) =>
+    isLocal
+      ? s.localFocusMode
+      : (s.remoteFocusByUserId[participant.userId] ?? false),
   );
 
   // For local user, use uiStore.isMuted (updates instantly on toggle).
@@ -189,7 +191,7 @@ export default function CallParticipantTile({
       )}
 
       {/* Focus mode overlay + badge */}
-      {isRemoteFocused && (
+      {isFocused && (
         <>
           <div className="absolute inset-0 z-[5] pointer-events-none rounded-lg bg-black/45 wd-focus-overlay" />
           <span

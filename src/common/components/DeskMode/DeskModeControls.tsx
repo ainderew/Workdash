@@ -47,21 +47,19 @@ function DeskModeControlsInner({
         }
     };
 
-    const controlButtonSize = compact ? "h-7 w-7" : "h-8 w-8";
-
     return (
-        <div className={`flex items-center ${compact ? "gap-1.5" : "gap-2"}`}>
+        <div className={`flex items-center ${compact ? "gap-1" : "gap-1.5"}`}>
             <button
                 type="button"
                 onClick={toggleMic}
                 title={isMuted ? "Unmute microphone" : "Mute microphone"}
-                className={`inline-flex ${controlButtonSize} items-center justify-center rounded-md border transition-colors ${
+                className={`wd-dock-action-btn ${
                     isMuted
-                        ? "border-[var(--wd-danger)] text-[var(--wd-danger)] hover:bg-[color-mix(in_srgb,var(--wd-danger)_18%,transparent)]"
-                        : "border-[var(--wd-success)] text-[var(--wd-success)] hover:bg-[color-mix(in_srgb,var(--wd-success)_18%,transparent)]"
+                        ? "wd-dock-action-btn--danger"
+                        : "wd-dock-action-btn--success"
                 }`}
             >
-                {isMuted ? <MicOff size={16} /> : <Mic size={16} />}
+                {isMuted ? <MicOff size={15} /> : <Mic size={15} />}
             </button>
 
             <button
@@ -70,13 +68,13 @@ function DeskModeControlsInner({
                     void handleToggleVideo();
                 }}
                 title={isVideoOff ? "Start camera" : "Stop camera"}
-                className={`inline-flex ${controlButtonSize} items-center justify-center rounded-md border transition-colors ${
+                className={`wd-dock-action-btn ${
                     isVideoOff
-                        ? "border-[var(--wd-danger)] text-[var(--wd-danger)] hover:bg-[color-mix(in_srgb,var(--wd-danger)_18%,transparent)]"
-                        : "border-[var(--wd-success)] text-[var(--wd-success)] hover:bg-[color-mix(in_srgb,var(--wd-success)_18%,transparent)]"
+                        ? "wd-dock-action-btn--danger"
+                        : "wd-dock-action-btn--success"
                 }`}
             >
-                {isVideoOff ? <VideoOff size={16} /> : <Video size={16} />}
+                {isVideoOff ? <VideoOff size={15} /> : <Video size={15} />}
             </button>
 
             <button
@@ -85,9 +83,9 @@ function DeskModeControlsInner({
                     void handleScreenShare();
                 }}
                 title="Share screen"
-                className={`inline-flex ${controlButtonSize} items-center justify-center rounded-md border wd-border-subtle wd-bg-elevated wd-text-secondary transition-colors hover:bg-[var(--wd-surface-base)]`}
+                className="wd-dock-action-btn"
             >
-                <ScreenShare size={16} />
+                <ScreenShare size={15} />
             </button>
 
             {showMicrophoneSelector && (

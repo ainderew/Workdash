@@ -104,7 +104,7 @@ function Composer(props: ComposerProps) {
     }, []);
 
     return (
-        <div className="relative min-h-[var(--wd-panel-height)] border-t wd-border-subtle wd-bg-panel-2 px-3 pb-3 pt-2">
+        <div className="relative min-h-[var(--wd-panel-height)] wd-bg-panel-2 px-3 pb-3 pt-2">
             {autocomplete.isCommandFlyoutOpen && (
                 <BotCommandFlyout
                     entries={autocomplete.commandSuggestions}

@@ -187,6 +187,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
         if (this.isLocal) {
             this.cursors = scene.input.keyboard!.createCursorKeys();
+            // Remove browser-level capture on Space so it can be typed in
+            // the desk-mode composer (Phaser captures Space by default).
+            scene.input.keyboard!.removeCapture(32);
             this.wasd = {
                 up: scene.input.keyboard!.addKey("W", false),
                 left: scene.input.keyboard!.addKey("A", false),

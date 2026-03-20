@@ -133,6 +133,28 @@ describe('serializeTiptapToMarkdown', () => {
   it('handles empty document', () => {
     expect(serializeTiptapToMarkdown({ type: 'doc' })).toBe('');
   });
+
+  it('merges consecutive codeBlock nodes into a single fenced block', () => {
+    const input = doc(
+      { type: 'codeBlock', attrs: { language: 'js' }, content: [text('const a = 1;')] },
+      { type: 'codeBlock', attrs: { language: '' }, content: [text('const b = 2;')] },
+      { type: 'codeBlock', attrs: { language: '' }, content: [text('const c = 3;')] },
+    );
+    expect(serializeTiptapToMarkdown(input)).toBe(
+      '```js\nconst a = 1;\nconst b = 2;\nconst c = 3;\n```',
+    );
+  });
+
+  it('keeps non-adjacent codeBlock nodes separate', () => {
+    const input = doc(
+      { type: 'codeBlock', attrs: { language: 'js' }, content: [text('a')] },
+      paragraph(text('between')),
+      { type: 'codeBlock', attrs: { language: 'py' }, content: [text('b')] },
+    );
+    expect(serializeTiptapToMarkdown(input)).toBe(
+      '```js\na\n```\nbetween\n```py\nb\n```',
+    );
+  });
 });
 
 describe('deserializeMarkdownToTiptap', () => {

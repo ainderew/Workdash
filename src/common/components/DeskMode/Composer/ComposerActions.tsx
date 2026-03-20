@@ -35,10 +35,10 @@ const ACTION_BTN =
   'inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[var(--wd-text-muted)] motion-safe:transition-all motion-safe:duration-150 hover:text-[var(--wd-text-primary)] hover:bg-[var(--wd-surface-elevated)] focus-visible:text-[var(--wd-text-primary)] focus-visible:bg-[var(--wd-surface-elevated)] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent';
 
 const SEND_BTN_ENABLED =
-  'inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[var(--wd-accent)] text-white motion-safe:transition-all motion-safe:duration-200 hover:brightness-110 hover:shadow-[0_0_10px_rgb(var(--wd-accent-rgb)/0.35)] active:scale-95';
+  'wd-dock-action-btn wd-dock-action-btn--accent active:scale-95';
 
 const SEND_BTN_DISABLED =
-  'inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[var(--wd-text-muted)] opacity-40 cursor-not-allowed';
+  'wd-dock-action-btn wd-dock-action-btn--disabled';
 
 export const INLINE_ACTION_BUTTON_CLASS = ACTION_BTN;
 
@@ -82,7 +82,7 @@ function ComposerActions({
 
       {/* Single bottom bar: attach actions | divider | send */}
       <div
-        className="flex items-center gap-0.5 px-1.5 pb-1"
+        className="flex items-center gap-1 px-2.5 pb-2"
         onMouseDown={(event) => {
           event.preventDefault();
           event.stopPropagation();

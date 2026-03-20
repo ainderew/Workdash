@@ -1,6 +1,6 @@
 import type { CodeSegment } from '@/common/components/DeskMode/CodeBlock/_types';
 
-const FENCED_BLOCK_REGEX = /^```(\w*)\n?([\s\S]*?)```\s*$/gm;
+const FENCED_BLOCK_REGEX = /^```(\w*)\n([\s\S]*?)^```\s*$/gm;
 const INLINE_CODE_REGEX = /`([^`\n]+)`/g;
 
 /**

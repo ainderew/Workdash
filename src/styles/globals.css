@@ -1704,6 +1704,98 @@ input[type="range"].wd-volume-slider::-moz-range-progress {
     }
 }
 
+/* ── Shared dock action button (footer + composer) ── */
+.wd-dock-action-btn {
+    display: inline-flex;
+    height: 1.75rem; /* 28px */
+    width: 1.75rem;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.5rem;
+    border: 1px solid var(--wd-border-subtle);
+    background: transparent;
+    color: var(--wd-text-muted);
+    cursor: pointer;
+}
+
+.wd-dock-action-btn:hover {
+    color: var(--wd-text-primary);
+    background: var(--wd-surface-elevated);
+}
+
+.wd-dock-action-btn:focus-visible {
+    color: var(--wd-text-primary);
+    background: var(--wd-surface-elevated);
+    outline: 2px solid var(--wd-accent);
+    outline-offset: -1px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .wd-dock-action-btn {
+        transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+    }
+}
+
+/* Semantic state modifiers */
+.wd-dock-action-btn--danger {
+    border-color: var(--wd-danger);
+    color: var(--wd-danger);
+}
+
+.wd-dock-action-btn--danger:hover {
+    background: color-mix(in srgb, var(--wd-danger) 18%, transparent);
+}
+
+.wd-dock-action-btn--success {
+    border-color: var(--wd-success);
+    color: var(--wd-success);
+}
+
+.wd-dock-action-btn--success:hover {
+    background: color-mix(in srgb, var(--wd-success) 18%, transparent);
+}
+
+.wd-dock-action-btn--warning {
+    border-color: var(--wd-warning);
+    color: var(--wd-warning);
+}
+
+.wd-dock-action-btn--warning:hover {
+    background: color-mix(in srgb, var(--wd-warning) 18%, transparent);
+}
+
+.wd-dock-action-btn--accent {
+    border-color: var(--wd-accent);
+    background: var(--wd-accent);
+    color: white;
+}
+
+.wd-dock-action-btn--accent:hover {
+    background: var(--wd-accent-hover);
+    border-color: var(--wd-accent-hover);
+    box-shadow: 0 0 10px rgb(var(--wd-accent-rgb) / 0.35);
+}
+
+.wd-dock-action-btn--disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.wd-dock-action-btn--disabled:hover {
+    background: transparent;
+    color: var(--wd-text-muted);
+}
+
+/* ── Footer shell (mirrors composer shell) ── */
+.wd-footer-shell {
+    transition: border-color 0.2s ease;
+}
+
+.wd-footer-shell:hover {
+    border-color: var(--wd-border-strong);
+}
+
 /* ── Composer shell ── */
 .wd-composer-shell {
     transition: border-color 0.2s ease;
@@ -1771,10 +1863,13 @@ input[type="range"].wd-volume-slider::-moz-range-progress {
     text-decoration: underline;
 }
 
-/* ── Composer reduced-motion overrides ── */
+/* ── Dock reduced-motion overrides ── */
 @media (prefers-reduced-motion: reduce) {
+    .wd-footer-shell,
+    .wd-footer-shell:hover,
     .wd-composer-shell,
-    .wd-composer-shell:focus-within {
+    .wd-composer-shell:focus-within,
+    .wd-dock-action-btn {
         transition: none;
     }
 }
