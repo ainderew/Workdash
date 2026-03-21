@@ -8,6 +8,7 @@ interface ListenButtonProps {
 export function ListenButton({ isListening, onToggle }: ListenButtonProps) {
   return (
     <button
+      type="button"
       onClick={onToggle}
       className={`mt-0.5 px-5 py-0.5 text-[11px] font-normal rounded-sm transition-colors ${
         isListening

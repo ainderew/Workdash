@@ -48,14 +48,17 @@ export function useNowPlaying() {
     if (lottieReady) return;
     if (!session?.currentTrack) return;
 
+    let cancelled = false;
     void Promise.all([
       import("lottie-react").then((m) => m.default),
       fetch("/assets/bot-avatars/musicbot.json").then((r) => r.json()),
     ]).then(([Lottie, data]) => {
+      if (cancelled) return;
       lottieCache.current.Component = Lottie as unknown as LottieComponentType;
       lottieCache.current.animationData = data as object;
       setLottieReady(true);
     });
+    return () => { cancelled = true; };
   }, [lottieReady, session?.currentTrack]);
 
   // Collapse queue when session ends

@@ -12,6 +12,7 @@ interface MusicStatePayload {
     queueLength: number;
     volume: number;
     listenerCount: number;
+    elapsedSeconds?: number;
 }
 
 interface MusicTrackPayload {
@@ -58,6 +59,7 @@ export class MusicClientService {
                 queueLength: data.queueLength,
                 volume: data.volume,
                 listenerCount: data.listenerCount,
+                elapsedSeconds: data.elapsedSeconds,
             });
         });
 
@@ -113,6 +115,7 @@ export class MusicClientService {
                     queueLength: res.data.queueLength,
                     volume: res.data.volume,
                     listenerCount: res.data.listenerCount,
+                    elapsedSeconds: res.data.elapsedSeconds,
                 });
             },
         );

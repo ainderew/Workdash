@@ -18,6 +18,8 @@ export interface MusicSessionState {
     queueLength: number;
     volume: number;
     listenerCount: number;
+    /** Server-reported elapsed seconds for the current track. */
+    elapsedSeconds?: number;
 }
 
 interface MusicState {

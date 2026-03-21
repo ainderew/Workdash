@@ -15,6 +15,7 @@ export function useTrackElapsed(
   const title = session?.currentTrack?.title ?? null;
   const duration = session?.currentTrack?.duration ?? 0;
   const isPlaying = session?.state === 'playing';
+  const serverElapsed = session?.elapsedSeconds;
 
   // Reset elapsed & cancel pending sync when track changes
   useEffect(() => {
@@ -26,6 +27,13 @@ export function useTrackElapsed(
       syncTimerRef.current = null;
     }
   }, [title]);
+
+  // Sync from server-reported elapsed when it arrives (e.g. fetchState, state-changed)
+  useEffect(() => {
+    if (serverElapsed !== undefined && serverElapsed > 0) {
+      setElapsed(serverElapsed);
+    }
+  }, [serverElapsed]);
 
   // Tick every second while playing, capped at duration
   useEffect(() => {
