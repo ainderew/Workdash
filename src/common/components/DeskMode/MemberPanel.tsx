@@ -1,5 +1,9 @@
 import React from "react";
-import type { ChatV2RoomMember, WorkspaceMember } from "@/communication/chatV2/_types";
+import type {
+    ChatV2RoomMember,
+    WorkspaceMember,
+    WorkspaceRole,
+} from "@/communication/chatV2/_types";
 import AddMemberModal from "./modals/AddMemberModal";
 import { getDisplayName } from "@/common/utils/displayName";
 import { Search, UserRoundX } from "lucide-react";
@@ -13,21 +17,11 @@ import PresenceDot from "./PresenceDot";
 import { ActivityText } from "./ActivityText";
 import useChatV2Store from "@/common/store/chatV2Store";
 import { usePresenceStore } from "@/common/store/presenceStore";
+import { colorToHex } from "@/common/utils/roleColor";
 
-const ROLE_ORDER: ChatV2RoomMember["role"][] = [
-    "OWNER",
-    "ADMIN",
-    "MODERATOR",
-    "MEMBER",
-    "READ_ONLY",
-];
-
-const ROLE_LABELS: Record<ChatV2RoomMember["role"], string> = {
-    OWNER: "Owner",
-    ADMIN: "Admin",
-    MODERATOR: "Moderator",
-    MEMBER: "Member",
-    READ_ONLY: "Read Only",
+type RoleGroup = {
+    role: WorkspaceRole;
+    members: ChatV2RoomMember[];
 };
 
 interface MemberPanelProps {
@@ -37,6 +31,18 @@ interface MemberPanelProps {
     workspaceMembers: WorkspaceMember[];
     onAddMember: (userId: number) => void;
     onRemoveMember: (userId: number) => void;
+}
+
+function getTopHoistedRole(
+    userId: number,
+    wsMemberMap: Map<number, WorkspaceMember>,
+): WorkspaceRole | null {
+    const wsMember = wsMemberMap.get(userId);
+    if (!wsMember?.roles?.length) return null;
+    const hoisted = wsMember.roles
+        .filter((r) => !r.isEveryone && r.isHoisted)
+        .sort((a, b) => b.position - a.position);
+    return hoisted[0] ?? null;
 }
 
 function MemberPanel({
@@ -61,6 +67,14 @@ function MemberPanel({
         [members],
     );
 
+    const wsMemberMap = React.useMemo(() => {
+        const map = new Map<number, WorkspaceMember>();
+        for (const wm of workspaceMembers) {
+            map.set(wm.userId, wm);
+        }
+        return map;
+    }, [workspaceMembers]);
+
     const filteredMembers = React.useMemo(() => {
         if (!searchQuery.trim()) return members;
         const query = searchQuery.toLowerCase();
@@ -69,37 +83,52 @@ function MemberPanel({
         );
     }, [members, searchQuery]);
 
-    const { onlineRoleGroups, offlineRoleGroups, offlineCount } =
+    const { onlineRoleGroups, onlineUngrouped, offlineMembers, offlineCount } =
         React.useMemo(() => {
-            const online = new Map<
-                ChatV2RoomMember["role"],
-                ChatV2RoomMember[]
-            >();
-            const offline = new Map<
-                ChatV2RoomMember["role"],
-                ChatV2RoomMember[]
-            >();
+            const roleGroupMap = new Map<string, RoleGroup>();
+            const ungrouped: ChatV2RoomMember[] = [];
+            const offline: ChatV2RoomMember[] = [];
             let count = 0;
 
             for (const member of filteredMembers) {
                 const presence = presenceMap[member.userId];
                 const isOffline =
                     !presence || presence.statusId === "offline";
-                const target = isOffline ? offline : online;
 
-                if (isOffline) count++;
+                if (isOffline) {
+                    offline.push(member);
+                    count++;
+                    continue;
+                }
 
-                const existing = target.get(member.role) ?? [];
-                existing.push(member);
-                target.set(member.role, existing);
+                const topRole = getTopHoistedRole(member.userId, wsMemberMap);
+                if (!topRole) {
+                    ungrouped.push(member);
+                    continue;
+                }
+
+                const existing = roleGroupMap.get(topRole.id);
+                if (existing) {
+                    existing.members.push(member);
+                } else {
+                    roleGroupMap.set(topRole.id, {
+                        role: topRole,
+                        members: [member],
+                    });
+                }
             }
 
+            const sorted = Array.from(roleGroupMap.values()).sort(
+                (a, b) => b.role.position - a.role.position,
+            );
+
             return {
-                onlineRoleGroups: online,
-                offlineRoleGroups: offline,
+                onlineRoleGroups: sorted,
+                onlineUngrouped: ungrouped,
+                offlineMembers: offline,
                 offlineCount: count,
             };
-        }, [filteredMembers, presenceMap]);
+        }, [filteredMembers, presenceMap, wsMemberMap]);
 
     return (
         <>
@@ -149,35 +178,58 @@ function MemberPanel({
                         </div>
                     ) : (
                         <div className="space-y-4">
-                            {ROLE_ORDER.map((role) => {
-                                const roleMembers =
-                                    onlineRoleGroups.get(role);
-                                if (!roleMembers || roleMembers.length === 0)
-                                    return null;
-
-                                return (
-                                    <div key={role}>
-                                        <h4 className="text-[11px] uppercase tracking-wider wd-text-muted font-semibold px-2 mb-1">
-                                            {ROLE_LABELS[role]} &mdash;{" "}
-                                            {roleMembers.length}
-                                        </h4>
-                                        <div>
-                                            {roleMembers.map((member) => (
-                                                <MemberRow
-                                                    key={`${member.roomId}-${member.userId}`}
-                                                    member={member}
-                                                    nameColor={memberRoleColors?.get(member.userId)}
-                                                    onRemove={() =>
-                                                        onRemoveMember(
-                                                            member.userId,
-                                                        )
-                                                    }
-                                                />
-                                            ))}
-                                        </div>
+                            {onlineRoleGroups.map(({ role, members: roleMembers }) => (
+                                <div key={role.id}>
+                                    <h4
+                                        className="text-[11px] uppercase tracking-wider font-semibold px-2 mb-1"
+                                        style={
+                                            role.color
+                                                ? { color: colorToHex(role.color) }
+                                                : undefined
+                                        }
+                                    >
+                                        {role.name} &mdash;{" "}
+                                        {roleMembers.length}
+                                    </h4>
+                                    <div>
+                                        {roleMembers.map((member) => (
+                                            <MemberRow
+                                                key={`${member.roomId}-${member.userId}`}
+                                                member={member}
+                                                nameColor={memberRoleColors?.get(member.userId)}
+                                                onRemove={() =>
+                                                    onRemoveMember(
+                                                        member.userId,
+                                                    )
+                                                }
+                                            />
+                                        ))}
                                     </div>
-                                );
-                            })}
+                                </div>
+                            ))}
+
+                            {onlineUngrouped.length > 0 && (
+                                <div>
+                                    <h4 className="text-[11px] uppercase tracking-wider wd-text-muted font-semibold px-2 mb-1">
+                                        Members &mdash;{" "}
+                                        {onlineUngrouped.length}
+                                    </h4>
+                                    <div>
+                                        {onlineUngrouped.map((member) => (
+                                            <MemberRow
+                                                key={`${member.roomId}-${member.userId}`}
+                                                member={member}
+                                                nameColor={memberRoleColors?.get(member.userId)}
+                                                onRemove={() =>
+                                                    onRemoveMember(
+                                                        member.userId,
+                                                    )
+                                                }
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
 
                             {offlineCount > 0 && (
                                 <div>
@@ -200,48 +252,20 @@ function MemberPanel({
                                         </span>
                                     </button>
                                     {!isOfflineCollapsed && (
-                                        <div className="space-y-3">
-                                            {ROLE_ORDER.map((role) => {
-                                                const roleMembers =
-                                                    offlineRoleGroups.get(role);
-                                                if (
-                                                    !roleMembers ||
-                                                    roleMembers.length === 0
-                                                )
-                                                    return null;
-                                                return (
-                                                    <div
-                                                        key={`offline-${role}`}
-                                                    >
-                                                        <h4 className="text-[11px] uppercase tracking-wider wd-text-muted font-semibold px-2 mb-1">
-                                                            {ROLE_LABELS[role]}{" "}
-                                                            &mdash;{" "}
-                                                            {
-                                                                roleMembers.length
-                                                            }
-                                                        </h4>
-                                                        <div>
-                                                            {roleMembers.map(
-                                                                (member) => (
-                                                                    <MemberRow
-                                                                        key={`${member.roomId}-${member.userId}`}
-                                                                        member={
-                                                                            member
-                                                                        }
-                                                                        nameColor={memberRoleColors?.get(member.userId)}
-                                                                        onRemove={() =>
-                                                                            onRemoveMember(
-                                                                                member.userId,
-                                                                            )
-                                                                        }
-                                                                        isOffline
-                                                                    />
-                                                                ),
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })}
+                                        <div>
+                                            {offlineMembers.map((member) => (
+                                                <MemberRow
+                                                    key={`${member.roomId}-${member.userId}`}
+                                                    member={member}
+                                                    nameColor={memberRoleColors?.get(member.userId)}
+                                                    onRemove={() =>
+                                                        onRemoveMember(
+                                                            member.userId,
+                                                        )
+                                                    }
+                                                    isOffline
+                                                />
+                                            ))}
                                         </div>
                                     )}
                                 </div>
