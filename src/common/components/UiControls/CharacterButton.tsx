@@ -59,22 +59,22 @@ function CharacterButton() {
 
     return (
         <>
-            <div className="container text-white font-light bg-neutral-800 p-2 rounded-xl w-40 flex items-center gap-4 shadow-lg border border-white/5">
+            <div className="container wd-text-primary font-light bg-[var(--wd-surface-panel)] p-2 rounded-xl w-40 flex items-center gap-4 shadow-lg wd-border-subtle">
                 <div className="online-dot-container relative shrink-0">
                     <Tooltip>
                         <TooltipTrigger asChild>
                             <button
                                 onClick={toggleFocusMode}
-                                className={`relative outline-none shrink-0 w-10 h-10 rounded-full border-2 border-solid bg-no-repeat overflow-hidden cursor-pointer transition-all duration-300 bg-neutral-700 flex items-center justify-center
+                                className={`relative outline-none shrink-0 w-10 h-10 rounded-full border-2 border-solid bg-no-repeat overflow-hidden cursor-pointer transition-all duration-300 bg-[var(--wd-surface-elevated)] flex items-center justify-center
                 ${
                     isInFocusMode
-                        ? "border-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]"
-                        : "border-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]"
+                        ? "border-[var(--wd-warning)] shadow-[0_0_10px_var(--wd-warning)/0.5]"
+                        : "border-[var(--wd-success)] shadow-[0_0_10px_var(--wd-success)/0.5]"
                 }`}
                                 style={backgroundStyles}
                             >
                                 {!backgroundStyles.backgroundImage && (
-                                    <User className="w-4 h-4 text-neutral-400" />
+                                    <User className="w-4 h-4 wd-text-muted" />
                                 )}
                             </button>
                         </TooltipTrigger>
@@ -89,10 +89,10 @@ function CharacterButton() {
 
                     {/* Status Indicator Dot */}
                     <div
-                        className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border border-neutral-800 z-10 ${
+                        className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border border-[var(--wd-surface-panel)] z-10 ${
                             isInFocusMode
-                                ? "bg-amber-500"
-                                : "bg-green-500"
+                                ? "bg-[var(--wd-warning)]"
+                                : "bg-[var(--wd-success)]"
                         }`}
                     />
                 </div>
@@ -103,17 +103,17 @@ function CharacterButton() {
                         className="text-left group flex items-center gap-1.5 focus:outline-none"
                         title="Click to edit name"
                     >
-                        <span className="text-xs font-medium text-slate-200 truncate max-w-[80px] group-hover:text-amber-400 transition-colors">
+                        <span className="text-xs font-medium wd-text-primary truncate max-w-[80px] group-hover:text-[var(--wd-accent)] transition-colors">
                             {displayName}
                         </span>
-                        <Pencil className="w-3 h-3 text-neutral-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <Pencil className="w-3 h-3 wd-text-muted opacity-0 group-hover:opacity-100 transition-opacity" />
                     </button>
 
                     <span
                         className={`text-[10px] uppercase tracking-wider font-bold ${
                             isInFocusMode
-                                ? "text-amber-500"
-                                : "text-green-500"
+                                ? "text-[var(--wd-warning)]"
+                                : "text-[var(--wd-success)]"
                         }`}
                     >
                         {isInFocusMode

@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useMemo, useState, useCallback } from 'react';
+import Image from 'next/image';
 import { Mic, MicOff, Video, Monitor, Pin, PinOff, HeadphoneOff } from 'lucide-react';
 import useFocusStore from '@/common/store/focusStore';
 import type { CallParticipant } from '@/common/store/callStore';
@@ -177,8 +178,8 @@ export default function CallParticipantTile({
           }}
           className={`absolute top-1 right-1 z-10 inline-flex items-center justify-center h-6 w-6 rounded transition-opacity ${
             isPinned
-              ? 'opacity-100 bg-blue-500/80'
-              : 'opacity-0 group-hover/tile:opacity-100 bg-black/50 hover:bg-black/70'
+              ? 'opacity-100 bg-[var(--wd-accent)]/80'
+              : 'opacity-0 group-hover/tile:opacity-100 bg-[var(--wd-surface-base)]/50 hover:bg-[var(--wd-surface-base)]/70'
           }`}
           title={isPinned ? 'Unpin' : 'Pin'}
         >
@@ -193,13 +194,9 @@ export default function CallParticipantTile({
       {/* Focus mode overlay + badge */}
       {isFocused && (
         <>
-          <div className="absolute inset-0 z-[5] pointer-events-none rounded-lg bg-black/45 wd-focus-overlay" />
+          <div className="absolute inset-0 z-[5] pointer-events-none rounded-lg bg-[rgb(var(--wd-surface-base-rgb)/0.45)] wd-focus-overlay" />
           <span
-            className="absolute top-1 left-1 z-10 inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
-            style={{
-              backgroundColor: 'var(--wd-warning)',
-              color: 'var(--wd-surface-base)',
-            }}
+            className="absolute top-1 left-1 z-10 inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold bg-[var(--wd-warning)] text-[var(--wd-surface-base)]"
           >
             <HeadphoneOff size={10} />
             Focused
@@ -211,17 +208,22 @@ export default function CallParticipantTile({
       {!participant.media.video && (
         <div className="absolute inset-0 flex items-center justify-center">
           {profileImage ? (
-            <img
+            <Image
               src={profileImage}
               alt={participant.displayName}
-              className="h-16 w-16 rounded-full object-cover"
+              width={64}
+              height={64}
+              className="rounded-full object-cover"
+              unoptimized
             />
           ) : spriteAvatar ? (
-            <img
+            <Image
               src={spriteAvatar}
               alt={participant.displayName}
-              className="h-16 w-16"
+              width={64}
+              height={64}
               style={{ imageRendering: 'pixelated' }}
+              unoptimized
             />
           ) : (
             <span
@@ -260,13 +262,13 @@ export default function CallParticipantTile({
           {participant.media.audio ? (
             <Mic size={11} className="text-white/80" />
           ) : (
-            <MicOff size={11} className="text-red-400" />
+            <MicOff size={11} className="text-[var(--wd-danger)]" />
           )}
           {participant.media.video && (
             <Video size={11} className="text-white/80" />
           )}
           {participant.media.screen && (
-            <Monitor size={11} className="text-blue-400" />
+            <Monitor size={11} className="text-[var(--wd-info)]" />
           )}
         </div>
       </div>

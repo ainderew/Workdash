@@ -6,6 +6,7 @@ interface FocusState {
 
   setLocalFocusMode: (enabled: boolean) => void;
   setRemoteFocusMode: (userId: number, isInFocusMode: boolean) => void;
+  removeRemoteFocusMode: (userId: number) => void;
   reset: () => void;
 }
 
@@ -22,6 +23,13 @@ const useFocusStore = create<FocusState>((set) => ({
         [userId]: isInFocusMode,
       },
     })),
+
+  removeRemoteFocusMode: (userId) =>
+    set((state) => {
+      const next = { ...state.remoteFocusByUserId };
+      delete next[userId];
+      return { remoteFocusByUserId: next };
+    }),
 
   reset: () => set({ localFocusMode: false, remoteFocusByUserId: {} }),
 }));

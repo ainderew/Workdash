@@ -135,20 +135,20 @@ export default function FloatingCallWindow() {
     const screenViewer = ScreenShareViewer.getInstance();
 
     if (isInDifferentWorkspace) {
-      // Pause all producers (outbound)
-      audio.muteMic();
-      videoProducer.pauseProducer();
-      screenProducer.pauseProducer();
-      // Pause all consumers (inbound)
+      // Pause all consumers (inbound) — must run before muteMic so
+      // enableFocusMode snapshots the true pre-switch mic state
       audio.enableFocusMode();
       videoViewer.pauseAllConsumers();
       screenViewer.pauseAllConsumers();
+      // Pause remaining producers (outbound) — mic already muted by enableFocusMode
+      videoProducer.pauseProducer();
+      screenProducer.pauseProducer();
     } else {
-      // Resume producers — respect user's prior mute/video state
-      const wasMuted = useUiStore.getState().isMuted;
-      if (!wasMuted) {
-        audio.unMuteMic();
-      }
+      // Resume all consumers (inbound) + restore mic via wasMutedBeforeFocus
+      audio.disableFocusMode().finally(() => {
+        useUiStore.getState().setIsMuted(audio.isMuted);
+      });
+      // Resume video/screen producers — respect user's prior state
       const wasVideoOff = useUiStore.getState().isVideoOff;
       if (!wasVideoOff) {
         videoProducer.resumeProducer();
@@ -157,8 +157,6 @@ export default function FloatingCallWindow() {
       if (wasScreenSharing) {
         screenProducer.resumeProducer();
       }
-      // Resume all consumers (inbound)
-      audio.disableFocusMode();
       videoViewer.resumeAllConsumers();
       screenViewer.resumeAllConsumers();
     }

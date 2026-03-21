@@ -43,6 +43,7 @@ export class AudioChat {
     private audioDestination?: MediaStreamAudioDestinationNode;
     private consumers: Map<string, Consumer> = new Map();
     private isInFocusMode: boolean = false;
+    private wasMutedBeforeFocus: boolean = false;
     private _focusModeListenerAttached: boolean = false;
     private currentStream: MediaStream | null = null;
     private currentDeviceId: string | null = null;
@@ -281,6 +282,7 @@ export class AudioChat {
         }
 
         const wasMuted = this.isMuted;
+        const savedWasMutedBeforeFocus = this.wasMutedBeforeFocus;
 
         this.clearNoiseGate();
 
@@ -325,6 +327,10 @@ export class AudioChat {
             this.muteMic();
         } else {
             this.unMuteMic();
+        }
+        // Restore pre-focus intent so mic switch doesn't corrupt exit behavior
+        if (this.isInFocusMode) {
+            this.wasMutedBeforeFocus = savedWasMutedBeforeFocus;
         }
     }
 
@@ -867,7 +873,10 @@ export class AudioChat {
     public muteMic() {
         if (this.audioProducer) {
             this.audioProducer?.pause();
-            this.isMuted = true;
+        }
+        this.isMuted = true;
+        if (this.isInFocusMode) {
+            this.wasMutedBeforeFocus = true;
         }
     }
 
@@ -888,27 +897,42 @@ export class AudioChat {
             this.currentStream = null;
         }
         this.isMuted = true;
+        if (this.isInFocusMode) {
+            this.isInFocusMode = false;
+            this.wasMutedBeforeFocus = false;
+            useFocusStore.getState().setLocalFocusMode(false);
+            this.emitFocusModeChange();
+        }
     }
 
     public async unMuteMic() {
+        this.isMuted = false;
+        if (this.isInFocusMode) {
+            this.wasMutedBeforeFocus = false;
+        }
         if (this.audioProducer) {
             // Resume AudioContexts on unmute (Firefox autoplay policy)
             await this.resumeAudioContexts();
-
-            this.audioProducer?.resume();
-            this.isMuted = false;
+            this.audioProducer.resume();
         }
     }
 
     public enableFocusMode() {
+        if (this.isInFocusMode) return;
         if (!this.consumers) return;
         this.consumers.forEach((consumer) => consumer.pause());
+        this.wasMutedBeforeFocus = this.isMuted;
+        if (!this.isMuted) {
+            this.muteMic();
+        }
         this.isInFocusMode = true;
     }
 
-    public disableFocusMode() {
+    public async disableFocusMode() {
+        if (!this.isInFocusMode) return;
         if (!this.consumers) return;
         this.consumers.forEach((consumer) => {
+            if (consumer.closed) return;
             consumer.resume();
             // Resume on server for consumers that were created while in focus mode
             this.sfuService.socket.emit(
@@ -917,6 +941,9 @@ export class AudioChat {
                 () => {},
             );
         });
+        if (!this.wasMutedBeforeFocus) {
+            await this.unMuteMic();
+        }
         this.isInFocusMode = false;
     }
 
@@ -988,6 +1015,7 @@ export class AudioChat {
         if (!this.currentStream) return;
 
         const wasMuted = this.isMuted;
+        const savedWasMutedBeforeFocus = this.wasMutedBeforeFocus;
         const deviceId = this.currentDeviceId ?? undefined;
 
         // Stop existing producer and stream
@@ -1022,6 +1050,10 @@ export class AudioChat {
             this.muteMic();
         } else {
             this.unMuteMic();
+        }
+        // Restore pre-focus intent so quality change doesn't corrupt exit behavior
+        if (this.isInFocusMode) {
+            this.wasMutedBeforeFocus = savedWasMutedBeforeFocus;
         }
 
         logger.log(`Audio quality mode applied: ${mode}`);
@@ -1110,6 +1142,14 @@ export class AudioChat {
         this.watchingNewProducers = false;
         this.consumingInFlight.clear();
         this.musicBotProducerIds.clear();
+
+        if (this.isInFocusMode) {
+            useFocusStore.getState().setLocalFocusMode(false);
+        }
+        this.isInFocusMode = false;
+        this.wasMutedBeforeFocus = false;
+        this.isMuted = true;
+        this._focusModeListenerAttached = false;
     }
 
     /**

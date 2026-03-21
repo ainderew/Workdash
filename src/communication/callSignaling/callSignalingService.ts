@@ -7,6 +7,7 @@ import { VideoChatViewer } from "@/communication/videoChat/videoChatViewer";
 import { ScreenShareService } from "@/communication/screenShare/screenShare";
 import { ScreenShareViewer } from "@/communication/screenShare/screenShareViewer";
 import { logger } from "@/common/utils/logger";
+import useFocusStore from "@/common/store/focusStore";
 
 // ----------------------------------------------------------------
 // Types (server response shapes)
@@ -102,6 +103,7 @@ export class CallSignalingService {
       ({ channelId, userId }: { channelId: string; userId: number }) => {
         const isInCall = store().currentCall?.channelId === channelId;
         store().handleParticipantLeft(channelId, userId);
+        useFocusStore.getState().removeRemoteFocusMode(userId);
         if (isInCall) {
           playCallSound("end-call");
         }
