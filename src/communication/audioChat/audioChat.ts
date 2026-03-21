@@ -374,6 +374,10 @@ export class AudioChat {
     }
 
     public async joinVoiceChat(deviceId?: string) {
+        if (this.audioProducer && !this.audioProducer.closed) {
+            return;
+        }
+
         const stream = await navigator.mediaDevices.getUserMedia({
             audio: this.getAudioConstraints(deviceId),
         });
@@ -872,6 +876,10 @@ export class AudioChat {
         this.clearNoiseGate();
         this.cleanupRNNoise();
         if (this.audioProducer && !this.audioProducer.closed) {
+            this.sfuService.socket.emit("producerClosed", {
+                producerId: this.audioProducer.id,
+                kind: "audio",
+            });
             this.audioProducer.close();
             this.audioProducer = undefined;
         }

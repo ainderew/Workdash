@@ -6,6 +6,7 @@ import { VideoChatService } from "@/communication/videoChat/videoChat";
 import { VideoChatViewer } from "@/communication/videoChat/videoChatViewer";
 import { ScreenShareService } from "@/communication/screenShare/screenShare";
 import { ScreenShareViewer } from "@/communication/screenShare/screenShareViewer";
+import { logger } from "@/common/utils/logger";
 
 // ----------------------------------------------------------------
 // Types (server response shapes)
@@ -75,6 +76,10 @@ export class CallSignalingService {
         VideoChatViewer.getInstance().closeAllConsumers();
         ScreenShareViewer.getInstance().closeAllConsumers();
         AudioChat.getInstance().closeAllAudioConsumers();
+        // Recreate mic producer so it's available for the next call join.
+        AudioChat.getInstance().joinVoiceChat().catch((err) => {
+            logger.error("Failed to recreate mic producer after call ended:", err);
+        });
         playCallSound("end-call");
       }
     });
@@ -168,13 +173,21 @@ export class CallSignalingService {
 
   leaveCall(channelId: string): Promise<void> {
     return new Promise((resolve, reject) => {
+      let cleanedUp = false;
       const cleanup = () => {
+        if (cleanedUp) return;
+        cleanedUp = true;
         VideoChatService.getInstance().stopVideoChat();
         ScreenShareService.getInstance().stopScreenShare();
         AudioChat.getInstance().stopMic();
         VideoChatViewer.getInstance().closeAllConsumers();
         ScreenShareViewer.getInstance().closeAllConsumers();
         AudioChat.getInstance().closeAllAudioConsumers();
+        // Recreate mic producer so it's available for the next call join.
+        // joinVoiceChat() starts muted, matching the expected default state.
+        AudioChat.getInstance().joinVoiceChat().catch((err) => {
+            logger.error("Failed to recreate mic producer after leaving call:", err);
+        });
         useCallStore.getState().setCurrentCall(null);
         playCallSound("end-call");
       };
