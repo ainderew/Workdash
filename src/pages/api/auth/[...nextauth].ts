@@ -120,7 +120,6 @@ export const authOptions: AuthOptions = {
                     scope: "openid email profile https://www.googleapis.com/auth/calendar.readonly",
                     access_type: "offline",
                     include_granted_scopes: true,
-                    prompt: "consent",
                 },
             },
         }),
