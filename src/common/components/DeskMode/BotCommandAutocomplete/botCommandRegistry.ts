@@ -64,6 +64,14 @@ export const BOT_REGISTRY: BotDefinition[] = [
       { command: "volume", description: "Set playback volume", args: "<0-100>" },
     ],
   },
+  {
+    id: "fun-bot",
+    name: "Fun",
+    avatar: "🎲",
+    commands: [
+      { command: "roll", description: "Roll a random number (0–100)", args: "[max]" },
+    ],
+  },
 ];
 
 // ---------------------------------------------------------------------------

@@ -1073,7 +1073,7 @@ function MessageList({
                         );
                         const senderName = getSenderName(message);
                         const senderAvatar = getSenderAvatar(message);
-                        const isBot = message.sender?.name === "Music Bot";
+                        const isBot = message.messageType === "SYSTEM" && !!message.botCard;
                         const isSlashCommand = !!message.content?.startsWith("/");
                         const skipLinkPreviews = isBot || isSlashCommand;
                         const canOpenAvatarMenu = !(

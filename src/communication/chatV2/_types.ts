@@ -525,6 +525,13 @@ export interface BotCardGenericInfo {
     message: string;
 }
 
+export interface BotCardRoll {
+    type: "roll";
+    value: number;
+    max: number;
+    rolledBy: string;
+}
+
 export type BotCardPayload =
     | BotCardSearching
     | BotCardNowPlaying
@@ -533,7 +540,8 @@ export type BotCardPayload =
     | BotCardNowPlayingInfo
     | BotCardError
     | BotCardSessionEnded
-    | BotCardGenericInfo;
+    | BotCardGenericInfo
+    | BotCardRoll;
 
 export type CreateMessageResponse = {
     message: ChatV2Message | null;

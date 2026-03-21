@@ -8,6 +8,7 @@ import { NowPlayingInfoCard } from "./NowPlayingInfoCard";
 import { ErrorCard } from "./ErrorCard";
 import { SessionEndedCard } from "./SessionEndedCard";
 import { GenericInfoCard } from "./GenericInfoCard";
+import { RollCard } from "./RollCard";
 
 interface BotMessageCardProps {
     message: ChatV2Message;
@@ -35,6 +36,8 @@ export function BotMessageCard({ message }: BotMessageCardProps) {
                 return <SessionEndedCard />;
             case "generic_info":
                 return <GenericInfoCard card={card} />;
+            case "roll":
+                return <RollCard card={card} />;
             default:
                 return null;
         }

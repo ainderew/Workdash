@@ -954,6 +954,42 @@ body {
     }
 }
 
+/* ── Roll command: slot-machine digit reel ── */
+
+.wd-roll-reel {
+    overflow: hidden;
+    height: 1em;
+    line-height: 1;
+    position: relative;
+}
+
+.wd-roll-strip {
+    display: flex;
+    flex-direction: column;
+    animation: wd-roll-scramble 1.5s steps(30, end) forwards;
+    will-change: transform;
+}
+
+.wd-roll-strip--mid {
+    animation-duration: 1.9s;
+}
+
+.wd-roll-strip--right {
+    animation-duration: 2.3s;
+}
+
+@keyframes wd-roll-scramble {
+    0% {
+        transform: translateY(0);
+    }
+    100% {
+        transform: translateY(var(--wd-roll-stop));
+    }
+}
+
+/* Roll animation plays even with reduced motion — it's a brief,
+   one-shot reveal (not a looping/decorative animation). */
+
 /* ── Typing indicator ────────────────────────────────────────────── */
 
 .wd-typing-dot {
