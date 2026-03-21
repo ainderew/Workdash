@@ -12,6 +12,7 @@ import UserAvatar from "./UserAvatar";
 import PresenceDot from "./PresenceDot";
 import { ActivityText } from "./ActivityText";
 import useChatV2Store from "@/common/store/chatV2Store";
+import { usePresenceStore } from "@/common/store/presenceStore";
 
 const ROLE_ORDER: ChatV2RoomMember["role"][] = [
     "OWNER",
@@ -52,6 +53,8 @@ function MemberPanel({
     const [isAddMemberModalOpen, setIsAddMemberModalOpen] =
         React.useState(false);
     const [searchQuery, setSearchQuery] = React.useState("");
+    const presenceMap = usePresenceStore((s) => s.presenceMap);
+    const [isOfflineCollapsed, setIsOfflineCollapsed] = React.useState(false);
 
     const existingMemberIds = React.useMemo(
         () => new Set(members.map((m) => m.userId)),
@@ -66,15 +69,37 @@ function MemberPanel({
         );
     }, [members, searchQuery]);
 
-    const groupedMembers = React.useMemo(() => {
-        const groups = new Map<ChatV2RoomMember["role"], ChatV2RoomMember[]>();
-        for (const member of filteredMembers) {
-            const existing = groups.get(member.role) ?? [];
-            existing.push(member);
-            groups.set(member.role, existing);
-        }
-        return groups;
-    }, [filteredMembers]);
+    const { onlineRoleGroups, offlineRoleGroups, offlineCount } =
+        React.useMemo(() => {
+            const online = new Map<
+                ChatV2RoomMember["role"],
+                ChatV2RoomMember[]
+            >();
+            const offline = new Map<
+                ChatV2RoomMember["role"],
+                ChatV2RoomMember[]
+            >();
+            let count = 0;
+
+            for (const member of filteredMembers) {
+                const presence = presenceMap[member.userId];
+                const isOffline =
+                    !presence || presence.statusId === "offline";
+                const target = isOffline ? offline : online;
+
+                if (isOffline) count++;
+
+                const existing = target.get(member.role) ?? [];
+                existing.push(member);
+                target.set(member.role, existing);
+            }
+
+            return {
+                onlineRoleGroups: online,
+                offlineRoleGroups: offline,
+                offlineCount: count,
+            };
+        }, [filteredMembers, presenceMap]);
 
     return (
         <>
@@ -125,7 +150,8 @@ function MemberPanel({
                     ) : (
                         <div className="space-y-4">
                             {ROLE_ORDER.map((role) => {
-                                const roleMembers = groupedMembers.get(role);
+                                const roleMembers =
+                                    onlineRoleGroups.get(role);
                                 if (!roleMembers || roleMembers.length === 0)
                                     return null;
 
@@ -152,6 +178,74 @@ function MemberPanel({
                                     </div>
                                 );
                             })}
+
+                            {offlineCount > 0 && (
+                                <div>
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            setIsOfflineCollapsed(
+                                                (prev) => !prev,
+                                            )
+                                        }
+                                        className="flex items-center gap-1 text-[11px] uppercase tracking-wider wd-text-muted font-semibold px-2 mb-1 hover:text-[var(--wd-text-secondary)] transition-colors w-full text-left"
+                                    >
+                                        <span
+                                            className={`text-[8px] transition-transform ${isOfflineCollapsed ? "-rotate-90" : ""}`}
+                                        >
+                                            &#9662;
+                                        </span>
+                                        <span>
+                                            Offline &mdash; {offlineCount}
+                                        </span>
+                                    </button>
+                                    {!isOfflineCollapsed && (
+                                        <div className="space-y-3">
+                                            {ROLE_ORDER.map((role) => {
+                                                const roleMembers =
+                                                    offlineRoleGroups.get(role);
+                                                if (
+                                                    !roleMembers ||
+                                                    roleMembers.length === 0
+                                                )
+                                                    return null;
+                                                return (
+                                                    <div
+                                                        key={`offline-${role}`}
+                                                    >
+                                                        <h4 className="text-[11px] uppercase tracking-wider wd-text-muted font-semibold px-2 mb-1">
+                                                            {ROLE_LABELS[role]}{" "}
+                                                            &mdash;{" "}
+                                                            {
+                                                                roleMembers.length
+                                                            }
+                                                        </h4>
+                                                        <div>
+                                                            {roleMembers.map(
+                                                                (member) => (
+                                                                    <MemberRow
+                                                                        key={`${member.roomId}-${member.userId}`}
+                                                                        member={
+                                                                            member
+                                                                        }
+                                                                        nameColor={memberRoleColors?.get(member.userId)}
+                                                                        onRemove={() =>
+                                                                            onRemoveMember(
+                                                                                member.userId,
+                                                                            )
+                                                                        }
+                                                                        isOffline
+                                                                    />
+                                                                ),
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
@@ -176,10 +270,12 @@ function MemberRow({
     member,
     nameColor,
     onRemove,
+    isOffline = false,
 }: {
     member: ChatV2RoomMember;
     nameColor?: string;
     onRemove: () => void;
+    isOffline?: boolean;
 }) {
     const displayName = getDisplayName(member.user, `User ${member.userId}`);
     const selectedWorkspaceId = useChatV2Store(
@@ -187,7 +283,7 @@ function MemberRow({
     );
 
     return (
-        <div className="group flex items-start gap-4 px-2 py-1.5 rounded-md hover:bg-white/5 transition-colors">
+        <div className={`group flex items-start gap-4 px-2 py-1.5 rounded-md hover:bg-white/5 transition-colors ${isOffline ? "opacity-50" : ""}`}>
             <div className="relative shrink-0 mt-0.5">
                 <UserAvatar
                     name={displayName}
