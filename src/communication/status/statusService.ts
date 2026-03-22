@@ -14,6 +14,11 @@ export class StatusClientService {
     static init(socket: SocketIOClient.Socket): StatusClientService {
         if (!StatusClientService.instance) {
             StatusClientService.instance = new StatusClientService(socket);
+        } else {
+            StatusClientService.instance.socket.off("user:status-changed");
+            StatusClientService.instance.socket = socket;
+            StatusClientService.instance.initialized = false;
+            StatusClientService.instance.setupListeners();
         }
         return StatusClientService.instance;
     }
@@ -23,6 +28,10 @@ export class StatusClientService {
             throw new Error("StatusClientService not initialized");
         }
         return StatusClientService.instance;
+    }
+
+    static isInitialized(): boolean {
+        return !!StatusClientService.instance && StatusClientService.instance.socket.connected;
     }
 
     setupListeners(): void {
@@ -101,6 +110,10 @@ export class StatusClientService {
                 },
             );
         });
+    }
+
+    emitActivityHeartbeat(): void {
+        this.socket.emit("user:activity:heartbeat");
     }
 
     async setStatus(

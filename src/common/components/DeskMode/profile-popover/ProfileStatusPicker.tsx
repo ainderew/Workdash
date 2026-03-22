@@ -19,11 +19,19 @@ function StatusIcon({ statusId, color }: { statusId: string; color: string }) {
       </svg>
     );
   }
+  if (statusId === 'afk') {
+    return (
+      <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+        <circle cx="5" cy="5" r="4" stroke={color} strokeWidth="1.2" strokeDasharray="2 2" />
+        <circle cx="5" cy="5" r="1.5" fill={color} />
+      </svg>
+    );
+  }
   if (statusId === 'focus') {
     return (
       <span
-        className="relative block h-2.5 w-2.5 rounded-full"
-        style={{ backgroundColor: color }}
+        className="relative block h-2.5 w-2.5 rounded-full bg-[var(--wd-status-color)]"
+        style={{ '--wd-status-color': color } as React.CSSProperties}
       >
         <span className="absolute inset-[3px] rounded-full bg-[var(--wd-surface-panel)]" />
       </span>
@@ -31,8 +39,8 @@ function StatusIcon({ statusId, color }: { statusId: string; color: string }) {
   }
   return (
     <span
-      className="block h-2.5 w-2.5 rounded-full"
-      style={{ backgroundColor: color }}
+      className="block h-2.5 w-2.5 rounded-full bg-[var(--wd-status-color)]"
+      style={{ '--wd-status-color': color } as React.CSSProperties}
     />
   );
 }
@@ -47,7 +55,8 @@ export function ProfileStatusPicker() {
     .filter(
       (d) =>
         (d.category === 'SYSTEM' || d.category === 'MANUAL') &&
-        d.id !== 'offline',
+        d.id !== 'offline' &&
+        d.id !== 'afk',
     )
     .sort((a, b) => b.priority - a.priority);
 
@@ -79,7 +88,8 @@ export function ProfileStatusPicker() {
     setIsSubmenuOpen(false);
     try {
       const service = StatusClientService.getInstance();
-      await service.setStatus(statusId as 'online' | 'away' | 'focus');
+      if (statusId !== 'online' && statusId !== 'away' && statusId !== 'focus') return;
+      await service.setStatus(statusId);
     } catch (err) {
       console.error('[ProfileStatusPicker] Failed to set status:', err);
     }
@@ -105,7 +115,7 @@ export function ProfileStatusPicker() {
       </button>
 
       {isSubmenuOpen && (
-        <div className="absolute left-[calc(100%+8px)] bottom-0 z-[175] w-72 rounded-lg border border-white/[0.06] wd-bg-panel backdrop-blur-xl shadow-[0_0_0_1px_rgba(0,0,0,0.3),0_8px_24px_rgba(0,0,0,0.4)] py-2 px-2">
+        <div className="absolute left-[calc(100%+8px)] bottom-0 z-[175] w-72 rounded-lg border border-[var(--wd-border-subtle)] wd-bg-panel backdrop-blur-xl shadow-[0_0_0_1px_rgba(0,0,0,0.3),0_8px_24px_rgba(0,0,0,0.4)] py-2 px-2">
           <div className="space-y-1">
           {selectableStatuses.map((def, i) => {
             const description = STATUS_DESCRIPTIONS[def.id];
@@ -114,7 +124,7 @@ export function ProfileStatusPicker() {
             return (
               <React.Fragment key={def.id}>
                 {i === 1 && (
-                  <div className="mx-2 my-1.5 border-t border-white/[0.06]" />
+                  <div className="mx-2 my-1.5 border-t border-[var(--wd-border-subtle)]" />
                 )}
                 <button
                   type="button"

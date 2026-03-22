@@ -41,6 +41,7 @@ import { EventBus } from "@/game/EventBus";
 import { useChatNotificationSound } from "@/common/hooks/useChatNotificationSound";
 import { useAchievementListener } from "@/common/hooks/useAchievementListener";
 import { useDeviceEnumeration } from "@/common/hooks/useDeviceEnumeration";
+import { useActivityHeartbeat } from "@/common/hooks/useActivityHeartbeat";
 
 function App() {
     const interactionMode = useUiStore((state) => state.interactionMode);
@@ -62,6 +63,7 @@ function App() {
     useChatNotificationSound();
     useAchievementListener();
     useDeviceEnumeration();
+    useActivityHeartbeat(isInitialized);
 
     useEffect(() => {
         if (status !== "authenticated" || !session?.backendJwt) {
