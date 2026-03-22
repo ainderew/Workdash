@@ -29,6 +29,7 @@ interface MemberPanelProps {
     memberRoleColors?: Map<number, string>;
     isLoading: boolean;
     workspaceMembers: WorkspaceMember[];
+    workspaceOwnerId: number;
     onAddMember: (userId: number) => void;
     onRemoveMember: (userId: number) => void;
 }
@@ -50,6 +51,7 @@ function MemberPanel({
     memberRoleColors,
     isLoading,
     workspaceMembers,
+    workspaceOwnerId,
     onAddMember,
     onRemoveMember,
 }: MemberPanelProps) {
@@ -119,7 +121,16 @@ function MemberPanel({
             }
 
             const sorted = Array.from(roleGroupMap.values()).sort(
-                (a, b) => b.role.position - a.role.position,
+                (a, b) => {
+                    const aIsOwner = a.members.some(
+                        (m) => m.userId === workspaceOwnerId,
+                    );
+                    const bIsOwner = b.members.some(
+                        (m) => m.userId === workspaceOwnerId,
+                    );
+                    if (aIsOwner !== bIsOwner) return aIsOwner ? -1 : 1;
+                    return b.role.position - a.role.position;
+                },
             );
 
             return {
@@ -128,7 +139,7 @@ function MemberPanel({
                 offlineMembers: offline,
                 offlineCount: count,
             };
-        }, [filteredMembers, presenceMap, wsMemberMap]);
+        }, [filteredMembers, presenceMap, wsMemberMap, workspaceOwnerId]);
 
     return (
         <>

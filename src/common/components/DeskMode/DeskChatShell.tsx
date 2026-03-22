@@ -1148,6 +1148,7 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
                                 memberRoleColors={memberRoleColors}
                                 isLoading={isManagingMembers}
                                 workspaceMembers={wsMembers}
+                                workspaceOwnerId={selectedWorkspace?.ownerId ?? 0}
                                 onAddMember={(userId) => {
                                     void addRoomMember(userId);
                                 }}
