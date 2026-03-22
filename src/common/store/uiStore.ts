@@ -31,6 +31,9 @@ interface UiState {
     availableCameras: MediaDeviceInfo[];
     selectedCameraId: string;
 
+    availableOutputDevices: MediaDeviceInfo[];
+    selectedOutputDeviceId: string;
+
     
     isSoccerStatsModalOpen: boolean;
 
@@ -89,6 +92,15 @@ interface UiState {
     setAvailableCameras: (cameras: MediaDeviceInfo[]) => void;
     setSelectedCameraId: (id: string) => void;
 
+    setAvailableOutputDevices: (devices: MediaDeviceInfo[]) => void;
+    setSelectedOutputDeviceId: (id: string) => void;
+
+    setAllDevices: (devices: {
+        microphones: MediaDeviceInfo[];
+        cameras: MediaDeviceInfo[];
+        outputs: MediaDeviceInfo[];
+    }) => void;
+
     
     openSoccerStatsModal: () => void;
     closeSoccerStatsModal: () => void;
@@ -129,6 +141,8 @@ const useUiStore = create<UiState>((set) => ({
     isVideoOff: true,
     availableCameras: [],
     selectedCameraId: "",
+    availableOutputDevices: [],
+    selectedOutputDeviceId: "",
     isSoccerStatsModalOpen: false,
     isSoccerGameControlModalOpen: false,
     isMatchHistoryModalOpen: false,
@@ -207,6 +221,28 @@ const useUiStore = create<UiState>((set) => ({
     setIsVideoOff: (isOff) => set({ isVideoOff: isOff }),
     setAvailableCameras: (cameras) => set({ availableCameras: cameras }),
     setSelectedCameraId: (id) => set({ selectedCameraId: id }),
+
+    setAvailableOutputDevices: (devices) => set({ availableOutputDevices: devices }),
+    setSelectedOutputDeviceId: (id) => set({ selectedOutputDeviceId: id }),
+
+    setAllDevices: ({ microphones, cameras, outputs }) => {
+        const state = useUiStore.getState();
+        const update: Partial<UiState> = {
+            availableMicrophones: microphones,
+            availableCameras: cameras,
+            availableOutputDevices: outputs,
+        };
+        if (microphones.length > 0 && state.selectedMicrophoneId === '') {
+            update.selectedMicrophoneId = microphones[0].deviceId;
+        }
+        if (cameras.length > 0 && state.selectedCameraId === '') {
+            update.selectedCameraId = cameras[0].deviceId;
+        }
+        if (outputs.length > 0 && state.selectedOutputDeviceId === '') {
+            update.selectedOutputDeviceId = outputs[0].deviceId;
+        }
+        set(update);
+    },
 
     
     openSoccerStatsModal: () => set({ isSoccerStatsModalOpen: true }),

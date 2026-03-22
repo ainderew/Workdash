@@ -70,7 +70,10 @@ vi.mock("@/common/store/audioStore", () => {
   return { default: store };
 });
 
-// Lottie mock — renders a simple div so we can detect it loaded
+vi.mock("lottie-web", () => ({
+  default: { loadAnimation: vi.fn() },
+}));
+
 vi.mock("lottie-react", () => ({
   default: () => (
     <div data-testid="lottie-animation">Lottie</div>

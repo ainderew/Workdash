@@ -1,4 +1,3 @@
-"use-client";
 import Phaser from "phaser";
 import React, { useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
@@ -41,6 +40,7 @@ import useThemeStore from "@/common/store/themeStore";
 import { EventBus } from "@/game/EventBus";
 import { useChatNotificationSound } from "@/common/hooks/useChatNotificationSound";
 import { useAchievementListener } from "@/common/hooks/useAchievementListener";
+import { useDeviceEnumeration } from "@/common/hooks/useDeviceEnumeration";
 
 function App() {
     const interactionMode = useUiStore((state) => state.interactionMode);
@@ -61,6 +61,7 @@ function App() {
     useKeyboardShortcuts();
     useChatNotificationSound();
     useAchievementListener();
+    useDeviceEnumeration();
 
     useEffect(() => {
         if (status !== "authenticated" || !session?.backendJwt) {

@@ -1,84 +1,70 @@
 import { AudioChat } from "@/communication/audioChat/audioChat";
 import { VideoChatService } from "@/communication/videoChat/videoChat";
-import { useEffect, useCallback } from "react";
+import { useEffect } from "react";
 import useUiStore from "@/common/store/uiStore";
 import useCallStore from "@/common/store/callStore";
 import { CallSignalingService } from "@/communication/callSignaling/callSignalingService";
 
+// Hoist singleton references to module level for stable identity
+const audioService = AudioChat.getInstance();
+const videoCamService = VideoChatService.getInstance();
+
 function useUiControls() {
-    const audioService = AudioChat.getInstance();
-    const videoCamService = VideoChatService.getInstance();
+    // Individual selectors so this hot-path component only re-renders when its own values change
+    const isMuted = useUiStore((s) => s.isMuted);
+    const toggleMicState = useUiStore((s) => s.toggleMic);
+    const setIsMuted = useUiStore((s) => s.setIsMuted);
+    const availableMicrophones = useUiStore((s) => s.availableMicrophones);
+    const selectedMicrophoneId = useUiStore((s) => s.selectedMicrophoneId);
+    const setSelectedMicrophoneId = useUiStore((s) => s.setSelectedMicrophoneId);
+    const availableCameras = useUiStore((s) => s.availableCameras);
+    const selectedCameraId = useUiStore((s) => s.selectedCameraId);
+    const setSelectedCameraId = useUiStore((s) => s.setSelectedCameraId);
+    const isVideoOff = useUiStore((s) => s.isVideoOff);
+    const toggleVideoCamState = useUiStore((s) => s.toggleVideoCam);
+    const toggleMicSelector = useUiStore((s) => s.toggleMicSelector);
+    const closeMicSelector = useUiStore((s) => s.closeMicSelector);
+    const isMicSelectorOpen = useUiStore((s) => s.isMicSelectorOpen);
+    const toggleChatWindow = useUiStore((s) => s.toggleChatWindow);
+    const isChatWindowOpen = useUiStore((s) => s.isChatWindowOpen);
+    const toggleMembersUi = useUiStore((s) => s.toggleMembersUi);
+    const isMembersUiOpen = useUiStore((s) => s.isMembersUiOpen);
+    const toggleCalendarMenu = useUiStore((s) => s.toggleCalendarMenu);
+    const isCalendarUiOpen = useUiStore((s) => s.isCalendarUiOpen);
 
-
-    const {
-        isMuted,
-        toggleMic: toggleMicState,
-        setIsMuted,
-        availableMicrophones,
-        selectedMicrophoneId,
-        setAvailableMicrophones,
-        setSelectedMicrophoneId,
-        availableCameras,
-        selectedCameraId,
-        setAvailableCameras,
-        setSelectedCameraId,
-    } = useUiStore();
-
-    const loadMicrophones = useCallback(async () => {
-        try {
-            const mics = await audioService.getAvailableMicrophones();
-            setAvailableMicrophones(mics);
-
-            // Auto-select first mic only if none is selected yet
-            const currentMicId = useUiStore.getState().selectedMicrophoneId;
-            if (mics.length > 0 && !currentMicId) {
-                setSelectedMicrophoneId(mics[0].deviceId);
-            }
-        } catch (error) {
-            console.error("Failed to load microphones:", error);
-        }
-    }, [audioService, setAvailableMicrophones, setSelectedMicrophoneId]);
-
-    const loadCameras = useCallback(async () => {
-        try {
-            const cameras = await videoCamService.getAvailableCameras();
-            setAvailableCameras(cameras);
-
-            const currentCamId = useUiStore.getState().selectedCameraId;
-            if (cameras.length > 0 && !currentCamId) {
-                setSelectedCameraId(cameras[0].deviceId);
-            }
-        } catch (error) {
-            console.error("Failed to load cameras:", error);
-        }
-    }, [videoCamService, setAvailableCameras, setSelectedCameraId]);
-
+    // Request mic/camera permissions on first mount so enumerateDevices()
+    // returns labeled devices. The app-level useDeviceEnumeration hook
+    // handles ongoing enumeration and devicechange events.
     useEffect(() => {
-        loadMicrophones();
-        loadCameras();
-
-        const handleDeviceChange = () => {
-            loadMicrophones();
-            loadCameras();
+        const grantPermissions = async () => {
+            try {
+                const mics = await audioService.getAvailableMicrophones();
+                useUiStore.getState().setAllDevices({
+                    microphones: mics,
+                    cameras: useUiStore.getState().availableCameras,
+                    outputs: useUiStore.getState().availableOutputDevices,
+                });
+            } catch {
+                // Permission denied — labels stay empty
+            }
+            try {
+                const cams = await videoCamService.getAvailableCameras();
+                useUiStore.getState().setAllDevices({
+                    microphones: useUiStore.getState().availableMicrophones,
+                    cameras: cams,
+                    outputs: useUiStore.getState().availableOutputDevices,
+                });
+            } catch {
+                // Permission denied — labels stay empty
+            }
         };
+        grantPermissions();
+    }, []);
 
-        navigator.mediaDevices.addEventListener(
-            "devicechange",
-            handleDeviceChange,
-        );
 
-        return () => {
-            navigator.mediaDevices.removeEventListener(
-                "devicechange",
-                handleDeviceChange,
-            );
-        };
-    }, [loadMicrophones, loadCameras]);
-
-    
     useEffect(() => {
         setIsMuted(audioService.isMuted);
-    }, [audioService.isMuted, setIsMuted]);
+    }, [setIsMuted]);
 
     function micControls() {
         function toggleMic() {
@@ -104,19 +90,13 @@ function useUiControls() {
     }
 
     function microphoneSelector() {
-        const {
-            toggleMicSelector,
-            closeMicSelector,
-            isMicSelectorOpen,
-        } = useUiStore();
-
         async function selectMicrophone(deviceId: string) {
             try {
                 setSelectedMicrophoneId(deviceId);
                 await audioService.switchMicrophone(deviceId);
                 closeMicSelector();
-            } catch (error) {
-                console.error("Failed to switch microphone:", error);
+            } catch {
+                // switch failed — UI already updated optimistically
             }
         }
 
@@ -135,8 +115,8 @@ function useUiControls() {
             try {
                 setSelectedCameraId(deviceId);
                 await videoCamService.switchCamera(deviceId);
-            } catch (error) {
-                console.error("Failed to switch camera:", error);
+            } catch {
+                // switch failed — UI already updated optimistically
             }
         }
 
@@ -148,8 +128,6 @@ function useUiControls() {
     }
 
     function videoCamControls() {
-        const { isVideoOff, toggleVideoCam: toggleVideoCamState } = useUiStore();
-
         function toggleVideoCam() {
             toggleVideoCamState();
             if (!isVideoOff) {
@@ -169,16 +147,6 @@ function useUiControls() {
             toggleVideoCam,
         };
     }
-
-    
-    const {
-        toggleChatWindow,
-        isChatWindowOpen,
-        toggleMembersUi,
-        isMembersUiOpen,
-        toggleCalendarMenu,
-        isCalendarUiOpen,
-    } = useUiStore();
 
     return {
         micControls,

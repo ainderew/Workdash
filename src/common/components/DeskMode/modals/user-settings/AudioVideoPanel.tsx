@@ -1,21 +1,30 @@
 import React from 'react';
-import { ChevronDown } from 'lucide-react';
+import { Mic, Video } from 'lucide-react';
 import {
   SettingsSection,
   SettingsToggle,
   SettingsSlider,
+  DeviceSelector,
+  MicLevelMeter,
+  CameraPreview,
+  SpeakerTest,
 } from '../settings-primitives';
 import { useAudioVideoSettings } from '../hooks/useAudioVideoSettings';
+import { useDeviceTest } from '../hooks/useDeviceTest';
 
 function AudioVideoPanel() {
   const {
-    isMuted,
-    toggleMic,
     availableMicrophones,
     selectedMicrophoneId,
     selectMicrophone,
-    isVideoOff,
-    toggleVideo,
+    availableCameras,
+    selectedCameraId,
+    selectCamera,
+    availableOutputDevices,
+    selectedOutputDeviceId,
+    selectOutputDevice,
+    supportsOutputDeviceSelection,
+    isInCall,
     noiseCancellation,
     toggleNoiseCancellation,
     backgroundMusicEnabled,
@@ -24,60 +33,143 @@ function AudioVideoPanel() {
     setMusicVolume,
   } = useAudioVideoSettings();
 
+  const {
+    micLevel,
+    isMicTesting,
+    startMicTest,
+    stopMicTest,
+    cameraStream,
+    isCameraPreviewActive,
+    startCameraPreview,
+    stopCameraPreview,
+    isSpeakerTesting,
+    playSpeakerTest,
+    micError,
+    cameraError,
+  } = useDeviceTest();
+
   return (
     <div className="space-y-4">
+      {/* Microphone Section */}
       <SettingsSection label="Microphone">
-        <SettingsToggle
-          label="Microphone"
-          description={isMuted ? 'Currently muted' : 'Currently active'}
-          checked={!isMuted}
-          onChange={() => toggleMic()}
+        <DeviceSelector
+          label="Input Device"
+          devices={availableMicrophones}
+          selectedDeviceId={selectedMicrophoneId}
+          onSelect={selectMicrophone}
+          isInCall={isInCall}
+          placeholder="No microphones found"
         />
-        {availableMicrophones.length > 0 && (
-          <div className="mt-2 pt-2 border-t wd-border-subtle">
-            <p className="text-[10px] font-bold uppercase tracking-widest wd-text-muted mb-1.5">
-              Input Device
+        <div className="mt-2 pt-2 border-t wd-border-subtle">
+          <SettingsToggle
+            label="Noise Cancellation"
+            description={
+              noiseCancellation ? 'AI-powered noise removal' : 'Disabled'
+            }
+            checked={noiseCancellation}
+            onChange={() => toggleNoiseCancellation()}
+          />
+        </div>
+        <div className="mt-2 pt-2 border-t wd-border-subtle">
+          <button
+            onClick={isMicTesting ? stopMicTest : startMicTest}
+            className="flex items-center gap-2 rounded-md border wd-border-subtle bg-[var(--wd-surface-elevated)] px-4 py-2 text-xs font-medium wd-text-primary transition-all duration-150 hover:bg-[var(--wd-accent-soft)]"
+          >
+            <Mic
+              size={14}
+              className={
+                isMicTesting ? 'text-[var(--wd-success)]' : ''
+              }
+            />
+            {isMicTesting ? 'Stop Test' : 'Test Microphone'}
+          </button>
+          {isMicTesting && (
+            <div className="mt-2">
+              <MicLevelMeter level={micLevel} isActive={isMicTesting} />
+              <p className="mt-1 text-[10px] wd-text-muted">
+                Speak to test your microphone
+              </p>
+            </div>
+          )}
+          {micError && (
+            <p className="mt-1.5 text-xs text-[var(--wd-danger)]">
+              {micError}
             </p>
-            <div className="relative">
-              <select
-                value={selectedMicrophoneId}
-                onChange={(e) => selectMicrophone(e.target.value)}
-                className="wd-settings-select h-9 w-full appearance-none rounded-lg border wd-border-subtle px-3 pr-8 text-xs wd-text-primary outline-none transition-all duration-150 focus:border-[var(--wd-accent)] focus:shadow-[0_0_0_3px_var(--wd-accent-soft)]"
-                style={{ backgroundColor: 'var(--wd-surface-elevated)' }}
-              >
-                {availableMicrophones.map((mic) => (
-                  <option key={mic.deviceId} value={mic.deviceId}>
-                    {mic.label || `Microphone ${mic.deviceId.slice(0, 8)}`}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown
-                size={14}
-                className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 wd-text-muted"
+          )}
+        </div>
+      </SettingsSection>
+
+      {/* Camera Section */}
+      <SettingsSection label="Camera">
+        <DeviceSelector
+          label="Video Device"
+          devices={availableCameras}
+          selectedDeviceId={selectedCameraId}
+          onSelect={selectCamera}
+          isInCall={isInCall}
+          placeholder="No cameras found"
+        />
+        <div className="mt-2 pt-2 border-t wd-border-subtle">
+          <button
+            onClick={
+              isCameraPreviewActive ? stopCameraPreview : startCameraPreview
+            }
+            className="flex items-center gap-2 rounded-md border wd-border-subtle bg-[var(--wd-surface-elevated)] px-4 py-2 text-xs font-medium wd-text-primary transition-all duration-150 hover:bg-[var(--wd-accent-soft)]"
+          >
+            <Video
+              size={14}
+              className={
+                isCameraPreviewActive ? 'text-[var(--wd-success)]' : ''
+              }
+            />
+            {isCameraPreviewActive ? 'Stop Preview' : 'Test Camera'}
+          </button>
+          {isCameraPreviewActive && (
+            <div className="mt-2">
+              <CameraPreview
+                stream={cameraStream}
+                isActive={isCameraPreviewActive}
               />
             </div>
-          </div>
+          )}
+          {cameraError && (
+            <p className="mt-1.5 text-xs text-[var(--wd-danger)]">
+              {cameraError}
+            </p>
+          )}
+        </div>
+      </SettingsSection>
+
+      {/* Speaker / Output Section */}
+      <SettingsSection label="Speaker / Output">
+        {supportsOutputDeviceSelection ? (
+          <>
+            <DeviceSelector
+              label="Output Device"
+              devices={availableOutputDevices}
+              selectedDeviceId={selectedOutputDeviceId}
+              onSelect={selectOutputDevice}
+              isInCall={isInCall}
+              placeholder="No output devices found"
+            />
+            <div className="mt-2 pt-2 border-t wd-border-subtle">
+              <SpeakerTest
+                onTest={playSpeakerTest}
+                isTesting={isSpeakerTesting}
+              />
+              <p className="mt-1 text-[10px] wd-text-muted">
+                You should hear a short tone through your selected device
+              </p>
+            </div>
+          </>
+        ) : (
+          <p className="text-xs wd-text-muted">
+            Output device selection is not supported in this browser.
+          </p>
         )}
       </SettingsSection>
 
-      <SettingsSection label="Noise Cancellation">
-        <SettingsToggle
-          label="Noise Cancellation"
-          description={noiseCancellation ? 'AI-powered noise removal' : 'Disabled'}
-          checked={noiseCancellation}
-          onChange={() => toggleNoiseCancellation()}
-        />
-      </SettingsSection>
-
-      <SettingsSection label="Camera">
-        <SettingsToggle
-          label="Camera"
-          description={isVideoOff ? 'Camera is off' : 'Camera is on'}
-          checked={!isVideoOff}
-          onChange={() => toggleVideo()}
-        />
-      </SettingsSection>
-
+      {/* Background Music Section */}
       <SettingsSection label="Background Music">
         <SettingsToggle
           label="Background Music"

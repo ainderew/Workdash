@@ -4,4 +4,8 @@ export { default as SettingsSlider } from './SettingsSlider';
 export { default as SettingsTextField } from './SettingsTextField';
 export { default as SettingsErrorBanner } from './SettingsErrorBanner';
 export { default as SettingsModalShell } from './SettingsModalShell';
+export { default as DeviceSelector } from './DeviceSelector';
+export { default as MicLevelMeter } from './MicLevelMeter';
+export { default as CameraPreview } from './CameraPreview';
+export { default as SpeakerTest } from './SpeakerTest';
 export type { SettingsCategory, SidebarItem } from './SettingsModalShell';
