@@ -273,6 +273,35 @@ describe('useChatV2Store', () => {
         name: 'new-channel',
       });
     });
+
+    it('createRoom forwards initialMemberUserIds to the service', async () => {
+      const newRoom = makeRoom({ id: 'room-new', name: 'private' });
+      mockService.createRoom.mockResolvedValue(newRoom);
+      mockService.listRooms.mockResolvedValue([newRoom]);
+      mockService.joinRoom.mockResolvedValue(newRoom);
+
+      useChatV2Store.setState({ selectedWorkspaceId: 'ws-1' });
+      await useChatV2Store
+        .getState()
+        .createRoom({ name: 'private', visibility: 'PRIVATE', initialMemberUserIds: [5, 6] });
+
+      expect(mockService.createRoom).toHaveBeenCalledWith(
+        expect.objectContaining({ initialMemberUserIds: [5, 6] }),
+      );
+    });
+
+    it('createRoom does not include initialMemberUserIds when not provided', async () => {
+      const newRoom = makeRoom({ id: 'room-pub', name: 'public' });
+      mockService.createRoom.mockResolvedValue(newRoom);
+      mockService.listRooms.mockResolvedValue([newRoom]);
+      mockService.joinRoom.mockResolvedValue(newRoom);
+
+      useChatV2Store.setState({ selectedWorkspaceId: 'ws-1' });
+      await useChatV2Store.getState().createRoom({ name: 'public' });
+
+      const callArg = mockService.createRoom.mock.calls[0][0];
+      expect(callArg).not.toHaveProperty('initialMemberUserIds');
+    });
   });
 
   // -----------------------------------------------------------------------
@@ -430,6 +459,79 @@ describe('useChatV2Store', () => {
         deletedAt,
       );
       expect(state.messagesByRoomId['room-1']![0].content).toBe('');
+    });
+
+    it('onRoomMemberAdded triggers reloadRoomStructure via debounce', async () => {
+      vi.useFakeTimers();
+
+      mockService.listRooms.mockResolvedValue([
+        makeRoom({ id: 'room-1' }),
+      ]);
+
+      useChatV2Store.setState({ selectedWorkspaceId: 'ws-1' });
+
+      // Initialize must happen with fake timers active
+      const initPromise = useChatV2Store.getState().initialize();
+      await vi.runAllTimersAsync();
+      await initPromise;
+
+      const handlers =
+        mockService.setupRealtimeHandlers.mock.calls[0][0];
+
+      // Clear any calls from initialization
+      mockService.listRooms.mockClear();
+      mockService.listRooms.mockResolvedValue([
+        makeRoom({ id: 'room-1' }),
+      ]);
+
+      handlers.onRoomMemberAdded({ roomId: 'room-1', role: 'MEMBER' });
+
+      // Should not have called listRooms yet (debounce pending)
+      expect(mockService.listRooms).not.toHaveBeenCalled();
+
+      // Advance past the 300ms debounce and flush async work
+      await vi.advanceTimersByTimeAsync(300);
+
+      expect(mockService.listRooms).toHaveBeenCalled();
+
+      vi.useRealTimers();
+    });
+
+    it('onRoomMemberAdded coalesces multiple rapid events into a single reload', async () => {
+      vi.useFakeTimers();
+
+      mockService.listRooms.mockResolvedValue([
+        makeRoom({ id: 'room-1' }),
+      ]);
+
+      useChatV2Store.setState({ selectedWorkspaceId: 'ws-1' });
+
+      const initPromise = useChatV2Store.getState().initialize();
+      await vi.runAllTimersAsync();
+      await initPromise;
+
+      const handlers =
+        mockService.setupRealtimeHandlers.mock.calls[0][0];
+
+      mockService.listRooms.mockClear();
+      mockService.listRooms.mockResolvedValue([
+        makeRoom({ id: 'room-1' }),
+      ]);
+
+      // Fire 5 rapid events within debounce window
+      handlers.onRoomMemberAdded({ roomId: 'room-1', role: 'MEMBER' });
+      handlers.onRoomMemberAdded({ roomId: 'room-2', role: 'MEMBER' });
+      handlers.onRoomMemberAdded({ roomId: 'room-3', role: 'MEMBER' });
+      handlers.onRoomMemberAdded({ roomId: 'room-4', role: 'MEMBER' });
+      handlers.onRoomMemberAdded({ roomId: 'room-5', role: 'MEMBER' });
+
+      // Advance past debounce
+      await vi.advanceTimersByTimeAsync(300);
+
+      // Should only have called listRooms once despite 5 events
+      expect(mockService.listRooms).toHaveBeenCalledTimes(1);
+
+      vi.useRealTimers();
     });
 
     it('increments unread count for non-active room via onMessageNew', async () => {

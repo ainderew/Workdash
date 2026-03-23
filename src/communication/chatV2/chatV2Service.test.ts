@@ -298,6 +298,28 @@ describe('ChatV2Service', () => {
       );
     });
 
+    it('createRoom emits "chat:v2:room:create" with visibility and initialMemberUserIds', async () => {
+      simulateSuccess({ room: { id: 'room-1' } });
+      const service = ChatV2Service.getInstance();
+
+      const result = await service.createRoom({
+        name: 'test',
+        visibility: 'PRIVATE',
+        initialMemberUserIds: [2, 3],
+      });
+
+      expect(mockEmit).toHaveBeenCalledWith(
+        'chat:v2:room:create',
+        {
+          name: 'test',
+          visibility: 'PRIVATE',
+          initialMemberUserIds: [2, 3],
+        },
+        expect.any(Function),
+      );
+      expect(result).toEqual({ id: 'room-1' });
+    });
+
     it('deleteMessage emits "chat:v2:message:delete" with roomId and messageId', async () => {
       const deleteResponse = {
         messageId: 'msg-1',
@@ -360,6 +382,7 @@ describe('ChatV2Service', () => {
       'chat:v2:typing:update',
       'chat:v2:typing:stop',
       'achievement:unlocked',
+      'chat:v2:room:member:added',
     ];
 
     it('setupRealtimeHandlers registers the correct event names', () => {
@@ -379,7 +402,7 @@ describe('ChatV2Service', () => {
         (call: unknown[]) => call[0],
       );
       expect(registeredEvents).toEqual(EXPECTED_EVENTS);
-      expect(mockOn).toHaveBeenCalledTimes(11);
+      expect(mockOn).toHaveBeenCalledTimes(12);
     });
 
     it('setupRealtimeHandlers teardown removes all event listeners', () => {
@@ -397,7 +420,7 @@ describe('ChatV2Service', () => {
         (call: unknown[]) => call[0],
       );
       expect(removedEvents).toEqual(EXPECTED_EVENTS);
-      expect(mockOff).toHaveBeenCalledTimes(11);
+      expect(mockOff).toHaveBeenCalledTimes(12);
 
       // Each off call should pass the same handler reference that was registered
       for (let i = 0; i < EXPECTED_EVENTS.length; i++) {
@@ -405,6 +428,47 @@ describe('ChatV2Service', () => {
         const offHandler = mockOff.mock.calls[i][1];
         expect(offHandler).toBe(onHandler);
       }
+    });
+
+    it('onRoomMemberAdded callback is invoked when socket event fires', () => {
+      const service = ChatV2Service.getInstance();
+      const onRoomMemberAdded = vi.fn();
+
+      service.setupRealtimeHandlers({
+        onMessageNew: vi.fn(),
+        onMessageUpdate: vi.fn(),
+        onMessageDelete: vi.fn(),
+        onRoomMemberAdded,
+      });
+
+      const memberAddedCall = mockOn.mock.calls.find(
+        (call: unknown[]) => call[0] === 'chat:v2:room:member:added',
+      );
+      const handler = memberAddedCall![1] as (payload: unknown) => void;
+
+      handler({ roomId: 'room-1', role: 'MEMBER' });
+
+      expect(onRoomMemberAdded).toHaveBeenCalledWith({
+        roomId: 'room-1',
+        role: 'MEMBER',
+      });
+    });
+
+    it('onRoomMemberAdded does not throw when handler is not provided', () => {
+      const service = ChatV2Service.getInstance();
+
+      service.setupRealtimeHandlers({
+        onMessageNew: vi.fn(),
+        onMessageUpdate: vi.fn(),
+        onMessageDelete: vi.fn(),
+      });
+
+      const memberAddedCall = mockOn.mock.calls.find(
+        (call: unknown[]) => call[0] === 'chat:v2:room:member:added',
+      );
+      const handler = memberAddedCall![1] as (payload: unknown) => void;
+
+      expect(() => handler({ roomId: 'room-1', role: 'MEMBER' })).not.toThrow();
     });
 
     it('calling setupRealtimeHandlers twice tears down previous handlers', () => {
@@ -426,14 +490,14 @@ describe('ChatV2Service', () => {
       });
 
       // The first set of handlers should have been removed
-      expect(mockOff).toHaveBeenCalledTimes(11);
+      expect(mockOff).toHaveBeenCalledTimes(12);
       const removedEvents = mockOff.mock.calls.map(
         (call: unknown[]) => call[0],
       );
       expect(removedEvents).toEqual(EXPECTED_EVENTS);
 
       // And the second set should be registered (total 20 on calls)
-      expect(mockOn).toHaveBeenCalledTimes(22);
+      expect(mockOn).toHaveBeenCalledTimes(24);
     });
   });
 });

@@ -845,11 +845,12 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
                                     onSelectRoom={(roomId) => {
                                         void selectRoom(roomId);
                                     }}
-                                    onCreateRoom={(name, categoryId) => {
-                                        void createRoom({
+                                    onCreateRoom={async (name, categoryId, visibility, memberIds) => {
+                                        await createRoom({
                                             name,
                                             categoryId,
-                                            visibility: "PUBLIC",
+                                            visibility,
+                                            initialMemberUserIds: visibility === "PRIVATE" ? memberIds : undefined,
                                         });
                                     }}
                                     onCreateCategory={(name) => {

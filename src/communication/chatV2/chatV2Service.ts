@@ -62,6 +62,7 @@ type RealtimeHandlers = {
     onTypingUpdate?: (payload: { roomId: string; userId: number; displayName: string }) => void;
     onTypingStop?: (payload: { roomId: string; userId: number }) => void;
     onAchievementUnlocked?: (payload: AchievementUnlockPayload) => void;
+    onRoomMemberAdded?: (payload: { roomId: string; role: string }) => void;
 };
 
 export class ChatV2Service {
@@ -204,6 +205,12 @@ export class ChatV2Service {
             }
         };
 
+        const onRoomMemberAdded = (payload: { roomId: string; role: string }) => {
+            if (payload?.roomId) {
+                handlers.onRoomMemberAdded?.(payload);
+            }
+        };
+
         this.transport.socket.on("chat:v2:message:new", onMessageNew);
         this.transport.socket.on("chat:v2:message:update", onMessageUpdate);
         this.transport.socket.on("chat:v2:message:delete", onMessageDelete);
@@ -221,6 +228,7 @@ export class ChatV2Service {
         this.transport.socket.on("chat:v2:typing:update", onTypingUpdate);
         this.transport.socket.on("chat:v2:typing:stop", onTypingStop);
         this.transport.socket.on("achievement:unlocked", onAchievementUnlocked);
+        this.transport.socket.on("chat:v2:room:member:added", onRoomMemberAdded);
 
         this.teardownRealtimeHandlers = () => {
             this.transport.socket.off("chat:v2:message:new", onMessageNew);
@@ -240,6 +248,7 @@ export class ChatV2Service {
             this.transport.socket.off("chat:v2:typing:update", onTypingUpdate);
             this.transport.socket.off("chat:v2:typing:stop", onTypingStop);
             this.transport.socket.off("achievement:unlocked", onAchievementUnlocked);
+            this.transport.socket.off("chat:v2:room:member:added", onRoomMemberAdded);
             this.teardownRealtimeHandlers = null;
         };
 
@@ -718,6 +727,7 @@ export class ChatV2Service {
         categoryId?: string | null;
         visibility?: "PUBLIC" | "PRIVATE" | "INVITE_ONLY";
         workspaceId?: string;
+        initialMemberUserIds?: number[];
     }): Promise<ChatV2Room> {
         const response = await this.emitWithAck<{ room: ChatV2Room }>(
             "chat:v2:room:create",

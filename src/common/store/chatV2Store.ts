@@ -30,6 +30,8 @@ import { getIsDocumentFocused } from "@/common/hooks/useDocumentFocus";
 import { toast } from "sonner";
 import { setEveryoneCooldown } from "@/communication/chatV2/everyoneCooldown";
 
+const MEMBER_ADDED_DEBOUNCE_MS = 300;
+
 type MessageDeletePayload = {
     roomId: string;
     messageId: string;
@@ -189,6 +191,7 @@ type ChatV2State = {
         topic?: string;
         categoryId?: string | null;
         visibility?: "PUBLIC" | "PRIVATE" | "INVITE_ONLY";
+        initialMemberUserIds?: number[];
     }) => Promise<void>;
     createCategory: (name: string) => Promise<void>;
     arrangeRoom: (
@@ -482,6 +485,8 @@ const upsertNotification = (
     return sortNotifications(next);
 };
 
+let memberAddedDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+
 const useChatV2Store = create<ChatV2State>((set, get) => ({
     initialized: false,
     railView: "server",
@@ -551,6 +556,11 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
 
     initialize: async () => {
         if (get().initialized) return;
+
+        if (memberAddedDebounceTimer) {
+            clearTimeout(memberAddedDebounceTimer);
+            memberAddedDebounceTimer = null;
+        }
 
         set({ isLoadingRooms: true, error: null });
 
@@ -741,6 +751,13 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
                     // Handled by useAchievementListener hook for toast/sound
                     // This callback exists so the socket listener is registered
                     EventBus.emit("achievement:unlocked", payload);
+                },
+                onRoomMemberAdded: () => {
+                    if (memberAddedDebounceTimer) clearTimeout(memberAddedDebounceTimer);
+                    memberAddedDebounceTimer = setTimeout(() => {
+                        memberAddedDebounceTimer = null;
+                        void get().reloadRoomStructure();
+                    }, MEMBER_ADDED_DEBOUNCE_MS);
                 },
             });
 
@@ -1631,12 +1648,14 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
                 categoryId?: string | null;
                 visibility?: "PUBLIC" | "PRIVATE" | "INVITE_ONLY";
                 workspaceId?: string;
+                initialMemberUserIds?: number[];
             } = {
                 name,
             };
             if (input.topic !== undefined) payload.topic = input.topic;
             if (input.categoryId !== undefined) payload.categoryId = input.categoryId;
             if (input.visibility !== undefined) payload.visibility = input.visibility;
+            if (input.initialMemberUserIds !== undefined) payload.initialMemberUserIds = input.initialMemberUserIds;
             const workspaceId = get().selectedWorkspaceId;
             if (workspaceId) payload.workspaceId = workspaceId;
 
@@ -1984,7 +2003,11 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
         });
     },
 
-    clear: () =>
+    clear: () => {
+        if (memberAddedDebounceTimer) {
+            clearTimeout(memberAddedDebounceTimer);
+            memberAddedDebounceTimer = null;
+        }
         set({
             initialized: false,
             railView: "server",
@@ -2023,7 +2046,8 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
             pinnedMessagesByRoomId: {},
             isLoadingPinnedMessages: false,
             typingUsersByRoomId: {},
-        }),
+        });
+    },
 }));
 
 export default useChatV2Store;

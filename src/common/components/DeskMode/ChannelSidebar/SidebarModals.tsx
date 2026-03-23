@@ -20,8 +20,6 @@ interface SidebarModalsProps {
   isCreatingCategory: boolean;
   isUpdatingRoom: boolean;
   roomCategoryOptions: Array<{ id: string | null; name: string }>;
-  roomById: Record<string, ChatV2Room>;
-  categoryById: Record<string, ChatV2RoomCategory>;
   selectedRenameCategory: ChatV2RoomCategory | undefined;
   selectedRenameRoom: ChatV2Room | undefined;
   selectedDeleteRoom: ChatV2Room | undefined;
@@ -31,9 +29,6 @@ interface SidebarModalsProps {
   isUserSettingsModalOpen: boolean;
   isServerSettingsModalOpen: boolean;
   channelPermissionsRoomId: string | null;
-  renameCategoryId: string | null;
-  renameRoomId: string | null;
-  deleteRoomId: string | null;
   roomContextMenu: RoomContextMenuState | null;
   categoryContextMenu: CategoryContextMenuState | null;
   onSetIsCreateRoomModalOpen: (open: boolean) => void;
@@ -46,7 +41,7 @@ interface SidebarModalsProps {
   onSetChannelPermissionsRoomId: (id: string | null) => void;
   onSetRoomContextMenu: (menu: RoomContextMenuState | null) => void;
   onSetCategoryContextMenu: (menu: CategoryContextMenuState | null) => void;
-  onCreateRoom: (name: string, categoryId: string | null) => void;
+  onCreateRoom: (name: string, categoryId: string | null, visibility: "PUBLIC" | "PRIVATE", memberIds: number[]) => void | Promise<void>;
   onCreateCategory: (name: string) => void;
   onRenameCategory: (categoryId: string, name: string) => void;
   onRenameRoom: (roomId: string, name: string) => void;
@@ -130,9 +125,10 @@ function SidebarModals({
         isSubmitting={isCreatingRoom}
         categoryOptions={roomCategoryOptions}
         initialCategoryId={roomModalCategoryId}
+        workspaceId={serverId}
         onClose={() => onSetIsCreateRoomModalOpen(false)}
-        onSubmit={(name, categoryId) => {
-          onCreateRoom(name, categoryId);
+        onSubmit={async (name, categoryId, visibility, memberIds) => {
+          await onCreateRoom(name, categoryId, visibility, memberIds);
           onSetIsCreateRoomModalOpen(false);
         }}
       />

@@ -58,7 +58,7 @@ export interface ChannelSidebarProps {
   presentation?: 'desk' | 'drawer';
   onClosePanel?: () => void;
   onSelectRoom: (roomId: string) => void;
-  onCreateRoom: (name: string, categoryId: string | null) => void;
+  onCreateRoom: (name: string, categoryId: string | null, visibility: "PUBLIC" | "PRIVATE", memberIds: number[]) => void | Promise<void>;
   onCreateCategory: (name: string) => void;
   onRenameCategory: (categoryId: string, name: string) => void;
   onArrangeCategory: (categoryId: string, position: number) => void;

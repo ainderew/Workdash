@@ -218,8 +218,6 @@ function ChannelSidebar({
         isCreatingCategory={isCreatingCategory}
         isUpdatingRoom={isUpdatingRoom}
         roomCategoryOptions={roomCategoryOptions}
-        roomById={roomById}
-        categoryById={categoryById}
         selectedRenameCategory={selectedRenameCategory}
         selectedRenameRoom={selectedRenameRoom}
         selectedDeleteRoom={selectedDeleteRoom}
@@ -229,9 +227,6 @@ function ChannelSidebar({
         isUserSettingsModalOpen={isUserSettingsModalOpen}
         isServerSettingsModalOpen={isServerSettingsModalOpen}
         channelPermissionsRoomId={channelPermissionsRoomId}
-        renameCategoryId={renameCategoryId}
-        renameRoomId={renameRoomId}
-        deleteRoomId={deleteRoomId}
         roomContextMenu={contextMenus.roomContextMenu}
         categoryContextMenu={contextMenus.categoryContextMenu}
         onSetIsCreateRoomModalOpen={setIsCreateRoomModalOpen}

@@ -81,15 +81,20 @@ function ServerHeader({
       </button>
 
       <div className="flex items-center gap-0.5 shrink-0">
-        <button
-          type="button"
-          onClick={onCreateRoom}
-          disabled={isCreatingRoom}
-          className="inline-flex h-8 w-8 items-center justify-center rounded-md wd-text-secondary transition-colors hover:bg-[var(--wd-surface-elevated)] hover:text-[var(--wd-text-primary)] disabled:opacity-50"
-          aria-label="Create room"
-        >
-          <UserPlus size={17} />
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              onClick={onCreateRoom}
+              disabled={isCreatingRoom}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-md wd-text-secondary transition-colors hover:bg-[var(--wd-surface-elevated)] hover:text-[var(--wd-text-primary)] disabled:opacity-50"
+              aria-label="Create channel"
+            >
+              <Plus size={17} />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">Create Channel</TooltipContent>
+        </Tooltip>
         {onCollapseSidebar && (
           <Tooltip>
             <TooltipTrigger asChild>
@@ -191,7 +196,7 @@ function ServerHeader({
               <span>Server Settings</span>
               <Settings size={17} className="wd-text-secondary" />
             </button>
-            <div className="flex items-center justify-between rounded-md px-3 py-2 text-sm text-[#ff7b7b]">
+            <div className="flex items-center justify-between rounded-md px-3 py-2 text-sm wd-text-danger">
               <span>Leave Server</span>
               <LogOut size={17} />
             </div>
