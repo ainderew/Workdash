@@ -8,6 +8,8 @@ import type {
 import { Bell, Pin, Search, UserRound, Users, X } from "lucide-react";
 import useChatV2Store from "@/common/store/chatV2Store";
 import useUserStore from "@/common/store/useStore";
+import { useIntegrationStore } from "@/common/store/integrationStore";
+import { usePZStore } from "@/common/store/pzStore";
 import { getDisplayName } from "@/common/utils/displayName";
 import ChannelHashIcon from "./ChannelHashIcon";
 import PinnedMessagesPanel from "./PinnedMessagesPanel";
@@ -91,6 +93,12 @@ function RoomHeader({
     const unreadNotificationCount = useChatV2Store(
         (state) => state.getUnreadNotificationCount(),
     );
+    const integrations = useIntegrationStore((s) => s.integrations);
+    const hasPZIntegration = integrations.some(
+        (i) => i.type === "pz_server" && i.isActive,
+    );
+    const isSidebarOpen = usePZStore((s) => s.isSidebarOpen);
+    const togglePzSidebar = usePZStore((s) => s.toggleSidebar);
     const [isSearchMenuOpen, setIsSearchMenuOpen] = useState(false);
     const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
     const [hasUnreadNotificationDot, setHasUnreadNotificationDot] = useState(false);
@@ -408,6 +416,31 @@ function RoomHeader({
                         />
                     )}
                 </div>
+
+                {hasPZIntegration ? (
+                    <button
+                        type="button"
+                        aria-label={
+                            isSidebarOpen
+                                ? "Hide PZ sidebar"
+                                : "Show PZ sidebar"
+                        }
+                        title={
+                            isSidebarOpen
+                                ? "Hide PZ sidebar"
+                                : "Show PZ sidebar"
+                        }
+                        aria-pressed={isSidebarOpen}
+                        onClick={togglePzSidebar}
+                        className={`h-8 w-8 inline-flex items-center justify-center rounded-md border wd-border-subtle transition-colors ${
+                            isSidebarOpen
+                                ? "wd-bg-elevated wd-text-primary hover:bg-[var(--wd-surface-base)]"
+                                : "wd-bg-panel-2 wd-text-secondary hover:wd-text-primary hover:bg-[var(--wd-surface-base)]"
+                        }`}
+                    >
+                        <span className="text-sm">{"\uD83E\uDDDF"}</span>
+                    </button>
+                ) : null}
 
                 <button
                     type="button"

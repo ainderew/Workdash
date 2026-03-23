@@ -44,6 +44,8 @@ import CollapsedSidebarRail from "./CollapsedSidebarRail";
 import { CallSignalingService } from "@/communication/callSignaling/callSignalingService";
 import useCallStore from "@/common/store/callStore";
 import { useCustomEmojiList } from "@/common/hooks/useCustomEmojiList";
+import IntegrationSidebar from "@/common/components/Integrations/IntegrationSidebar";
+import { useIntegrationStore } from "@/common/store/integrationStore";
 
 export type DeskChatShellMode = "desk" | "drawer";
 
@@ -227,6 +229,7 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
                 void selectRoom(roomId);
             }
         });
+        void useIntegrationStore.getState().fetchIntegrations(selectedWorkspaceId);
     }, [chatInitialized, selectedWorkspaceId, reloadRoomStructure, selectRoom]);
 
     useEffect(() => {
@@ -803,8 +806,8 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
                     }}
                 />
 
-                <div className="flex-1 min-w-0 pb-2">
-                    <div className="h-full min-h-0 flex rounded-lg overflow-visible outline-1 outline-[color:var(--wd-border-subtle)] shadow-[0_8px_24px_rgba(0,0,0,0.22),0_0_14px_rgba(88,101,242,0.08)]">
+                <div className="flex-1 min-w-0 pb-2 flex">
+                    <div className="flex-1 min-w-0 h-full min-h-0 flex rounded-lg overflow-visible outline-1 outline-[color:var(--wd-border-subtle)] shadow-[0_8px_24px_rgba(0,0,0,0.22),0_0_14px_rgba(88,101,242,0.08)]">
                         <div
                             className="shrink-0 overflow-hidden transition-[width] duration-50 ease-out h-full"
                             style={{
@@ -1159,6 +1162,9 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
                             />
                         ) : null}
                     </div>
+                    {selectedWorkspaceId && (
+                        <IntegrationSidebar workspaceId={selectedWorkspaceId} />
+                    )}
                 </div>
             </div>
 

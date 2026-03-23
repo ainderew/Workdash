@@ -35,8 +35,9 @@ const MAX_SERVER_NAME_LENGTH = 100;
 import EmojisTab from "./EmojisTab";
 import JoinRequestsTab from "./JoinRequestsTab";
 import { MediaTransportService } from "@/communication/mediaTransportService/mediaTransportServive";
+import IntegrationsTab from "./IntegrationsTab";
 
-type SettingsTab = "overview" | "roles" | "emojis" | "requests";
+type SettingsTab = "overview" | "roles" | "emojis" | "requests" | "integrations";
 
 const ROLE_COLORS = [
     0x5865F2, 0x57F287, 0xFEE75C, 0xEB459E, 0xED4245,
@@ -551,7 +552,7 @@ function ServerSettingsModal({
 
     // If requests tab disappears (visibility toggled to PRIVATE), fallback to overview
     useEffect(() => {
-        if (!showRequestsTab && activeTab === "requests") {
+        if ((!showRequestsTab && activeTab === "requests") || (!canManageWorkspace && activeTab === "integrations")) {
             setActiveTab("overview");
         }
     }, [showRequestsTab, activeTab]);
@@ -917,6 +918,22 @@ function ServerSettingsModal({
                                 )}
                             </button>
                         )}
+                        {canManageWorkspace && (
+                            <button
+                                type="button"
+                                onClick={() => setActiveTab("integrations")}
+                                className={`px-3 py-1.5 text-xs font-semibold transition-colors border-b-2 ${
+                                    activeTab === "integrations"
+                                        ? "border-[rgba(88,101,242,0.8)] wd-text-primary"
+                                        : "border-transparent wd-text-muted hover:wd-text-secondary"
+                                }`}
+                            >
+                                <span className="inline-flex items-center gap-1.5">
+                                    <Settings size={12} />
+                                    Integrations
+                                </span>
+                            </button>
+                        )}
                     </div>
                 </div>
 
@@ -1154,6 +1171,10 @@ function ServerSettingsModal({
                             workspaceId={serverId}
                             onCountChange={setPendingRequestCount}
                         />
+                    )}
+
+                    {activeTab === "integrations" && (
+                        <IntegrationsTab workspaceId={serverId} />
                     )}
                 </div>
             </div>

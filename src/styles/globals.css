@@ -1415,6 +1415,13 @@ input[type="range"].wd-volume-slider::-moz-range-progress {
 
 
 
+/* ── PZ sidebar slide-down animation ─────────────────────────────── */
+
+@keyframes wd-slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 /* ── Active speaker tile highlight ────────────────────────────────── */
 
 .wd-speaker-tile {
