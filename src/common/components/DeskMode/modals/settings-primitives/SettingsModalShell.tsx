@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { signOut } from 'next-auth/react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Search, X } from 'lucide-react';
+import { LogOut, Search, X } from 'lucide-react';
 
 export type SettingsCategory = 'general' | 'account' | 'appearance' | 'audio-video' | 'connections' | 'achievements';
 
@@ -229,18 +230,44 @@ function SettingsModalShell({
                   </div>
                 </div>
 
-                {/* ESC hint */}
-                <div className="relative px-4 py-3 flex items-center gap-2">
-                  <kbd
-                    className="inline-flex h-5 items-center justify-center rounded px-1.5 text-[10px] font-medium wd-text-muted"
-                    style={{
-                      backgroundColor: 'var(--wd-surface-elevated)',
-                      boxShadow: '0 1px 2px rgba(0,0,0,0.15), inset 0 -1px 0 rgba(0,0,0,0.1)',
-                    }}
+                {/* ── Fixed bottom section ── */}
+                <div
+                  className="relative shrink-0 px-2.5 pb-3 pt-2"
+                  style={{
+                    boxShadow: '0 -8px 16px 4px var(--wd-surface-panel-2)',
+                  }}
+                >
+                  {/* Logout button */}
+                  <button
+                    type="button"
+                    onClick={() => signOut({ callbackUrl: '/' })}
+                    className="group flex w-full items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-[12.5px] font-medium text-[var(--wd-danger)] transition-all duration-150 hover:bg-[var(--wd-danger-soft)]"
                   >
-                    ESC
-                  </kbd>
-                  <span className="text-[10px] wd-text-muted">to close</span>
+                    <span className="inline-flex h-[26px] w-[26px] items-center justify-center rounded-md bg-[var(--wd-danger-soft)] text-[var(--wd-danger)] transition-all duration-150 group-hover:bg-[var(--wd-danger)] group-hover:text-white">
+                      <LogOut size={15} />
+                    </span>
+                    <span>Log Out</span>
+                  </button>
+
+                  {/* Separator */}
+                  <div
+                    className="mx-1 my-1.5 h-px"
+                    style={{ backgroundColor: 'var(--wd-border-subtle)' }}
+                  />
+
+                  {/* ESC hint */}
+                  <div className="px-2.5 flex items-center gap-2">
+                    <kbd
+                      className="inline-flex h-5 items-center justify-center rounded px-1.5 text-[10px] font-medium wd-text-muted"
+                      style={{
+                        backgroundColor: 'var(--wd-surface-elevated)',
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.15), inset 0 -1px 0 rgba(0,0,0,0.1)',
+                      }}
+                    >
+                      ESC
+                    </kbd>
+                    <span className="text-[10px] wd-text-muted">to close</span>
+                  </div>
                 </div>
 
                 {/* Right border — gradient that fades at edges */}
