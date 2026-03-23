@@ -849,7 +849,7 @@ function ServerSettingsModal({
                     </div>
 
                     {/* Tabs */}
-                    <div className="absolute bottom-0 inset-x-0 flex px-4 gap-1">
+                    <div className="absolute bottom-0 inset-x-0 flex px-4 gap-1 overflow-x-auto whitespace-nowrap">
                         <button
                             type="button"
                             onClick={() => setActiveTab("overview")}
