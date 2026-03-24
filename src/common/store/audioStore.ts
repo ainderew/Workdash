@@ -9,6 +9,8 @@ interface AudioState {
     musicVolume: number;
     audioQualityMode: AudioQualityMode;
     noiseCancellation: boolean;
+    /** Whether RNNoise is actually processing audio (false = fell back to FFT gate) */
+    noiseCancellationActive: boolean;
 
     setUserVolume: (userId: number, volume: number) => void;
     toggleUserMute: (userId: number) => void;
@@ -18,6 +20,7 @@ interface AudioState {
     setMusicVolume: (volume: number) => void;
     setAudioQualityMode: (mode: AudioQualityMode) => void;
     setNoiseCancellation: (enabled: boolean) => void;
+    setNoiseCancellationActive: (active: boolean) => void;
 }
 
 const useAudioStore = create<AudioState>((set, get) => ({
@@ -25,7 +28,12 @@ const useAudioStore = create<AudioState>((set, get) => ({
     userMuted: new Map<number, number>(),
     musicVolume: 0.5,
     audioQualityMode: 'standard' as AudioQualityMode,
-    noiseCancellation: true,
+    noiseCancellation: (() => {
+        if (typeof window === 'undefined') return true;
+        const stored = localStorage.getItem('wd-noise-cancellation');
+        return stored === null ? true : stored === 'true';
+    })(),
+    noiseCancellationActive: false,
 
     setUserVolume: (userId: number, volume: number) => {
         set((state) => {
@@ -84,6 +92,11 @@ const useAudioStore = create<AudioState>((set, get) => ({
 
     setNoiseCancellation: (enabled: boolean) => {
         set({ noiseCancellation: enabled });
+        localStorage.setItem('wd-noise-cancellation', String(enabled));
+    },
+
+    setNoiseCancellationActive: (active: boolean) => {
+        set({ noiseCancellationActive: active });
     },
 }));
 

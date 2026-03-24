@@ -11,6 +11,7 @@ import {
 } from '../settings-primitives';
 import { useAudioVideoSettings } from '../hooks/useAudioVideoSettings';
 import { useDeviceTest } from '../hooks/useDeviceTest';
+import useAudioStore from '@/common/store/audioStore';
 
 function AudioVideoPanel() {
   const {
@@ -61,13 +62,10 @@ function AudioVideoPanel() {
           placeholder="No microphones found"
         />
         <div className="mt-2 pt-2 border-t wd-border-subtle">
-          <SettingsToggle
-            label="Noise Cancellation"
-            description={
-              noiseCancellation ? 'AI-powered noise removal' : 'Disabled'
-            }
-            checked={noiseCancellation}
-            onChange={() => toggleNoiseCancellation()}
+          <NoiseCancellationToggle
+            noiseCancellation={noiseCancellation}
+            toggleNoiseCancellation={toggleNoiseCancellation}
+            isInCall={isInCall}
           />
         </div>
         <div className="mt-2 pt-2 border-t wd-border-subtle">
@@ -192,6 +190,43 @@ function AudioVideoPanel() {
         )}
       </SettingsSection>
     </div>
+  );
+}
+
+function NoiseCancellationToggle({
+  noiseCancellation,
+  toggleNoiseCancellation,
+  isInCall,
+}: {
+  noiseCancellation: boolean;
+  toggleNoiseCancellation: () => void;
+  isInCall: boolean;
+}) {
+  const ncActive = useAudioStore((s) => s.noiseCancellationActive);
+  // Only show fallback warning when in a call (pipeline has had a chance to init)
+  const isFallback = isInCall && noiseCancellation && !ncActive;
+
+  const description = !noiseCancellation
+    ? 'Disabled'
+    : isFallback
+      ? 'Failed to load — using basic filter'
+      : 'AI-powered noise removal';
+
+  return (
+    <>
+      <SettingsToggle
+        label="Noise Cancellation"
+        description={description}
+        checked={noiseCancellation}
+        onChange={toggleNoiseCancellation}
+      />
+      {isFallback && (
+        <p className="mt-1 text-[10px] text-[var(--wd-warning)]">
+          RNNoise could not initialize. Basic noise filtering is active but less
+          effective. Try reloading the page.
+        </p>
+      )}
+    </>
   );
 }
 

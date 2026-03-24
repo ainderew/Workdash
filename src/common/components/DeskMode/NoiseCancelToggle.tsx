@@ -17,6 +17,7 @@ interface NoiseCancelToggleProps {
 
 export default function NoiseCancelToggle({ size = 'md' }: NoiseCancelToggleProps) {
   const noiseCancellation = useAudioStore((s) => s.noiseCancellation);
+  const noiseCancellationActive = useAudioStore((s) => s.noiseCancellationActive);
   const audioQualityMode = useAudioStore((s) => s.audioQualityMode);
   const setNoiseCancellation = useAudioStore((s) => s.setNoiseCancellation);
   const [isToggling, setIsToggling] = useState(false);
@@ -40,7 +41,19 @@ export default function NoiseCancelToggle({ size = 'md' }: NoiseCancelToggleProp
     return null;
   }
 
+  // User wants NC on but RNNoise failed to load — show warning state.
+  // Skip during toggle (pipeline is rebuilding, ncActive hasn't updated yet).
+  const isFallback = noiseCancellation && !noiseCancellationActive && !isToggling;
+
   const { btn, icon } = sizeConfig[size];
+
+  const tooltipText = isToggling
+    ? 'Switching...'
+    : isFallback
+      ? 'Noise cancellation failed to load — using basic filter'
+      : noiseCancellation
+        ? 'Noise cancellation on'
+        : 'Noise cancellation off';
 
   return (
     <Tooltip>
@@ -53,16 +66,18 @@ export default function NoiseCancelToggle({ size = 'md' }: NoiseCancelToggleProp
           className={`inline-flex items-center justify-center ${btn} rounded-full border cursor-pointer transition-colors ${
             isToggling
               ? 'opacity-60 cursor-wait'
-              : noiseCancellation
-                ? 'border-[var(--wd-success)] text-[var(--wd-success)]'
-                : 'wd-border-subtle wd-text-secondary hover:wd-text-primary'
+              : isFallback
+                ? 'border-[var(--wd-warning)] text-[var(--wd-warning)]'
+                : noiseCancellation
+                  ? 'border-[var(--wd-success)] text-[var(--wd-success)]'
+                  : 'wd-border-subtle wd-text-secondary hover:wd-text-primary'
           }`}
         >
           <AudioLines size={icon} />
         </button>
       </TooltipTrigger>
       <TooltipContent side="top" sideOffset={6}>
-        {noiseCancellation ? 'Noise cancellation on' : 'Noise cancellation off'}
+        {tooltipText}
       </TooltipContent>
     </Tooltip>
   );
