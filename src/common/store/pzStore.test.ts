@@ -59,6 +59,7 @@ describe("pzStore", () => {
         activity: true,
       },
       isLoading: false,
+      fetchError: null,
     });
   });
 

@@ -56,5 +56,6 @@ export const PZ_EVENT_TYPE_LABELS: Record<string, string> = {
   safehouse_event: "Safehouse Events",
 
   map_change: "Map Changes",
+  unknown: "Unclassified",
   default: "All Other Events",
 };

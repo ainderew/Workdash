@@ -33,6 +33,27 @@ export interface PZActivityEvent {
   workdashUser: { displayName: string; avatarUrl: string | null } | null;
 }
 
+interface StatusResponse {
+  isOnline: boolean;
+  lastEventAt: string | null;
+  playerCount: number;
+}
+
+interface OnlinePlayerResponse {
+  steamId: string;
+  pzUsername: string;
+  workdashUser: PZPlayer["workdashUser"];
+}
+
+interface StatsPlayerResponse {
+  steamId: string;
+  pzUsername: string;
+  kills: number;
+  deaths: number;
+  survivalTime: number;
+  workdashUser: PZPlayer["workdashUser"];
+}
+
 type LeaderboardTab = "kills" | "deaths" | "survived";
 
 interface SectionStates {
@@ -57,6 +78,7 @@ interface PZStoreState {
   sectionStates: SectionStates;
 
   isLoading: boolean;
+  fetchError: string | null;
 
   setLeaderboardTab: (tab: LeaderboardTab) => void;
   toggleSidebar: () => void;
@@ -113,6 +135,7 @@ export const usePZStore = create<PZStoreState>((set, get) => ({
   },
 
   isLoading: false,
+  fetchError: null,
 
   setLeaderboardTab: (tab) => set({ leaderboardTab: tab }),
 
@@ -154,7 +177,7 @@ export const usePZStore = create<PZStoreState>((set, get) => ({
   },
 
   async fetchAllData(workspaceId: string) {
-    set({ isLoading: true });
+    set({ isLoading: true, fetchError: null });
     try {
       const [statusRes, onlineRes, statsRes, deathsRes, feedRes] =
         await Promise.all([
@@ -175,39 +198,67 @@ export const usePZStore = create<PZStoreState>((set, get) => ({
           }),
         ]);
 
+      const responses = [
+        { name: "status", res: statusRes },
+        { name: "online", res: onlineRes },
+        { name: "stats", res: statsRes },
+        { name: "deaths", res: deathsRes },
+        { name: "feed", res: feedRes },
+      ];
+      const failedEndpoints = responses
+        .filter((r) => !r.res.ok)
+        .map((r) => r.name);
+
       const [status, online, stats, deaths, feed] = await Promise.all([
-        statusRes.ok ? statusRes.json() : null,
-        onlineRes.ok ? onlineRes.json() : null,
-        statsRes.ok ? statsRes.json() : null,
-        deathsRes.ok ? deathsRes.json() : null,
-        feedRes.ok ? feedRes.json() : null,
+        statusRes.ok ? (statusRes.json() as Promise<StatusResponse>) : null,
+        onlineRes.ok
+          ? (onlineRes.json() as Promise<{ players: OnlinePlayerResponse[] }>)
+          : null,
+        statsRes.ok
+          ? (statsRes.json() as Promise<{ players: StatsPlayerResponse[] }>)
+          : null,
+        deathsRes.ok
+          ? (deathsRes.json() as Promise<{ deaths: PZDeathEvent[] }>)
+          : null,
+        feedRes.ok
+          ? (feedRes.json() as Promise<{ events: PZActivityEvent[] }>)
+          : null,
       ]);
+
+      const fetchError = failedEndpoints.length > 0
+        ? `Failed to load: ${failedEndpoints.join(", ")}`
+        : null;
 
       set({
         isServerOnline: status?.isOnline ?? false,
         lastEventAt: status?.lastEventAt ?? null,
-        onlinePlayers: (online?.players ?? []).map((p: Record<string, unknown>) => ({
-          steamId: p.steamId as string,
-          pzUsername: p.pzUsername as string,
-          workdashUser: p.workdashUser as PZPlayer["workdashUser"],
+        onlinePlayers: (online?.players ?? []).map((p) => ({
+          steamId: p.steamId,
+          pzUsername: p.pzUsername,
+          workdashUser: p.workdashUser,
           kills: 0,
           deaths: 0,
           survivalTime: 0,
         })),
-        allPlayerStats: (stats?.players ?? []).map((p: Record<string, unknown>) => ({
-          steamId: p.steamId as string,
-          pzUsername: p.pzUsername as string,
-          workdashUser: p.workdashUser as PZPlayer["workdashUser"],
-          kills: (p.kills as number) ?? 0,
-          deaths: (p.deaths as number) ?? 0,
-          survivalTime: (p.survivalTime as number) ?? 0,
+        allPlayerStats: (stats?.players ?? []).map((p) => ({
+          steamId: p.steamId,
+          pzUsername: p.pzUsername,
+          workdashUser: p.workdashUser,
+          kills: p.kills ?? 0,
+          deaths: p.deaths ?? 0,
+          survivalTime: p.survivalTime ?? 0,
         })),
         recentDeaths: deaths?.deaths ?? [],
         recentActivity: feed?.events ?? [],
         isLoading: false,
+        fetchError,
       });
-    } catch {
-      set({ isLoading: false });
+    } catch (err) {
+      set({
+        isLoading: false,
+        fetchError:
+          err instanceof Error ? err.message : "Failed to load PZ data",
+      });
     }
   },
 }));
