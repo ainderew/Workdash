@@ -25,6 +25,7 @@ const WASM = {
 class NoiseProcessor extends AudioWorkletProcessor {
   constructor() {
     super();
+    console.log('[noise-processor] constructor START');
 
     this._destroyed = false;
     this._ready = false;
@@ -43,21 +44,33 @@ class NoiseProcessor extends AudioWorkletProcessor {
     this._inputPtr = 0;
     this._outputPtr = 0;
 
-    // VAD-based noise gate state
     this._lastVad = 0;
-    this._gateGain = 0; // current gate envelope (0 = closed, 1 = open)
 
-    this.port.onmessage = (e) => {
+    // Energy-based transient gate — filters short impulses (typing, clicks)
+    // that RNNoise passes through, while letting sustained speech pass.
+    this._gateGain = 0;
+    this._energyHoldCount = 0;
+    this._smoothedRms = 0;
+
+    this.port.onmessage = async (e) => {
+      console.log('[noise-processor] onmessage:', e.data?.type);
       if (e.data.type === 'init') {
-        this._initWasm(e.data.wasmModule);
+        console.log('[noise-processor] received init, wasmBytes byteLength:', e.data.wasmBytes?.byteLength);
+        await this._initWasm(e.data.wasmBytes);
       } else if (e.data.type === 'destroy') {
         this._cleanup();
         this._destroyed = true;
       }
     };
+
+    // Signal the main thread that the constructor is done and port.onmessage
+    // is wired — the main thread waits for this before sending the WASM module.
+    console.log('[noise-processor] constructor END — sending ready-for-init');
+    this.port.postMessage({ type: 'ready-for-init' });
   }
 
-  _initWasm(wasmModule) {
+  async _initWasm(wasmBytes) {
+    console.log('[noise-processor] _initWasm START');
     try {
       let memory;
       let heapU8;
@@ -68,9 +81,7 @@ class NoiseProcessor extends AudioWorkletProcessor {
         this._heapF32 = new Float32Array(memory.buffer);
       };
 
-      // Instantiate with minimal Emscripten-compatible imports
-      // Import namespace "a" matches the compiled module's expectation
-      const instance = new WebAssembly.Instance(wasmModule, {
+      const imports = {
         a: {
           // "a" = _emscripten_resize_heap
           a: (requestedSize) => {
@@ -103,7 +114,14 @@ class NoiseProcessor extends AudioWorkletProcessor {
             heapU8.copyWithin(dest, src, src + num);
           },
         },
-      });
+      };
+
+      // Compile + instantiate from raw bytes — WebAssembly.Module can't be
+      // structured-cloned through AudioWorklet MessagePort in Chrome.
+      console.log('[noise-processor] calling WebAssembly.instantiate with raw bytes...');
+      const result = await WebAssembly.instantiate(wasmBytes, imports);
+      const instance = result.instance;
+      console.log('[noise-processor] WebAssembly.instantiate complete, exports:', Object.keys(instance.exports));
 
       this._exports = instance.exports;
       memory = instance.exports[WASM.memory]; // wasmMemory
@@ -121,14 +139,21 @@ class NoiseProcessor extends AudioWorkletProcessor {
       this._outputPtr = instance.exports[WASM.malloc](FRAME_SIZE * 4);
 
       this._ready = true;
+      console.log('[noise-processor] init COMPLETE — sending ready');
       this.port.postMessage({ type: 'ready' });
     } catch (err) {
+      console.error('[noise-processor] init FAILED:', err);
       this.port.postMessage({ type: 'error', message: String(err) });
     }
   }
 
   _processFrame() {
-    const heapF32 = new Float32Array(this._exports[WASM.memory].buffer);
+    // Reuse cached view unless WASM memory has grown (buffer detached)
+    let heapF32 = this._heapF32;
+    if (heapF32.buffer !== this._exports[WASM.memory].buffer) {
+      heapF32 = new Float32Array(this._exports[WASM.memory].buffer);
+      this._heapF32 = heapF32;
+    }
     const inOffset = this._inputPtr >> 2;
 
     // Copy input to WASM heap, scaling float [-1,1] → [-32768,32767]
@@ -143,12 +168,15 @@ class NoiseProcessor extends AudioWorkletProcessor {
     );
 
     // Re-read heap in case memory grew during processing
-    const outHeapF32 = new Float32Array(this._exports[WASM.memory].buffer);
+    if (heapF32.buffer !== this._exports[WASM.memory].buffer) {
+      heapF32 = new Float32Array(this._exports[WASM.memory].buffer);
+      this._heapF32 = heapF32;
+    }
     const outOffset = this._outputPtr >> 2;
 
     // Copy output back, scaling [-32768,32767] → [-1,1]
     for (let i = 0; i < FRAME_SIZE; i++) {
-      this._outBuf[i] = outHeapF32[outOffset + i] / 32768.0;
+      this._outBuf[i] = heapF32[outOffset + i] / 32768.0;
     }
   }
 
@@ -166,6 +194,12 @@ class NoiseProcessor extends AudioWorkletProcessor {
 
   process(inputs, outputs) {
     if (this._destroyed) return false;
+
+    // Log once to confirm process() is being called
+    if (!this._loggedProcess) {
+      console.log('[noise-processor] process() called — worklet is alive, ready:', this._ready);
+      this._loggedProcess = true;
+    }
 
     const input = inputs[0]?.[0];
     const output = outputs[0]?.[0];
@@ -197,43 +231,47 @@ class NoiseProcessor extends AudioWorkletProcessor {
       }
     }
 
-    // VAD-based soft noise gate — suppresses residual noise between speech.
-    // Community consensus (werman/noise-suppression-for-voice, Jitsi) is
-    // 0.85–0.95 for gating. We use a soft envelope so we can afford the
-    // higher thresholds without hard-clipping speech onsets.
-    //   open  at VAD >= 0.85 (high confidence speech)
-    //   close at VAD <  0.75 (close promptly when speech fades)
-    //   hysteresis zone 0.75–0.85: proportional target instead of binary
-    // Fast attack (0.08) preserves speech onset; fast release (0.05) shuts
-    // the gate in ~53ms to suppress fan/hiss between words.
-    const vad = this._lastVad;
-    let gateTarget;
-    if (vad >= 0.85) {
-      gateTarget = 1;
-    } else if (vad < 0.75) {
-      gateTarget = 0;
-    } else {
-      // Hysteresis zone (0.75–0.85): proportional target based on VAD
-      // Maps vad 0.75→0.0, 0.85→1.0 linearly — partial attenuation
-      // instead of keeping gate fully open for steady-state noise
-      gateTarget = (vad - 0.75) / 0.10;
+    // Energy-based transient gate — suppresses short impulses (keyboard
+    // clicks, mouse clicks) that RNNoise lets through. Typing clicks are
+    // typically <20ms; speech sustains energy for many frames.
+    //
+    // Measure RMS of the RNNoise output (not input) so we gate on what
+    // the listener would actually hear after denoising.
+    let sum = 0;
+    for (let i = 0; i < output.length; i++) {
+      sum += output[i] * output[i];
     }
-    const attackRate = 0.08;
-    const releaseRate = 0.05;
+    const rms = Math.sqrt(sum / output.length);
 
-    // Residual noise attenuation: even when gate is open, apply mild
-    // attenuation proportional to noise confidence (1 - vad).
-    // At vad=0.85 (gate threshold): 0.5 + 0.5*0.85 = 0.925 (~8% atten)
-    // At vad=1.0 (certain speech): 0.5 + 0.5*1.0 = 1.0 (no atten)
-    const residualAtten = 0.5 + 0.5 * vad;
+    // Smooth RMS to avoid reacting to single-sample spikes
+    this._smoothedRms = 0.3 * rms + 0.7 * this._smoothedRms;
+
+    // Threshold: just above silence. Speech after RNNoise typically has
+    // RMS > 0.01; residual typing clicks are lower after denoising.
+    const ENERGY_THRESHOLD = 0.005;
+    // Require ~30ms of sustained energy before opening (128 samples at
+    // 48kHz = 2.67ms per quantum, so 12 quanta ≈ 32ms). Typing clicks
+    // spike for 2-5 quanta then drop; speech sustains for many more.
+    const HOLD_THRESHOLD = 12;
+
+    if (this._smoothedRms >= ENERGY_THRESHOLD) {
+      this._energyHoldCount = Math.min(this._energyHoldCount + 1, HOLD_THRESHOLD + 1);
+    } else {
+      this._energyHoldCount = 0;
+    }
+
+    const gateOpen = this._energyHoldCount >= HOLD_THRESHOLD;
+    // Fast attack (open quickly once sustained), moderate release
+    const gateTarget = gateOpen ? 1 : 0;
+    const rate = gateOpen ? 0.2 : 0.04;
 
     for (let i = 0; i < output.length; i++) {
       if (this._gateGain < gateTarget) {
-        this._gateGain = Math.min(gateTarget, this._gateGain + attackRate);
+        this._gateGain = Math.min(gateTarget, this._gateGain + rate);
       } else {
-        this._gateGain = Math.max(gateTarget, this._gateGain - releaseRate);
+        this._gateGain = Math.max(gateTarget, this._gateGain - rate);
       }
-      output[i] *= this._gateGain * residualAtten;
+      output[i] *= this._gateGain;
     }
 
     return true;

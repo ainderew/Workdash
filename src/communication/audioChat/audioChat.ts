@@ -78,6 +78,8 @@ export class AudioChat {
     private outputLimiter: DynamicsCompressorNode | null = null;
     /** Noise gate polling interval for send-side audio */
     private noiseGateInterval: ReturnType<typeof setInterval> | null = null;
+    /** Noise gate hold timer (setTimeout) cleared on teardown */
+    private noiseGateHoldTimer: ReturnType<typeof setTimeout> | null = null;
     /** RNNoise AudioWorklet node (standard mode only) */
     private rnnoiseNode: AudioWorkletNode | null = null;
     /** Cached RNNoise support check */
@@ -739,10 +741,16 @@ export class AudioChat {
                 try {
                     rnnoiseNode = await RNNoiseService.createNode(this.audioContext);
                     this.rnnoiseNode = rnnoiseNode;
-                } catch {
-                    // Fall through to FFT gate
+                    logger.log('RNNoise noise cancellation active');
+                } catch (err) {
+                    logger.warn('RNNoise init failed, falling back to FFT gate:', err);
                 }
+            } else {
+                logger.log(`RNNoise skipped: ncEnabled=${ncEnabled}, supported=${RNNoiseService.isSupported()}`);
             }
+
+            // Update store so UI can reflect actual NC status
+            useAudioStore.getState().setNoiseCancellationActive(!!rnnoiseNode);
 
             if (rnnoiseNode) {
                 // RNNoise path: gentler compressor — RNNoise already reduces noise,
@@ -756,9 +764,8 @@ export class AudioChat {
                 rnnoiseNode.onprocessorerror = (event) => {
                     logger.error('RNNoise worklet crashed, falling back to FFT gate:', event);
                     this.rnnoiseNode = null;
-                    if (this.currentStream) {
-                        this.processAudioStream(this.currentStream);
-                    }
+                    // Route through applyQualityMode which does full teardown + rebuild
+                    this.applyQualityMode('standard');
                 };
 
                 // RNNoise path: highPass → lowPass → RNNoise worklet → compressor → gain → dest
@@ -773,6 +780,7 @@ export class AudioChat {
                     .connect(this.audioDestination);
             } else {
                 // Fallback: band-pass + compression + noise gate
+                logger.log('Using FFT noise gate (RNNoise unavailable or disabled)');
                 // Browser's noiseSuppression + echoCancellation handle real noise reduction;
                 // the gate silences fan/ambient noise when the user isn't speaking.
                 const gateAnalyser = this.audioContext.createAnalyser();
@@ -787,7 +795,6 @@ export class AudioChat {
                 const CLOSE_THRESHOLD_DB = -50;
                 const HOLD_MS = 150;
                 let isGateOpen = false;
-                let holdTimer: ReturnType<typeof setTimeout> | null = null;
 
                 this.clearNoiseGate();
                 this.noiseGateInterval = setInterval(() => {
@@ -809,9 +816,9 @@ export class AudioChat {
                     const now = this.audioContext.currentTime;
 
                     if (dB > OPEN_THRESHOLD_DB) {
-                        if (holdTimer) {
-                            clearTimeout(holdTimer);
-                            holdTimer = null;
+                        if (this.noiseGateHoldTimer) {
+                            clearTimeout(this.noiseGateHoldTimer);
+                            this.noiseGateHoldTimer = null;
                         }
                         if (!isGateOpen) {
                             isGateOpen = true;
@@ -819,9 +826,9 @@ export class AudioChat {
                             gateGain.gain.setTargetAtTime(1.0, now, 0.006);
                         }
                     } else if (dB < CLOSE_THRESHOLD_DB && isGateOpen) {
-                        if (!holdTimer) {
-                            holdTimer = setTimeout(() => {
-                                holdTimer = null;
+                        if (!this.noiseGateHoldTimer) {
+                            this.noiseGateHoldTimer = setTimeout(() => {
+                                this.noiseGateHoldTimer = null;
                                 isGateOpen = false;
                                 if (
                                     this.audioContext &&
@@ -847,15 +854,23 @@ export class AudioChat {
             }
         }
 
-        // Tap an AnalyserNode for local active-speaker detection
-        this.localAnalyser = this.audioContext.createAnalyser();
-        this.localAnalyser.fftSize = 256;
-        gainNode.connect(this.localAnalyser);
+        // Tap an AnalyserNode for local active-speaker detection.
+        // Connected to the pre-processing source so the speaking indicator
+        // reflects raw mic input, not the noise-gated output.
+        if (this.audioContext) {
+            this.localAnalyser = this.audioContext.createAnalyser();
+            this.localAnalyser.fftSize = 256;
+            source.connect(this.localAnalyser);
+        }
 
-        return this.audioDestination.stream;
+        return this.audioDestination!.stream;
     }
 
     private clearNoiseGate() {
+        if (this.noiseGateHoldTimer) {
+            clearTimeout(this.noiseGateHoldTimer);
+            this.noiseGateHoldTimer = null;
+        }
         if (this.noiseGateInterval) {
             clearInterval(this.noiseGateInterval);
             this.noiseGateInterval = null;
@@ -868,6 +883,7 @@ export class AudioChat {
             this.rnnoiseNode.disconnect();
             this.rnnoiseNode = null;
         }
+        useAudioStore.getState().setNoiseCancellationActive(false);
     }
 
     public muteMic() {
