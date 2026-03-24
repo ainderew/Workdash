@@ -22,10 +22,10 @@ describe("PZLeaderboard", () => {
       <PZLeaderboard players={[]} activeTab="kills" onTabChange={vi.fn()} />,
     );
 
-    expect(screen.getByRole("button", { name: "Kills" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Deaths" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Kills/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Deaths/ })).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Survived" }),
+      screen.getByRole("button", { name: /Survived/ }),
     ).toBeInTheDocument();
   });
 
@@ -77,10 +77,10 @@ describe("PZLeaderboard", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Deaths" }));
+    fireEvent.click(screen.getByRole("button", { name: /Deaths/ }));
     expect(onTabChange).toHaveBeenCalledWith("deaths");
 
-    fireEvent.click(screen.getByRole("button", { name: "Survived" }));
+    fireEvent.click(screen.getByRole("button", { name: /Survived/ }));
     expect(onTabChange).toHaveBeenCalledWith("survived");
   });
 });

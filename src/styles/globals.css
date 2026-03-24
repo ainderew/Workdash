@@ -1415,11 +1415,42 @@ input[type="range"].wd-volume-slider::-moz-range-progress {
 
 
 
-/* ── PZ sidebar slide-down animation ─────────────────────────────── */
+/* ── PZ sidebar animations ───────────────────────────────────────── */
 
 @keyframes wd-slideDown {
   from { opacity: 0; transform: translateY(-8px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes wd-pz-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.6); }
+}
+
+@keyframes wd-pz-death-flash {
+  0% { background-color: rgb(var(--wd-danger-rgb) / 0.15); }
+  100% { background-color: transparent; }
+}
+
+@keyframes wd-pz-bar-fill {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+@keyframes wd-pz-skeleton {
+  0% { opacity: 0.4; }
+  50% { opacity: 0.15; }
+  100% { opacity: 0.4; }
+}
+
+@keyframes wd-pz-section-open {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes wd-pz-player-in {
+  from { opacity: 0; transform: translateX(-6px); }
+  to { opacity: 1; transform: translateX(0); }
 }
 
 /* ── Active speaker tile highlight ────────────────────────────────── */

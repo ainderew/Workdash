@@ -64,7 +64,7 @@ describe("CollapsibleSection", () => {
     expect(screen.getByText("3 online")).toBeInTheDocument();
   });
 
-  it("does not show badge when open", () => {
+  it("shows badge when open", () => {
     render(
       <CollapsibleSection
         title="Status"
@@ -76,6 +76,6 @@ describe("CollapsibleSection", () => {
       </CollapsibleSection>,
     );
 
-    expect(screen.queryByText("3 online")).not.toBeInTheDocument();
+    expect(screen.getByText("3 online")).toBeInTheDocument();
   });
 });

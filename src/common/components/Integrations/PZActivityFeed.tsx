@@ -6,17 +6,52 @@ interface PZActivityFeedProps {
   events: PZActivityEvent[];
 }
 
-const EVENT_ICONS: Record<string, { icon: string; colorClass: string }> = {
-  player_connect: { icon: "\uD83D\uDFE2", colorClass: "text-[var(--wd-success)]" },
-  player_disconnect: { icon: "\uD83D\uDD34", colorClass: "text-[var(--wd-danger)]" },
-  player_craft: { icon: "\uD83D\uDD28", colorClass: "text-[var(--wd-warning)]" },
-  base_build: { icon: "\uD83D\uDEE0\uFE0F", colorClass: "text-[var(--wd-info)]" },
-  safehouse_event: { icon: "\uD83C\uDFE0", colorClass: "text-[var(--wd-accent)]" },
-  player_death: { icon: "\uD83D\uDC80", colorClass: "text-[var(--wd-danger)]" },
-  pvp_kill: { icon: "\u2694\uFE0F", colorClass: "text-[var(--wd-danger)]" },
+const EVENT_META: Record<
+  string,
+  { icon: string; color: string; dotClass: string }
+> = {
+  player_connect: {
+    icon: "→",
+    color: "text-[var(--wd-success)]",
+    dotClass: "bg-[var(--wd-success)]",
+  },
+  player_disconnect: {
+    icon: "←",
+    color: "text-[var(--wd-danger)]",
+    dotClass: "bg-[var(--wd-danger)]",
+  },
+  player_craft: {
+    icon: "🔨",
+    color: "text-[var(--wd-warning)]",
+    dotClass: "bg-[var(--wd-warning)]",
+  },
+  base_build: {
+    icon: "🏗️",
+    color: "text-[var(--wd-info)]",
+    dotClass: "bg-[var(--wd-info)]",
+  },
+  safehouse_event: {
+    icon: "🏠",
+    color: "text-[var(--wd-accent)]",
+    dotClass: "bg-[var(--wd-accent)]",
+  },
+  player_death: {
+    icon: "💀",
+    color: "text-[var(--wd-danger)]",
+    dotClass: "bg-[var(--wd-danger)]",
+  },
+  pvp_kill: {
+    icon: "⚔️",
+    color: "text-[var(--wd-danger)]",
+    dotClass: "bg-[var(--wd-danger)]",
+  },
 };
 
-const DEFAULT_ICON = { icon: "\u25CF", colorClass: "text-[var(--wd-text-muted)]" };
+const DEFAULT_META = {
+  icon: "•",
+  color: "wd-text-muted",
+  dotClass: "bg-[var(--wd-text-muted)]",
+};
 
 function PZActivityFeed({ events }: PZActivityFeedProps) {
   const [, setTick] = useState(0);
@@ -30,38 +65,60 @@ function PZActivityFeed({ events }: PZActivityFeedProps) {
 
   if (events.length === 0) {
     return (
-      <p className="py-2 text-center text-xs wd-text-muted">
-        Waiting for events...
-      </p>
+      <div className="flex flex-col items-center gap-1 py-3">
+        <span className="text-base opacity-30">📡</span>
+        <p className="text-[0.65rem] wd-text-muted">
+          Waiting for transmissions...
+        </p>
+      </div>
     );
   }
 
   return (
-    <div className="max-h-60 space-y-1 overflow-y-auto">
-      {events.map((event) => {
-        const { icon, colorClass } =
-          EVENT_ICONS[event.type] ?? DEFAULT_ICON;
+    <div className="relative max-h-64 overflow-y-auto no-scrollbar">
+      {/* Timeline spine */}
+      <div className="absolute left-[7px] top-2 bottom-2 w-px bg-[var(--wd-border-subtle)]" />
 
-        return (
-          <div
-            key={event.id}
-            className="flex items-start gap-2 rounded px-1 py-1 animate-[wd-slideDown_200ms_ease]"
-          >
-            <span className={`shrink-0 text-sm ${colorClass}`}>{icon}</span>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs wd-text-primary leading-tight">
-                <span className="font-semibold">
-                  {event.workdashUser?.displayName ?? event.username}
-                </span>{" "}
-                <span className="wd-text-secondary">{event.action}</span>
-              </p>
+      <div className="space-y-0.5">
+        {events.map((event, index) => {
+          const meta = EVENT_META[event.type] ?? DEFAULT_META;
+
+          return (
+            <div
+              key={event.id}
+              className="group/event relative flex items-start gap-3 rounded-md py-1.5 pr-1 pl-0 transition-colors hover:bg-[var(--wd-surface-elevated)] animate-[wd-slideDown_200ms_ease_both]"
+              style={{ animationDelay: `${index * 30}ms` }}
+            >
+              {/* Timeline dot */}
+              <div className="relative z-[1] mt-1.5 flex h-3.5 w-3.5 shrink-0 items-center justify-center">
+                <span
+                  className={`h-1.5 w-1.5 rounded-full ${meta.dotClass}`}
+                />
+              </div>
+
+              {/* Content */}
+              <div className="min-w-0 flex-1">
+                <p className="text-xs leading-snug wd-text-primary">
+                  <span className="font-semibold">
+                    {event.workdashUser?.displayName ?? event.username}
+                  </span>{" "}
+                  <span className="wd-text-secondary">{event.action}</span>
+                </p>
+                <span className="mt-0.5 block text-[0.55rem] wd-text-muted opacity-0 transition-opacity group-hover/event:opacity-100">
+                  {formatRelativeTime(event.timestamp)}
+                </span>
+              </div>
+
+              {/* Event type icon */}
+              <span
+                className={`mt-0.5 shrink-0 text-[0.6rem] ${meta.color} opacity-60`}
+              >
+                {meta.icon}
+              </span>
             </div>
-            <span className="shrink-0 text-[0.6rem] wd-text-muted">
-              {formatRelativeTime(event.timestamp)}
-            </span>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }

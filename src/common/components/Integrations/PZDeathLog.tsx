@@ -18,39 +18,57 @@ function PZDeathLog({ deaths }: PZDeathLogProps) {
 
   if (deaths.length === 0) {
     return (
-      <p className="py-2 text-center text-xs wd-text-muted">
-        No deaths yet — everyone&apos;s alive... for now
-      </p>
+      <div className="flex flex-col items-center gap-1 py-3">
+        <span className="text-base opacity-30">🛡️</span>
+        <p className="text-[0.65rem] wd-text-muted">
+          No deaths yet — everyone&apos;s alive... for now
+        </p>
+      </div>
     );
   }
 
   return (
-    <div className="max-h-48 space-y-1 overflow-y-auto">
-      {deaths.map((death) => (
+    <div className="relative max-h-52 space-y-0.5 overflow-y-auto no-scrollbar">
+      {/* Timeline spine */}
+      <div className="absolute left-[13px] top-2 bottom-2 w-px bg-[var(--wd-border-subtle)]" />
+
+      {deaths.map((death, index) => (
         <div
           key={death.id}
-          className="flex items-start gap-2 rounded px-1 py-1 animate-[wd-slideDown_200ms_ease]"
+          className="relative flex items-start gap-2.5 rounded-md px-2 py-1.5 animate-[wd-pz-death-flash_600ms_ease,wd-slideDown_200ms_ease]"
+          style={{ animationDelay: index === 0 ? "0ms" : `${index * 40}ms` }}
         >
-          <span
-            className={`shrink-0 text-sm ${
-              death.isPvp
-                ? "text-[var(--wd-warning)]"
-                : "text-[var(--wd-danger)]"
-            }`}
-          >
-            {death.isPvp ? "\u2694\uFE0F" : "\uD83D\uDC80"}
-          </span>
+          {/* Timeline dot */}
+          <div className="relative z-[1] mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center">
+            <span
+              className={`text-[0.7rem] ${
+                death.isPvp
+                  ? "text-[var(--wd-warning)]"
+                  : "text-[var(--wd-danger)]"
+              }`}
+            >
+              {death.isPvp ? "⚔️" : "💀"}
+            </span>
+          </div>
+
+          {/* Content */}
           <div className="min-w-0 flex-1">
-            <p className="text-xs wd-text-primary leading-tight">
+            <p className="text-xs leading-snug wd-text-primary">
               <span className="font-semibold">
                 {death.workdashUser?.displayName ?? death.username}
               </span>{" "}
               <span className="wd-text-secondary">{death.action}</span>
             </p>
+            <span className="mt-0.5 block text-[0.55rem] wd-text-muted">
+              {formatRelativeTime(death.timestamp)}
+            </span>
           </div>
-          <span className="shrink-0 text-[0.6rem] wd-text-muted">
-            {formatRelativeTime(death.timestamp)}
-          </span>
+
+          {death.isPvp && (
+            <span className="mt-0.5 shrink-0 rounded bg-[rgb(var(--wd-warning-rgb)/0.12)] px-1 py-0.5 text-[0.5rem] font-bold uppercase tracking-wider text-[var(--wd-warning)]">
+              PVP
+            </span>
+          )}
         </div>
       ))}
     </div>

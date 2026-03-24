@@ -49,7 +49,7 @@ describe("PZActivityFeed", () => {
   it("shows empty state when no events", () => {
     render(<PZActivityFeed events={[]} />);
 
-    expect(screen.getByText("Waiting for events...")).toBeInTheDocument();
+    expect(screen.getByText("Waiting for transmissions...")).toBeInTheDocument();
   });
 
   it("displays relative timestamps", () => {
