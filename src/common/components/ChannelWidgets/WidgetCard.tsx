@@ -1,0 +1,39 @@
+import React, { type ReactNode } from "react";
+
+interface Props {
+  title: string;
+  icon: React.ComponentType<{ size?: number }>;
+  accentColor: string;
+  index: number;
+  children: ReactNode;
+}
+
+export function WidgetCard({
+  title,
+  icon: Icon,
+  accentColor,
+  index,
+  children,
+}: Props) {
+  return (
+    <div
+      className="wd-widget-card"
+      style={
+        {
+          "--_widget-accent": accentColor,
+          animationDelay: `${index * 60}ms`,
+        } as React.CSSProperties
+      }
+    >
+      <div className="flex items-center gap-2 px-3.5 pt-3 pb-1.5">
+        <div className="shrink-0" style={{ color: accentColor }}>
+          <Icon size={13} />
+        </div>
+        <span className="text-[11px] font-semibold uppercase tracking-wider wd-text-muted">
+          {title}
+        </span>
+      </div>
+      <div className="px-3.5 pb-3.5">{children}</div>
+    </div>
+  );
+}

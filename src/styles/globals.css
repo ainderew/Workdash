@@ -1972,8 +1972,92 @@ input[type="range"].wd-volume-slider::-moz-range-progress {
     background-image: none; /* Remove native caret in favor of Lucide icon */
 }
 
+/* ── Widget Dashboard (iOS-inspired cards) ── */
+@keyframes wd-widget-card-in {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes wd-widget-shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+.wd-widget-card {
+    animation: wd-widget-card-in 0.3s cubic-bezier(0.25, 1, 0.5, 1) both;
+    border-radius: 12px;
+    background: var(--wd-surface-panel);
+    border: 1px solid rgb(var(--wd-border-subtle-rgb) / 0.4);
+    border-left: 3px solid var(--_widget-accent, var(--wd-accent));
+    overflow: hidden;
+    transition: box-shadow 0.2s ease;
+}
+
+.wd-widget-card:hover {
+    box-shadow: 0 2px 12px rgb(0 0 0 / 0.06);
+}
+
+.wd-widget-skeleton {
+    background: linear-gradient(
+        90deg,
+        rgb(var(--wd-surface-elevated-rgb) / 0.3) 25%,
+        rgb(var(--wd-surface-elevated-rgb) / 0.6) 50%,
+        rgb(var(--wd-surface-elevated-rgb) / 0.3) 75%
+    );
+    background-size: 200% 100%;
+    animation: wd-widget-shimmer 1.8s ease-in-out infinite;
+    border-radius: 6px;
+}
+
+/* ── Chart Tooltip ── */
+.wd-chart-tooltip {
+    padding: 8px 10px;
+    border-radius: 10px;
+    background: var(--wd-surface-elevated);
+    border: 1px solid rgb(var(--wd-border-subtle-rgb) / 0.5);
+    box-shadow: 0 4px 16px rgb(0 0 0 / 0.12);
+    min-width: 120px;
+    pointer-events: none;
+}
+
+/* ── Team Leaderboard ── */
+.wd-leaderboard-medal-1 {
+    color: rgb(234 179 8);
+}
+.wd-leaderboard-medal-2 {
+    color: rgb(148 163 184);
+}
+.wd-leaderboard-medal-3 {
+    color: rgb(180 83 9);
+}
+
+@keyframes wd-leaderboard-crown-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+.wd-leaderboard-crown {
+    animation: wd-leaderboard-crown-pulse 3s ease-in-out infinite;
+}
+
 /* Reduced motion overrides */
 @media (prefers-reduced-motion: reduce) {
+    .wd-widget-card {
+        animation: none;
+        opacity: 1;
+    }
+    .wd-widget-skeleton {
+        animation: none;
+    }
+    .wd-leaderboard-crown {
+        animation: none;
+    }
     .wd-settings-slider::-webkit-slider-thumb,
     .wd-settings-slider::-moz-range-thumb {
         transition: none;

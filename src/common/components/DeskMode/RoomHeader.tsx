@@ -5,12 +5,14 @@ import type {
     ChatV2SearchUser,
     ChatV2UserNotification,
 } from "@/communication/chatV2/_types";
-import { Bell, Pin, Search, UserRound, Users, X } from "lucide-react";
+import { Bell, LayoutDashboard, Pin, Search, UserRound, Users, X } from "lucide-react";
 import useChatV2Store from "@/common/store/chatV2Store";
 import useUserStore from "@/common/store/useStore";
 import { useIntegrationStore } from "@/common/store/integrationStore";
 import { usePZStore } from "@/common/store/pzStore";
 import type { RightSidebarTab } from "./RightSidebar";
+import { useWidgetStore } from "@/common/store/widgetStore";
+import { WidgetChannelSettings as WidgetChannelSettingsLazy } from "@/common/components/ChannelWidgets/Admin/WidgetChannelSettings";
 import { getDisplayName } from "@/common/utils/displayName";
 import ChannelHashIcon from "./ChannelHashIcon";
 import PinnedMessagesPanel from "./PinnedMessagesPanel";
@@ -19,6 +21,7 @@ import StartCallButton from "./StartCallButton";
 
 interface RoomHeaderProps {
     room: ChatV2Room | null;
+    workspaceId?: string;
     serverName: string;
     rooms: ChatV2Room[];
     searchQuery: string;
@@ -44,6 +47,7 @@ interface RoomHeaderProps {
 
 function RoomHeader({
     room,
+    workspaceId,
     serverName,
     rooms,
     searchQuery,
@@ -99,6 +103,10 @@ function RoomHeader({
         (i) => i.type === "pz_server" && i.isActive,
     );
     const onlinePlayerCount = usePZStore((s) => s.onlinePlayers).length;
+    const [isWidgetSettingsOpen, setIsWidgetSettingsOpen] = useState(false);
+    const widgetSettingsRef = useRef<HTMLDivElement | null>(null);
+    const widgetConfigs = useWidgetStore((s) => room?.id ? s.configsByChannel[room.id] : undefined);
+    const hasWidgets = (widgetConfigs?.length ?? 0) > 0;
     const [isSearchMenuOpen, setIsSearchMenuOpen] = useState(false);
     const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
     const [hasUnreadNotificationDot, setHasUnreadNotificationDot] = useState(false);
@@ -227,6 +235,23 @@ function RoomHeader({
             window.removeEventListener("resize", closeNotifications);
         };
     }, [isNotificationsOpen]);
+
+    useEffect(() => {
+        if (!isWidgetSettingsOpen) return;
+        const onMouseDown = (event: MouseEvent) => {
+            if (widgetSettingsRef.current?.contains(event.target as Node)) return;
+            setIsWidgetSettingsOpen(false);
+        };
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.key === "Escape") setIsWidgetSettingsOpen(false);
+        };
+        window.addEventListener("mousedown", onMouseDown);
+        window.addEventListener("keydown", onKeyDown);
+        return () => {
+            window.removeEventListener("mousedown", onMouseDown);
+            window.removeEventListener("keydown", onKeyDown);
+        };
+    }, [isWidgetSettingsOpen]);
 
     useEffect(() => {
         if (!isPinnedPanelVisible) {
@@ -416,6 +441,38 @@ function RoomHeader({
                         />
                     )}
                 </div>
+
+                {room && workspaceId && (
+                    <div className="relative shrink-0" ref={widgetSettingsRef}>
+                        <button
+                            type="button"
+                            aria-label={isWidgetSettingsOpen ? "Close widget settings" : "Widget settings"}
+                            title="Widget settings"
+                            aria-pressed={isWidgetSettingsOpen}
+                            onClick={() => {
+                                setIsWidgetSettingsOpen((c) => !c);
+                                setIsNotificationsOpen(false);
+                            }}
+                            className={`h-8 w-8 inline-flex items-center justify-center rounded-md border wd-border-subtle transition-colors ${
+                                isWidgetSettingsOpen || hasWidgets
+                                    ? "wd-bg-elevated wd-text-primary hover:bg-[var(--wd-surface-base)]"
+                                    : "wd-bg-panel-2 wd-text-secondary hover:wd-text-primary hover:bg-[var(--wd-surface-base)]"
+                            }`}
+                        >
+                            <LayoutDashboard size={15} />
+                        </button>
+
+                        {isWidgetSettingsOpen && (
+                            <div className="absolute right-0 top-[calc(100%+10px)] z-[240]">
+                                <WidgetChannelSettingsLazy
+                                    workspaceId={workspaceId}
+                                    channelId={room.id}
+                                    onClose={() => setIsWidgetSettingsOpen(false)}
+                                />
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 {hasPZIntegration ? (
                     <button

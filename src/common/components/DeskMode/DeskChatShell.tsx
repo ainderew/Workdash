@@ -38,6 +38,7 @@ import MessageList from "./MessageList";
 import RoomHeader from "./RoomHeader";
 import ThreadPanel from "./ThreadPanel";
 import CallBanner from "./CallBanner";
+import { ChannelWidgetPanel } from "@/common/components/ChannelWidgets/ChannelWidgetPanel";
 import TypingIndicator from "./TypingIndicator";
 import FloatingCallWindow from "./FloatingCallWindow";
 import CollapsedSidebarRail from "./CollapsedSidebarRail";
@@ -931,6 +932,7 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
                         <div ref={channelContentRef} className="flex-1 min-w-0 flex flex-col">
                             <RoomHeader
                                 room={currentRoom}
+                                workspaceId={activeWorkspaceId}
                                 serverName={serverName}
                                 rooms={activeRooms}
                                 searchQuery={searchQuery}
@@ -1006,6 +1008,13 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
 
                             {currentRoomId && (
                                 <CallBanner channelId={currentRoomId} />
+                            )}
+
+                            {currentRoomId && activeWorkspaceId && (
+                                <ChannelWidgetPanel
+                                    roomId={currentRoomId}
+                                    workspaceId={activeWorkspaceId}
+                                />
                             )}
 
                             <MessageList
