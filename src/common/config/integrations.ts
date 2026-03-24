@@ -54,7 +54,7 @@ export const PZ_EVENT_TYPE_LABELS: Record<string, string> = {
   item_pickup: "Item Pickup",
   base_build: "Base Building",
   safehouse_event: "Safehouse Events",
-  admin_command: "Admin Commands",
+
   map_change: "Map Changes",
   default: "All Other Events",
 };

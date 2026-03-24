@@ -77,10 +77,6 @@ export class CallSignalingService {
         VideoChatViewer.getInstance().closeAllConsumers();
         ScreenShareViewer.getInstance().closeAllConsumers();
         AudioChat.getInstance().closeAllAudioConsumers();
-        // Recreate mic producer so it's available for the next call join.
-        AudioChat.getInstance().joinVoiceChat().catch((err) => {
-            logger.error("Failed to recreate mic producer after call ended:", err);
-        });
         playCallSound("end-call");
       }
     });
@@ -148,10 +144,15 @@ export class CallSignalingService {
       this.socket.emit(
         "call:start",
         { channelId, type },
-        (res: AckResponse<CallPresence>) => {
+        async (res: AckResponse<CallPresence>) => {
           if (res.error) return reject(new Error(res.error));
           useCallStore.getState().setCurrentCall(channelId);
           playCallSound("join-call");
+          try {
+            await AudioChat.getInstance().joinVoiceChat();
+          } catch (err) {
+            logger.error("Failed to acquire mic when starting call:", err);
+          }
           resolve(res.call ?? null);
         },
       );
@@ -163,10 +164,15 @@ export class CallSignalingService {
       this.socket.emit(
         "call:join",
         { channelId },
-        (res: AckResponse<CallPresence>) => {
+        async (res: AckResponse<CallPresence>) => {
           if (res.error) return reject(new Error(res.error));
           useCallStore.getState().setCurrentCall(channelId);
           playCallSound("join-call");
+          try {
+            await AudioChat.getInstance().joinVoiceChat();
+          } catch (err) {
+            logger.error("Failed to acquire mic when joining call:", err);
+          }
           resolve(res.call ?? null);
         },
       );
@@ -185,11 +191,6 @@ export class CallSignalingService {
         VideoChatViewer.getInstance().closeAllConsumers();
         ScreenShareViewer.getInstance().closeAllConsumers();
         AudioChat.getInstance().closeAllAudioConsumers();
-        // Recreate mic producer so it's available for the next call join.
-        // joinVoiceChat() starts muted, matching the expected default state.
-        AudioChat.getInstance().joinVoiceChat().catch((err) => {
-            logger.error("Failed to recreate mic producer after leaving call:", err);
-        });
         useCallStore.getState().setCurrentCall(null);
         playCallSound("end-call");
       };
