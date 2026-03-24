@@ -78,7 +78,7 @@ function useUiControls() {
             const call = useCallStore.getState().currentCall;
             if (call) {
                 CallSignalingService.getInstance().setMedia(call.channelId, {
-                    audio: audioService.isMuted, // was muted, now unmuted
+                    audio: !audioService.isMuted,
                 });
             }
         }
