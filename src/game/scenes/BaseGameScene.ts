@@ -473,65 +473,6 @@ export abstract class BaseGameScene extends Scene {
             repeat: -1,
         });
 
-        this.anims.create({
-            key: AttackAnimationKeys.SOLDIER,
-            frames: this.anims.generateFrameNumbers(SpriteKeys.SOLDIER_ATTACK, {
-                start: 0,
-                end: 5,
-            }),
-            frameRate: 6,
-            repeat: 0,
-        });
-
-        this.anims.create({
-            key: WalkAnimationKeys.SOLDIER,
-            frames: this.anims.generateFrameNumbers(SpriteKeys.SOLDIER_WALK, {
-                start: 0,
-                end: 5,
-            }),
-            frameRate: 6,
-            repeat: -1,
-        });
-
-        this.anims.create({
-            key: IdleAnimationKeys.SOLDIER,
-            frames: this.anims.generateFrameNumbers(SpriteKeys.SOLDIER, {
-                start: 0,
-                end: 5,
-            }),
-            frameRate: 6,
-            repeat: -1,
-        });
-
-        this.anims.create({
-            key: IdleAnimationKeys.ORC,
-            frames: this.anims.generateFrameNumbers(SpriteKeys.ORC, {
-                start: 0,
-                end: 5,
-            }),
-            frameRate: 6,
-            repeat: -1,
-        });
-
-        this.anims.create({
-            key: WalkAnimationKeys.ORC,
-            frames: this.anims.generateFrameNumbers(SpriteKeys.ORC_WALK, {
-                start: 0,
-                end: 5,
-            }),
-            frameRate: 6,
-            repeat: -1,
-        });
-
-        this.anims.create({
-            key: AttackAnimationKeys.ORC,
-            frames: this.anims.generateFrameNumbers(AttackAnimationKeys.ORC, {
-                start: 0,
-                end: 5,
-            }),
-            frameRate: 6,
-            repeat: 0,
-        });
     }
 
     public async createPlayer(

@@ -226,12 +226,10 @@ export class CharacterAnimationManager {
             if (this.scene.anims.exists(config.key)) {
                 try {
                     this.scene.anims.remove(config.key);
-                } catch (e) {
-                    console.warn(
-                        `Force clearing animation ${config.key} failed gracefully`,
-                        e,
-                    );
-                    this.scene.anims.remove(config.key);
+                } catch {
+                    // Animation removal can fail if a sprite still references the
+                    // old texture frames. The animation key is already unregistered
+                    // at this point so we can safely continue to recreate it.
                 }
             }
 

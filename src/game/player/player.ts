@@ -1359,6 +1359,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
                 return;
             }
 
+            this.visualSprite.anims.stop();
             animManager.createCharacterAnimations(characterKey, spritesheetKey);
             animManager.updateAnimationKeys(characterKey);
 
