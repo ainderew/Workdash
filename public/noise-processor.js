@@ -51,6 +51,9 @@ class NoiseProcessor extends AudioWorkletProcessor {
     this._gateGain = 0;
     this._energyHoldCount = 0;
     this._smoothedRms = 0;
+    // Hold-open counter: keeps gate open for a minimum duration after speech
+    // is detected, preventing cutoffs between syllables and short pauses.
+    this._holdOpenRemaining = 0;
 
     this.port.onmessage = async (e) => {
       console.log('[noise-processor] onmessage:', e.data?.type);
@@ -243,27 +246,38 @@ class NoiseProcessor extends AudioWorkletProcessor {
     }
     const rms = Math.sqrt(sum / output.length);
 
-    // Smooth RMS to avoid reacting to single-sample spikes
-    this._smoothedRms = 0.3 * rms + 0.7 * this._smoothedRms;
+    // Smooth RMS — responsive enough to track speech onset, smooth
+    // enough to ignore single-sample spikes
+    this._smoothedRms = 0.4 * rms + 0.6 * this._smoothedRms;
 
     // Threshold: just above silence. Speech after RNNoise typically has
     // RMS > 0.01; residual typing clicks are lower after denoising.
-    const ENERGY_THRESHOLD = 0.005;
-    // Require ~30ms of sustained energy before opening (128 samples at
-    // 48kHz = 2.67ms per quantum, so 12 quanta ≈ 32ms). Typing clicks
-    // spike for 2-5 quanta then drop; speech sustains for many more.
-    const HOLD_THRESHOLD = 12;
+    const ENERGY_THRESHOLD = 0.003;
+    // Require ~16ms of sustained energy before opening (128 samples at
+    // 48kHz = 2.67ms per quantum, so 6 quanta ≈ 16ms). Typing clicks
+    // spike for 2-3 quanta then drop; speech sustains for many more.
+    const HOLD_THRESHOLD = 6;
+    // Once gate opens, hold it open for at least ~200ms (75 quanta)
+    // to bridge natural pauses between syllables and short words.
+    const HOLD_OPEN_QUANTA = 75;
 
     if (this._smoothedRms >= ENERGY_THRESHOLD) {
       this._energyHoldCount = Math.min(this._energyHoldCount + 1, HOLD_THRESHOLD + 1);
     } else {
-      this._energyHoldCount = 0;
+      this._energyHoldCount = Math.max(0, this._energyHoldCount - 1);
     }
 
-    const gateOpen = this._energyHoldCount >= HOLD_THRESHOLD;
-    // Fast attack (open quickly once sustained), moderate release
+    if (this._energyHoldCount >= HOLD_THRESHOLD) {
+      this._holdOpenRemaining = HOLD_OPEN_QUANTA;
+    } else if (this._holdOpenRemaining > 0) {
+      this._holdOpenRemaining--;
+    }
+
+    const gateOpen = this._holdOpenRemaining > 0;
+    // Fast attack (open quickly once sustained), gentle release to
+    // avoid abrupt cutoffs at end of speech
     const gateTarget = gateOpen ? 1 : 0;
-    const rate = gateOpen ? 0.2 : 0.04;
+    const rate = gateOpen ? 0.25 : 0.012;
 
     for (let i = 0; i < output.length; i++) {
       if (this._gateGain < gateTarget) {
