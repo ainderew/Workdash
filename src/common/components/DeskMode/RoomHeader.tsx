@@ -10,6 +10,7 @@ import useChatV2Store from "@/common/store/chatV2Store";
 import useUserStore from "@/common/store/useStore";
 import { useIntegrationStore } from "@/common/store/integrationStore";
 import { usePZStore } from "@/common/store/pzStore";
+import type { RightSidebarTab } from "./RightSidebar";
 import { getDisplayName } from "@/common/utils/displayName";
 import ChannelHashIcon from "./ChannelHashIcon";
 import PinnedMessagesPanel from "./PinnedMessagesPanel";
@@ -31,8 +32,8 @@ interface RoomHeaderProps {
     onSearchUsers: (query: string) => Promise<ChatV2SearchUser[]>;
     onClearSearch: () => void;
     onOpenNotification?: (notification: ChatV2UserNotification) => void;
-    isMemberPanelVisible?: boolean;
-    onToggleMemberPanel?: () => void;
+    rightSidebarTab?: RightSidebarTab | null;
+    onSetRightSidebarTab?: (tab: RightSidebarTab | null) => void;
     isPinnedPanelVisible?: boolean;
     onTogglePinnedPanel?: () => void;
     pinnedMessages?: ChatV2PinnedMessage[];
@@ -56,8 +57,8 @@ function RoomHeader({
     onSearchUsers,
     onClearSearch,
     onOpenNotification,
-    isMemberPanelVisible = false,
-    onToggleMemberPanel,
+    rightSidebarTab = null,
+    onSetRightSidebarTab,
     isPinnedPanelVisible = false,
     onTogglePinnedPanel,
     pinnedMessages = [],
@@ -97,8 +98,7 @@ function RoomHeader({
     const hasPZIntegration = integrations.some(
         (i) => i.type === "pz_server" && i.isActive,
     );
-    const isSidebarOpen = usePZStore((s) => s.isSidebarOpen);
-    const togglePzSidebar = usePZStore((s) => s.toggleSidebar);
+    const onlinePlayerCount = usePZStore((s) => s.onlinePlayers).length;
     const [isSearchMenuOpen, setIsSearchMenuOpen] = useState(false);
     const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
     const [hasUnreadNotificationDot, setHasUnreadNotificationDot] = useState(false);
@@ -421,43 +421,56 @@ function RoomHeader({
                     <button
                         type="button"
                         aria-label={
-                            isSidebarOpen
+                            rightSidebarTab === "pz"
                                 ? "Hide PZ sidebar"
                                 : "Show PZ sidebar"
                         }
                         title={
-                            isSidebarOpen
+                            rightSidebarTab === "pz"
                                 ? "Hide PZ sidebar"
                                 : "Show PZ sidebar"
                         }
-                        aria-pressed={isSidebarOpen}
-                        onClick={togglePzSidebar}
-                        className={`h-8 w-8 inline-flex items-center justify-center rounded-md border wd-border-subtle transition-colors ${
-                            isSidebarOpen
+                        aria-pressed={rightSidebarTab === "pz"}
+                        onClick={() =>
+                            onSetRightSidebarTab?.(
+                                rightSidebarTab === "pz" ? null : "pz",
+                            )
+                        }
+                        className={`relative h-8 w-8 inline-flex items-center justify-center rounded-md border wd-border-subtle transition-colors ${
+                            rightSidebarTab === "pz"
                                 ? "wd-bg-elevated wd-text-primary hover:bg-[var(--wd-surface-base)]"
                                 : "wd-bg-panel-2 wd-text-secondary hover:wd-text-primary hover:bg-[var(--wd-surface-base)]"
                         }`}
                     >
-                        <span className="text-sm">{"\uD83E\uDDDF"}</span>
+                        <span className="text-sm">🧟</span>
+                        {onlinePlayerCount > 0 && rightSidebarTab !== "pz" && (
+                            <span className="absolute -right-0.5 -top-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[var(--wd-success)] text-[0.45rem] font-bold text-white">
+                                {onlinePlayerCount}
+                            </span>
+                        )}
                     </button>
                 ) : null}
 
                 <button
                     type="button"
                     aria-label={
-                        isMemberPanelVisible
+                        rightSidebarTab === "members"
                             ? "Hide members list"
                             : "Show members list"
                     }
                     title={
-                        isMemberPanelVisible
+                        rightSidebarTab === "members"
                             ? "Hide members list"
                             : "Show members list"
                     }
-                    aria-pressed={isMemberPanelVisible}
-                    onClick={() => onToggleMemberPanel?.()}
+                    aria-pressed={rightSidebarTab === "members"}
+                    onClick={() =>
+                        onSetRightSidebarTab?.(
+                            rightSidebarTab === "members" ? null : "members",
+                        )
+                    }
                     className={`h-8 w-8 inline-flex items-center justify-center rounded-md border wd-border-subtle transition-colors ${
-                        isMemberPanelVisible
+                        rightSidebarTab === "members"
                             ? "wd-bg-elevated wd-text-primary hover:bg-[var(--wd-surface-base)]"
                             : "wd-bg-panel-2 wd-text-secondary hover:wd-text-primary hover:bg-[var(--wd-surface-base)]"
                     }`}

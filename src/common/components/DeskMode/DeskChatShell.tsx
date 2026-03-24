@@ -44,8 +44,10 @@ import CollapsedSidebarRail from "./CollapsedSidebarRail";
 import { CallSignalingService } from "@/communication/callSignaling/callSignalingService";
 import useCallStore from "@/common/store/callStore";
 import { useCustomEmojiList } from "@/common/hooks/useCustomEmojiList";
-import IntegrationSidebar from "@/common/components/Integrations/IntegrationSidebar";
+import PZSidebar from "@/common/components/Integrations/PZSidebar";
 import { useIntegrationStore } from "@/common/store/integrationStore";
+import RightSidebar from "./RightSidebar";
+import type { RightSidebarTab } from "./RightSidebar";
 
 export type DeskChatShellMode = "desk" | "drawer";
 
@@ -166,6 +168,10 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
     const updateWorkspaceLocal = useWorkspaceStore(
         (state) => state.updateWorkspaceLocal,
     );
+    const integrations = useIntegrationStore((s) => s.integrations);
+    const activePZ = integrations.find(
+        (i) => i.type === "pz_server" && i.isActive,
+    );
 
     const [searchQuery, setSearchQuery] = useState("");
     const [searchFromUser, setSearchFromUser] =
@@ -191,7 +197,7 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
     const [threadReplies, setThreadReplies] = useState<ChatV2Message[]>([]);
     const [isLoadingThread, setIsLoadingThread] = useState(false);
     const [threadError, setThreadError] = useState<string | null>(null);
-    const [isMemberPanelVisible, setIsMemberPanelVisible] = useState(false);
+    const [rightSidebarTab, setRightSidebarTab] = useState<RightSidebarTab | null>(null);
     const [isPinnedPanelVisible, setIsPinnedPanelVisible] = useState(false);
     const [serverImageOverrides, setServerImageOverrides] = useState<
         Record<string, string | null>
@@ -937,12 +943,8 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
                                 onSearchRoomIdChange={setSearchRoomId}
                                 onSearchUsers={handleSearchUsers}
                                 onClearSearch={clearSearchState}
-                                isMemberPanelVisible={isMemberPanelVisible}
-                                onToggleMemberPanel={() => {
-                                    setIsMemberPanelVisible(
-                                        (current) => !current,
-                                    );
-                                }}
+                                rightSidebarTab={rightSidebarTab}
+                                onSetRightSidebarTab={setRightSidebarTab}
                                 isPinnedPanelVisible={isPinnedPanelVisible}
                                 onTogglePinnedPanel={() => {
                                     const next = !isPinnedPanelVisible;
@@ -1146,25 +1148,38 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
                                     void onSelectSearchResult(message);
                                 }}
                             />
-                        ) : isMemberPanelVisible ? (
-                            <MemberPanel
-                                members={roomMembers}
-                                memberRoleColors={memberRoleColors}
-                                isLoading={isManagingMembers}
-                                workspaceMembers={wsMembers}
-                                workspaceOwnerId={selectedWorkspace?.ownerId ?? 0}
-                                onAddMember={(userId) => {
-                                    void addRoomMember(userId);
-                                }}
-                                onRemoveMember={(userId) => {
-                                    void removeRoomMember(userId);
-                                }}
-                            />
+                        ) : rightSidebarTab !== null ? (
+                            <RightSidebar
+                                activeTab={rightSidebarTab}
+                                onTabChange={setRightSidebarTab}
+                                memberCount={roomMembers.length}
+                            >
+                                <div className={rightSidebarTab === "members" ? "flex flex-1 flex-col min-h-0" : "hidden"}>
+                                    <MemberPanel
+                                        members={roomMembers}
+                                        memberRoleColors={memberRoleColors}
+                                        isLoading={isManagingMembers}
+                                        workspaceMembers={wsMembers}
+                                        workspaceOwnerId={selectedWorkspace?.ownerId ?? 0}
+                                        onAddMember={(userId) => {
+                                            void addRoomMember(userId);
+                                        }}
+                                        onRemoveMember={(userId) => {
+                                            void removeRoomMember(userId);
+                                        }}
+                                    />
+                                </div>
+                                {selectedWorkspaceId && activePZ && (
+                                    <div className={rightSidebarTab === "pz" ? "flex flex-1 flex-col min-h-0" : "hidden"}>
+                                        <PZSidebar
+                                            workspaceId={selectedWorkspaceId}
+                                            isActive={true}
+                                        />
+                                    </div>
+                                )}
+                            </RightSidebar>
                         ) : null}
                     </div>
-                    {selectedWorkspaceId && (
-                        <IntegrationSidebar workspaceId={selectedWorkspaceId} />
-                    )}
                 </div>
             </div>
 

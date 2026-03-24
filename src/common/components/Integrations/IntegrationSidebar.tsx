@@ -16,7 +16,7 @@ function IntegrationSidebar({ workspaceId }: IntegrationSidebarProps) {
   if (!activePZ) return null;
 
   return (
-    <PZSidebar workspaceId={workspaceId} integrationId={activePZ.id} />
+    <PZSidebar workspaceId={workspaceId} isActive={true} />
   );
 }
 

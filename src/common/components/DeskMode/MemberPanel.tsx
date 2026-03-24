@@ -143,11 +143,8 @@ function MemberPanel({
 
     return (
         <>
-            <aside className="w-70 wd-bg-panel border-l wd-border-subtle hidden xl:flex xl:flex-col overflow-hidden">
-                <div className="flex items-center justify-between px-4 pt-4 pb-2 gap-2">
-                    <h3 className="text-xs uppercase tracking-wider wd-text-muted font-semibold">
-                        Members
-                    </h3>
+            <div className="flex flex-1 flex-col overflow-hidden">
+                <div className="flex items-center justify-end px-3 pt-2 pb-1">
                     <button
                         type="button"
                         onClick={() => setIsAddMemberModalOpen(true)}
@@ -284,7 +281,7 @@ function MemberPanel({
                         </div>
                     )}
                 </div>
-            </aside>
+            </div>
 
             <AddMemberModal
                 isOpen={isAddMemberModalOpen}

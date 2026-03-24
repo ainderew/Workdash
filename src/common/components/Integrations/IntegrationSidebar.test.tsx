@@ -16,9 +16,9 @@ vi.mock("@/common/store/integrationStore", () => {
 });
 
 vi.mock("./PZSidebar", () => ({
-  default: ({ workspaceId, integrationId }: { workspaceId: string; integrationId: string }) => (
+  default: ({ workspaceId, isActive }: { workspaceId: string; isActive: boolean }) => (
     <div data-testid="pz-sidebar">
-      PZSidebar {workspaceId} {integrationId}
+      PZSidebar {workspaceId} {isActive ? "active" : "inactive"}
     </div>
   ),
 }));
@@ -63,7 +63,7 @@ describe("IntegrationSidebar", () => {
 
     render(<IntegrationSidebar workspaceId="ws-1" />);
 
-    expect(screen.getByText(/PZSidebar ws-1 pz-123/)).toBeInTheDocument();
+    expect(screen.getByText(/PZSidebar ws-1 active/)).toBeInTheDocument();
   });
 
   it("returns null when PZ integration exists but is inactive", () => {

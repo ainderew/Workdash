@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useRef } from "react";
-import { ChevronLeft, ChevronRight, Radio } from "lucide-react";
 import { usePZStore } from "@/common/store/pzStore";
 import CollapsibleSection from "./CollapsibleSection";
 import PZServerStatus from "./PZServerStatus";
@@ -10,7 +9,7 @@ import { MediaTransportService } from "@/communication/mediaTransportService/med
 
 interface PZSidebarProps {
   workspaceId: string;
-  integrationId: string;
+  isActive: boolean;
 }
 
 function SkeletonLine({ width }: { width: string }) {
@@ -25,7 +24,6 @@ function SkeletonLine({ width }: { width: string }) {
 function LoadingSkeleton() {
   return (
     <div className="flex flex-1 flex-col gap-4 px-3 py-4">
-      {/* Status skeleton */}
       <div className="space-y-2">
         <SkeletonLine width="40%" />
         <div className="space-y-1.5 rounded-lg bg-[var(--wd-surface-base)] p-2 ring-1 ring-[var(--wd-border-subtle)]">
@@ -33,7 +31,6 @@ function LoadingSkeleton() {
           <SkeletonLine width="55%" />
         </div>
       </div>
-      {/* Leaderboard skeleton */}
       <div className="space-y-2">
         <SkeletonLine width="35%" />
         <div className="space-y-1.5">
@@ -42,7 +39,6 @@ function LoadingSkeleton() {
           <SkeletonLine width="50%" />
         </div>
       </div>
-      {/* Activity skeleton */}
       <div className="space-y-2">
         <SkeletonLine width="30%" />
         <SkeletonLine width="90%" />
@@ -52,9 +48,7 @@ function LoadingSkeleton() {
   );
 }
 
-function PZSidebar({ workspaceId }: PZSidebarProps) {
-  const isSidebarOpen = usePZStore((s) => s.isSidebarOpen);
-  const toggleSidebar = usePZStore((s) => s.toggleSidebar);
+function PZSidebar({ workspaceId, isActive }: PZSidebarProps) {
   const sectionStates = usePZStore((s) => s.sectionStates);
   const toggleSection = usePZStore((s) => s.toggleSection);
   const isLoading = usePZStore((s) => s.isLoading);
@@ -72,17 +66,17 @@ function PZSidebar({ workspaceId }: PZSidebarProps) {
   const updateOnlinePlayer = usePZStore((s) => s.updateOnlinePlayer);
   const setServerData = usePZStore((s) => s.setServerData);
 
-  const prevOpenRef = useRef(false);
+  const prevActiveRef = useRef(false);
 
   useEffect(() => {
-    if (!isSidebarOpen) {
-      prevOpenRef.current = false;
+    if (!isActive) {
+      prevActiveRef.current = false;
       return;
     }
-    if (prevOpenRef.current) return;
-    prevOpenRef.current = true;
+    if (prevActiveRef.current) return;
+    prevActiveRef.current = true;
     void fetchAllData(workspaceId);
-  }, [isSidebarOpen, workspaceId, fetchAllData]);
+  }, [isActive, workspaceId, fetchAllData]);
 
   const handlePZEvent = useCallback(
     (payload: Record<string, unknown>) => {
@@ -137,7 +131,7 @@ function PZSidebar({ workspaceId }: PZSidebarProps) {
   );
 
   useEffect(() => {
-    if (!isSidebarOpen) return;
+    if (!isActive) return;
 
     let transport: MediaTransportService;
     try {
@@ -152,137 +146,64 @@ function PZSidebar({ workspaceId }: PZSidebarProps) {
     return () => {
       socket.off("pz:event", handlePZEvent);
     };
-  }, [isSidebarOpen, handlePZEvent]);
+  }, [isActive, handlePZEvent]);
 
-  /* ── Collapsed rail ────────────────────────────────────────────── */
-  if (!isSidebarOpen) {
-    return (
-      <div className="flex h-full w-10 shrink-0 flex-col items-center border-l border-[var(--wd-border-subtle)] bg-[var(--wd-surface-panel)] py-3">
-        {/* Server icon with live indicator */}
-        <div className="relative">
-          <span className="text-base" title="PZ Server">
-            🧟
-          </span>
-          {isServerOnline && (
-            <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-[var(--wd-success)] ring-1 ring-[var(--wd-surface-panel)] animate-[wd-pz-pulse_2.5s_ease-in-out_infinite]" />
-          )}
-        </div>
-
-        {/* Player count */}
-        <span className="mt-1.5 flex h-4 w-4 items-center justify-center rounded bg-[var(--wd-surface-elevated)] text-[0.55rem] font-bold wd-text-muted">
-          {onlinePlayers.length}
-        </span>
-
-        {/* Death count indicator */}
-        {recentDeaths.length > 0 && (
-          <span className="mt-1.5 text-[0.5rem] text-[var(--wd-danger)]" title={`${recentDeaths.length} deaths`}>
-            💀
-          </span>
-        )}
-
-        <button
-          type="button"
-          onClick={toggleSidebar}
-          className="mt-auto h-6 w-6 inline-flex items-center justify-center rounded wd-text-muted hover:wd-text-primary hover:bg-[var(--wd-surface-elevated)] transition-colors"
-          aria-label="Expand PZ sidebar"
-          title="Expand PZ sidebar"
-        >
-          <ChevronLeft size={14} />
-        </button>
-      </div>
-    );
+  if (isLoading) {
+    return <LoadingSkeleton />;
   }
 
-  /* ── Expanded sidebar ──────────────────────────────────────────── */
   return (
-    <div className="flex h-full w-[272px] shrink-0 flex-col border-l border-[var(--wd-border-subtle)] bg-[var(--wd-surface-panel)]">
-      {/* Header */}
-      <div className="flex h-11 items-center justify-between border-b border-[var(--wd-border-subtle)] px-3">
-        <div className="flex items-center gap-2">
-          <div className="relative">
-            <Radio size={14} className="wd-text-accent" />
-            {isServerOnline && (
-              <span className="absolute -right-0.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-[var(--wd-success)] animate-[wd-pz-pulse_2.5s_ease-in-out_infinite]" />
-            )}
-          </div>
-          <span className="text-xs font-semibold wd-text-primary tracking-wide">
-            PZ Server
-          </span>
-          <span
-            className={`h-1.5 w-1.5 rounded-full ${
-              isServerOnline
-                ? "bg-[var(--wd-success)]"
-                : "bg-[var(--wd-danger)]"
-            }`}
-          />
-        </div>
-        <button
-          type="button"
-          onClick={toggleSidebar}
-          className="h-6 w-6 inline-flex items-center justify-center rounded wd-text-muted hover:wd-text-primary hover:bg-[var(--wd-surface-elevated)] transition-colors"
-          aria-label="Collapse PZ sidebar"
-          title="Collapse PZ sidebar"
-        >
-          <ChevronRight size={14} />
-        </button>
-      </div>
+    <div className="flex flex-1 flex-col overflow-y-auto no-scrollbar">
+      <CollapsibleSection
+        title="Status"
+        icon={<span>📡</span>}
+        isOpen={sectionStates.status}
+        onToggle={() => toggleSection("status")}
+        badge={`${onlinePlayers.length}`}
+        badgeColor={onlinePlayers.length > 0 ? "success" : "muted"}
+      >
+        <PZServerStatus
+          isOnline={isServerOnline}
+          players={onlinePlayers}
+        />
+      </CollapsibleSection>
 
-      {isLoading ? (
-        <LoadingSkeleton />
-      ) : (
-        <div className="flex-1 overflow-y-auto no-scrollbar">
-          <CollapsibleSection
-            title="Status"
-            icon={<span>📡</span>}
-            isOpen={sectionStates.status}
-            onToggle={() => toggleSection("status")}
-            badge={`${onlinePlayers.length}`}
-            badgeColor={onlinePlayers.length > 0 ? "success" : "muted"}
-          >
-            <PZServerStatus
-              isOnline={isServerOnline}
-              players={onlinePlayers}
-            />
-          </CollapsibleSection>
+      <CollapsibleSection
+        title="Leaderboard"
+        icon={<span>🏆</span>}
+        isOpen={sectionStates.leaderboard}
+        onToggle={() => toggleSection("leaderboard")}
+      >
+        <PZLeaderboard
+          players={allPlayerStats}
+          activeTab={leaderboardTab}
+          onTabChange={setLeaderboardTab}
+        />
+      </CollapsibleSection>
 
-          <CollapsibleSection
-            title="Leaderboard"
-            icon={<span>🏆</span>}
-            isOpen={sectionStates.leaderboard}
-            onToggle={() => toggleSection("leaderboard")}
-          >
-            <PZLeaderboard
-              players={allPlayerStats}
-              activeTab={leaderboardTab}
-              onTabChange={setLeaderboardTab}
-            />
-          </CollapsibleSection>
+      <CollapsibleSection
+        title="Death Log"
+        icon={<span>💀</span>}
+        isOpen={sectionStates.deaths}
+        onToggle={() => toggleSection("deaths")}
+        badge={
+          recentDeaths.length > 0
+            ? `${recentDeaths.length}`
+            : undefined
+        }
+        badgeColor="danger"
+      >
+        <PZDeathLog deaths={recentDeaths} />
+      </CollapsibleSection>
 
-          <CollapsibleSection
-            title="Death Log"
-            icon={<span>💀</span>}
-            isOpen={sectionStates.deaths}
-            onToggle={() => toggleSection("deaths")}
-            badge={
-              recentDeaths.length > 0
-                ? `${recentDeaths.length}`
-                : undefined
-            }
-            badgeColor="danger"
-          >
-            <PZDeathLog deaths={recentDeaths} />
-          </CollapsibleSection>
-
-          <CollapsibleSection
-            title="Activity"
-            icon={<span>⚡</span>}
-            isOpen={sectionStates.activity}
-            onToggle={() => toggleSection("activity")}
-          >
-            <PZActivityFeed events={recentActivity} />
-          </CollapsibleSection>
-        </div>
-      )}
+      <CollapsibleSection
+        title="Activity"
+        icon={<span>⚡</span>}
+        isOpen={sectionStates.activity}
+        onToggle={() => toggleSection("activity")}
+      >
+        <PZActivityFeed events={recentActivity} />
+      </CollapsibleSection>
     </div>
   );
 }
