@@ -32,6 +32,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# RNNoise WASM build artifact (copied from node_modules by postinstall)
+public/rnnoise.wasm
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
@@ -39,8 +42,6 @@ next-env.d.ts
 # agents
 AGENTS.md
 
-# RNNoise WASM build artifact (copied from node_modules by postinstall)
-public/rnnoise.wasm
 
 docs/*
 impeccable.md

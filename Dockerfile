@@ -17,6 +17,9 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# Copy RNNoise WASM (postinstall ran in deps stage, but its public/ is separate)
+RUN cp node_modules/@jitsi/rnnoise-wasm/dist/rnnoise.wasm public/rnnoise.wasm
+
 # Build args for NEXT_PUBLIC_ env vars (baked in at build time)
 ARG NEXT_PUBLIC_SERVER_URL
 ARG NEXT_PUBLIC_SFU_SERVER_URL
