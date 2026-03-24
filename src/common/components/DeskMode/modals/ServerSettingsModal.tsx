@@ -555,7 +555,7 @@ function ServerSettingsModal({
         if ((!showRequestsTab && activeTab === "requests") || (!canManageWorkspace && activeTab === "integrations")) {
             setActiveTab("overview");
         }
-    }, [showRequestsTab, activeTab]);
+    }, [showRequestsTab, activeTab, canManageWorkspace]);
 
     useEffect(() => {
         if (isOpen) {

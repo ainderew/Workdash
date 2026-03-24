@@ -29,6 +29,7 @@ function IntegrationsTab({ workspaceId }: IntegrationsTabProps) {
   const {
     integrations,
     isLoading,
+    error,
     fetchIntegrations,
     enableIntegration,
     updateIntegration,
@@ -56,6 +57,11 @@ function IntegrationsTab({ workspaceId }: IntegrationsTabProps) {
           Enable plugins to add features to your workspace
         </p>
       </div>
+      {error && (
+        <div className="px-3 py-2 rounded-md text-xs font-medium bg-[var(--wd-danger)]/10 text-[var(--wd-danger)]">
+          {error}
+        </div>
+      )}
       {AVAILABLE_INTEGRATIONS.map((def) => {
         const integration = integrations.find((i) => i.type === def.type);
         return (
