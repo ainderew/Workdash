@@ -26,7 +26,7 @@ function PlayerRow({ player }: { player: MatchRecapData["players"][number] }) {
     >
       {player.heroIcon && (
         <img
-          src={`https://cdn.cloudflare.steamstatic.com${player.heroIcon}`}
+          src={player.heroIcon}
           alt={player.heroName}
           className="w-6 h-6 rounded"
         />

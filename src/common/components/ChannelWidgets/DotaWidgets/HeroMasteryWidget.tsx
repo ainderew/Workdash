@@ -13,7 +13,7 @@ function HeroRow({ hero }: { hero: HeroMasteryData["players"][number]["topHeroes
     <div className="flex items-center gap-2 py-1">
       {hero.heroIcon && (
         <img
-          src={`https://cdn.cloudflare.steamstatic.com${hero.heroIcon}`}
+          src={hero.heroIcon}
           alt={hero.heroName}
           className="w-6 h-6 rounded"
         />
@@ -43,7 +43,7 @@ function RivalryCard({ rivalry }: { rivalry: HeroMasteryData["rivalries"][number
       <div className="flex items-center gap-2 mb-1.5">
         {rivalry.heroIcon && (
           <img
-            src={`https://cdn.cloudflare.steamstatic.com${rivalry.heroIcon}`}
+            src={rivalry.heroIcon}
             alt={rivalry.heroName}
             className="w-5 h-5 rounded"
           />
