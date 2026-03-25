@@ -188,6 +188,13 @@ function PZSidebar({ workspaceId, isActive }: PZSidebarProps) {
     [updateOnlinePlayer, addDeathEvent, addActivityEvent, setServerData],
   );
 
+  const handleServerStatus = useCallback(
+    (payload: Record<string, unknown>) => {
+      setServerData({ isServerOnline: payload.isOnline as boolean });
+    },
+    [setServerData],
+  );
+
   useEffect(() => {
     if (!isActive) return;
 
@@ -201,10 +208,12 @@ function PZSidebar({ workspaceId, isActive }: PZSidebarProps) {
     if (!socket) return;
 
     socket.on("pz:event", handlePZEvent);
+    socket.on("pz:server_status", handleServerStatus);
     return () => {
       socket.off("pz:event", handlePZEvent);
+      socket.off("pz:server_status", handleServerStatus);
     };
-  }, [isActive, handlePZEvent]);
+  }, [isActive, handlePZEvent, handleServerStatus]);
 
   if (isLoading) {
     return <LoadingSkeleton />;

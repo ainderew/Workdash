@@ -35,7 +35,6 @@ export interface PZActivityEvent {
 
 interface StatusResponse {
   isOnline: boolean;
-  lastEventAt: string | null;
   playerCount: number;
 }
 
@@ -231,7 +230,6 @@ export const usePZStore = create<PZStoreState>((set, get) => ({
 
       set({
         isServerOnline: status?.isOnline ?? false,
-        lastEventAt: status?.lastEventAt ?? null,
         onlinePlayers: (online?.players ?? []).map((p) => ({
           steamId: p.steamId,
           pzUsername: p.pzUsername,
