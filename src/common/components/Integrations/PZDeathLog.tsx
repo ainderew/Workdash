@@ -2,6 +2,20 @@ import React, { useEffect, useState } from "react";
 import type { PZDeathEvent } from "@/common/store/pzStore";
 import { formatRelativeTime } from "@/common/utils/relativeTime";
 
+const BOLD_RE = /(\*\*[^*]+\*\*)/;
+
+function renderBold(text: string): React.ReactNode[] {
+  return text.split(BOLD_RE).map((part, i) =>
+    part.startsWith("**") && part.endsWith("**") ? (
+      <strong key={i} className="font-semibold wd-text-primary">
+        {part.slice(2, -2)}
+      </strong>
+    ) : (
+      part
+    ),
+  );
+}
+
 interface PZDeathLogProps {
   deaths: PZDeathEvent[];
 }
@@ -57,7 +71,7 @@ function PZDeathLog({ deaths }: PZDeathLogProps) {
               <span className="font-semibold">
                 {death.workdashUser?.displayName ?? death.username}
               </span>{" "}
-              <span className="wd-text-secondary">{death.action}</span>
+              <span className="wd-text-secondary">{renderBold(death.action)}</span>
             </p>
             <span className="mt-0.5 block text-[0.55rem] wd-text-muted">
               {formatRelativeTime(death.timestamp)}
