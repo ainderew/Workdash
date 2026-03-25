@@ -1,4 +1,4 @@
-import { MediaTransportService } from "@/communication/mediaTransportService/mediaTransportServive";
+import { MediaTransportService } from "@/communication/mediaTransportService/mediaTransportService";
 import useCallStore from "@/common/store/callStore";
 import type { CallParticipant, CallParticipantMedia, CallPresence } from "@/common/store/callStore";
 import { AudioChat } from "@/communication/audioChat/audioChat";

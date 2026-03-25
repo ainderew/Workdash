@@ -1,6 +1,6 @@
 import { Scene } from "phaser";
 import { Player } from "../player/player";
-import { MediaTransportService } from "@/communication/mediaTransportService/mediaTransportServive";
+import { MediaTransportService } from "@/communication/mediaTransportService/mediaTransportService";
 import useChatV2Store from "@/common/store/chatV2Store";
 import { logger } from "@/common/utils/logger";
 

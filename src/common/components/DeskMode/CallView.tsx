@@ -6,6 +6,7 @@ import { CallSignalingService } from '@/communication/callSignaling/callSignalin
 import { VideoChatService } from '@/communication/videoChat/videoChat';
 import { ScreenShareService } from '@/communication/screenShare/screenShare';
 import { AudioChat } from '@/communication/audioChat/audioChat';
+import { logger } from '@/common/utils/logger';
 import useUiStore from '@/common/store/uiStore';
 import useUserStore from '@/common/store/useStore';
 import { VideoChatViewer } from '@/communication/videoChat/videoChatViewer';
@@ -119,7 +120,6 @@ export default function CallView({ channelId, onLeave, onPictureInPicture, onFul
     } else {
       audio.muteMic();
     }
-    useUiStore.getState().toggleMic();
     CallSignalingService.getInstance().setMedia(channelId, {
       audio: willBeUnmuted,
     });
@@ -131,7 +131,7 @@ export default function CallView({ channelId, onLeave, onPictureInPicture, onFul
       try {
         await videoService.startVideoChat();
       } catch (err) {
-        console.error('Failed to start video:', err);
+        logger.error('Failed to start video:', err);
         return;
       }
     } else {
@@ -156,8 +156,9 @@ export default function CallView({ channelId, onLeave, onPictureInPicture, onFul
       CallSignalingService.getInstance().setMedia(channelId, {
         screen: true,
       });
-    } catch {
-      // User cancelled or error
+    } catch (err) {
+      if (err instanceof DOMException && (err.name === 'NotAllowedError' || err.name === 'AbortError')) return;
+      logger.error('Screen share failed:', err);
     }
   };
 

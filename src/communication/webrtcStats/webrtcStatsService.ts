@@ -1,4 +1,4 @@
-import { MediaTransportService } from '../mediaTransportService/mediaTransportServive';
+import { MediaTransportService } from '../mediaTransportService/mediaTransportService';
 import useCallStore from '@/common/store/callStore';
 import type { ConnectionQuality, StatsSnapshot } from '@/common/store/callStore';
 

@@ -1,5 +1,5 @@
 import { Producer } from "mediasoup-client/types";
-import { MediaTransportService } from "../mediaTransportService/mediaTransportServive";
+import { MediaTransportService } from "../mediaTransportService/mediaTransportService";
 import { CallSignalingService } from "../callSignaling/callSignalingService";
 import useCallStore from "@/common/store/callStore";
 

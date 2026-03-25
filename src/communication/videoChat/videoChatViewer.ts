@@ -2,7 +2,7 @@ import useUserStore from "@/common/store/useStore";
 import usePlayersStore from "@/common/store/playerStore";
 import useCallStore from "@/common/store/callStore";
 import useUiStore from "@/common/store/uiStore";
-import { MediaTransportService } from "../mediaTransportService/mediaTransportServive";
+import { MediaTransportService } from "../mediaTransportService/mediaTransportService";
 import { ConsumerData } from "../screenShare/_types";
 import { Consumer } from "mediasoup-client/types";
 

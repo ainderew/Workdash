@@ -4,7 +4,7 @@ import usePollStore from "@/common/store/pollStore";
 import useUserStore from "@/common/store/useStore";
 import { logger } from "@/common/utils/logger";
 import { PollService } from "@/communication/poll/poll";
-import { MediaTransportService } from "@/communication/mediaTransportService/mediaTransportServive";
+import { MediaTransportService } from "@/communication/mediaTransportService/mediaTransportService";
 import PollOption from "./PollOption";
 import PollResults from "./PollResults";
 

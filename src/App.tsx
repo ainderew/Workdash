@@ -7,7 +7,7 @@ import AudioElement from "./common/components/AudioElement";
 import UiControls from "./common/components/UiControls/UiControls";
 import useUserStore from "./common/store/useStore";
 import { User, UserStore } from "./common/store/_types";
-import { MediaTransportService } from "./communication/mediaTransportService/mediaTransportServive";
+import { MediaTransportService } from "./communication/mediaTransportService/mediaTransportService";
 import ScreenShareUi from "./common/components/ScreenShare/ScreenShareUi";
 import VideoChatUi from "./common/components/VideoChat/VideoChatUi";
 import { ReactionService } from "./communication/reaction/reaction";

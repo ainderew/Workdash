@@ -1,4 +1,4 @@
-import { MediaTransportService } from "@/communication/mediaTransportService/mediaTransportServive";
+import { MediaTransportService } from "@/communication/mediaTransportService/mediaTransportService";
 import { tokenStore } from "@/common/utils/tokenStore";
 import type { CustomEmoji } from "@/common/store/customEmojiStore";
 import type {

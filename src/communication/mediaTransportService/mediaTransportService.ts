@@ -60,6 +60,30 @@ export class MediaTransportService {
 
             ActivityClientService.getInstance().init(this.socket).setupListeners();
         });
+
+        this.socket.on("sfuReset", async () => {
+            logger.log("SFU worker reset detected — re-initializing transports");
+            this.sendTransport = null;
+            this.recvTransport = null;
+
+            // Clean up stale audio state from the dead worker
+            const { AudioChat } = await import("@/communication/audioChat/audioChat");
+            const audioChat = AudioChat.getInstance();
+            const producer = audioChat.getAudioProducer();
+            const hadProducer = !!producer && !producer.closed;
+            audioChat.stopMic();
+            audioChat.closeAllAudioConsumers();
+
+            try {
+                await this.initializeSfu();
+                // Re-establish audio producer if the user was in a call/zone
+                if (hadProducer) {
+                    await audioChat.joinVoiceChat();
+                }
+            } catch (err) {
+                logger.error("Failed to re-initialize SFU after reset:", err);
+            }
+        });
     }
 
     public setAuthToken(jwtToken: string) {

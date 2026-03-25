@@ -2,7 +2,7 @@ import useUserStore from "@/common/store/useStore";
 import usePollStore from "@/common/store/pollStore";
 import { getDisplayName } from "@/common/utils/displayName";
 import { logger } from "@/common/utils/logger";
-import { MediaTransportService } from "../mediaTransportService/mediaTransportServive";
+import { MediaTransportService } from "../mediaTransportService/mediaTransportService";
 import { PollEvents } from "./_enums";
 import type {
     Poll,

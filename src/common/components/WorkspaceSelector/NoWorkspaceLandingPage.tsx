@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Compass, Link, Plus, Search } from "lucide-react";
 import { ChatV2Service } from "@/communication/chatV2/chatV2Service";
-import { MediaTransportService } from "@/communication/mediaTransportService/mediaTransportServive";
+import { MediaTransportService } from "@/communication/mediaTransportService/mediaTransportService";
 import type { PublicWorkspacePreview } from "@/communication/chatV2/_types";
 import useWorkspaceStore from "@/common/store/workspaceStore";
 import PublicWorkspacePreviewCard from "./PublicWorkspacePreviewCard";

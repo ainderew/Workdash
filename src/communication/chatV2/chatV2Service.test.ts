@@ -12,7 +12,7 @@ const mockSocket = {
   connected: true,
 };
 
-vi.mock('@/communication/mediaTransportService/mediaTransportServive', () => ({
+vi.mock('@/communication/mediaTransportService/mediaTransportService', () => ({
   MediaTransportService: {
     getInstance: vi.fn(() => ({
       socket: mockSocket,

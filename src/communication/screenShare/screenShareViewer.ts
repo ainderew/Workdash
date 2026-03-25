@@ -1,5 +1,5 @@
 import { Consumer } from "mediasoup-client/types";
-import { MediaTransportService } from "../mediaTransportService/mediaTransportServive";
+import { MediaTransportService } from "../mediaTransportService/mediaTransportService";
 import useUserStore from "@/common/store/useStore";
 import usePlayersStore from "@/common/store/playerStore";
 import useCallStore from "@/common/store/callStore";

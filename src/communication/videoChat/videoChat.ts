@@ -1,5 +1,5 @@
 import { Producer } from "mediasoup-client/types";
-import { MediaTransportService } from "../mediaTransportService/mediaTransportServive";
+import { MediaTransportService } from "../mediaTransportService/mediaTransportService";
 
 export class VideoChatService {
     public static instance: VideoChatService | null = null;

@@ -12,7 +12,6 @@ const videoCamService = VideoChatService.getInstance();
 function useUiControls() {
     // Individual selectors so this hot-path component only re-renders when its own values change
     const isMuted = useUiStore((s) => s.isMuted);
-    const toggleMicState = useUiStore((s) => s.toggleMic);
     const setIsMuted = useUiStore((s) => s.setIsMuted);
     const availableMicrophones = useUiStore((s) => s.availableMicrophones);
     const selectedMicrophoneId = useUiStore((s) => s.selectedMicrophoneId);
@@ -68,7 +67,6 @@ function useUiControls() {
 
     function micControls() {
         function toggleMic() {
-            toggleMicState();
             if (audioService.isMuted) {
                 audioService.unMuteMic();
             } else {

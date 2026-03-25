@@ -69,6 +69,9 @@ interface CallState {
   /** Maps producerId → userId for video tile association */
   producerUserMap: Record<string, number>;
 
+  /** Reverse: userId → producerId for O(1) tile lookups */
+  userToProducerId: Record<number, string>;
+
   /** Maps screen-share producerId → userId for screen share tile association */
   screenProducerUserMap: Record<string, number>;
 
@@ -157,6 +160,7 @@ const useCallStore = create<CallState>((set) => ({
   currentCall: null,
   localMedia: { ...initialLocalMedia },
   producerUserMap: {},
+  userToProducerId: {},
   screenProducerUserMap: {},
   producerToConsumerMap: {},
   manualFloating: false,
@@ -216,11 +220,13 @@ const useCallStore = create<CallState>((set) => ({
 
       // Clean up producerUserMap entries for the leaving user
       const nextProducerUserMap = { ...state.producerUserMap };
+      const nextUserToProducerId = { ...state.userToProducerId };
       for (const [producerId, uid] of Object.entries(nextProducerUserMap)) {
         if (uid === userId) {
           delete nextProducerUserMap[producerId];
         }
       }
+      delete nextUserToProducerId[userId];
 
       // Clean up screenProducerUserMap entries for the leaving user
       const nextScreenProducerUserMap = { ...state.screenProducerUserMap };
@@ -248,6 +254,7 @@ const useCallStore = create<CallState>((set) => ({
           },
         },
         producerUserMap: nextProducerUserMap,
+        userToProducerId: nextUserToProducerId,
         screenProducerUserMap: nextScreenProducerUserMap,
         pinnedTileKey: unpinned,
       };
@@ -302,13 +309,19 @@ const useCallStore = create<CallState>((set) => ({
   setProducerUser: (producerId, userId) =>
     set((state) => ({
       producerUserMap: { ...state.producerUserMap, [producerId]: userId },
+      userToProducerId: { ...state.userToProducerId, [userId]: producerId },
     })),
 
   removeProducer: (producerId) =>
     set((state) => {
+      const userId = state.producerUserMap[producerId];
       const next = { ...state.producerUserMap };
       delete next[producerId];
-      return { producerUserMap: next };
+      const nextReverse = { ...state.userToProducerId };
+      if (userId !== undefined && nextReverse[userId] === producerId) {
+        delete nextReverse[userId];
+      }
+      return { producerUserMap: next, userToProducerId: nextReverse };
     }),
 
   setScreenProducerUser: (producerId, userId) =>
@@ -371,6 +384,7 @@ const useCallStore = create<CallState>((set) => ({
     set(() => ({
       activeCallsByChannel: {},
       producerUserMap: {},
+      userToProducerId: {},
       screenProducerUserMap: {},
       producerToConsumerMap: {},
       pinnedTileKey: null,
@@ -382,6 +396,7 @@ const useCallStore = create<CallState>((set) => ({
       currentCall: null,
       localMedia: { ...initialLocalMedia },
       producerUserMap: {},
+      userToProducerId: {},
       screenProducerUserMap: {},
       producerToConsumerMap: {},
       manualFloating: false,

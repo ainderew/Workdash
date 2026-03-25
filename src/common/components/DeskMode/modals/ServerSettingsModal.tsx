@@ -34,7 +34,7 @@ const MAX_SERVER_NAME_LENGTH = 100;
 
 import EmojisTab from "./EmojisTab";
 import JoinRequestsTab from "./JoinRequestsTab";
-import { MediaTransportService } from "@/communication/mediaTransportService/mediaTransportServive";
+import { MediaTransportService } from "@/communication/mediaTransportService/mediaTransportService";
 import IntegrationsTab from "./IntegrationsTab";
 
 type SettingsTab = "overview" | "roles" | "emojis" | "requests" | "integrations";

@@ -5,7 +5,7 @@ import PZServerStatus from "./PZServerStatus";
 import PZLeaderboard from "./PZLeaderboard";
 import PZDeathLog from "./PZDeathLog";
 import PZActivityFeed from "./PZActivityFeed";
-import { MediaTransportService } from "@/communication/mediaTransportService/mediaTransportServive";
+import { MediaTransportService } from "@/communication/mediaTransportService/mediaTransportService";
 import { CONFIG } from "@/common/utils/config";
 import { tokenStore } from "@/common/utils/tokenStore";
 import { logger } from "@/common/utils/logger";

@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useMemo, useState, useCallback } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import Image from 'next/image';
 import { Mic, MicOff, Video, Monitor, Pin, PinOff, HeadphoneOff } from 'lucide-react';
 import useFocusStore from '@/common/store/focusStore';
@@ -67,14 +67,9 @@ export default function CallParticipantTile({
   // Generate sprite face avatar as fallback
   const spriteAvatar = useCharacterFaceAvatar(characterCustomization);
 
-  // Producer → userId reverse lookup for remote video (narrowed to this participant only)
-  const producerUserMap = useCallStore((s) => s.producerUserMap);
-  const producerId = useMemo(
-    () =>
-      Object.entries(producerUserMap).find(
-        ([, uid]) => uid === participant.userId,
-      )?.[0],
-    [producerUserMap, participant.userId],
+  // O(1) reverse lookup: userId → producerId for remote video
+  const producerId = useCallStore(
+    (s) => s.userToProducerId[participant.userId],
   );
 
   // Mount video element into the tile

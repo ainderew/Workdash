@@ -1,4 +1,4 @@
-import { MediaTransportService } from "../mediaTransportService/mediaTransportServive";
+import { MediaTransportService } from "../mediaTransportService/mediaTransportService";
 import { ReactionEventEnums } from "./_enums";
 import usePlayersStore from "@/common/store/playerStore";
 import { ReactionData } from "./_types";

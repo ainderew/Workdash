@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { Check, Clock, Loader2, MessageSquare, X } from "lucide-react";
 import { ChatV2Service } from "@/communication/chatV2/chatV2Service";
-import { MediaTransportService } from "@/communication/mediaTransportService/mediaTransportServive";
+import { MediaTransportService } from "@/communication/mediaTransportService/mediaTransportService";
 import type { JoinRequest } from "@/communication/chatV2/_types";
 
 type Props = {

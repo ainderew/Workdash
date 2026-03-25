@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { ChatV2Service } from '@/communication/chatV2/chatV2Service';
-import { MediaTransportService } from '@/communication/mediaTransportService/mediaTransportServive';
+import { MediaTransportService } from '@/communication/mediaTransportService/mediaTransportService';
 import useCustomEmojiStore from '@/common/store/customEmojiStore';
 import type { CustomEmoji } from '@/common/store/customEmojiStore';
 

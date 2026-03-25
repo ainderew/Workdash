@@ -1,5 +1,5 @@
 import { Consumer, Producer, RtpParameters } from "mediasoup-client/types";
-import { MediaTransportService } from "../mediaTransportService/mediaTransportServive";
+import { MediaTransportService } from "../mediaTransportService/mediaTransportService";
 import usePlayersStore from "@/common/store/playerStore";
 import { AvailabilityStatus } from "@/game/player/_enums";
 import useAudioStore from "@/common/store/audioStore";
@@ -7,6 +7,7 @@ import type { AudioQualityMode } from "@/common/store/audioStore";
 import { logger } from "@/common/utils/logger";
 import useCallStore from "@/common/store/callStore";
 import useFocusStore from "@/common/store/focusStore";
+import useUiStore from "@/common/store/uiStore";
 import useUserStore from "@/common/store/useStore";
 import { RNNoiseService } from "./rnnoiseService";
 
@@ -139,9 +140,13 @@ export class AudioChat {
                     );
                     for (const producerId of player.producerIds) {
                         this.audioOwnerMap[producerId] = player.name;
-                        await this.consumeProducer(producerId);
                     }
                 }
+                await Promise.all(
+                    data.players.flatMap((player) =>
+                        player.producerIds.map((id) => this.consumeProducer(id)),
+                    ),
+                );
             },
         );
 
@@ -167,8 +172,10 @@ export class AudioChat {
                     );
                     for (const producerId of data.producerIds) {
                         this.audioOwnerMap[producerId] = data.name;
-                        await this.consumeProducer(producerId);
                     }
+                    await Promise.all(
+                        data.producerIds.map((id) => this.consumeProducer(id)),
+                    );
                 }
             },
         );
@@ -234,6 +241,18 @@ export class AudioChat {
         delete this.audioOwnerMap[producerId];
         this.audioProducerUserIdMap.delete(producerId);
         this.producerToConsumerMap.delete(producerId);
+
+        // Clean up stale entry from socketToProducersMap
+        for (const [socketId, producerIds] of this.socketToProducersMap) {
+            const idx = producerIds.indexOf(producerId);
+            if (idx !== -1) {
+                producerIds.splice(idx, 1);
+                if (producerIds.length === 0) {
+                    this.socketToProducersMap.delete(socketId);
+                }
+                break;
+            }
+        }
 
         if (this.audioElementUpdateCallback) {
             this.audioElementUpdateCallback();
@@ -806,6 +825,9 @@ export class AudioChat {
                         return;
                     }
 
+                    // Skip processing while muted — producer is paused, no RTP flows
+                    if (this.isMuted) return;
+
                     gateAnalyser.getFloatTimeDomainData(gateBuffer);
                     let sum = 0;
                     for (let i = 0; i < gateBuffer.length; i++) {
@@ -888,15 +910,16 @@ export class AudioChat {
 
     public muteMic() {
         if (this.audioProducer) {
-            this.audioProducer?.pause();
+            this.audioProducer.pause();
         }
         this.isMuted = true;
+        useUiStore.getState().setIsMuted(true);
         if (this.isInFocusMode) {
             this.wasMutedBeforeFocus = true;
         }
     }
 
-    /** Close the audio producer and stop the mic track (for leaving calls) */
+    /** Close the audio producer, stop the mic track, and release audio contexts (for leaving calls) */
     public stopMic() {
         this.clearNoiseGate();
         this.cleanupRNNoise();
@@ -912,6 +935,12 @@ export class AudioChat {
             this.currentStream.getTracks().forEach((track) => track.stop());
             this.currentStream = null;
         }
+        if (this.audioContext) {
+            const ctx = this.audioContext;
+            this.audioContext = null;
+            ctx.close().catch(() => {});
+        }
+        this.localAnalyser = null;
         this.isMuted = true;
         if (this.isInFocusMode) {
             this.isInFocusMode = false;
@@ -923,6 +952,7 @@ export class AudioChat {
 
     public async unMuteMic() {
         this.isMuted = false;
+        useUiStore.getState().setIsMuted(false);
         if (this.isInFocusMode) {
             this.wasMutedBeforeFocus = false;
         }
@@ -1033,6 +1063,12 @@ export class AudioChat {
         const wasMuted = this.isMuted;
         const savedWasMutedBeforeFocus = this.wasMutedBeforeFocus;
         const deviceId = this.currentDeviceId ?? undefined;
+
+        // Notify peers before closing old producer so they can clean up stale consumers
+        this.sfuService.socket.emit("producerClosed", {
+            producerId: this.audioProducer.id,
+            kind: "audio",
+        });
 
         // Stop existing producer and stream
         this.clearNoiseGate();
