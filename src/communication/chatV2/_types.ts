@@ -100,7 +100,7 @@ export type ChatV2Message = {
     };
     clientMessageId: string;
     content: string;
-    messageType: "TEXT" | "IMAGE" | "FILE" | "SYSTEM";
+    messageType: "TEXT" | "IMAGE" | "FILE" | "SYSTEM" | "WEBHOOK";
     replyToMessageId: string | null;
     editedAt: string | Date | null;
     deletedAt: string | Date | null;
@@ -119,6 +119,7 @@ export type ChatV2Message = {
     mentionedUserIds?: number[];
     mentionedEveryone?: boolean;
     botCard?: BotCardPayload;
+    metadata?: Record<string, unknown>;
     replacesMessageId?: string;
 };
 

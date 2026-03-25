@@ -17,14 +17,14 @@ function makePlayer(overrides: Partial<PZPlayer> = {}): PZPlayer {
 }
 
 describe("PZServerStatus", () => {
-  it('shows "Server Online" text when isOnline is true', () => {
+  it('shows "Online" text when isOnline is true', () => {
     render(<PZServerStatus isOnline={true} players={[]} />);
-    expect(screen.getByText("Server Online")).toBeInTheDocument();
+    expect(screen.getByText("Online")).toBeInTheDocument();
   });
 
-  it('shows "Server Offline" text when isOnline is false', () => {
+  it('shows "Offline" text when isOnline is false', () => {
     render(<PZServerStatus isOnline={false} players={[]} />);
-    expect(screen.getByText("Server Offline")).toBeInTheDocument();
+    expect(screen.getByText("Offline")).toBeInTheDocument();
   });
 
   it("renders player names in the list", () => {

@@ -9,17 +9,17 @@ interface PZLeaderboardProps {
   onTabChange: (tab: LeaderboardTab) => void;
 }
 
-const TABS: { key: LeaderboardTab; label: string; icon: string }[] = [
-  { key: "kills", label: "Kills", icon: "⚔️" },
-  { key: "deaths", label: "Deaths", icon: "💀" },
-  { key: "survived", label: "Survived", icon: "⏱️" },
+const TABS: { key: LeaderboardTab; label: string }[] = [
+  { key: "kills", label: "Kills" },
+  { key: "deaths", label: "Deaths" },
+  { key: "survived", label: "Survived" },
 ];
 
-const RANK_ACCENTS = [
-  "text-[var(--wd-warning)] font-bold",
-  "wd-text-muted font-bold",
-  "text-[rgb(205_127_50)] font-bold",
-];
+const RANK_MEDALS: Record<number, { label: string; color: string }> = {
+  0: { label: "1st", color: "text-[var(--wd-warning)] font-bold" },
+  1: { label: "2nd", color: "wd-text-muted font-bold" },
+  2: { label: "3rd", color: "text-[rgb(205_127_50)] font-bold" },
+};
 
 function getSortedPlayers(
   players: PZPlayer[],
@@ -63,27 +63,26 @@ function PZLeaderboard({
   const displayed = sorted.slice(0, 5);
 
   return (
-    <div className="space-y-3">
-      {/* Segmented control */}
-      <div className="flex gap-0.5 rounded-lg bg-[var(--wd-surface-base)] p-0.5 ring-1 ring-[var(--wd-border-subtle)]">
+    <div className="space-y-2.5">
+      {/* Pill tabs — compact, matching NowPlayingBar button feel */}
+      <div className="flex gap-1">
         {TABS.map((tab) => (
           <button
             key={tab.key}
             type="button"
             onClick={() => onTabChange(tab.key)}
-            className={`flex flex-1 items-center justify-center gap-1 rounded-md px-2 py-1.5 text-[0.65rem] font-semibold transition-all duration-200 ${
+            className={`rounded-sm px-2.5 py-0.5 text-[10px] font-semibold transition-all duration-200 ${
               activeTab === tab.key
-                ? "bg-[var(--wd-surface-elevated)] wd-text-primary shadow-[0_1px_3px_rgb(0_0_0/0.1)]"
-                : "wd-text-muted hover:wd-text-secondary"
+                ? "bg-[var(--wd-accent)] text-white"
+                : "bg-[var(--wd-surface-base)] wd-text-muted ring-1 ring-[var(--wd-border-subtle)] hover:wd-text-secondary"
             }`}
           >
-            <span className="text-[0.6rem]">{tab.icon}</span>
             {tab.label}
           </button>
         ))}
       </div>
 
-      {/* Rankings */}
+      {/* Rankings — gradient bar fills like the NowPlayingBar progress bar */}
       {displayed.length > 0 ? (
         <div className="space-y-1">
           {displayed.map((player, index) => {
@@ -92,48 +91,57 @@ function PZLeaderboard({
               topValue > 0 ? Math.max((value / topValue) * 100, 4) : 0;
             const name =
               player.workdashUser?.displayName ?? player.pzUsername;
-            const rankStyle = RANK_ACCENTS[index] ?? "wd-text-muted";
+            const medal = RANK_MEDALS[index];
 
             return (
               <div
                 key={player.steamId}
-                className="group/rank flex items-center gap-2 rounded-md px-2 py-1.5 transition-colors hover:bg-[var(--wd-surface-elevated)] animate-[wd-slideDown_200ms_ease_both]"
-                style={{ animationDelay: `${index * 60}ms` }}
+                className="group/rank rounded-md px-2 py-1.5 transition-colors hover:bg-[var(--wd-surface-elevated)] animate-[wd-slideDown_200ms_ease_both] [animation-delay:var(--delay)]"
+                style={{ '--delay': `${index * 60}ms` } as React.CSSProperties}
               >
-                <span
-                  className={`w-4 text-center text-[0.65rem] tabular-nums ${rankStyle}`}
-                >
-                  {index + 1}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between gap-1">
-                    <span className="truncate text-xs font-medium wd-text-primary">
-                      {name}
-                    </span>
-                    <span className="shrink-0 text-[0.65rem] font-mono font-semibold wd-text-accent tabular-nums">
-                      {activeTab === "survived"
-                        ? formatSurvivalTime(value)
-                        : value}
-                    </span>
-                  </div>
-                  <div className="mt-1 h-1 w-full overflow-hidden rounded-full bg-[var(--wd-surface-base)]">
-                    <div
-                      className="h-full origin-left rounded-full bg-[var(--wd-accent-soft)] animate-[wd-pz-bar-fill_500ms_cubic-bezier(0.25,1,0.5,1)_both] group-hover/rank:bg-[var(--wd-accent)]"
-                      style={{
-                        transform: `scaleX(${barWidth / 100})`,
-                        animationDelay: `${index * 60 + 100}ms`,
-                      }}
-                    />
-                  </div>
+                <div className="flex items-center gap-2">
+                  {/* Rank */}
+                  <span
+                    className={`w-5 text-center text-[9px] tabular-nums ${
+                      medal?.color ?? "wd-text-muted"
+                    }`}
+                  >
+                    {medal?.label ?? `${index + 1}th`}
+                  </span>
+
+                  {/* Name */}
+                  <span className="min-w-0 flex-1 truncate text-[11px] font-medium wd-text-primary">
+                    {name}
+                  </span>
+
+                  {/* Value — monospace for that tactical feel */}
+                  <span className="shrink-0 text-[10px] font-mono font-semibold wd-text-accent tabular-nums">
+                    {activeTab === "survived"
+                      ? formatSurvivalTime(value)
+                      : value}
+                  </span>
+                </div>
+
+                {/* Gradient progress bar — same style as NowPlayingBar */}
+                <div className="mt-1 h-[3px] w-full overflow-hidden rounded-full bg-[var(--wd-surface-base)]">
+                  <div
+                    className="h-full origin-left rounded-full animate-[wd-pz-bar-fill_500ms_cubic-bezier(0.25,1,0.5,1)_both] transition-[background] duration-200 group-hover/rank:brightness-125 [animation-delay:var(--bar-delay)]"
+                    style={{
+                      '--bar-delay': `${index * 60 + 100}ms`,
+                      transform: `scaleX(${barWidth / 100})`,
+                      background:
+                        "linear-gradient(to right, var(--wd-accent-soft), var(--wd-accent), var(--wd-accent-hover))",
+                    } as React.CSSProperties}
+                  />
                 </div>
               </div>
             );
           })}
         </div>
       ) : (
-        <div className="flex flex-col items-center gap-1 py-3">
-          <span className="text-base opacity-30">📊</span>
-          <p className="text-[0.65rem] wd-text-muted">
+        <div className="flex items-center justify-center gap-2 py-3">
+          <span className="text-xs opacity-25">📊</span>
+          <p className="text-[10px] wd-text-muted">
             No stats yet — waiting for events...
           </p>
         </div>

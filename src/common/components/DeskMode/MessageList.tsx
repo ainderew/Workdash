@@ -20,6 +20,7 @@ import {
 } from "@/communication/chatV2/uploadService";
 import { extractLinkParts } from "./MessageContentRenderer";
 import { BotMessageCard } from "./BotCards/BotMessageCard";
+import { PZEventCard } from "./BotCards/PZEventCard";
 import useUserStore from "@/common/store/useStore";
 import useChatV2Store from "@/common/store/chatV2Store";
 import { UnifiedLinkPreview } from "@/common/components/TextChat/UnifiedLinkPreview";
@@ -1252,7 +1253,8 @@ function MessageList({
                                                     localBackendUserId &&
                                                 !message.deletedAt &&
                                                 message.messageType !== "SYSTEM" &&
-                                                message.messageType !== "IMAGE"
+                                                message.messageType !== "IMAGE" &&
+                                                message.messageType !== "WEBHOOK"
                                                     ? () => startEdit(message)
                                                     : undefined
                                             }
@@ -1351,6 +1353,11 @@ function MessageList({
                                             />
                                         ) : isBot && message.botCard ? (
                                             <BotMessageCard message={message} />
+                                        ) : message.messageType === "WEBHOOK" && message.metadata?.eventType ? (
+                                            <PZEventCard
+                                                eventType={message.metadata.eventType as string}
+                                                content={message.content}
+                                            />
                                         ) : (
                                             <div>
                                                 {standaloneGifUrl && (

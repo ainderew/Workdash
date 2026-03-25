@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import type { PZDeathEvent } from "@/common/store/pzStore";
 import { formatRelativeTime } from "@/common/utils/relativeTime";
+import { Skull, Swords } from "lucide-react";
 
 interface PZDeathLogProps {
   deaths: PZDeathEvent[];
@@ -18,9 +19,9 @@ function PZDeathLog({ deaths }: PZDeathLogProps) {
 
   if (deaths.length === 0) {
     return (
-      <div className="flex flex-col items-center gap-1 py-3">
-        <span className="text-base opacity-30">🛡️</span>
-        <p className="text-[0.65rem] wd-text-muted">
+      <div className="flex items-center justify-center gap-2 py-3">
+        <span className="text-xs opacity-25">🛡️</span>
+        <p className="text-[10px] wd-text-muted">
           No deaths yet — everyone&apos;s alive... for now
         </p>
       </div>
@@ -28,49 +29,58 @@ function PZDeathLog({ deaths }: PZDeathLogProps) {
   }
 
   return (
-    <div className="relative max-h-52 space-y-0.5 overflow-y-auto no-scrollbar">
-      {/* Timeline spine */}
-      <div className="absolute left-[13px] top-2 bottom-2 w-px bg-[var(--wd-border-subtle)]" />
+    <div className="max-h-52 space-y-1 overflow-y-auto no-scrollbar">
+      {deaths.map((death, index) => {
+        const isPvp = death.isPvp;
+        const borderColor = isPvp
+          ? "border-l-[var(--wd-warning)]"
+          : "border-l-[var(--wd-danger)]";
 
-      {deaths.map((death, index) => (
-        <div
-          key={death.id}
-          className="relative flex items-start gap-2.5 rounded-md px-2 py-1.5 animate-[wd-pz-death-flash_600ms_ease,wd-slideDown_200ms_ease]"
-          style={{ animationDelay: index === 0 ? "0ms" : `${index * 40}ms` }}
-        >
-          {/* Timeline dot */}
-          <div className="relative z-[1] mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center">
-            <span
-              className={`text-[0.7rem] ${
-                death.isPvp
-                  ? "text-[var(--wd-warning)]"
-                  : "text-[var(--wd-danger)]"
-              }`}
-            >
-              {death.isPvp ? "⚔️" : "💀"}
-            </span>
+        return (
+          <div
+            key={death.id}
+            className={`flex items-start gap-2 rounded-md border-l-2 ${borderColor} bg-[var(--wd-surface-base)] px-2.5 py-1.5 ring-1 ring-[var(--wd-border-subtle)] animate-[wd-pz-death-flash_600ms_ease,wd-slideDown_200ms_ease] [animation-delay:var(--delay)]`}
+            style={{ '--delay': index === 0 ? '0ms' : `${index * 40}ms` } as React.CSSProperties}
+          >
+            {/* Icon */}
+            <div className="mt-px shrink-0">
+              {isPvp ? (
+                <Swords
+                  size={11}
+                  strokeWidth={2.5}
+                  className="text-[var(--wd-warning)]"
+                />
+              ) : (
+                <Skull
+                  size={11}
+                  strokeWidth={2.5}
+                  className="text-[var(--wd-danger)]"
+                />
+              )}
+            </div>
+
+            {/* Content */}
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px] leading-snug wd-text-primary">
+                <span className="font-semibold">
+                  {death.workdashUser?.displayName ?? death.username}
+                </span>{" "}
+                <span className="wd-text-secondary">{death.action}</span>
+              </p>
+              <span className="mt-0.5 block text-[9px] wd-text-muted tabular-nums">
+                {formatRelativeTime(death.timestamp)}
+              </span>
+            </div>
+
+            {/* PVP badge */}
+            {isPvp && (
+              <span className="mt-px shrink-0 rounded-sm bg-[rgb(var(--wd-warning-rgb)/0.12)] px-1 py-px text-[8px] font-bold uppercase tracking-wider text-[var(--wd-warning)]">
+                PVP
+              </span>
+            )}
           </div>
-
-          {/* Content */}
-          <div className="min-w-0 flex-1">
-            <p className="text-xs leading-snug wd-text-primary">
-              <span className="font-semibold">
-                {death.workdashUser?.displayName ?? death.username}
-              </span>{" "}
-              <span className="wd-text-secondary">{death.action}</span>
-            </p>
-            <span className="mt-0.5 block text-[0.55rem] wd-text-muted">
-              {formatRelativeTime(death.timestamp)}
-            </span>
-          </div>
-
-          {death.isPvp && (
-            <span className="mt-0.5 shrink-0 rounded bg-[rgb(var(--wd-warning-rgb)/0.12)] px-1 py-0.5 text-[0.5rem] font-bold uppercase tracking-wider text-[var(--wd-warning)]">
-              PVP
-            </span>
-          )}
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
