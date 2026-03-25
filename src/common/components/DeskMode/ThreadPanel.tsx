@@ -30,6 +30,7 @@ import {
 } from "@/communication/chatV2/mentionUtils";
 import { getDisplayName } from "@/common/utils/displayName";
 import MessageContentRenderer from "./MessageContentRenderer";
+import { isEmojiOnly } from "@/common/utils/isEmojiOnly";
 import { formatChatMessageTimestamp } from "@/common/utils/messageTimestamp";
 import {
     generateCharacterFaceDataUrl,
@@ -254,7 +255,7 @@ function ThreadMessageRow({
                                 </button>
                             ) : message.content ? (
                                 <div>
-                                    <div className="text-sm wd-text-secondary whitespace-pre-wrap break-words">
+                                    <div className={`${isEmojiOnly(message.content) ? 'text-4xl leading-snug' : 'text-sm'} wd-text-secondary whitespace-pre-wrap break-words`}>
                                         <MessageContentRenderer
                                             content={message.content}
                                             messageId={message.id}

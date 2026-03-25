@@ -1,17 +1,23 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
+  Award,
   BarChart3,
   ChevronDown,
   ChevronUp,
   Clock,
+  Crown,
   Eye,
   Flame,
   Gamepad2,
+  ScrollText,
   Shield,
+  Star,
+  Swords,
   ThumbsDown,
   TrendingUp,
   Trophy,
+  Users,
   Zap,
 } from "lucide-react";
 import { useWidgetStore } from "@/common/store/widgetStore";
@@ -26,6 +32,17 @@ import { ComfortPickWidget } from "./DotaWidgets/ComfortPickWidget";
 import { AvgMatchLengthWidget } from "./DotaWidgets/AvgMatchLengthWidget";
 import { DamageCompositionWidget } from "./DotaWidgets/DamageCompositionWidget";
 import { TeamLeaderboardWidget } from "./DotaWidgets/TeamLeaderboardWidget";
+import { WeeklyPowerRankingsWidget } from "./DotaWidgets/WeeklyPowerRankingsWidget";
+import { SessionPulseBanner } from "./DotaWidgets/SessionPulseBanner";
+import { HotHandWidget } from "./DotaWidgets/HotHandWidget";
+import { ClutchFactorWidget } from "./DotaWidgets/ClutchFactorWidget";
+import { TimePatternsWidget } from "./DotaWidgets/TimePatternsWidget";
+import { HeadToHeadWidget } from "./DotaWidgets/HeadToHeadWidget";
+import { PeerSynergyWidget } from "./DotaWidgets/PeerSynergyWidget";
+import { HeroMasteryWidget } from "./DotaWidgets/HeroMasteryWidget";
+import { MatchRecapWidget } from "./DotaWidgets/MatchRecapWidget";
+import { AchievementFeedWidget } from "./DotaWidgets/AchievementFeedWidget";
+import { MonthlyAwardsWidget } from "./DotaWidgets/MonthlyAwardsWidget";
 
 interface Props {
   roomId: string;
@@ -37,6 +54,7 @@ interface WidgetMeta {
   label: string;
   icon: React.ComponentType<{ size?: number }>;
   accent: string;
+  variant?: "default" | "alert" | "ranking" | "chart";
 }
 
 const WIDGET_META: Record<string, WidgetMeta> = {
@@ -45,6 +63,7 @@ const WIDGET_META: Record<string, WidgetMeta> = {
     label: "Tilt Detector",
     icon: AlertTriangle,
     accent: "var(--wd-danger)",
+    variant: "alert",
   },
   dota_comfort_picks: {
     component: ComfortPickWidget,
@@ -94,6 +113,69 @@ const WIDGET_META: Record<string, WidgetMeta> = {
     icon: Clock,
     accent: "var(--wd-info)",
   },
+  dota_weekly_power_rankings: {
+    component: WeeklyPowerRankingsWidget,
+    label: "Power Rankings",
+    icon: Crown,
+    accent: "var(--wd-accent)",
+    variant: "ranking",
+  },
+  dota_hot_hand: {
+    component: HotHandWidget,
+    label: "Hot Hand",
+    icon: Flame,
+    accent: "var(--wd-warning)",
+    variant: "alert",
+  },
+  dota_clutch_factor: {
+    component: ClutchFactorWidget,
+    label: "Clutch Factor",
+    icon: Shield,
+    accent: "var(--wd-accent)",
+  },
+  dota_time_patterns: {
+    component: TimePatternsWidget,
+    label: "Time Patterns",
+    icon: Clock,
+    accent: "var(--wd-info)",
+  },
+  dota_head_to_head: {
+    component: HeadToHeadWidget,
+    label: "Head to Head",
+    icon: Swords,
+    accent: "var(--wd-danger)",
+  },
+  dota_peer_synergy: {
+    component: PeerSynergyWidget,
+    label: "Peer Synergy",
+    icon: Users,
+    accent: "var(--wd-success)",
+  },
+  dota_hero_mastery: {
+    component: HeroMasteryWidget,
+    label: "Hero Mastery",
+    icon: Star,
+    accent: "var(--wd-warning)",
+  },
+  dota_match_recap: {
+    component: MatchRecapWidget,
+    label: "Match Recap",
+    icon: ScrollText,
+    accent: "var(--wd-accent)",
+  },
+  dota_milestones: {
+    component: AchievementFeedWidget,
+    label: "Achievements",
+    icon: Award,
+    accent: "var(--wd-warning)",
+  },
+  dota_monthly_awards: {
+    component: MonthlyAwardsWidget,
+    label: "Monthly Awards",
+    icon: Trophy,
+    accent: "var(--wd-accent)",
+    variant: "ranking",
+  },
 };
 
 interface CategoryDef {
@@ -105,32 +187,51 @@ interface CategoryDef {
 
 const CATEGORIES: CategoryDef[] = [
   {
-    id: "standings",
-    label: "Standings",
-    icon: Trophy,
-    widgetTypes: ["dota_team_leaderboard"],
-  },
-  {
-    id: "alerts",
-    label: "Alerts",
-    icon: AlertTriangle,
-    widgetTypes: ["dota_tilt_detector", "dota_comfort_picks"],
-  },
-  {
-    id: "stats",
-    label: "Stats",
-    icon: BarChart3,
+    id: "drama",
+    label: "The Drama",
+    icon: Crown,
     widgetTypes: [
-      "dota_role_performance",
-      "dota_ward_stats",
-      "dota_damage_composition",
+      "dota_weekly_power_rankings",
+      "dota_match_recap",
+      "dota_hot_hand",
+      "dota_tilt_detector",
+      "dota_monthly_awards",
     ],
   },
   {
-    id: "trends",
-    label: "Trends",
+    id: "competition",
+    label: "Competition",
+    icon: Swords,
+    widgetTypes: [
+      "dota_head_to_head",
+      "dota_peer_synergy",
+      "dota_hero_mastery",
+      "dota_milestones",
+    ],
+  },
+  {
+    id: "analytics",
+    label: "Analytics",
+    icon: BarChart3,
+    widgetTypes: [
+      "dota_role_performance",
+      "dota_team_leaderboard",
+      "dota_trends",
+      "dota_clutch_factor",
+    ],
+  },
+  {
+    id: "deep",
+    label: "Deep Cuts",
     icon: TrendingUp,
-    widgetTypes: ["dota_power_spikes", "dota_trends", "dota_avg_match_length"],
+    widgetTypes: [
+      "dota_ward_stats",
+      "dota_power_spikes",
+      "dota_damage_composition",
+      "dota_comfort_picks",
+      "dota_avg_match_length",
+      "dota_time_patterns",
+    ],
   },
 ];
 
@@ -224,6 +325,13 @@ export function ChannelWidgetPanel({ roomId, workspaceId }: Props) {
             </div>
           )}
 
+          {enabledTypes.has("dota_session_pulse") && (
+            <SessionPulseBanner
+              workspaceId={workspaceId}
+              channelId={roomId}
+            />
+          )}
+
           <div
             className="overflow-y-auto no-scrollbar"
             style={{ maxHeight: 480 }}
@@ -242,6 +350,7 @@ export function ChannelWidgetPanel({ roomId, workspaceId }: Props) {
                     icon={meta.icon}
                     accentColor={meta.accent}
                     index={index}
+                    variant={meta.variant}
                   >
                     <WidgetShell>
                       <Component

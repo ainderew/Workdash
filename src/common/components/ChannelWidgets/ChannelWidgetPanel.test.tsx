@@ -98,8 +98,9 @@ describe("ChannelWidgetPanel", () => {
 
     render(<ChannelWidgetPanel roomId="room-1" workspaceId="ws-1" />);
 
-    expect(screen.getByText("Alerts")).toBeInTheDocument();
-    expect(screen.getByText("Stats")).toBeInTheDocument();
+    // dota_tilt_detector is in "The Drama", dota_ward_stats is in "Deep Cuts"
+    expect(screen.getByText("The Drama")).toBeInTheDocument();
+    expect(screen.getByText("Deep Cuts")).toBeInTheDocument();
   });
 
   it("defaults to first available category and switches on tab click", () => {
@@ -114,12 +115,12 @@ describe("ChannelWidgetPanel", () => {
 
     render(<ChannelWidgetPanel roomId="room-1" workspaceId="ws-1" />);
 
-    // Alerts is first available category — its widget should be visible
+    // "The Drama" is first available category — its widget should be visible
     expect(screen.getByText("Tilt Detector")).toBeInTheDocument();
     expect(screen.queryByText("Ward Stats")).not.toBeInTheDocument();
 
-    // Switch to Stats tab
-    fireEvent.click(screen.getByText("Stats"));
+    // Switch to "Deep Cuts" tab
+    fireEvent.click(screen.getByText("Deep Cuts"));
 
     expect(screen.getByText("Ward Stats")).toBeInTheDocument();
     expect(screen.queryByText("Tilt Detector")).not.toBeInTheDocument();
@@ -148,17 +149,17 @@ describe("ChannelWidgetPanel", () => {
       configsByChannel: {
         "room-1": [
           makeConfig("w1", "dota_tilt_detector", true, 0),
-          makeConfig("w2", "dota_comfort_picks", true, 1),
+          makeConfig("w2", "dota_hot_hand", true, 1),
         ],
       },
     });
 
     render(<ChannelWidgetPanel roomId="room-1" workspaceId="ws-1" />);
 
-    // Both are in Alerts category — no tab bar needed
-    expect(screen.queryByText("Alerts")).not.toBeInTheDocument();
+    // Both are in "The Drama" category — no tab bar needed
+    expect(screen.queryByText("The Drama")).not.toBeInTheDocument();
     // Both widgets visible
     expect(screen.getByText("Tilt Detector")).toBeInTheDocument();
-    expect(screen.getByText("Comfort Picks")).toBeInTheDocument();
+    expect(screen.getByText("Hot Hand")).toBeInTheDocument();
   });
 });

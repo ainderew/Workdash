@@ -14,7 +14,7 @@ function CustomEmojiInline({ emojiId, name }: CustomEmojiInlineProps) {
       src={emoji.imageUrl}
       alt={`:${name}:`}
       title={`:${name}:`}
-      className="inline-block h-5 w-5 align-text-bottom"
+      className="inline-block h-[1.2em] w-[1.2em] align-text-bottom"
       loading="lazy"
     />
   );

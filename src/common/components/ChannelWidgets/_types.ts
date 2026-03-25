@@ -186,3 +186,192 @@ export interface TeamLeaderboardData {
     }[];
   }[];
 }
+
+export interface ImpactScoreData {
+  players: {
+    displayName: string;
+    dotaAccountId: number;
+    impactScore: number;
+    perMatchScores: number[];
+    consistency: number;
+    consistencyLabel: string;
+  }[];
+}
+
+export interface WeeklyPowerRankingsData {
+  rankings: {
+    rank: number;
+    displayName: string;
+    dotaAccountId: number;
+    impactScore: number;
+    winRate: number;
+    gamesPlayed: number;
+    rankDelta: number;
+    bestHero: {
+      heroId: number;
+      heroName: string;
+      heroIcon: string;
+      games: number;
+      winRate: number;
+    };
+    isMvp: boolean;
+    isMostImproved: boolean;
+  }[];
+  weekStart: string;
+  weekEnd: string;
+}
+
+export interface SessionPulseData {
+  message: string;
+  playerName: string;
+  dotaAccountId: number;
+  statType: string;
+  value: number;
+}
+
+export interface HotHandData {
+  players: {
+    displayName: string;
+    dotaAccountId: number;
+    score: number;
+    label: string;
+    recentResults: ("W" | "L")[];
+  }[];
+}
+
+export interface ClutchFactorData {
+  players: {
+    displayName: string;
+    dotaAccountId: number;
+    clutchFactor: number;
+    label: string;
+    closeGameWinRate: number;
+    normalWinRate: number;
+    closeGamesPlayed: number;
+  }[];
+}
+
+export interface TimePatternsData {
+  players: {
+    displayName: string;
+    dotaAccountId: number;
+    bestTimeSlot: { slot: string; winRate: number; games: number };
+    worstTimeSlot: { slot: string; winRate: number; games: number };
+    bestDay: { day: string; winRate: number; games: number };
+    worstDay: { day: string; winRate: number; games: number };
+    timeSlots: { slot: string; winRate: number; games: number }[];
+    days: { day: string; winRate: number; games: number }[];
+  }[];
+}
+
+export interface ThrowComebackData {
+  players: {
+    displayName: string;
+    dotaAccountId: number;
+    comebacks: number;
+    throws: number;
+    stomps: number;
+    totalGames: number;
+    throwRate: number;
+    comebackRate: number;
+  }[];
+}
+
+export interface HeadToHeadData {
+  matchups: {
+    playerA: { displayName: string; dotaAccountId: number };
+    playerB: { displayName: string; dotaAccountId: number };
+    sharedRoles: {
+      role: string;
+      playerAWinRate: number;
+      playerAGames: number;
+      playerAKda: number;
+      playerBWinRate: number;
+      playerBGames: number;
+      playerBKda: number;
+      winner: "A" | "B" | "tie";
+    }[];
+    gamesOnSameTeam: number;
+    winRateTogether: number;
+  }[];
+}
+
+export interface PeerSynergyData {
+  pairs: {
+    playerA: { displayName: string; dotaAccountId: number };
+    playerB: { displayName: string; dotaAccountId: number };
+    winRate: number;
+    games: number;
+    synergy: number;
+    label: string;
+  }[];
+  bestDuo: { playerA: string; playerB: string; synergy: number } | null;
+  worstDuo: { playerA: string; playerB: string; synergy: number } | null;
+}
+
+export interface HeroMasteryData {
+  players: {
+    displayName: string;
+    dotaAccountId: number;
+    topHeroes: {
+      heroId: number;
+      heroName: string;
+      heroIcon: string;
+      games: number;
+      winRate: number;
+    }[];
+  }[];
+  rivalries: {
+    heroId: number;
+    heroName: string;
+    heroIcon: string;
+    players: {
+      displayName: string;
+      dotaAccountId: number;
+      games: number;
+      winRate: number;
+    }[];
+  }[];
+}
+
+export interface MatchRecapData {
+  matchId: string;
+  startTime: string;
+  durationSec: number;
+  radiantWin: boolean;
+  players: {
+    displayName: string;
+    dotaAccountId: number;
+    heroId: number;
+    heroName: string;
+    heroIcon: string;
+    kills: number;
+    deaths: number;
+    assists: number;
+    won: boolean;
+    isMvp: boolean;
+    highlights: string[];
+  }[];
+}
+
+export interface MilestoneData {
+  milestones: {
+    displayName: string;
+    dotaAccountId: number;
+    type: string;
+    message: string;
+    date: string;
+    icon: string;
+  }[];
+}
+
+export interface MonthlyAwardsData {
+  month: string;
+  awards: {
+    title: string;
+    displayName: string;
+    dotaAccountId: number;
+    stat: string;
+    icon: string;
+  }[];
+}

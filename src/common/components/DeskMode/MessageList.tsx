@@ -36,6 +36,7 @@ import MessageHoverActions from "./MessageHoverActions";
 import InlineMessageEditor from "./InlineMessageEditor";
 import MessageReactionChips from "./MessageReactionChips";
 import MessageContentRenderer from "./MessageContentRenderer";
+import { isEmojiOnly } from "@/common/utils/isEmojiOnly";
 import useMessageEdit from "@/common/hooks/useMessageEdit";
 import {
     ArrowDown,
@@ -1385,7 +1386,7 @@ function MessageList({
                                                 {message.content &&
                                                     !standaloneGifUrl && (
                                                         <div>
-                                                            <div className="text-sm wd-text-secondary whitespace-pre-wrap break-words">
+                                                            <div className={`${isEmojiOnly(message.content) ? 'text-4xl leading-snug' : 'text-sm'} wd-text-secondary whitespace-pre-wrap break-words`}>
                                                                 <MessageContentRenderer
                                                                     content={message.content}
                                                                     messageId={message.id}

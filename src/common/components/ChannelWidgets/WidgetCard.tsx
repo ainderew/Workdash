@@ -1,10 +1,13 @@
 import React, { type ReactNode } from "react";
 
+type WidgetVariant = "default" | "alert" | "ranking" | "chart";
+
 interface Props {
   title: string;
   icon: React.ComponentType<{ size?: number }>;
   accentColor: string;
   index: number;
+  variant?: WidgetVariant;
   children: ReactNode;
 }
 
@@ -13,11 +16,19 @@ export function WidgetCard({
   icon: Icon,
   accentColor,
   index,
+  variant = "default",
   children,
 }: Props) {
+  const variantClass =
+    variant === "alert"
+      ? "wd-widget-card-alert"
+      : variant === "ranking"
+        ? "wd-widget-card-ranking"
+        : "";
+
   return (
     <div
-      className="wd-widget-card"
+      className={`wd-widget-card ${variantClass}`}
       style={
         {
           "--_widget-accent": accentColor,
