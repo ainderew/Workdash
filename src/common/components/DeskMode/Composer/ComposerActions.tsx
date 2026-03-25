@@ -1,6 +1,5 @@
 import React from 'react';
-import { Code2, Paperclip, SendHorizontal, Sticker } from 'lucide-react';
-import { toast } from 'sonner';
+import { Code2, Paperclip, SendHorizontal, Smile } from 'lucide-react';
 import type { Editor } from '@tiptap/react';
 
 function GifBadgeIcon({ className }: { className?: string }) {
@@ -51,6 +50,7 @@ interface ComposerActionsProps {
   editor: Editor | null;
   selectedFile: File | null;
   setShowGifPicker: React.Dispatch<React.SetStateAction<boolean>>;
+  onToggleEmojiPicker: () => void;
   onFileSelect: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onSubmit: () => void;
   onToggleCodeBlock: () => void;
@@ -64,6 +64,7 @@ function ComposerActions({
   editor,
   selectedFile,
   setShowGifPicker,
+  onToggleEmojiPicker,
   onFileSelect,
   onSubmit,
   onToggleCodeBlock,
@@ -110,26 +111,23 @@ function ComposerActions({
 
         <button
           type="button"
+          onClick={onToggleEmojiPicker}
+          disabled={isDisabled}
+          title="Emoji picker"
+          data-emoji-picker-trigger="true"
+          className={ACTION_BTN}
+        >
+          <Smile size={15} />
+        </button>
+
+        <button
+          type="button"
           onClick={() => setShowGifPicker((previous) => !previous)}
           disabled={isDisabled}
           title="Send GIF"
           className={ACTION_BTN}
         >
           <GifBadgeIcon className="h-4 w-4" />
-        </button>
-
-        <button
-          type="button"
-          onClick={() =>
-            toast('Stickers are coming soon', {
-              description: 'This action is a placeholder for now.',
-            })
-          }
-          disabled={isDisabled}
-          title="Stickers (coming soon)"
-          className={ACTION_BTN}
-        >
-          <Sticker size={15} />
         </button>
 
         <div className="flex-1" />

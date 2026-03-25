@@ -13,6 +13,7 @@ export function useComposerState(props: ComposerProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [showGifPicker, setShowGifPicker] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -36,6 +37,8 @@ export function useComposerState(props: ComposerProps) {
     setUploadError,
     showGifPicker,
     setShowGifPicker,
+    showEmojiPicker,
+    setShowEmojiPicker,
     fileInputRef,
     inputElementId,
     localBackendUserId,

@@ -180,6 +180,25 @@ vi.mock('./BotCommandAutocomplete', () => {
   };
 });
 
+vi.mock('./EmojiPicker', () => ({
+  default: ({
+    onSelect,
+    onClose,
+  }: {
+    onSelect: (emoji: string) => void;
+    onClose: () => void;
+  }) => (
+    <div data-testid="emoji-picker">
+      <button data-testid="emoji-pick-smile" onClick={() => onSelect('\u{1F600}')}>
+        pick smile
+      </button>
+      <button data-testid="emoji-picker-close" onClick={onClose}>
+        close
+      </button>
+    </div>
+  ),
+}));
+
 vi.mock('./DeskGifPicker', () => ({
   default: ({
     onSelectGif,
@@ -219,10 +238,6 @@ vi.mock('./AttachmentPreview', () => ({
   ),
 }));
 
-// Mock toast from sonner
-vi.mock('sonner', () => ({
-  toast: vi.fn(),
-}));
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -292,9 +307,9 @@ describe('Composer', () => {
       expect(screen.getByTitle('Send GIF')).toBeInTheDocument();
     });
 
-    it('renders stickers button', () => {
+    it('renders emoji picker button', () => {
       renderComposer();
-      expect(screen.getByTitle('Stickers (coming soon)')).toBeInTheDocument();
+      expect(screen.getByTitle('Emoji picker')).toBeInTheDocument();
     });
 
     it('renders code block toggle button', () => {
@@ -396,6 +411,32 @@ describe('Composer', () => {
     });
   });
 
+  // ── Emoji Picker ───────────────────────────────────────────────────────
+
+  describe('emoji picker', () => {
+    it('opens on emoji button click', () => {
+      renderComposer();
+      fireEvent.click(screen.getByTitle('Emoji picker'));
+      expect(screen.getByTestId('emoji-picker')).toBeInTheDocument();
+    });
+
+    it('closes on second emoji button click', () => {
+      renderComposer();
+      fireEvent.click(screen.getByTitle('Emoji picker'));
+      expect(screen.getByTestId('emoji-picker')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByTitle('Emoji picker'));
+      expect(screen.queryByTestId('emoji-picker')).not.toBeInTheDocument();
+    });
+
+    it('stays open after selecting an emoji', () => {
+      renderComposer();
+      fireEvent.click(screen.getByTitle('Emoji picker'));
+      fireEvent.click(screen.getByTestId('emoji-pick-smile'));
+      expect(screen.getByTestId('emoji-picker')).toBeInTheDocument();
+    });
+  });
+
   // ── Disabled State ─────────────────────────────────────────────────────
 
   describe('disabled state', () => {
@@ -412,6 +453,11 @@ describe('Composer', () => {
     it('disables GIF button when disabled', () => {
       renderComposer({ disabled: true });
       expect(screen.getByTitle('Send GIF')).toBeDisabled();
+    });
+
+    it('disables emoji picker button when disabled', () => {
+      renderComposer({ disabled: true });
+      expect(screen.getByTitle('Emoji picker')).toBeDisabled();
     });
   });
 

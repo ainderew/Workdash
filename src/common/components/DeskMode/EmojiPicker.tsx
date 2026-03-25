@@ -30,6 +30,7 @@ function EmojiPicker({ onSelect, onClose }: EmojiPickerProps) {
         const handleMouseDown = (e: MouseEvent) => {
             const target = e.target as HTMLElement | null;
             if (target?.closest("[data-message-reaction-picker='true']")) return;
+            if (target?.closest("[data-emoji-picker-trigger='true']")) return;
             if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
                 onCloseRef.current?.();
             }

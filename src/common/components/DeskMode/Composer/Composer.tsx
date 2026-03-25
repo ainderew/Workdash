@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from "react";
 import { AttachmentPreview } from "../AttachmentPreview";
 import DeskGifPicker from "../DeskGifPicker";
+import EmojiPicker from "../EmojiPicker";
 import MentionSuggestionFlyout from "../MentionSuggestionFlyout";
 import EmojiAutocompleteFlyout from "../EmojiAutocompleteFlyout";
 import { BotCommandFlyout } from "../BotCommandAutocomplete";
@@ -34,6 +35,8 @@ function Composer(props: ComposerProps) {
         setUploadError,
         showGifPicker,
         setShowGifPicker,
+        showEmojiPicker,
+        setShowEmojiPicker,
         fileInputRef,
         inputElementId,
         localBackendUserId,
@@ -103,6 +106,18 @@ function Composer(props: ComposerProps) {
         setShowLinkPopover((prev) => !prev);
     }, []);
 
+    const handleToggleEmojiPicker = useCallback(() => {
+        setShowEmojiPicker((prev) => !prev);
+    }, [setShowEmojiPicker]);
+
+    const handleEmojiSelect = useCallback(
+        (emoji: string) => {
+            if (!tiptap.editor) return;
+            tiptap.editor.chain().focus().insertContent(emoji).run();
+        },
+        [tiptap.editor],
+    );
+
     return (
         <div className="relative min-h-[var(--wd-panel-height)] wd-bg-panel-2 px-3 pb-3 pt-2">
             {autocomplete.isCommandFlyoutOpen && (
@@ -145,6 +160,15 @@ function Composer(props: ComposerProps) {
                 />
             )}
 
+            {showEmojiPicker && (
+                <div className="absolute bottom-full right-0 z-50 mb-2">
+                    <EmojiPicker
+                        onSelect={handleEmojiSelect}
+                        onClose={() => setShowEmojiPicker(false)}
+                    />
+                </div>
+            )}
+
             {selectedFile && (
                 <div className="mb-2">
                     <AttachmentPreview
@@ -172,6 +196,7 @@ function Composer(props: ComposerProps) {
                 editor={tiptap.editor}
                 selectedFile={selectedFile}
                 setShowGifPicker={setShowGifPicker}
+                onToggleEmojiPicker={handleToggleEmojiPicker}
                 onFileSelect={handleFileSelect}
                 onSubmit={() => void submit()}
                 onToggleCodeBlock={handleToggleCodeBlock}

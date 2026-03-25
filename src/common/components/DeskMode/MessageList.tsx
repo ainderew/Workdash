@@ -1170,7 +1170,7 @@ function MessageList({
                                     }${editingMessageId === message.id ? " rounded-md bg-[var(--wd-accent-soft)]" : ""}`}
                                 >
                                     {isConsecutive ? (
-                                        <div className="w-9 shrink-0 relative flex items-start justify-end pt-1">
+                                        <div className="w-11 shrink-0 relative flex items-start justify-end pt-1">
                                             <span className="absolute right-0 text-[10px] leading-none wd-text-muted opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
                                                 {formatGutterTimestamp(
                                                     message.createdAt,
