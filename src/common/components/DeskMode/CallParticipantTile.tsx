@@ -259,10 +259,10 @@ export default function CallParticipantTile({
           )}
         </span>
         <div className="ml-auto flex items-center gap-1">
-          {participant.media.audio ? (
-            <Mic size={11} className="text-white/80" />
-          ) : (
+          {isMuted ? (
             <MicOff size={11} className="text-[var(--wd-danger)]" />
+          ) : (
+            <Mic size={11} className="text-white/80" />
           )}
           {participant.media.video && (
             <Video size={11} className="text-white/80" />
