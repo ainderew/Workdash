@@ -53,6 +53,7 @@ jobs:
           username: root
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
+            set -e
             docker pull ghcr.io/${{ env.IMAGE_NAME }}:latest
             docker stop workdash-frontend || true
             docker rm workdash-frontend || true
