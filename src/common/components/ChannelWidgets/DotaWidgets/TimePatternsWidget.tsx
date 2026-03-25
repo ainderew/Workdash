@@ -3,6 +3,7 @@ import { useWidgetStore } from "@/common/store/widgetStore";
 import { WidgetSkeleton, WidgetEmpty } from "../WidgetShell";
 import { pickTimePatternMessage } from "./hotHandMessages";
 import { interpolate } from "./tiltMessages";
+import { PlayerAvatar } from "./PlayerAvatar";
 import type { TimePatternsData } from "../_types";
 
 interface Props {
@@ -77,6 +78,7 @@ export function TimePatternsWidget({ workspaceId, channelId }: Props) {
                   : "wd-text-muted hover:wd-text-primary"
               }`}
             >
+              <PlayerAvatar avatarUrl={p.avatarUrl} displayName={p.displayName} size={14} />
               {p.displayName}
             </button>
           ))}

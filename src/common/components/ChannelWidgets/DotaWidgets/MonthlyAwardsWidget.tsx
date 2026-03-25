@@ -3,6 +3,7 @@ import { Eye, Flame, Gamepad2, Sword, Target, Trophy } from "lucide-react";
 import { useWidgetStore } from "@/common/store/widgetStore";
 import { WidgetSkeleton, WidgetEmpty } from "../WidgetShell";
 import type { MonthlyAwardsData } from "../_types";
+import { PlayerAvatar } from "./PlayerAvatar";
 
 interface Props {
   workspaceId: string;
@@ -26,6 +27,7 @@ function AwardCard({ award }: { award: MonthlyAwardsData["awards"][number] }) {
       <div className="shrink-0 text-[var(--wd-warning)]">
         <Icon size={16} />
       </div>
+      <PlayerAvatar avatarUrl={award.avatarUrl} displayName={award.displayName} size={20} />
       <div className="flex-1 min-w-0">
         <div className="text-[10px] font-semibold uppercase tracking-wider text-[var(--wd-warning)]">
           {award.title}

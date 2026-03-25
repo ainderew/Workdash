@@ -3,6 +3,7 @@ import { Crown } from "lucide-react";
 import { useWidgetStore } from "@/common/store/widgetStore";
 import { WidgetSkeleton, WidgetEmpty } from "../WidgetShell";
 import type { MatchRecapData } from "../_types";
+import { PlayerAvatar } from "./PlayerAvatar";
 
 interface Props {
   workspaceId: string;
@@ -24,6 +25,7 @@ function PlayerRow({ player }: { player: MatchRecapData["players"][number] }) {
           : "bg-[var(--wd-danger)]/5"
       }`}
     >
+      <PlayerAvatar avatarUrl={player.avatarUrl} displayName={player.displayName} size={20} />
       {player.heroIcon && (
         <img
           src={player.heroIcon}
@@ -49,7 +51,7 @@ function PlayerRow({ player }: { player: MatchRecapData["players"][number] }) {
           {player.kills}/{player.deaths}/{player.assists}
         </div>
         {player.highlights.length > 0 && (
-          <div className="text-[8px] font-medium text-[var(--wd-warning)] truncate max-w-[80px]">
+          <div className="text-[10px] font-medium text-[var(--wd-warning)] truncate max-w-[80px]">
             {player.highlights[0]}
           </div>
         )}

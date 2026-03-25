@@ -89,10 +89,10 @@ export function TiltDetectorWidget({ workspaceId, channelId }: Props) {
               {alert.recentResults.map((r, i) => (
                 <span
                   key={i}
-                  className={`w-4 h-4 rounded-md text-[9px] font-bold flex items-center justify-center ${
+                  className={`w-5 h-5 rounded-md text-[10px] font-bold flex items-center justify-center ${
                     r === "W"
-                      ? "bg-[var(--wd-success)]/20 text-[var(--wd-success)]"
-                      : "bg-[var(--wd-danger)]/20 text-[var(--wd-danger)]"
+                      ? "bg-[var(--wd-success)]/25 text-[var(--wd-success)]"
+                      : "bg-[var(--wd-danger)]/25 text-[var(--wd-danger)]"
                   }`}
                 >
                   {r}

@@ -50,7 +50,7 @@ export function PowerSpikesWidget({ workspaceId, channelId }: Props) {
     <div className="h-[200px]">
       <ResponsiveLine
         data={allSeries}
-        margin={{ top: 8, right: 100, bottom: 32, left: 44 }}
+        margin={{ top: 8, right: 12, bottom: 48, left: 44 }}
         xScale={{ type: "linear" }}
         yScale={{ type: "linear", stacked: false }}
         axisBottom={{
@@ -77,10 +77,10 @@ export function PowerSpikesWidget({ workspaceId, channelId }: Props) {
         useMesh
         legends={[
           {
-            anchor: "bottom-right",
-            direction: "column",
-            translateX: 100,
-            itemWidth: 90,
+            anchor: "bottom",
+            direction: "row",
+            translateY: 44,
+            itemWidth: 80,
             itemHeight: 14,
             itemTextColor: "var(--wd-text-secondary)",
             symbolSize: 8,

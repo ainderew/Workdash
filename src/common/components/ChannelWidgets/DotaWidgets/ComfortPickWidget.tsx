@@ -5,6 +5,7 @@ import { useWidgetStore } from "@/common/store/widgetStore";
 import { WidgetSkeleton, WidgetEmpty } from "../WidgetShell";
 import { pickComfortRoast, interpolate } from "./tiltMessages";
 import type { ComfortPickData } from "../_types";
+import { PlayerAvatar } from "./PlayerAvatar";
 
 interface Props {
   workspaceId: string;
@@ -34,8 +35,11 @@ export function ComfortPickWidget({ workspaceId, channelId }: Props) {
     <div className="space-y-3">
       {playersWithHeroes.map((player) => (
         <div key={player.dotaAccountId}>
-          <div className="text-[10px] font-semibold wd-text-muted uppercase tracking-wide mb-1.5">
-            {player.displayName}
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <PlayerAvatar avatarUrl={player.avatarUrl} displayName={player.displayName} size={16} />
+            <span className="text-[10px] font-semibold wd-text-muted uppercase tracking-wide">
+              {player.displayName}
+            </span>
           </div>
           <div className="space-y-1.5">
             {player.heroes.map((hero) => {

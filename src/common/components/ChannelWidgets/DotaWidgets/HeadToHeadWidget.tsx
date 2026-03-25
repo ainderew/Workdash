@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useWidgetStore } from "@/common/store/widgetStore";
 import { WidgetSkeleton, WidgetEmpty } from "../WidgetShell";
 import type { HeadToHeadData } from "../_types";
+import { PlayerAvatar } from "./PlayerAvatar";
 
 interface Props {
   workspaceId: string;
@@ -42,9 +43,15 @@ function MatchupCard({ matchup }: { matchup: Matchup }) {
     <div className="space-y-2">
       {/* Header with names */}
       <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold wd-text-primary">{matchup.playerA.displayName}</span>
+        <div className="flex items-center gap-1.5">
+          <PlayerAvatar avatarUrl={matchup.playerA.avatarUrl} displayName={matchup.playerA.displayName} size={20} />
+          <span className="text-xs font-semibold wd-text-primary">{matchup.playerA.displayName}</span>
+        </div>
         <span className="text-[10px] font-bold wd-text-muted">vs</span>
-        <span className="text-xs font-semibold wd-text-primary">{matchup.playerB.displayName}</span>
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs font-semibold wd-text-primary">{matchup.playerB.displayName}</span>
+          <PlayerAvatar avatarUrl={matchup.playerB.avatarUrl} displayName={matchup.playerB.displayName} size={20} />
+        </div>
       </div>
 
       {/* Same team stats */}

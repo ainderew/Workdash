@@ -43,7 +43,7 @@ export function WardStatsWidget({ workspaceId, channelId }: Props) {
         indexBy="player"
         layout="horizontal"
         groupMode="grouped"
-        margin={{ top: 4, right: 100, bottom: 26, left: 80 }}
+        margin={{ top: 4, right: 12, bottom: 48, left: 80 }}
         padding={0.2}
         colors={[...WARD_CHART_PALETTE]}
         axisBottom={{
@@ -58,10 +58,10 @@ export function WardStatsWidget({ workspaceId, channelId }: Props) {
         legends={[
           {
             dataFrom: "keys",
-            anchor: "bottom-right",
-            direction: "column",
-            translateX: 100,
-            itemWidth: 90,
+            anchor: "bottom",
+            direction: "row",
+            translateY: 44,
+            itemWidth: 80,
             itemHeight: 16,
             itemTextColor: "var(--wd-text-secondary)",
             symbolSize: 8,

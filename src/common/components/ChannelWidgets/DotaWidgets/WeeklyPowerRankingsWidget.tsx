@@ -11,6 +11,7 @@ import { WidgetSkeleton, WidgetEmpty } from "../WidgetShell";
 import { pickRankingMessage } from "./powerRankingMessages";
 import { interpolate } from "./tiltMessages";
 import type { WeeklyPowerRankingsData } from "../_types";
+import { PlayerAvatar } from "./PlayerAvatar";
 
 interface Props {
   workspaceId: string;
@@ -75,6 +76,7 @@ function RankingEntry({ ranking, isLast }: Omit<RankingEntryProps, "weekSeed">) 
       </div>
 
       {/* Player info */}
+      <PlayerAvatar avatarUrl={ranking.avatarUrl} displayName={ranking.displayName} size={20} />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
           <span className="text-xs font-semibold wd-text-primary truncate">

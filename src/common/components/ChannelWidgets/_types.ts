@@ -91,6 +91,7 @@ export interface WidgetDefinition {
 export interface RolePerformanceData {
   players: {
     displayName: string;
+    avatarUrl: string | null;
     dotaAccountId: number;
     roles: {
       role: string;
@@ -103,6 +104,7 @@ export interface RolePerformanceData {
 export interface TiltStatus {
   dotaAccountId: number;
   displayName: string;
+  avatarUrl: string | null;
   severity: "warning" | "danger" | "critical";
   lossStreak: number;
   recentResults: ("W" | "L")[];
@@ -112,6 +114,7 @@ export interface PowerSpikeData {
   matchId: string;
   players: {
     displayName: string;
+    avatarUrl: string | null;
     dotaAccountId: number;
     heroId: number;
     goldAdvantage: number[];
@@ -122,6 +125,7 @@ export interface PowerSpikeData {
 export interface WardStatsData {
   players: {
     displayName: string;
+    avatarUrl: string | null;
     dotaAccountId: number;
     obsPlaced: number;
     senPlaced: number;
@@ -134,6 +138,7 @@ export interface WardStatsData {
 export interface TrendsData {
   players: {
     displayName: string;
+    avatarUrl: string | null;
     dotaAccountId: number;
     winRateOverTime: { date: string; winRate: number }[];
     mmrOverTime: { date: string; mmr: number }[];
@@ -144,6 +149,7 @@ export interface TrendsData {
 export interface ComfortPickData {
   players: {
     displayName: string;
+    avatarUrl: string | null;
     dotaAccountId: number;
     heroes: {
       heroId: number;
@@ -158,6 +164,7 @@ export interface ComfortPickData {
 export interface AvgMatchLengthData {
   players: {
     displayName: string;
+    avatarUrl: string | null;
     dotaAccountId: number;
     dataPoints: { date: string; avgDuration: number }[];
   }[];
@@ -167,6 +174,7 @@ export interface AvgMatchLengthData {
 export interface DamageCompositionData {
   players: {
     displayName: string;
+    avatarUrl: string | null;
     dotaAccountId: number;
     physical: number;
     magical: number;
@@ -179,6 +187,7 @@ export interface TeamLeaderboardData {
     role: string;
     rankings: {
       displayName: string;
+      avatarUrl: string | null;
       dotaAccountId: number;
       winRate: number;
       gamesPlayed: number;
@@ -190,6 +199,7 @@ export interface TeamLeaderboardData {
 export interface ImpactScoreData {
   players: {
     displayName: string;
+    avatarUrl: string | null;
     dotaAccountId: number;
     impactScore: number;
     perMatchScores: number[];
@@ -202,6 +212,7 @@ export interface WeeklyPowerRankingsData {
   rankings: {
     rank: number;
     displayName: string;
+    avatarUrl: string | null;
     dotaAccountId: number;
     impactScore: number;
     winRate: number;
@@ -224,6 +235,7 @@ export interface WeeklyPowerRankingsData {
 export interface SessionPulseData {
   message: string;
   playerName: string;
+  avatarUrl: string | null;
   dotaAccountId: number;
   statType: string;
   value: number;
@@ -232,6 +244,7 @@ export interface SessionPulseData {
 export interface HotHandData {
   players: {
     displayName: string;
+    avatarUrl: string | null;
     dotaAccountId: number;
     score: number;
     label: string;
@@ -242,6 +255,7 @@ export interface HotHandData {
 export interface ClutchFactorData {
   players: {
     displayName: string;
+    avatarUrl: string | null;
     dotaAccountId: number;
     clutchFactor: number;
     label: string;
@@ -254,6 +268,7 @@ export interface ClutchFactorData {
 export interface TimePatternsData {
   players: {
     displayName: string;
+    avatarUrl: string | null;
     dotaAccountId: number;
     bestTimeSlot: { slot: string; winRate: number; games: number };
     worstTimeSlot: { slot: string; winRate: number; games: number };
@@ -267,6 +282,7 @@ export interface TimePatternsData {
 export interface ThrowComebackData {
   players: {
     displayName: string;
+    avatarUrl: string | null;
     dotaAccountId: number;
     comebacks: number;
     throws: number;
@@ -279,8 +295,8 @@ export interface ThrowComebackData {
 
 export interface HeadToHeadData {
   matchups: {
-    playerA: { displayName: string; dotaAccountId: number };
-    playerB: { displayName: string; dotaAccountId: number };
+    playerA: { displayName: string; avatarUrl: string | null; dotaAccountId: number };
+    playerB: { displayName: string; avatarUrl: string | null; dotaAccountId: number };
     sharedRoles: {
       role: string;
       playerAWinRate: number;
@@ -298,8 +314,8 @@ export interface HeadToHeadData {
 
 export interface PeerSynergyData {
   pairs: {
-    playerA: { displayName: string; dotaAccountId: number };
-    playerB: { displayName: string; dotaAccountId: number };
+    playerA: { displayName: string; avatarUrl: string | null; dotaAccountId: number };
+    playerB: { displayName: string; avatarUrl: string | null; dotaAccountId: number };
     winRate: number;
     games: number;
     synergy: number;
@@ -312,6 +328,7 @@ export interface PeerSynergyData {
 export interface HeroMasteryData {
   players: {
     displayName: string;
+    avatarUrl: string | null;
     dotaAccountId: number;
     topHeroes: {
       heroId: number;
@@ -327,6 +344,7 @@ export interface HeroMasteryData {
     heroIcon: string;
     players: {
       displayName: string;
+      avatarUrl: string | null;
       dotaAccountId: number;
       games: number;
       winRate: number;
@@ -341,6 +359,7 @@ export interface MatchRecapData {
   radiantWin: boolean;
   players: {
     displayName: string;
+    avatarUrl: string | null;
     dotaAccountId: number;
     heroId: number;
     heroName: string;
@@ -357,6 +376,7 @@ export interface MatchRecapData {
 export interface MilestoneData {
   milestones: {
     displayName: string;
+    avatarUrl: string | null;
     dotaAccountId: number;
     type: string;
     message: string;
@@ -370,6 +390,7 @@ export interface MonthlyAwardsData {
   awards: {
     title: string;
     displayName: string;
+    avatarUrl: string | null;
     dotaAccountId: number;
     stat: string;
     icon: string;

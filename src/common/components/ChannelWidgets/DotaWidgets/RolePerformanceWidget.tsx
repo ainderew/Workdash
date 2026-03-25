@@ -46,7 +46,7 @@ export function RolePerformanceWidget({ workspaceId, channelId }: Props) {
         keys={allRoles}
         indexBy="player"
         groupMode="grouped"
-        margin={{ top: 10, right: 100, bottom: 32, left: 44 }}
+        margin={{ top: 10, right: 12, bottom: 48, left: 44 }}
         padding={0.2}
         valueScale={{ type: "linear" }}
         colors={[...DOTA_CHART_PALETTE]}
@@ -66,10 +66,10 @@ export function RolePerformanceWidget({ workspaceId, channelId }: Props) {
         legends={[
           {
             dataFrom: "keys",
-            anchor: "bottom-right",
-            direction: "column",
-            translateX: 100,
-            itemWidth: 90,
+            anchor: "bottom",
+            direction: "row",
+            translateY: 44,
+            itemWidth: 80,
             itemHeight: 16,
             itemTextColor: "var(--wd-text-secondary)",
             symbolSize: 8,

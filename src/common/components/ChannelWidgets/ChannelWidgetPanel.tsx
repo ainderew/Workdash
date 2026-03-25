@@ -333,7 +333,8 @@ export function ChannelWidgetPanel({ roomId, workspaceId }: Props) {
           )}
 
           <div
-            className="overflow-y-auto no-scrollbar"
+            key={activeCategory}
+            className="overflow-y-auto no-scrollbar animate-[wd-widget-card-in_0.2s_ease-out]"
             style={{ maxHeight: 480 }}
           >
             <div className="flex flex-col gap-3 px-3 pb-3">

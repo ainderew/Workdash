@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import Image from 'next/image';
 import { ChevronDown, ChevronUp, Loader2 } from 'lucide-react';
 import type { DotaRecentMatch, DotaStats } from '@/communication/chatV2/_types';
 import { parseMedal } from '@/common/utils/dotaMedal';
@@ -113,9 +114,20 @@ export function DotaMedalBadge({ userId }: DotaMedalBadgeProps) {
 
     return (
         <div className="rounded-lg wd-neo px-3 py-2.5">
-            <p className="text-[10px] font-semibold uppercase tracking-wider wd-text-muted mb-1.5">
-                Dota 2
-            </p>
+            <div className="flex items-center gap-1.5 mb-1.5">
+                {stats.avatarUrl && (
+                    <Image
+                        src={stats.avatarUrl}
+                        alt=""
+                        width={16}
+                        height={16}
+                        className="rounded-sm"
+                    />
+                )}
+                <p className="text-[10px] font-semibold uppercase tracking-wider wd-text-muted">
+                    Dota 2
+                </p>
+            </div>
             <div className="flex items-center gap-2.5">
                 {medal ? (
                     <>

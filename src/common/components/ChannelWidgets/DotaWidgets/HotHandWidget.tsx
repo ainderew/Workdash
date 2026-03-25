@@ -5,6 +5,7 @@ import { WidgetSkeleton, WidgetEmpty } from "../WidgetShell";
 import { pickHotHandMessage } from "./hotHandMessages";
 import { interpolate } from "./tiltMessages";
 import type { HotHandData } from "../_types";
+import { PlayerAvatar } from "./PlayerAvatar";
 
 interface Props {
   workspaceId: string;
@@ -17,10 +18,10 @@ function ResultPills({ results }: { results: ("W" | "L")[] }) {
       {results.map((r, i) => (
         <span
           key={i}
-          className={`w-4 h-4 rounded text-[8px] font-bold flex items-center justify-center ${
+          className={`w-5 h-5 rounded text-[10px] font-bold flex items-center justify-center ${
             r === "W"
-              ? "bg-[var(--wd-success)]/15 text-[var(--wd-success)]"
-              : "bg-[var(--wd-danger)]/15 text-[var(--wd-danger)]"
+              ? "bg-[var(--wd-success)]/25 text-[var(--wd-success)]"
+              : "bg-[var(--wd-danger)]/25 text-[var(--wd-danger)]"
           }`}
         >
           {r}
@@ -46,6 +47,7 @@ function HotHandCard({ player }: { player: HotHandData["players"][number] }) {
       }`}
     >
       <div className="flex items-center gap-2 mb-1.5">
+        <PlayerAvatar avatarUrl={player.avatarUrl} displayName={player.displayName} />
         {isHot ? (
           <Flame size={14} className="text-[var(--wd-warning)]" />
         ) : isCold ? (

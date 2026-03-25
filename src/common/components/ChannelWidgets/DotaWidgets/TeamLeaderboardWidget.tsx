@@ -3,6 +3,7 @@ import { Crown, Medal } from "lucide-react";
 import { useWidgetStore } from "@/common/store/widgetStore";
 import { WidgetSkeleton, WidgetEmpty } from "../WidgetShell";
 import type { TeamLeaderboardData } from "../_types";
+import { PlayerAvatar } from "./PlayerAvatar";
 
 interface Props {
   workspaceId: string;
@@ -12,6 +13,7 @@ interface Props {
 interface EntryProps {
   rank: number;
   displayName: string;
+  avatarUrl: string | null;
   winRate: number;
   gamesPlayed: number;
   avgKda: number;
@@ -20,6 +22,7 @@ interface EntryProps {
 function LeaderboardEntry({
   rank,
   displayName,
+  avatarUrl,
   winRate,
   gamesPlayed,
   avgKda,
@@ -60,6 +63,7 @@ function LeaderboardEntry({
       </div>
 
       {/* Player name */}
+      <PlayerAvatar avatarUrl={avatarUrl} displayName={displayName} />
       <div className="flex-1 min-w-0">
         <div className="text-xs font-semibold wd-text-primary truncate">
           {displayName}
@@ -151,6 +155,7 @@ export function TeamLeaderboardWidget({ workspaceId, channelId }: Props) {
             key={player.dotaAccountId}
             rank={rank + 1}
             displayName={player.displayName}
+            avatarUrl={player.avatarUrl}
             winRate={player.winRate}
             gamesPlayed={player.gamesPlayed}
             avgKda={player.avgKda}

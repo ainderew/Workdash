@@ -2,6 +2,7 @@ import React, { useEffect } from "react";
 import { useWidgetStore } from "@/common/store/widgetStore";
 import { WidgetSkeleton, WidgetEmpty } from "../WidgetShell";
 import type { PeerSynergyData } from "../_types";
+import { PlayerAvatar } from "./PlayerAvatar";
 
 interface Props {
   workspaceId: string;
@@ -46,9 +47,17 @@ function PairCard({ pair }: { pair: PeerSynergyData["pairs"][number] }) {
       }`}
     >
       <div className="flex items-center justify-between mb-1.5">
-        <span className="text-xs font-semibold wd-text-primary">
-          {pair.playerA.displayName} + {pair.playerB.displayName}
-        </span>
+        <div className="flex items-center gap-1.5">
+          <PlayerAvatar avatarUrl={pair.playerA.avatarUrl} displayName={pair.playerA.displayName} size={16} />
+          <span className="text-xs font-semibold wd-text-primary">
+            {pair.playerA.displayName}
+          </span>
+          <span className="wd-text-muted text-[10px]">+</span>
+          <PlayerAvatar avatarUrl={pair.playerB.avatarUrl} displayName={pair.playerB.displayName} size={16} />
+          <span className="text-xs font-semibold wd-text-primary">
+            {pair.playerB.displayName}
+          </span>
+        </div>
         <span
           className={`text-[10px] font-bold uppercase tracking-wider ${
             isPower
@@ -62,6 +71,10 @@ function PairCard({ pair }: { pair: PeerSynergyData["pairs"][number] }) {
         </span>
       </div>
 
+      <div className="flex justify-between text-[9px] wd-text-muted mb-0.5">
+        <span>Worse</span>
+        <span>Better</span>
+      </div>
       <SynergyBar synergy={pair.synergy} />
 
       <div className="flex justify-between mt-1.5 text-[10px] wd-text-muted">

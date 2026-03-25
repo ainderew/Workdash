@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useWidgetStore } from "@/common/store/widgetStore";
 import { WidgetSkeleton, WidgetEmpty } from "../WidgetShell";
 import type { HeroMasteryData } from "../_types";
+import { PlayerAvatar } from "./PlayerAvatar";
 
 interface Props {
   workspaceId: string;
@@ -98,6 +99,7 @@ export function HeroMasteryWidget({ workspaceId, channelId }: Props) {
                   : "wd-text-muted hover:wd-text-primary"
               }`}
             >
+              <PlayerAvatar avatarUrl={p.avatarUrl} displayName={p.displayName} size={14} />
               {p.displayName}
             </button>
           ))}

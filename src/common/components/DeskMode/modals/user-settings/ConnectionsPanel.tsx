@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import Image from 'next/image';
 import { Loader2, RefreshCw, Unlink } from 'lucide-react';
 import { toast } from 'sonner';
 import { ChatV2Service } from '@/communication/chatV2/chatV2Service';
@@ -268,12 +269,23 @@ function ConnectionsPanel() {
                 {stats ? (
                     <div className="space-y-2">
                         {stats.personaName && (
-                            <p className="text-[12px] wd-text-secondary">
-                                Linked as{' '}
-                                <span className="font-semibold wd-text-primary">
-                                    {stats.personaName}
-                                </span>
-                            </p>
+                            <div className="flex items-center gap-2">
+                                {stats.avatarUrl && (
+                                    <Image
+                                        src={stats.avatarUrl}
+                                        alt=""
+                                        width={24}
+                                        height={24}
+                                        className="rounded-sm"
+                                    />
+                                )}
+                                <p className="text-[12px] wd-text-secondary">
+                                    Linked as{' '}
+                                    <span className="font-semibold wd-text-primary">
+                                        {stats.personaName}
+                                    </span>
+                                </p>
+                            </div>
                         )}
                         <div className="flex items-center gap-2">
                             {medal ? (

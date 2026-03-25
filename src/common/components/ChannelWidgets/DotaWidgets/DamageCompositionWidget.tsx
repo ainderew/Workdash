@@ -6,6 +6,7 @@ import { useDotaChartTheme } from "./useDotaChartTheme";
 import { DAMAGE_CHART_PALETTE } from "./chartColors";
 import { DotaChartTooltip } from "./DotaChartTooltip";
 import type { DamageCompositionData } from "../_types";
+import { PlayerAvatar } from "./PlayerAvatar";
 
 interface Props {
   workspaceId: string;
@@ -58,8 +59,11 @@ export function DamageCompositionWidget({ workspaceId, channelId }: Props) {
 
         return (
           <div key={player.dotaAccountId} className="text-center">
-            <div className="text-[10px] font-semibold wd-text-muted uppercase tracking-wide mb-0.5">
-              {player.displayName}
+            <div className="flex items-center justify-center gap-1.5 mb-0.5">
+              <PlayerAvatar avatarUrl={player.avatarUrl} displayName={player.displayName} size={16} />
+              <span className="text-[10px] font-semibold wd-text-muted uppercase tracking-wide">
+                {player.displayName}
+              </span>
             </div>
             <div className="h-[140px]">
               <ResponsivePie

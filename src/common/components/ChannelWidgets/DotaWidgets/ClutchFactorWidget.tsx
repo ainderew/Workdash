@@ -4,6 +4,7 @@ import { WidgetSkeleton, WidgetEmpty } from "../WidgetShell";
 import { pickClutchMessage } from "./hotHandMessages";
 import { interpolate } from "./tiltMessages";
 import type { ClutchFactorData } from "../_types";
+import { PlayerAvatar } from "./PlayerAvatar";
 
 interface Props {
   workspaceId: string;
@@ -26,6 +27,7 @@ function ClutchCard({ player }: { player: ClutchFactorData["players"][number] })
       }`}
     >
       <div className="flex items-center gap-2 mb-2">
+        <PlayerAvatar avatarUrl={player.avatarUrl} displayName={player.displayName} />
         <span className="text-xs font-semibold wd-text-primary">
           {player.displayName}
         </span>

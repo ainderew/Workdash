@@ -415,6 +415,7 @@ export type BannerConfig =
 export type DotaStats = {
     steamId64: string;
     personaName: string | null;
+    avatarUrl: string | null;
     rankTier: number | null;
     leaderboardRank: number | null;
     mmrEstimate: number | null;
