@@ -81,6 +81,20 @@ const EVENT_VARIANTS: Record<string, EventVariant> = {
   },
 };
 
+const BOLD_RE = /(\*\*[^*]+\*\*)/;
+
+function renderBold(text: string): React.ReactNode[] {
+  return text.split(BOLD_RE).map((part, i) =>
+    part.startsWith("**") && part.endsWith("**") ? (
+      <strong key={i} className="font-semibold wd-text-primary">
+        {part.slice(2, -2)}
+      </strong>
+    ) : (
+      part
+    ),
+  );
+}
+
 const DEFAULT_VARIANT: EventVariant = {
   Icon: MapPin,
   label: "Event",
@@ -101,7 +115,7 @@ export function PZEventCard({ eventType, content }: PZEventCardProps) {
         </span>
       </div>
       <p className="text-[13px] wd-text-secondary leading-snug">
-        {content}
+        {renderBold(content)}
       </p>
     </div>
   );

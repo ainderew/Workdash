@@ -6,7 +6,6 @@ import PZLeaderboard from "./PZLeaderboard";
 import PZDeathLog from "./PZDeathLog";
 import PZActivityFeed from "./PZActivityFeed";
 import { MediaTransportService } from "@/communication/mediaTransportService/mediaTransportServive";
-import { Radio, Trophy, Skull, Zap, FlaskConical } from "lucide-react";
 import { CONFIG } from "@/common/utils/config";
 import { tokenStore } from "@/common/utils/tokenStore";
 import { logger } from "@/common/utils/logger";
@@ -74,7 +73,7 @@ interface PZSidebarProps {
 function SkeletonLine({ width }: { width: string }) {
   return (
     <div
-      className="h-2 rounded-sm bg-[var(--wd-surface-elevated)] animate-[wd-pz-skeleton_1.5s_ease-in-out_infinite]"
+      className="h-2.5 rounded bg-[var(--wd-surface-elevated)] animate-[wd-pz-skeleton_1.5s_ease-in-out_infinite]"
       style={{ width }}
     />
   );
@@ -85,7 +84,7 @@ function LoadingSkeleton() {
     <div className="flex flex-1 flex-col gap-4 px-3 py-4">
       <div className="space-y-2">
         <SkeletonLine width="40%" />
-        <div className="space-y-1.5 rounded-md bg-[var(--wd-surface-base)] p-2 ring-1 ring-[var(--wd-border-subtle)]">
+        <div className="space-y-1.5 rounded-lg bg-[var(--wd-surface-base)] p-2 ring-1 ring-[var(--wd-border-subtle)]">
           <SkeletonLine width="70%" />
           <SkeletonLine width="55%" />
         </div>
@@ -215,7 +214,7 @@ function PZSidebar({ workspaceId, isActive }: PZSidebarProps) {
     <div className="flex flex-1 flex-col overflow-y-auto no-scrollbar">
       <CollapsibleSection
         title="Status"
-        icon={<Radio size={10} strokeWidth={2.5} className="wd-text-muted" />}
+        icon={<span>📡</span>}
         isOpen={sectionStates.status}
         onToggle={() => toggleSection("status")}
         badge={`${onlinePlayers.length}`}
@@ -229,7 +228,7 @@ function PZSidebar({ workspaceId, isActive }: PZSidebarProps) {
 
       <CollapsibleSection
         title="Leaderboard"
-        icon={<Trophy size={10} strokeWidth={2.5} className="wd-text-muted" />}
+        icon={<span>🏆</span>}
         isOpen={sectionStates.leaderboard}
         onToggle={() => toggleSection("leaderboard")}
       >
@@ -242,7 +241,7 @@ function PZSidebar({ workspaceId, isActive }: PZSidebarProps) {
 
       <CollapsibleSection
         title="Death Log"
-        icon={<Skull size={10} strokeWidth={2.5} className="wd-text-muted" />}
+        icon={<span>💀</span>}
         isOpen={sectionStates.deaths}
         onToggle={() => toggleSection("deaths")}
         badge={
@@ -257,7 +256,7 @@ function PZSidebar({ workspaceId, isActive }: PZSidebarProps) {
 
       <CollapsibleSection
         title="Activity"
-        icon={<Zap size={10} strokeWidth={2.5} className="wd-text-muted" />}
+        icon={<span>⚡</span>}
         isOpen={sectionStates.activity}
         onToggle={() => toggleSection("activity")}
       >
@@ -269,10 +268,9 @@ function PZSidebar({ workspaceId, isActive }: PZSidebarProps) {
           <button
             type="button"
             onClick={() => void sendSimulateEvent(workspaceId).catch(logger.error)}
-            className="flex w-full items-center justify-center gap-1.5 rounded-sm bg-[var(--wd-surface-base)] px-2 py-1 text-[10px] font-medium wd-text-muted ring-1 ring-[var(--wd-border-subtle)] transition-colors hover:wd-text-secondary hover:bg-[var(--wd-surface-elevated)]"
+            className="flex w-full items-center justify-center gap-1.5 rounded-md bg-[var(--wd-surface-base)] px-2 py-1.5 text-[0.6rem] font-medium wd-text-muted ring-1 ring-[var(--wd-border-subtle)] transition-colors hover:wd-text-secondary hover:bg-[var(--wd-surface-elevated)]"
           >
-            <FlaskConical size={10} strokeWidth={2.5} />
-            Simulate Event
+            🧪 Simulate Event
           </button>
         </div>
       )}
