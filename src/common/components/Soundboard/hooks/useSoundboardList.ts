@@ -23,9 +23,15 @@ export function useSoundboardList(workspaceId: string | null) {
           headers: { Authorization: `Bearer ${jwt}` },
           signal: abortController.signal,
         })
-          .then((res) => res.json())
+          .then((res) => {
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            return res.json();
+          })
           .then((data: { workspace: SoundboardSound[]; personal: SoundboardSound[] }) => {
-            useSoundboardStore.getState().setSounds(data.workspace, data.personal);
+            useSoundboardStore.getState().setSounds(
+              data.workspace ?? [],
+              data.personal ?? [],
+            );
           })
           .catch((err) => {
             if (err instanceof DOMException && err.name === 'AbortError') return;
