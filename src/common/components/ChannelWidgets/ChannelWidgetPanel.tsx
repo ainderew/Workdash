@@ -17,6 +17,7 @@ import {
   ThumbsDown,
   TrendingUp,
   Trophy,
+  User,
   Users,
   Zap,
 } from "lucide-react";
@@ -43,6 +44,7 @@ import { HeroMasteryWidget } from "./DotaWidgets/HeroMasteryWidget";
 import { MatchRecapWidget } from "./DotaWidgets/MatchRecapWidget";
 import { AchievementFeedWidget } from "./DotaWidgets/AchievementFeedWidget";
 import { MonthlyAwardsWidget } from "./DotaWidgets/MonthlyAwardsWidget";
+import { SteamProfileWidget } from "./DotaWidgets/SteamProfileWidget";
 
 interface Props {
   roomId: string;
@@ -176,6 +178,12 @@ const WIDGET_META: Record<string, WidgetMeta> = {
     accent: "var(--wd-accent)",
     variant: "ranking",
   },
+  dota_steam_profiles: {
+    component: SteamProfileWidget,
+    label: "Steam Profiles",
+    icon: User,
+    accent: "var(--wd-info)",
+  },
 };
 
 interface CategoryDef {
@@ -191,6 +199,7 @@ const CATEGORIES: CategoryDef[] = [
     label: "The Drama",
     icon: Crown,
     widgetTypes: [
+      "dota_steam_profiles",
       "dota_weekly_power_rankings",
       "dota_match_recap",
       "dota_hot_hand",

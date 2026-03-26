@@ -141,6 +141,13 @@ export const AVAILABLE_WIDGETS: WidgetDefinition[] = [
     icon: "Trophy",
     description: "Auto-generated superlatives from the last 30 days",
   },
+  {
+    widgetType: "dota_steam_profiles",
+    pluginType: "dota2",
+    label: "Steam Profiles",
+    icon: "User",
+    description: "Steam profile cards with rank, MMR, and stats for tracked players",
+  },
 ];
 
 export const WIDGET_PLUGINS = {
