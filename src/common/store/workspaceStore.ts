@@ -9,6 +9,7 @@ type WorkspaceState = {
     error: string | null;
 
     fetchMyWorkspaces: () => Promise<void>;
+    fetchWorkspaceDetail: (workspaceId: string) => Promise<void>;
     createWorkspace: (name: string, iconUrl?: string) => Promise<Workspace | null>;
     updateWorkspaceLocal: (
         workspaceId: string,
@@ -39,6 +40,20 @@ const useWorkspaceStore = create<WorkspaceState>((set) => ({
                         ? error.message
                         : "Failed to load workspaces",
             });
+        }
+    },
+
+    fetchWorkspaceDetail: async (workspaceId) => {
+        try {
+            const chatV2Service = getChatV2Service();
+            const workspace = await chatV2Service.getWorkspace(workspaceId);
+            set((state) => ({
+                workspaces: state.workspaces.map((ws) =>
+                    ws.id === workspaceId ? { ...ws, ...workspace } : ws,
+                ),
+            }));
+        } catch {
+            // Non-critical — permissions will fall back to empty
         }
     },
 

@@ -111,6 +111,7 @@ export default function FloatingCallWindow() {
         if (store.manualFloating && store.currentCall?.channelId === currentRoomId) {
           store.setManualFloating(false);
         }
+        store.setScreenShareAutoFullscreen(false);
         setFloatingWindowState('expanded');
         const pos = store.floatingPosition;
         if (pos) {
@@ -296,6 +297,7 @@ export default function FloatingCallWindow() {
       if (manualFloating && channelId === currentRoomId) {
         useCallStore.getState().setManualFloating(false);
       }
+      useCallStore.getState().setScreenShareAutoFullscreen(false);
       setFloatingWindowState('expanded');
       const pos = useCallStore.getState().floatingPosition;
       if (pos) {

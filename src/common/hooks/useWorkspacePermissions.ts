@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import useWorkspaceStore from '@/common/store/workspaceStore';
 import useUserStore from '@/common/store/useStore';
 import type { WorkspaceMember } from '@/communication/chatV2/_types';
@@ -39,12 +39,28 @@ export function useWorkspacePermissions(
   workspaceId: string | null | undefined,
 ): WorkspacePermissions {
   const workspaces = useWorkspaceStore((s) => s.workspaces);
+  const fetchWorkspaceDetail = useWorkspaceStore((s) => s.fetchWorkspaceDetail);
   const viewerUserId = useUserStore((s) => s.backendUser?.id ?? 0);
+  const fetchedRef = useRef<string | null>(null);
+
+  const workspace = workspaces.find((w) => w.id === workspaceId);
+  const needsDetail =
+    !!workspaceId &&
+    viewerUserId > 0 &&
+    !!workspace &&
+    workspace.ownerId !== viewerUserId &&
+    !workspace.members;
+
+  useEffect(() => {
+    if (needsDetail && workspaceId && fetchedRef.current !== workspaceId) {
+      fetchedRef.current = workspaceId;
+      void fetchWorkspaceDetail(workspaceId);
+    }
+  }, [needsDetail, workspaceId, fetchWorkspaceDetail]);
 
   return useMemo(() => {
     if (!workspaceId || viewerUserId === 0) return EMPTY_PERMISSIONS;
 
-    const workspace = workspaces.find((w) => w.id === workspaceId);
     if (!workspace) return EMPTY_PERMISSIONS;
 
     const isWorkspaceOwner = workspace.ownerId === viewerUserId;
@@ -73,5 +89,5 @@ export function useWorkspacePermissions(
       canManageWorkspace: hasPermission(effectivePermissions, PERMISSIONS.MANAGE_WORKSPACE.bit),
       canManageMusic: hasPermission(effectivePermissions, PERM.MANAGE_MUSIC),
     };
-  }, [workspaceId, workspaces, viewerUserId]);
+  }, [workspaceId, workspace, viewerUserId]);
 }

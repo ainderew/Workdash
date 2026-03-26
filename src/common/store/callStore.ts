@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import useUserStore from "@/common/store/useStore";
 
 // ----------------------------------------------------------------
 // Types
@@ -93,6 +94,9 @@ interface CallState {
   /** Pinned tile key — e.g. "42" for camera, "42-screen" for screen share (null = no pin) */
   pinnedTileKey: string | null;
 
+  /** Whether fullscreen was auto-triggered by a remote screen share (so we can auto-exit) */
+  screenShareAutoFullscreen: boolean;
+
   /** WebRTC connection quality indicator */
   connectionQuality: ConnectionQuality;
 
@@ -138,6 +142,7 @@ interface CallState {
 
   // Pin actions
   setPinnedTileKey: (key: string | null) => void;
+  setScreenShareAutoFullscreen: (value: boolean) => void;
 
   // Quality stats
   setConnectionQuality: (q: ConnectionQuality) => void;
@@ -168,6 +173,7 @@ const useCallStore = create<CallState>((set) => ({
   floatingWindowState: 'expanded' as FloatingWindowState,
   channelContentRect: null,
   pinnedTileKey: null,
+  screenShareAutoFullscreen: false,
   connectionQuality: 'unknown' as ConnectionQuality,
   statsSnapshot: null,
 
@@ -189,6 +195,7 @@ const useCallStore = create<CallState>((set) => ({
         currentCall: wasInCall ? null : state.currentCall,
         localMedia: wasInCall ? { ...initialLocalMedia } : state.localMedia,
         pinnedTileKey: wasInCall ? null : state.pinnedTileKey,
+        screenShareAutoFullscreen: wasInCall ? false : state.screenShareAutoFullscreen,
       };
     }),
 
@@ -238,10 +245,19 @@ const useCallStore = create<CallState>((set) => ({
 
       // Clear pin if the leaving user was pinned
       const pinnedKey = state.pinnedTileKey;
-      const unpinned =
-        pinnedKey === String(userId) || pinnedKey === `${userId}-screen`
-          ? null
-          : pinnedKey;
+      const wasPinned =
+        pinnedKey === String(userId) || pinnedKey === `${userId}-screen`;
+      const unpinned = wasPinned ? null : pinnedKey;
+
+      // Auto-exit fullscreen if leaving user's screen share triggered it
+      let nextFloatingWindowState = state.floatingWindowState;
+      let nextManualFloating = state.manualFloating;
+      let nextScreenShareAutoFullscreen = state.screenShareAutoFullscreen;
+      if (wasPinned && state.screenShareAutoFullscreen && nextFloatingWindowState === 'fullscreen') {
+        nextFloatingWindowState = 'expanded';
+        nextManualFloating = false;
+        nextScreenShareAutoFullscreen = false;
+      }
 
       return {
         activeCallsByChannel: {
@@ -257,6 +273,9 @@ const useCallStore = create<CallState>((set) => ({
         userToProducerId: nextUserToProducerId,
         screenProducerUserMap: nextScreenProducerUserMap,
         pinnedTileKey: unpinned,
+        floatingWindowState: nextFloatingWindowState,
+        manualFloating: nextManualFloating,
+        screenShareAutoFullscreen: nextScreenShareAutoFullscreen,
       };
     }),
 
@@ -265,13 +284,35 @@ const useCallStore = create<CallState>((set) => ({
       const existing = state.activeCallsByChannel[channelId];
       if (!existing) return state;
 
-      // Auto-unpin if the pinned stream is no longer active
+      const localUserId = useUserStore.getState().backendUser?.id;
+      const isRemoteUser = userId !== localUserId;
+      const isInThisCall = state.currentCall?.channelId === channelId;
+
       let nextPinned = state.pinnedTileKey;
+      let nextFloatingWindowState = state.floatingWindowState;
+      let nextManualFloating = state.manualFloating;
+      let nextScreenShareAutoFullscreen = state.screenShareAutoFullscreen;
+
+      // Auto-unpin if the pinned stream is no longer active
       if (nextPinned === `${userId}-screen` && !media.screen) {
         nextPinned = null;
+        // Auto-exit fullscreen if it was auto-triggered by screen share
+        if (state.screenShareAutoFullscreen && nextFloatingWindowState === 'fullscreen') {
+          nextFloatingWindowState = 'expanded';
+          nextManualFloating = false;
+          nextScreenShareAutoFullscreen = false;
+        }
       }
       if (nextPinned === String(userId) && !media.video) {
         nextPinned = null;
+      }
+
+      // Auto-pin + auto-fullscreen when a remote user starts screen sharing
+      if (media.screen && isRemoteUser && isInThisCall) {
+        nextPinned = `${userId}-screen`;
+        nextFloatingWindowState = 'fullscreen';
+        nextManualFloating = true;
+        nextScreenShareAutoFullscreen = true;
       }
 
       return {
@@ -285,6 +326,9 @@ const useCallStore = create<CallState>((set) => ({
           },
         },
         pinnedTileKey: nextPinned,
+        floatingWindowState: nextFloatingWindowState,
+        manualFloating: nextManualFloating,
+        screenShareAutoFullscreen: nextScreenShareAutoFullscreen,
       };
     }),
 
@@ -374,6 +418,9 @@ const useCallStore = create<CallState>((set) => ({
   setPinnedTileKey: (key) =>
     set(() => ({ pinnedTileKey: key })),
 
+  setScreenShareAutoFullscreen: (value) =>
+    set(() => ({ screenShareAutoFullscreen: value })),
+
   setConnectionQuality: (q) =>
     set(() => ({ connectionQuality: q })),
 
@@ -388,6 +435,7 @@ const useCallStore = create<CallState>((set) => ({
       screenProducerUserMap: {},
       producerToConsumerMap: {},
       pinnedTileKey: null,
+      screenShareAutoFullscreen: false,
     })),
 
   reset: () =>
@@ -404,6 +452,7 @@ const useCallStore = create<CallState>((set) => ({
       floatingWindowState: 'expanded' as FloatingWindowState,
       channelContentRect: null,
       pinnedTileKey: null,
+      screenShareAutoFullscreen: false,
       connectionQuality: 'unknown' as ConnectionQuality,
       statsSnapshot: null,
     })),
