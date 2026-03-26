@@ -396,3 +396,23 @@ export interface MonthlyAwardsData {
     icon: string;
   }[];
 }
+
+export interface SteamProfileData {
+  players: {
+    displayName: string;
+    avatarUrl: string | null;
+    dotaAccountId: number;
+    steamId64: string;
+    personaName: string | null;
+    rankTier: number | null;
+    mmrEstimate: number | null;
+    totalGames: number;
+    winRate: number;
+    favoriteHero: {
+      heroId: number;
+      heroName: string;
+      heroIcon: string;
+      games: number;
+    } | null;
+  }[];
+}
