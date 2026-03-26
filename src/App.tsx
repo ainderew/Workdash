@@ -55,7 +55,9 @@ function App() {
     );
     const currentCall = useCallStore((state) => state.currentCall);
     const [isInitialized, setIsInitialized] = useState(false);
+    const [initError, setInitError] = useState<string | null>(null);
     const [isGameReady, setIsGameReady] = useState(false);
+    const initInFlight = useRef(false);
     const { data: session, status } = useSession();
     const router = useRouter();
 
@@ -73,52 +75,60 @@ function App() {
         void bootstrapTheme();
     }, [bootstrapTheme, session?.backendJwt, status]);
 
+    const initServices = React.useCallback(async (jwtToken: string) => {
+        if (initInFlight.current) return;
+        initInFlight.current = true;
+        setInitError(null);
+
+        try {
+            const transport = MediaTransportService.getInstance(jwtToken);
+            const reactionService = ReactionService.getInstance();
+            const pollService = PollService.getInstance();
+
+            await transport.connect();
+            await transport.initializeSfu();
+
+            reactionService.setupReactionListener();
+            reactionService.uiUpdater = (emojiData) => {
+                reactionService.routeReactionToPlayer(emojiData);
+            };
+
+            pollService.setupPollListeners();
+
+            const callService = CallSignalingService.getInstance();
+            callService.setupListeners();
+
+            WebrtcStatsService.getInstance().start();
+
+            MusicClientService.getInstance()
+                .init(transport.socket)
+                .setupListeners();
+
+            // Start listening for newProducer events (needed for music-bot
+            // audio even when not in a call/huddle)
+            AudioChat.getInstance().watchNewProducers();
+
+            void getMusicBotAvatarDataUri();
+
+            setIsInitialized(true);
+        } catch (error) {
+            const message =
+                error instanceof Error ? error.message : "Unknown error";
+            console.error("Failed to initialize services:", error);
+            setInitError(message);
+        } finally {
+            initInFlight.current = false;
+        }
+    }, []);
+
     useEffect(() => {
         if (status !== "authenticated" || !session?.backendJwt) {
             return;
         }
 
         const jwtToken = session.backendJwt || tokenStore.getJwt();
-
-        const transport = MediaTransportService.getInstance(jwtToken);
-        const reactionService = ReactionService.getInstance();
-        const pollService = PollService.getInstance();
-
-        const init = async () => {
-            try {
-                await transport.connect();
-                await transport.initializeSfu();
-
-                reactionService.setupReactionListener();
-                reactionService.uiUpdater = (emojiData) => {
-                    reactionService.routeReactionToPlayer(emojiData);
-                };
-
-                pollService.setupPollListeners();
-
-                const callService = CallSignalingService.getInstance();
-                callService.setupListeners();
-
-                WebrtcStatsService.getInstance().start();
-
-                MusicClientService.getInstance()
-                    .init(transport.socket)
-                    .setupListeners();
-
-                // Start listening for newProducer events (needed for music-bot
-                // audio even when not in a call/huddle)
-                AudioChat.getInstance().watchNewProducers();
-
-                void getMusicBotAvatarDataUri();
-
-                setIsInitialized(true);
-            } catch (error) {
-                console.error("Failed to initialize services:", error);
-            }
-        };
-
-        init();
-    }, [session, status]);
+        void initServices(jwtToken);
+    }, [session?.backendJwt, status, initServices]);
 
     const phaserRef = useRef<IRefPhaserGame | null>(null);
     const currentScene = (scene: Phaser.Scene) => {
@@ -269,12 +279,36 @@ function App() {
         return (
             <div className="w-full h-full flex items-center justify-center wd-bg-app wd-text-primary">
                 <div className="text-center">
-                    <div className="wd-text-accent font-mono text-sm mb-2">
-                        Initializing services...
-                    </div>
-                    <div className="wd-text-muted text-xs">
-                        Check console for details
-                    </div>
+                    {initError ? (
+                        <>
+                            <div className="wd-text-danger font-mono text-sm mb-2">
+                                Failed to connect
+                            </div>
+                            <div className="wd-text-muted text-xs mb-4">
+                                {initError}
+                            </div>
+                            <button
+                                className="wd-btn-primary px-4 py-1.5 text-sm rounded"
+                                onClick={() => {
+                                    const jwt =
+                                        session?.backendJwt ||
+                                        tokenStore.getJwt();
+                                    if (jwt) void initServices(jwt);
+                                }}
+                            >
+                                Retry
+                            </button>
+                        </>
+                    ) : (
+                        <>
+                            <div className="wd-text-accent font-mono text-sm mb-2">
+                                Initializing services...
+                            </div>
+                            <div className="wd-text-muted text-xs">
+                                Check console for details
+                            </div>
+                        </>
+                    )}
                 </div>
             </div>
         );
