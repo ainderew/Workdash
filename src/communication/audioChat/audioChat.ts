@@ -10,6 +10,7 @@ import useFocusStore from "@/common/store/focusStore";
 import useUiStore from "@/common/store/uiStore";
 import useUserStore from "@/common/store/useStore";
 import { RNNoiseService } from "./rnnoiseService";
+import { toast } from "sonner";
 
 interface ConsumerServerResponse {
     id: string;
@@ -446,14 +447,24 @@ export class AudioChat {
                 userName?: string;
                 userId?: number;
                 source?: string;
+                soundName?: string;
             }) => {
-                // Accept microphone and music-bot sources
+                // Accept microphone, music-bot, and soundboard sources
                 if (
                     data.source &&
                     data.source !== "microphone" &&
-                    data.source !== "music-bot"
+                    data.source !== "music-bot" &&
+                    data.source !== "soundboard"
                 ) {
                     return;
+                }
+
+                // Show toast for soundboard plays from other users
+                if (data.source === "soundboard" && data.userName && data.soundName) {
+                    const viewerUserId = useUserStore.getState().backendUser?.id;
+                    if (data.userId !== viewerUserId) {
+                        toast(`${data.userName} played ${data.soundName}`);
+                    }
                 }
 
                 // Guard: don't consume call audio if we're not in that call
@@ -1338,7 +1349,8 @@ export class AudioChat {
             (p) =>
                 !p.source ||
                 p.source === "microphone" ||
-                p.source === "music-bot",
+                p.source === "music-bot" ||
+                p.source === "soundboard",
         );
 
         for (const producer of audioProducers) {

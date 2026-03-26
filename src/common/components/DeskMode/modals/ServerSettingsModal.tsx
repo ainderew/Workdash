@@ -10,6 +10,7 @@ import {
     Trash2,
     UserMinus,
     UserPlus,
+    Volume2,
     X,
 } from "lucide-react";
 import { CONFIG } from "@/common/utils/config";
@@ -33,11 +34,12 @@ const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/webp", "image/gif"];
 const MAX_SERVER_NAME_LENGTH = 100;
 
 import EmojisTab from "./EmojisTab";
+import SoundboardTab from "./SoundboardTab";
 import JoinRequestsTab from "./JoinRequestsTab";
 import { MediaTransportService } from "@/communication/mediaTransportService/mediaTransportService";
 import IntegrationsTab from "./IntegrationsTab";
 
-type SettingsTab = "overview" | "roles" | "emojis" | "requests" | "integrations";
+type SettingsTab = "overview" | "roles" | "emojis" | "soundboard" | "requests" | "integrations";
 
 const ROLE_COLORS = [
     0x5865F2, 0x57F287, 0xFEE75C, 0xEB459E, 0xED4245,
@@ -892,6 +894,20 @@ function ServerSettingsModal({
                                 Emojis
                             </span>
                         </button>
+                        <button
+                            type="button"
+                            onClick={() => setActiveTab("soundboard")}
+                            className={`px-3 py-1.5 text-xs font-semibold transition-colors border-b-2 ${
+                                activeTab === "soundboard"
+                                    ? "border-[rgba(88,101,242,0.8)] wd-text-primary"
+                                    : "border-transparent wd-text-muted hover:wd-text-secondary"
+                            }`}
+                        >
+                            <span className="inline-flex items-center gap-1.5">
+                                <Volume2 size={12} />
+                                Soundboard
+                            </span>
+                        </button>
                         {showRequestsTab && (
                             <button
                                 type="button"
@@ -1164,6 +1180,10 @@ function ServerSettingsModal({
 
                     {activeTab === "emojis" && (
                         <EmojisTab workspaceId={serverId} canManage={canManageEmojis} />
+                    )}
+
+                    {activeTab === "soundboard" && (
+                        <SoundboardTab workspaceId={serverId} canManage={canManageWorkspace} />
                     )}
 
                     {activeTab === "requests" && (

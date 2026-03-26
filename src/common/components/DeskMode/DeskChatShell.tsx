@@ -45,6 +45,7 @@ import CollapsedSidebarRail from "./CollapsedSidebarRail";
 import { CallSignalingService } from "@/communication/callSignaling/callSignalingService";
 import useCallStore from "@/common/store/callStore";
 import { useCustomEmojiList } from "@/common/hooks/useCustomEmojiList";
+import { useSoundboardList } from "@/common/components/Soundboard/hooks/useSoundboardList";
 import PZSidebar from "@/common/components/Integrations/PZSidebar";
 import { useIntegrationStore } from "@/common/store/integrationStore";
 import RightSidebar from "./RightSidebar";
@@ -60,6 +61,7 @@ interface DeskChatShellProps {
 function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
     const selectedWsId = useChatV2Store((s) => s.selectedWorkspaceId);
     useCustomEmojiList(selectedWsId);
+    useSoundboardList(selectedWsId);
 
     const chatV2Service = useMemo(() => ChatV2Service.getInstance(), []);
     const initialize = useChatV2Store((state) => state.initialize);

@@ -42,6 +42,7 @@ import { useChatNotificationSound } from "@/common/hooks/useChatNotificationSoun
 import { useAchievementListener } from "@/common/hooks/useAchievementListener";
 import { useDeviceEnumeration } from "@/common/hooks/useDeviceEnumeration";
 import { useActivityHeartbeat } from "@/common/hooks/useActivityHeartbeat";
+import { SoundboardService } from "./communication/soundboard/soundboardService";
 
 function App() {
     const interactionMode = useUiStore((state) => state.interactionMode);
@@ -128,6 +129,10 @@ function App() {
 
         const jwtToken = session.backendJwt || tokenStore.getJwt();
         void initServices(jwtToken);
+
+        return () => {
+            SoundboardService.getInstance().cleanup();
+        };
     }, [session?.backendJwt, status, initServices]);
 
     const phaserRef = useRef<IRefPhaserGame | null>(null);
