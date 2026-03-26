@@ -22,16 +22,16 @@ function HotHandCard({ player }: { player: HotHandData["players"][number] }) {
     <div
       className={`px-3 py-2.5 rounded-xl transition-colors ${
         isHot
-          ? "bg-[var(--wd-warning)]/15"
+          ? "bg-[var(--wd-danger)]/10"
           : isCold
-            ? "bg-[var(--wd-info)]/15"
+            ? "bg-[var(--wd-info)]/10"
             : "bg-[var(--wd-surface-elevated)]"
       }`}
     >
       <div className="flex items-center gap-2 mb-1.5">
         <PlayerAvatar avatarUrl={player.avatarUrl} displayName={player.displayName} />
         {isHot ? (
-          <Flame size={14} className="text-[var(--wd-warning)] wd-fire-icon" />
+          <Flame size={14} className="text-[var(--wd-danger)] wd-fire-icon" />
         ) : isCold ? (
           <Snowflake size={14} className="text-[var(--wd-info)]" />
         ) : null}
@@ -41,7 +41,7 @@ function HotHandCard({ player }: { player: HotHandData["players"][number] }) {
         <span
           className={`ml-auto text-[10px] font-bold uppercase tracking-wider ${
             isHot
-              ? "text-[var(--wd-warning)]"
+              ? "text-[var(--wd-danger)]"
               : isCold
                 ? "text-[var(--wd-info)]"
                 : "wd-text-muted"

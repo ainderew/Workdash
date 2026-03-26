@@ -23,13 +23,13 @@ function AwardCard({ award }: { award: MonthlyAwardsData["awards"][number] }) {
   const Icon = ICON_MAP[award.icon] ?? Trophy;
 
   return (
-    <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-[var(--wd-warning)]/4">
-      <div className="shrink-0 text-[var(--wd-warning)]">
+    <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-[var(--wd-accent)]/6">
+      <div className="shrink-0 text-[var(--wd-accent)]">
         <Icon size={16} />
       </div>
       <PlayerAvatar avatarUrl={award.avatarUrl} displayName={award.displayName} size={20} />
       <div className="flex-1 min-w-0">
-        <div className="text-[10px] font-semibold uppercase tracking-wider text-[var(--wd-warning)]">
+        <div className="text-[10px] font-semibold uppercase tracking-wider text-[var(--wd-accent)]">
           {award.title}
         </div>
         <div className="text-xs font-bold wd-text-primary truncate">

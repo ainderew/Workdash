@@ -42,7 +42,7 @@ function PlayerRow({ player }: { player: MatchRecapData["players"][number] }) {
             {player.displayName}
           </span>
           {player.isMvp && (
-            <Crown size={10} className="text-[var(--wd-warning)] shrink-0" />
+            <Crown size={10} className="text-[var(--wd-accent)] shrink-0" />
           )}
         </div>
         <div className="text-[9px] wd-text-muted truncate">
@@ -54,7 +54,7 @@ function PlayerRow({ player }: { player: MatchRecapData["players"][number] }) {
           {player.kills}/{player.deaths}/{player.assists}
         </div>
         {player.highlights.length > 0 && (
-          <div className="text-[10px] font-medium text-[var(--wd-warning)] truncate max-w-[80px]">
+          <div className="text-[10px] font-medium text-[var(--wd-accent)] truncate max-w-[80px]">
             {player.highlights[0]}
           </div>
         )}

@@ -24,7 +24,7 @@ function MilestoneCard({ milestone }: { milestone: MilestoneData["milestones"][n
       <PlayerAvatar avatarUrl={milestone.avatarUrl} displayName={milestone.displayName} size={18} />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
-          <Icon size={12} className="shrink-0 text-[var(--wd-warning)]" />
+          <Icon size={12} className="shrink-0 text-[var(--wd-accent)]" />
           <span className="text-[11px] font-medium wd-text-primary leading-snug">
             {milestone.message}
           </span>

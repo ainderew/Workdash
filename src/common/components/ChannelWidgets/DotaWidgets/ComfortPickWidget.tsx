@@ -57,7 +57,7 @@ export function ComfortPickWidget({ workspaceId, channelId }: Props) {
               return (
                 <div
                   key={hero.heroId}
-                  className="px-2.5 py-2 rounded-lg bg-[var(--wd-warning)]/5"
+                  className="px-2.5 py-2 rounded-lg bg-[var(--wd-accent)]/5"
                 >
                   <div className="flex items-center gap-2 mb-0.5">
                     {hero.heroIcon ? (
@@ -71,13 +71,13 @@ export function ComfortPickWidget({ workspaceId, channelId }: Props) {
                     ) : (
                       <Skull
                         size={10}
-                        className="text-[var(--wd-warning)] shrink-0"
+                        className="text-[var(--wd-accent)] shrink-0"
                       />
                     )}
                     <span className="text-xs font-semibold wd-text-primary">
                       {hero.heroName}
                     </span>
-                    <span className="ml-auto text-[10px] font-bold text-[var(--wd-warning)] tabular-nums">
+                    <span className="ml-auto text-[10px] font-bold text-[var(--wd-accent)] tabular-nums">
                       {hero.winRate}%
                     </span>
                     <span className="text-[10px] wd-text-muted tabular-nums">
