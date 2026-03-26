@@ -4,7 +4,6 @@ import useUiControls from "@/common/components/UiControls/hooks/useUiControls";
 import useCallStore from "@/common/store/callStore";
 import { ScreenShareService } from "@/communication/screenShare/screenShare";
 import { VideoChatService } from "@/communication/videoChat/videoChat";
-import SoundboardButton from "@/common/components/Soundboard/SoundboardButton";
 
 interface DeskModeControlsProps {
     compact?: boolean;
@@ -88,8 +87,6 @@ function DeskModeControlsInner({
             >
                 <ScreenShare size={15} />
             </button>
-
-            <SoundboardButton />
 
             {showMicrophoneSelector && (
                 <>

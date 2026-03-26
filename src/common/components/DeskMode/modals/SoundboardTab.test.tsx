@@ -100,10 +100,10 @@ beforeEach(() => {
 // ---------------------------------------------------------------------------
 
 describe('SoundboardTab — upload count display', () => {
-  it('should show 0/50 workspace and 0/10 personal when both lists are empty', () => {
+  it('should show 0/50 shared and 0/10 personal when both lists are empty', () => {
     render(<SoundboardTab workspaceId={WS_ID} canManage={false} />);
-    expect(screen.getByText(/0\/50 workspace sounds/i)).toBeInTheDocument();
-    expect(screen.getByText(/0\/10 personal sounds/i)).toBeInTheDocument();
+    expect(screen.getByText('0/50')).toBeInTheDocument();
+    expect(screen.getByText('0/10')).toBeInTheDocument();
   });
 
   it('should reflect the current workspace sound count', () => {
@@ -114,7 +114,7 @@ describe('SoundboardTab — upload count display', () => {
       ],
     });
     render(<SoundboardTab workspaceId={WS_ID} canManage={false} />);
-    expect(screen.getByText(/2\/50 workspace sounds/i)).toBeInTheDocument();
+    expect(screen.getByText('2/50')).toBeInTheDocument();
   });
 
   it('should reflect the current personal sound count', () => {
@@ -122,7 +122,7 @@ describe('SoundboardTab — upload count display', () => {
       personalSounds: [makePersonalSound({ id: 'p1' }), makePersonalSound({ id: 'p2' })],
     });
     render(<SoundboardTab workspaceId={WS_ID} canManage={false} />);
-    expect(screen.getByText(/2\/10 personal sounds/i)).toBeInTheDocument();
+    expect(screen.getByText('2/10')).toBeInTheDocument();
   });
 });
 
@@ -185,11 +185,11 @@ describe('SoundboardTab — SoundboardUploadForm', () => {
 // ---------------------------------------------------------------------------
 
 describe('SoundboardTab — workspace sound list', () => {
-  it('should not render the Workspace Sounds section when the list is empty', () => {
+  it('should not render the Shared Sounds section when the list is empty', () => {
     render(<SoundboardTab workspaceId={WS_ID} canManage={false} />);
-    // The section heading is exact uppercase "Workspace Sounds" — distinct from the
+    // The section heading is exact uppercase "Shared Sounds" — distinct from the
     // count string "0/50 workspace sounds" in the summary row.
-    expect(screen.queryByText('Workspace Sounds')).not.toBeInTheDocument();
+    expect(screen.queryByText('Shared Sounds')).not.toBeInTheDocument();
   });
 
   it('should render a list item for each workspace sound', () => {

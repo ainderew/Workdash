@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { Loader2, Trash2 } from 'lucide-react';
+import { Loader2, Trash2, FileAudio } from 'lucide-react';
 import { CONFIG } from '@/common/utils/config';
 import { tokenStore } from '@/common/utils/tokenStore';
 import useSoundboardStore from '@/common/store/soundboardStore';
@@ -18,7 +18,7 @@ function SoundboardListItem({ sound, workspaceId, canManage }: SoundboardListIte
 
   const removeSound = useSoundboardStore((s) => s.removeSound);
 
-  const durationSec = Math.ceil(sound.durationMs / 1000);
+  const durationSec = (sound.durationMs / 1000).toFixed(1);
 
   const handleDelete = useCallback(async () => {
     setError(null);
@@ -45,27 +45,53 @@ function SoundboardListItem({ sound, workspaceId, canManage }: SoundboardListIte
   }, [sound.id, workspaceId, removeSound]);
 
   return (
-    <div className="flex items-center gap-3 rounded-md px-2.5 py-2 group hover:bg-[var(--wd-surface-elevated)]">
-      <span className="flex-1 text-sm wd-text-primary truncate">{sound.name}</span>
-      <span className="text-[10px] wd-text-muted shrink-0">{durationSec}s</span>
+    <div className="group flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-[color-mix(in_srgb,var(--wd-text-primary)_5%,transparent)]">
+      <div
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md"
+        style={{ backgroundColor: 'var(--wd-surface-elevated)' }}
+      >
+        <FileAudio size={14} className="wd-text-muted" />
+      </div>
+
+      <div className="flex-1 min-w-0">
+        <span className="block text-sm font-medium wd-text-primary truncate">
+          {sound.name}
+        </span>
+      </div>
+
+      <span
+        className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium wd-text-muted"
+        style={{ backgroundColor: 'var(--wd-surface-elevated)' }}
+      >
+        {durationSec}s
+      </span>
 
       {canManage && (
-        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
           {confirmDelete ? (
             <button
               type="button"
               onClick={() => void handleDelete()}
               disabled={isDeleting}
-              className="rounded px-2 py-1 text-[10px] font-semibold wd-text-danger bg-[rgb(var(--wd-danger-rgb)/0.1)] hover:bg-[rgb(var(--wd-danger-rgb)/0.2)] disabled:opacity-50"
+              className="rounded-md px-2 py-1 text-[10px] font-semibold transition-colors disabled:opacity-50"
+              style={{
+                color: 'var(--wd-danger)',
+                backgroundColor: 'rgb(var(--wd-danger-rgb) / 0.1)',
+              }}
             >
-              {isDeleting ? <Loader2 size={12} className="animate-spin" /> : 'Confirm'}
+              {isDeleting ? (
+                <Loader2 size={12} className="animate-spin" />
+              ) : (
+                'Confirm'
+              )}
             </button>
           ) : (
             <button
               type="button"
               onClick={() => setConfirmDelete(true)}
               disabled={isDeleting}
-              className="rounded p-1 wd-text-danger hover:bg-[rgb(var(--wd-danger-rgb)/0.1)] disabled:opacity-50"
+              className="rounded-md p-1.5 transition-colors disabled:opacity-50 hover:bg-[rgb(var(--wd-danger-rgb)/0.1)]"
+              style={{ color: 'var(--wd-danger)' }}
               title="Delete"
             >
               <Trash2 size={14} />
@@ -75,7 +101,9 @@ function SoundboardListItem({ sound, workspaceId, canManage }: SoundboardListIte
       )}
 
       {error && (
-        <span className="text-[10px] wd-text-danger">{error}</span>
+        <span className="text-[10px]" style={{ color: 'var(--wd-danger)' }}>
+          {error}
+        </span>
       )}
     </div>
   );

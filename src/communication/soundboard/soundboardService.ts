@@ -60,12 +60,13 @@ export class SoundboardService {
       const audioBuffer = await this.fetchAudioBuffer(sound.audioUrl);
       const ctx = this.getAudioContext();
 
-      // Create audio graph: source → destination (MediaStream)
+      // Create audio graph: source → MediaStream (remote) + speakers (local)
       const source = ctx.createBufferSource();
       source.buffer = audioBuffer;
 
       const destination = ctx.createMediaStreamDestination();
       source.connect(destination);
+      source.connect(ctx.destination);
 
       const [track] = destination.stream.getAudioTracks();
 

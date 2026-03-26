@@ -293,18 +293,24 @@ describe('SoundboardUploadForm — duration validation via Audio element', () =>
 // ---------------------------------------------------------------------------
 
 describe('SoundboardUploadForm — Personal/Shared toggle', () => {
-  it('should render Shared and Personal toggle buttons', () => {
+  it('should render Shared and Personal toggle buttons after file selection', () => {
+    mockAudioWithDuration(5);
     render(<SoundboardUploadForm workspaceId={WS_ID} />);
+
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [makeAudioFile()] } });
+
     expect(screen.getByRole('button', { name: /Shared/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Personal/i })).toBeInTheDocument();
   });
 
-  it('should default to Shared mode', () => {
-    // Verify that upload form passes isPersonal=false by default
-    // We check by triggering an upload and inspecting the call args
-    mockUpload.mockResolvedValue({ id: 'new-sound' });
+  it('should default to Shared mode after file selection', () => {
+    mockAudioWithDuration(5);
     render(<SoundboardUploadForm workspaceId={WS_ID} />);
-    // Shared button should be visually active (has accent classes) — we check it's present
+
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [makeAudioFile()] } });
+
     expect(screen.getByRole('button', { name: /Shared/i })).toBeInTheDocument();
   });
 });
@@ -314,21 +320,22 @@ describe('SoundboardUploadForm — Personal/Shared toggle', () => {
 // ---------------------------------------------------------------------------
 
 describe('SoundboardUploadForm — disabled state', () => {
-  it('should disable the file pick button when disabled prop is true', () => {
+  it('should disable the name input when disabled and file is selected', async () => {
+    const mockAudio = mockAudioWithDuration(5);
     render(<SoundboardUploadForm workspaceId={WS_ID} disabled={true} />);
-    // The styled pick button wraps the hidden file input
-    const buttons = screen.getAllByRole('button');
-    // At least the Shared / Personal / pick buttons exist; pick button is the first
-    expect(buttons.some((b) => b.hasAttribute('disabled'))).toBe(true);
-  });
 
-  it('should disable the name input when disabled prop is true', () => {
-    render(<SoundboardUploadForm workspaceId={WS_ID} disabled={true} />);
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [makeAudioFile('boom.mp3', 'audio/mpeg')] } });
+
+    await act(async () => {
+      mockAudio._trigger('loadedmetadata');
+    });
+
     const nameInput = screen.getByPlaceholderText('sound_name');
     expect(nameInput).toBeDisabled();
   });
 
-  it('should not render the Upload Sound button when disabled prop is true (even with a file selected)', async () => {
+  it('should not render the Upload button when disabled prop is true (even with a file selected)', async () => {
     // The upload button only appears when: selectedFile && name.length >= 2 && durationMs > 0 && !disabled
     const mockAudio = mockAudioWithDuration(5);
     render(<SoundboardUploadForm workspaceId={WS_ID} disabled={true} />);
@@ -340,7 +347,7 @@ describe('SoundboardUploadForm — disabled state', () => {
       mockAudio._trigger('loadedmetadata');
     });
 
-    expect(screen.queryByRole('button', { name: /Upload Sound/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Upload$/i })).not.toBeInTheDocument();
   });
 });
 
@@ -368,7 +375,7 @@ describe('SoundboardUploadForm — error display', () => {
 // ---------------------------------------------------------------------------
 
 describe('SoundboardUploadForm — upload success resets the form', () => {
-  it('should clear the name input after a successful upload', async () => {
+  it('should reset to the drop zone state after a successful upload', async () => {
     const mockAudio = mockAudioWithDuration(5);
     mockUpload.mockResolvedValue({ id: 'uploaded-sound', name: 'boom' });
 
@@ -383,16 +390,17 @@ describe('SoundboardUploadForm — upload success resets the form', () => {
 
     // Upload button appears after file+name+duration are set
     const uploadButton = await waitFor(() =>
-      screen.getByRole('button', { name: /Upload Sound/i }),
+      screen.getByRole('button', { name: /^Upload$/i }),
     );
 
     await act(async () => {
       fireEvent.click(uploadButton);
     });
 
+    // After successful upload, form resets to initial drop zone state (no name input visible)
     await waitFor(() => {
-      const nameInput = screen.getByPlaceholderText('sound_name') as HTMLInputElement;
-      expect(nameInput.value).toBe('');
+      expect(screen.queryByPlaceholderText('sound_name')).not.toBeInTheDocument();
+      expect(screen.getByText(/Drop an audio file/i)).toBeInTheDocument();
     });
   });
 });

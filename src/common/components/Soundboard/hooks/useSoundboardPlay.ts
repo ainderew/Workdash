@@ -45,9 +45,6 @@ export function useSoundboardPlay() {
   }, [lastPlayedAt, cooldownMs]);
 
   const playSound = useCallback(async (sound: SoundboardSound) => {
-    const store = useSoundboardStore.getState();
-    if (!store.canPlay()) return;
-
     try {
       const service = SoundboardService.getInstance();
       await service.playSound(sound);

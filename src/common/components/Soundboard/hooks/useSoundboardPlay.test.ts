@@ -205,7 +205,7 @@ describe('useSoundboardPlay — playSound', () => {
     expect(mockPlaySound).toHaveBeenCalledWith(sound);
   });
 
-  it('should not call playSound when canPlay is false', async () => {
+  it('should still delegate to service when isPlaying is true (service handles guard)', async () => {
     useSoundboardStore.setState({ isPlaying: true });
 
     const mockPlaySound = vi.fn();
@@ -217,10 +217,10 @@ describe('useSoundboardPlay — playSound', () => {
       await result.current.playSound(makeSound());
     });
 
-    expect(mockPlaySound).not.toHaveBeenCalled();
+    expect(mockPlaySound).toHaveBeenCalled();
   });
 
-  it('should not call playSound when cooldown has not expired', async () => {
+  it('should still delegate to service during cooldown (service handles guard)', async () => {
     const now = Date.now();
     useSoundboardStore.setState({ isPlaying: false, lastPlayedAt: now, cooldownMs: 5000 });
 
@@ -233,7 +233,7 @@ describe('useSoundboardPlay — playSound', () => {
       await result.current.playSound(makeSound());
     });
 
-    expect(mockPlaySound).not.toHaveBeenCalled();
+    expect(mockPlaySound).toHaveBeenCalled();
   });
 });
 

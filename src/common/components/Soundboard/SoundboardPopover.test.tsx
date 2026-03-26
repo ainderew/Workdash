@@ -111,30 +111,30 @@ beforeEach(() => {
 // ---------------------------------------------------------------------------
 
 describe('SoundboardPopover — tab rendering', () => {
-  it('should render the Workspace tab as active by default', () => {
+  it('should render the Shared tab as active by default', () => {
     render(<SoundboardPopover />);
-    expect(screen.getByRole('button', { name: /Workspace/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Shared/i })).toBeInTheDocument();
   });
 
-  it('should render the My Sounds (personal) tab', () => {
+  it('should render the Mine (personal) tab', () => {
     render(<SoundboardPopover />);
-    expect(screen.getByRole('button', { name: /My Sounds/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Mine/i })).toBeInTheDocument();
   });
 
-  it('should show the workspace sound count in the Workspace tab label', () => {
+  it('should show the workspace sound count in the Shared tab label', () => {
     useSoundboardStore.setState({
       workspaceSounds: [makeWorkspaceSound({ id: 'a' }), makeWorkspaceSound({ id: 'b' })],
     });
     render(<SoundboardPopover />);
-    expect(screen.getByRole('button', { name: /Workspace \(2\)/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Shared \(2\)/i })).toBeInTheDocument();
   });
 
-  it('should show the personal sound count in the My Sounds tab label', () => {
+  it('should show the personal sound count in the Mine tab label', () => {
     useSoundboardStore.setState({
       personalSounds: [makePersonalSound()],
     });
     render(<SoundboardPopover />);
-    expect(screen.getByRole('button', { name: /My Sounds \(1\)/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Mine \(1\)/i })).toBeInTheDocument();
   });
 });
 
@@ -158,21 +158,21 @@ describe('SoundboardPopover — tab switching', () => {
     });
     render(<SoundboardPopover />);
 
-    fireEvent.click(screen.getByRole('button', { name: /My Sounds/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Mine/i }));
 
     expect(screen.getByTestId('sound-card-ps-only')).toBeInTheDocument();
     expect(screen.queryByTestId('sound-card-ws-only')).not.toBeInTheDocument();
   });
 
-  it('should switch back to workspace sounds after clicking Workspace tab', () => {
+  it('should switch back to workspace sounds after clicking Shared tab', () => {
     useSoundboardStore.setState({
       workspaceSounds: [makeWorkspaceSound({ id: 'ws-back', name: 'explosion' })],
       personalSounds: [makePersonalSound({ id: 'ps-back', name: 'fart' })],
     });
     render(<SoundboardPopover />);
 
-    fireEvent.click(screen.getByRole('button', { name: /My Sounds/i }));
-    fireEvent.click(screen.getByRole('button', { name: /Workspace/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Mine/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Shared/i }));
 
     expect(screen.getByTestId('sound-card-ws-back')).toBeInTheDocument();
     expect(screen.queryByTestId('sound-card-ps-back')).not.toBeInTheDocument();
@@ -184,14 +184,14 @@ describe('SoundboardPopover — tab switching', () => {
 // ---------------------------------------------------------------------------
 
 describe('SoundboardPopover — empty states', () => {
-  it('should show "No workspace sounds yet" when workspace list is empty', () => {
+  it('should show "No shared sounds yet" when workspace list is empty', () => {
     render(<SoundboardPopover />);
-    expect(screen.getByText(/No workspace sounds yet/i)).toBeInTheDocument();
+    expect(screen.getByText(/No shared sounds yet/i)).toBeInTheDocument();
   });
 
   it('should show "No personal sounds yet" when personal tab is active and list is empty', () => {
     render(<SoundboardPopover />);
-    fireEvent.click(screen.getByRole('button', { name: /My Sounds/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Mine/i }));
     expect(screen.getByText(/No personal sounds yet/i)).toBeInTheDocument();
   });
 });

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Loader2 } from 'lucide-react';
+import { motion } from 'framer-motion';
 import useSoundboardStore from '@/common/store/soundboardStore';
 import { useSoundboardPlay } from './hooks/useSoundboardPlay';
 import SoundboardSoundCard from './SoundboardSoundCard';
@@ -14,71 +15,145 @@ function SoundboardPopover() {
   const { playSound, isPlaying, canPlay, cooldownRemaining } = useSoundboardPlay();
 
   const sounds = activeTab === 'workspace' ? workspaceSounds : personalSounds;
+  const hasCooldown = cooldownRemaining > 0;
 
   return (
     <div
-      className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 rounded-lg border wd-border-subtle wd-bg-panel shadow-lg z-[170]"
+      className="wd-anim-popover-up absolute bottom-full left-1/2 mb-2 w-72 rounded-xl border shadow-lg z-[170] overflow-hidden"
+      style={{
+        backgroundColor: 'var(--wd-surface-overlay)',
+        borderColor: 'var(--wd-border-subtle)',
+      }}
       onClick={(e) => e.stopPropagation()}
     >
-      <div className="flex items-center justify-between px-3 pt-2.5 pb-1">
-        <span className="text-xs font-semibold wd-text-primary">Soundboard</span>
-        {cooldownRemaining > 0 && (
-          <span className="text-[10px] wd-text-muted">
+      {/* Header */}
+      <div className="flex items-center justify-between px-3.5 pt-3 pb-1.5">
+        <span className="text-[11px] font-bold wd-text-primary uppercase tracking-widest">
+          Soundboard
+        </span>
+        {hasCooldown && (
+          <span className="text-[10px] font-medium wd-text-muted tabular-nums">
             {(cooldownRemaining / 1000).toFixed(1)}s
           </span>
         )}
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 px-3 pb-1">
+      {/* Tabs with sliding pill */}
+      <div className="relative flex mx-3.5 mb-2.5 p-[3px] rounded-lg bg-[var(--wd-surface-elevated)]">
+        <motion.div
+          className="absolute top-[3px] bottom-[3px] rounded-md"
+          style={{ backgroundColor: 'var(--wd-accent-soft)' }}
+          animate={{
+            left: activeTab === 'workspace' ? 3 : '50%',
+            width: 'calc(50% - 3px)',
+          }}
+          transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+        />
         <button
           type="button"
           onClick={() => setActiveTab('workspace')}
-          className={`px-2 py-1 text-[10px] font-semibold rounded transition-colors ${
-            activeTab === 'workspace'
-              ? 'bg-[var(--wd-accent-soft)] wd-text-primary'
-              : 'wd-text-muted hover:wd-text-secondary'
-          }`}
+          className="relative z-10 flex-1 py-1.5 text-[10px] font-semibold rounded-md text-center transition-colors"
+          style={{
+            color: activeTab === 'workspace'
+              ? 'var(--wd-text-primary)'
+              : 'var(--wd-text-muted)',
+          }}
         >
-          Workspace ({workspaceSounds.length})
+          Shared ({workspaceSounds.length})
         </button>
         <button
           type="button"
           onClick={() => setActiveTab('personal')}
-          className={`px-2 py-1 text-[10px] font-semibold rounded transition-colors ${
-            activeTab === 'personal'
-              ? 'bg-[var(--wd-accent-soft)] wd-text-primary'
-              : 'wd-text-muted hover:wd-text-secondary'
-          }`}
+          className="relative z-10 flex-1 py-1.5 text-[10px] font-semibold rounded-md text-center transition-colors"
+          style={{
+            color: activeTab === 'personal'
+              ? 'var(--wd-text-primary)'
+              : 'var(--wd-text-muted)',
+          }}
         >
-          My Sounds ({personalSounds.length})
+          Mine ({personalSounds.length})
         </button>
       </div>
 
-      {/* Sound list */}
-      <div className="max-h-48 overflow-y-auto p-1">
+      {/* Sound grid */}
+      <div className="max-h-52 overflow-y-auto px-3.5 pb-3 no-scrollbar">
         {isLoading ? (
-          <div className="flex items-center justify-center py-6">
+          <div className="flex items-center justify-center py-8">
             <Loader2 size={16} className="animate-spin wd-text-muted" />
           </div>
         ) : sounds.length === 0 ? (
-          <p className="py-4 text-center text-[10px] wd-text-muted">
-            {activeTab === 'workspace'
-              ? 'No workspace sounds yet'
-              : 'No personal sounds yet'}
-          </p>
+          <div className="flex flex-col items-center py-6 gap-2">
+            <div className="flex items-end gap-[3px] h-5">
+              {[0.4, 0.7, 1, 0.6, 0.3].map((h, i) => (
+                <motion.div
+                  key={i}
+                  className="w-[3px] rounded-full"
+                  style={{
+                    backgroundColor: 'var(--wd-accent)',
+                    opacity: 0.35,
+                  }}
+                  animate={{ height: [h * 10, h * 20, h * 10] }}
+                  transition={{
+                    duration: 1.4,
+                    repeat: Infinity,
+                    delay: i * 0.12,
+                    ease: 'easeInOut',
+                  }}
+                />
+              ))}
+            </div>
+            <p className="text-[11px] wd-text-muted">
+              {activeTab === 'workspace'
+                ? 'No shared sounds yet'
+                : 'No personal sounds yet'}
+            </p>
+            <p className="text-[10px] wd-text-muted opacity-50">
+              Add sounds in server settings
+            </p>
+          </div>
         ) : (
-          sounds.map((sound) => (
-            <SoundboardSoundCard
-              key={sound.id}
-              sound={sound}
-              onPlay={playSound}
-              disabled={!canPlay}
-              isPlaying={isPlaying}
-            />
-          ))
+          <div className="grid grid-cols-3 gap-1.5">
+            {sounds.map((sound, i) => (
+              <motion.div
+                key={sound.id}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{
+                  duration: 0.18,
+                  delay: i * 0.025,
+                  ease: [0.25, 1, 0.5, 1],
+                }}
+              >
+                <SoundboardSoundCard
+                  sound={sound}
+                  onPlay={playSound}
+                  disabled={!canPlay}
+                  isPlaying={isPlaying}
+                />
+              </motion.div>
+            ))}
+          </div>
         )}
       </div>
+
+      {/* Cooldown progress bar */}
+      {hasCooldown && (
+        <div
+          className="h-[2px] w-full"
+          style={{ backgroundColor: 'var(--wd-surface-elevated)' }}
+        >
+          <motion.div
+            className="h-full rounded-r-full"
+            style={{ backgroundColor: 'var(--wd-accent)' }}
+            initial={{ width: '100%' }}
+            animate={{ width: '0%' }}
+            transition={{
+              duration: cooldownRemaining / 1000,
+              ease: 'linear',
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 }

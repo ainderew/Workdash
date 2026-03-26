@@ -8,6 +8,7 @@ import VideoSplitButton from './VideoSplitButton';
 import DisplayModeSplitButton from './DisplayModeSplitButton';
 import type { DisplayModeSplitButtonProps } from './DisplayModeSplitButton';
 import NoiseCancelToggle from './NoiseCancelToggle';
+import SoundboardButton from '@/common/components/Soundboard/SoundboardButton';
 
 export type CallControlSize = 'sm' | 'md';
 
@@ -115,6 +116,9 @@ export default function CallControlBar({
           {isScreenSharing ? 'Stop sharing' : 'Share screen'}
         </TooltipContent>
       </Tooltip>
+
+      {/* Soundboard */}
+      <SoundboardButton />
 
       {/* Display mode split button (inline mode only) */}
       {displayModeProps && (

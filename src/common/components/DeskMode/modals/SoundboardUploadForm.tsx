@@ -1,5 +1,5 @@
 import React, { useCallback, useRef, useState } from 'react';
-import { Loader2, Music } from 'lucide-react';
+import { Loader2, Upload, FileAudio } from 'lucide-react';
 import { useSoundboardUpload } from '@/common/components/Soundboard/hooks/useSoundboardUpload';
 
 const ALLOWED_TYPES = ['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/webm'];
@@ -14,50 +14,79 @@ function SoundboardUploadForm({ workspaceId, disabled }: SoundboardUploadFormPro
   const [name, setName] = useState('');
   const [durationMs, setDurationMs] = useState(0);
   const [isPersonal, setIsPersonal] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { upload, isUploading, error, setError, clearError } = useSoundboardUpload(workspaceId);
+  const { upload, isUploading, error, setError, clearError } =
+    useSoundboardUpload(workspaceId);
 
-  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    clearError();
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const processFile = useCallback(
+    (file: File) => {
+      clearError();
 
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      setError('Invalid file type. Use MP3, WAV, OGG, or WebM.');
-      return;
-    }
-
-    // Read duration via Web Audio API
-    const url = URL.createObjectURL(file);
-    const audio = new Audio(url);
-    audio.addEventListener('loadedmetadata', () => {
-      const ms = Math.round(audio.duration * 1000);
-      if (ms > 30000) {
-        setError('Sound must be 30 seconds or less.');
-        URL.revokeObjectURL(url);
+      if (!ALLOWED_TYPES.includes(file.type)) {
+        setError('Invalid file type. Use MP3, WAV, OGG, or WebM.');
         return;
       }
-      setDurationMs(ms);
-      URL.revokeObjectURL(url);
-    });
-    audio.addEventListener('error', () => {
-      setError('Could not read audio file.');
-      URL.revokeObjectURL(url);
-    });
 
-    setSelectedFile(file);
+      const url = URL.createObjectURL(file);
+      const audio = new Audio(url);
+      audio.addEventListener('loadedmetadata', () => {
+        const ms = Math.round(audio.duration * 1000);
+        if (ms > 30000) {
+          setError('Sound must be 30 seconds or less.');
+          URL.revokeObjectURL(url);
+          return;
+        }
+        setDurationMs(ms);
+        URL.revokeObjectURL(url);
+      });
+      audio.addEventListener('error', () => {
+        setError('Could not read audio file.');
+        URL.revokeObjectURL(url);
+      });
 
-    // Auto-generate name from filename
-    const baseName = file.name
-      .replace(/\.[^.]+$/, '')
-      .replace(/[^a-zA-Z0-9_-]/g, '_')
-      .replace(/_+/g, '_')
-      .replace(/^_|_$/g, '')
-      .slice(0, 32);
-    if (baseName.length >= 2) {
-      setName(baseName);
-    }
-  }, [clearError, setError]);
+      setSelectedFile(file);
+
+      const baseName = file.name
+        .replace(/\.[^.]+$/, '')
+        .replace(/[^a-zA-Z0-9_-]/g, '_')
+        .replace(/_+/g, '_')
+        .replace(/^_|_$/g, '')
+        .slice(0, 32);
+      if (baseName.length >= 2) {
+        setName(baseName);
+      }
+    },
+    [clearError, setError],
+  );
+
+  const handleFileSelect = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file) processFile(file);
+    },
+    [processFile],
+  );
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      setIsDragOver(false);
+      const file = e.dataTransfer.files[0];
+      if (file) processFile(file);
+    },
+    [processFile],
+  );
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+  }, []);
 
   const handleUpload = async () => {
     if (!selectedFile || !name.trim() || durationMs <= 0) return;
@@ -70,65 +99,164 @@ function SoundboardUploadForm({ workspaceId, disabled }: SoundboardUploadFormPro
     }
   };
 
+  const durationSec = durationMs > 0 ? (durationMs / 1000).toFixed(1) : null;
+
   return (
-    <div className="rounded-lg border wd-border-subtle wd-bg-panel-2 p-3 space-y-3">
-      <p className="text-[11px] font-semibold uppercase tracking-wide wd-text-muted">
-        Upload Sound
-      </p>
+    <div className="space-y-3">
+      {/* Drop zone */}
+      <div
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onClick={() => !selectedFile && fileInputRef.current?.click()}
+        className={`relative rounded-lg border-2 border-dashed p-4 transition-colors cursor-pointer ${
+          isDragOver ? 'wd-dropzone-active' : ''
+        } ${selectedFile ? '' : 'hover:bg-[color-mix(in_srgb,var(--wd-accent)_6%,transparent)]'}`}
+        style={{
+          borderColor: isDragOver
+            ? 'var(--wd-accent)'
+            : 'var(--wd-border-subtle)',
+        }}
+      >
+        {selectedFile ? (
+          <div className="flex items-start gap-3">
+            <div
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"
+              style={{ backgroundColor: 'var(--wd-accent-soft)' }}
+            >
+              <FileAudio size={18} className="wd-text-primary" />
+            </div>
+            <div className="flex-1 min-w-0 space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium wd-text-primary truncate">
+                  {selectedFile.name}
+                </span>
+                {durationSec && (
+                  <span
+                    className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium"
+                    style={{
+                      backgroundColor: 'var(--wd-accent-soft)',
+                      color: 'var(--wd-text-primary)',
+                    }}
+                  >
+                    {durationSec}s
+                  </span>
+                )}
+              </div>
 
-      <div className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={isUploading || disabled}
-          className="h-16 w-16 shrink-0 rounded-lg border-2 border-dashed wd-border-subtle flex items-center justify-center transition-colors hover:bg-[var(--wd-surface-elevated)] disabled:opacity-50"
-        >
-          {selectedFile ? (
-            <span className="text-[10px] wd-text-primary text-center px-1 truncate">{selectedFile.name}</span>
-          ) : (
-            <Music size={20} className="wd-text-muted" />
-          )}
-        </button>
+              {/* Name input */}
+              <input
+                type="text"
+                value={name}
+                onChange={(e) =>
+                  setName(e.target.value.replace(/[^a-zA-Z0-9_-]/g, ''))
+                }
+                placeholder="sound_name"
+                maxLength={32}
+                disabled={isUploading || disabled}
+                className="h-8 w-full rounded-md border px-3 text-sm wd-text-primary outline-none disabled:opacity-50"
+                style={{
+                  borderColor: 'var(--wd-border-subtle)',
+                  backgroundColor: 'var(--wd-surface-elevated)',
+                }}
+              />
 
-        <div className="flex-1 space-y-2">
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value.replace(/[^a-zA-Z0-9_-]/g, ''))}
-            placeholder="sound_name"
-            maxLength={32}
-            disabled={isUploading || disabled}
-            className="h-8 w-full rounded-md border wd-border-subtle wd-bg-elevated px-3 text-sm wd-text-primary outline-none focus:border-[var(--wd-border-strong)] disabled:opacity-50"
-          />
-          <p className="text-[10px] wd-text-muted">
-            2-32 chars, letters, numbers, underscores, hyphens
-          </p>
-        </div>
-      </div>
+              {/* Scope toggle + upload button */}
+              <div className="flex items-center gap-2">
+                <div
+                  className="flex p-[3px] rounded-md"
+                  style={{ backgroundColor: 'var(--wd-surface-elevated)' }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setIsPersonal(false)}
+                    className="px-2.5 py-1 text-[10px] font-semibold rounded transition-colors"
+                    style={{
+                      backgroundColor: !isPersonal
+                        ? 'var(--wd-accent-soft)'
+                        : 'transparent',
+                      color: !isPersonal
+                        ? 'var(--wd-text-primary)'
+                        : 'var(--wd-text-muted)',
+                    }}
+                  >
+                    Shared
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsPersonal(true)}
+                    className="px-2.5 py-1 text-[10px] font-semibold rounded transition-colors"
+                    style={{
+                      backgroundColor: isPersonal
+                        ? 'var(--wd-accent-soft)'
+                        : 'transparent',
+                      color: isPersonal
+                        ? 'var(--wd-text-primary)'
+                        : 'var(--wd-text-muted)',
+                    }}
+                  >
+                    Personal
+                  </button>
+                </div>
 
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={() => setIsPersonal(false)}
-          className={`px-2.5 py-1 text-[10px] font-semibold rounded transition-colors ${
-            !isPersonal
-              ? 'bg-[var(--wd-accent-soft)] wd-text-primary'
-              : 'wd-text-muted hover:wd-text-secondary'
-          }`}
-        >
-          Shared
-        </button>
-        <button
-          type="button"
-          onClick={() => setIsPersonal(true)}
-          className={`px-2.5 py-1 text-[10px] font-semibold rounded transition-colors ${
-            isPersonal
-              ? 'bg-[var(--wd-accent-soft)] wd-text-primary'
-              : 'wd-text-muted hover:wd-text-secondary'
-          }`}
-        >
-          Personal
-        </button>
+                <div className="flex-1" />
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedFile(null);
+                    setName('');
+                    setDurationMs(0);
+                    clearError();
+                    if (fileInputRef.current) fileInputRef.current.value = '';
+                  }}
+                  className="px-2 py-1 text-[10px] font-medium wd-text-muted hover:wd-text-primary transition-colors rounded"
+                >
+                  Clear
+                </button>
+
+                {name.length >= 2 && durationMs > 0 && !disabled && (
+                  <button
+                    type="button"
+                    onClick={() => void handleUpload()}
+                    disabled={isUploading}
+                    className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[11px] font-semibold transition-colors disabled:opacity-60"
+                    style={{
+                      backgroundColor: 'var(--wd-accent)',
+                      color: 'white',
+                    }}
+                  >
+                    {isUploading ? (
+                      <>
+                        <Loader2 size={12} className="animate-spin" />
+                        Uploading
+                      </>
+                    ) : (
+                      'Upload'
+                    )}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center gap-2 py-2">
+            <div
+              className="flex h-10 w-10 items-center justify-center rounded-full"
+              style={{ backgroundColor: 'var(--wd-surface-elevated)' }}
+            >
+              <Upload size={16} className="wd-text-muted" />
+            </div>
+            <div className="text-center">
+              <p className="text-xs font-medium wd-text-primary">
+                Drop an audio file or click to browse
+              </p>
+              <p className="text-[10px] wd-text-muted mt-0.5">
+                MP3, WAV, OGG, or WebM &middot; Max 2MB &middot; 30s
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
       <input
@@ -140,32 +268,17 @@ function SoundboardUploadForm({ workspaceId, disabled }: SoundboardUploadFormPro
       />
 
       {error && (
-        <p className="rounded-md border border-[rgb(var(--wd-danger-rgb)/0.35)] bg-[rgb(var(--wd-danger-rgb)/0.12)] px-3 py-2 text-xs wd-text-danger">
+        <p
+          className="rounded-md border px-3 py-2 text-xs"
+          style={{
+            borderColor: 'rgb(var(--wd-danger-rgb) / 0.35)',
+            backgroundColor: 'rgb(var(--wd-danger-rgb) / 0.08)',
+            color: 'var(--wd-danger)',
+          }}
+        >
           {error}
         </p>
       )}
-
-      {selectedFile && name.length >= 2 && durationMs > 0 && !disabled && (
-        <button
-          type="button"
-          onClick={() => void handleUpload()}
-          disabled={isUploading}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-[rgb(var(--wd-accent-rgb)/0.6)] bg-[rgb(var(--wd-accent-rgb)/0.2)] px-3 py-2 text-xs font-semibold wd-text-primary transition-colors hover:bg-[rgb(var(--wd-accent-rgb)/0.3)] disabled:opacity-60"
-        >
-          {isUploading ? (
-            <>
-              <Loader2 size={14} className="animate-spin" />
-              Uploading...
-            </>
-          ) : (
-            'Upload Sound'
-          )}
-        </button>
-      )}
-
-      <p className="text-[10px] wd-text-muted">
-        MP3, WAV, OGG, or WebM. Max 2MB, 30 seconds.
-      </p>
     </div>
   );
 }

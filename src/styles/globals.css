@@ -594,6 +594,74 @@ body {
   }
 }
 
+/* ── Soundboard pad styles ── */
+.wd-soundpad {
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.wd-soundpad:not(:disabled):hover {
+  background-color: color-mix(in srgb, var(--wd-accent) 12%, var(--wd-surface-elevated)) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgb(var(--wd-accent-rgb) / 0.1);
+}
+
+.wd-soundpad:not(:disabled):active {
+  transform: scale(0.94);
+  box-shadow: none;
+}
+
+.wd-soundpad--playing {
+  background-color: var(--wd-accent-soft) !important;
+  box-shadow: 0 0 0 1.5px var(--wd-accent), 0 0 12px rgb(var(--wd-accent-rgb) / 0.2) !important;
+}
+
+@keyframes wd-soundpad-pulse {
+  0%, 100% { box-shadow: 0 0 0 1.5px var(--wd-accent), 0 0 8px rgb(var(--wd-accent-rgb) / 0.15); }
+  50% { box-shadow: 0 0 0 2px var(--wd-accent), 0 0 16px rgb(var(--wd-accent-rgb) / 0.3); }
+}
+
+.wd-soundpad--playing {
+  animation: wd-soundpad-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes wd-eq-bar {
+  0%, 100% { transform: scaleY(0.3); }
+  50% { transform: scaleY(1); }
+}
+
+.wd-eq-bar {
+  transform-origin: bottom center;
+  animation: wd-eq-bar 0.8s ease-in-out infinite;
+}
+
+/* Upload drop zone active state */
+.wd-dropzone-active {
+  border-color: var(--wd-accent) !important;
+  background-color: var(--wd-accent-soft) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wd-soundpad:not(:disabled):hover,
+  .wd-soundpad:not(:disabled):active {
+    transform: none !important;
+  }
+  .wd-soundpad--playing {
+    animation: none !important;
+  }
+  .wd-eq-bar {
+    animation: none !important;
+    transform: scaleY(0.6);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .wd-soundpad {
+    transition: transform 0.12s ease-out, background-color 0.15s ease, box-shadow 0.15s ease;
+  }
+}
+
 @keyframes wd-typing-wave {
   0%, 100% {
     transform: translateY(0);
