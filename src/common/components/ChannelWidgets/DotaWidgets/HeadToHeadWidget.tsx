@@ -13,7 +13,7 @@ type Matchup = HeadToHeadData["matchups"][number];
 
 function RoleComparison({ role }: { role: Matchup["sharedRoles"][number] }) {
   return (
-    <div className="rounded-lg border border-[var(--wd-border-subtle)]/30 p-2.5">
+    <div className="rounded-lg bg-[var(--wd-surface-elevated)]/30 p-2.5">
       <div className="text-[10px] font-semibold uppercase tracking-wider wd-text-muted mb-2 text-center">
         {role.role}
       </div>

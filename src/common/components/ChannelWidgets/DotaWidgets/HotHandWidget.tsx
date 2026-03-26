@@ -38,12 +38,12 @@ function HotHandCard({ player }: { player: HotHandData["players"][number] }) {
 
   return (
     <div
-      className={`px-3 py-2.5 rounded-xl border transition-colors ${
+      className={`px-3 py-2.5 rounded-xl transition-colors ${
         isHot
-          ? "border-[var(--wd-warning)]/30 bg-[var(--wd-warning)]/5"
+          ? "bg-[var(--wd-warning)]/5"
           : isCold
-            ? "border-[var(--wd-info)]/30 bg-[var(--wd-info)]/5"
-            : "border-[var(--wd-border-subtle)]/30 bg-transparent"
+            ? "bg-[var(--wd-info)]/5"
+            : "bg-[var(--wd-surface-elevated)]/30"
       }`}
     >
       <div className="flex items-center gap-2 mb-1.5">

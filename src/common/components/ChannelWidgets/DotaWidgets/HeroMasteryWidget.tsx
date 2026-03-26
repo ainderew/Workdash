@@ -40,7 +40,7 @@ function HeroRow({ hero }: { hero: HeroMasteryData["players"][number]["topHeroes
 
 function RivalryCard({ rivalry }: { rivalry: HeroMasteryData["rivalries"][number] }) {
   return (
-    <div className="rounded-lg border border-[var(--wd-border-subtle)]/30 p-2.5">
+    <div className="rounded-lg bg-[var(--wd-surface-elevated)]/30 p-2.5">
       <div className="flex items-center gap-2 mb-1.5">
         {rivalry.heroIcon && (
           <img

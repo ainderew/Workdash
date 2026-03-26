@@ -2,6 +2,7 @@ import React, { useEffect } from "react";
 import { Flame, Gamepad2, Zap } from "lucide-react";
 import { useWidgetStore } from "@/common/store/widgetStore";
 import { WidgetSkeleton, WidgetEmpty } from "../WidgetShell";
+import { PlayerAvatar } from "./PlayerAvatar";
 import type { MilestoneData } from "../_types";
 
 interface Props {
@@ -19,13 +20,14 @@ function MilestoneCard({ milestone }: { milestone: MilestoneData["milestones"][n
   const Icon = ICON_MAP[milestone.icon] ?? Zap;
 
   return (
-    <div className="flex items-start gap-2.5 px-2.5 py-2 rounded-lg border border-[var(--wd-border-subtle)]/30">
-      <div className="shrink-0 mt-0.5 text-[var(--wd-warning)]">
-        <Icon size={14} />
-      </div>
+    <div className="flex items-start gap-2.5 px-2.5 py-2 rounded-lg bg-[var(--wd-surface-elevated)]/30">
+      <PlayerAvatar avatarUrl={milestone.avatarUrl} displayName={milestone.displayName} size={18} />
       <div className="flex-1 min-w-0">
-        <div className="text-[11px] font-medium wd-text-primary leading-snug">
-          {milestone.message}
+        <div className="flex items-center gap-1.5">
+          <Icon size={12} className="shrink-0 text-[var(--wd-warning)]" />
+          <span className="text-[11px] font-medium wd-text-primary leading-snug">
+            {milestone.message}
+          </span>
         </div>
         <div className="text-[9px] wd-text-muted mt-0.5">{milestone.date}</div>
       </div>

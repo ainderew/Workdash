@@ -121,7 +121,7 @@ export function TimePatternsWidget({ workspaceId, channelId }: Props) {
 
       {/* Banter callout */}
       {(player.bestTimeSlot.games >= 5 || player.bestDay.games >= 5) && (
-        <div className="px-3 py-2 rounded-lg bg-[var(--wd-accent)]/5 border border-[var(--wd-accent)]/20">
+        <div className="px-3 py-2 rounded-lg bg-[var(--wd-accent)]/5">
           <p className="text-[10px] text-[var(--wd-accent)] leading-relaxed">
             {banterMessage}
           </p>

@@ -2,6 +2,7 @@ import React, { useEffect } from "react";
 import { Skull, Flame, AlertTriangle } from "lucide-react";
 import { useWidgetStore } from "@/common/store/widgetStore";
 import { WidgetSkeleton, WidgetEmpty } from "../WidgetShell";
+import { PlayerAvatar } from "./PlayerAvatar";
 import { pickTiltMessage, interpolate } from "./tiltMessages";
 import type { TiltStatus } from "../_types";
 
@@ -14,26 +15,22 @@ const SEVERITY_CONFIG: Record<
   TiltStatus["severity"],
   {
     icon: typeof AlertTriangle;
-    borderClass: string;
     bgClass: string;
     textClass: string;
   }
 > = {
   warning: {
     icon: AlertTriangle,
-    borderClass: "border-[var(--wd-warning)]/40",
     bgClass: "bg-[var(--wd-warning)]/8",
     textClass: "text-[var(--wd-warning)]",
   },
   danger: {
     icon: Flame,
-    borderClass: "border-[var(--wd-danger)]/40",
     bgClass: "bg-[var(--wd-danger)]/10",
     textClass: "text-[var(--wd-danger)]",
   },
   critical: {
     icon: Skull,
-    borderClass: "border-[var(--wd-danger)]/60",
     bgClass: "bg-[var(--wd-danger)]/15",
     textClass: "text-[var(--wd-danger)]",
   },
@@ -71,17 +68,25 @@ export function TiltDetectorWidget({ workspaceId, channelId }: Props) {
         return (
           <div
             key={alert.dotaAccountId}
-            className={`px-3 py-2.5 rounded-xl border ${config.borderClass} ${config.bgClass}`}
+            className={`px-3 py-2.5 rounded-xl ${config.bgClass}`}
           >
-            {/* Banter message */}
+            {/* Player + banter message */}
             <div className="flex items-start gap-2">
-              <Icon
-                size={14}
-                className={`${config.textClass} shrink-0 mt-0.5`}
-              />
-              <p className="text-xs wd-text-primary leading-relaxed">
-                {message}
-              </p>
+              <PlayerAvatar avatarUrl={alert.avatarUrl} displayName={alert.displayName} size={20} />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <Icon
+                    size={12}
+                    className={`${config.textClass} shrink-0`}
+                  />
+                  <span className="text-[11px] font-semibold wd-text-primary truncate">
+                    {alert.displayName}
+                  </span>
+                </div>
+                <p className="text-[11px] wd-text-secondary leading-relaxed mt-0.5">
+                  {message}
+                </p>
+              </div>
             </div>
 
             {/* W/L indicator boxes */}

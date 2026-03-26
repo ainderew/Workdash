@@ -40,10 +40,10 @@ function LeaderboardEntry({
 
   return (
     <div
-      className={`flex items-center gap-2.5 px-3 py-2 rounded-xl border transition-colors ${
+      className={`flex items-center gap-2.5 px-3 py-2 rounded-xl transition-colors ${
         isTopPlayer
-          ? "border-[var(--wd-accent)]/30 bg-[var(--wd-accent)]/5"
-          : "border-[var(--wd-border-subtle)]/30 bg-transparent"
+          ? "bg-[var(--wd-accent)]/5"
+          : "bg-[var(--wd-surface-elevated)]/30"
       }`}
     >
       {/* Rank indicator */}

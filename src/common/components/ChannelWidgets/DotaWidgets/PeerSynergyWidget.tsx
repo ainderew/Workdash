@@ -38,12 +38,12 @@ function PairCard({ pair }: { pair: PeerSynergyData["pairs"][number] }) {
 
   return (
     <div
-      className={`px-3 py-2.5 rounded-xl border ${
+      className={`px-3 py-2.5 rounded-xl ${
         isPower
-          ? "border-[var(--wd-success)]/30 bg-[var(--wd-success)]/5"
+          ? "bg-[var(--wd-success)]/5"
           : isCursed
-            ? "border-[var(--wd-danger)]/30 bg-[var(--wd-danger)]/5"
-            : "border-[var(--wd-border-subtle)]/30 bg-transparent"
+            ? "bg-[var(--wd-danger)]/5"
+            : "bg-[var(--wd-surface-elevated)]/30"
       }`}
     >
       <div className="flex items-center justify-between mb-1.5">

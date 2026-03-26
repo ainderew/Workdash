@@ -57,7 +57,7 @@ export function ComfortPickWidget({ workspaceId, channelId }: Props) {
               return (
                 <div
                   key={hero.heroId}
-                  className="px-2.5 py-2 rounded-lg border border-[var(--wd-warning)]/20 bg-[var(--wd-warning)]/5"
+                  className="px-2.5 py-2 rounded-lg bg-[var(--wd-warning)]/5"
                 >
                   <div className="flex items-center gap-2 mb-0.5">
                     {hero.heroIcon ? (

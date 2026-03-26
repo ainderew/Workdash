@@ -18,12 +18,12 @@ function ClutchCard({ player }: { player: ClutchFactorData["players"][number] })
 
   return (
     <div
-      className={`px-3 py-2.5 rounded-xl border ${
+      className={`px-3 py-2.5 rounded-xl ${
         isClutch
-          ? "border-[var(--wd-success)]/30 bg-[var(--wd-success)]/5"
+          ? "bg-[var(--wd-success)]/5"
           : isChoke
-            ? "border-[var(--wd-danger)]/30 bg-[var(--wd-danger)]/5"
-            : "border-[var(--wd-border-subtle)]/30 bg-transparent"
+            ? "bg-[var(--wd-danger)]/5"
+            : "bg-[var(--wd-surface-elevated)]/30"
       }`}
     >
       <div className="flex items-center gap-2 mb-2">

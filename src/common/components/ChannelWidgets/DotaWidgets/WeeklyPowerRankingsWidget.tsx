@@ -53,12 +53,12 @@ function RankingEntry({ ranking, isLast }: Omit<RankingEntryProps, "weekSeed">) 
 
   return (
     <div
-      className={`flex items-center gap-2.5 px-3 py-2 rounded-xl border transition-colors ${
+      className={`flex items-center gap-2.5 px-3 py-2 rounded-xl transition-colors ${
         isFirst
-          ? "border-[var(--wd-accent)]/30 bg-[var(--wd-accent)]/5"
+          ? "bg-[var(--wd-accent)]/5"
           : isLast
-            ? "border-[var(--wd-danger)]/20 bg-[var(--wd-danger)]/3"
-            : "border-[var(--wd-border-subtle)]/30 bg-transparent"
+            ? "bg-[var(--wd-danger)]/4"
+            : "bg-[var(--wd-surface-elevated)]/30"
       }`}
     >
       {/* Rank */}
@@ -158,7 +158,7 @@ export function WeeklyPowerRankingsWidget({ workspaceId, channelId }: Props) {
     <div>
       {/* Banter callout */}
       {banterMessage && (
-        <div className="mb-3 px-3 py-2 rounded-lg bg-[var(--wd-accent)]/5 border border-[var(--wd-accent)]/20">
+        <div className="mb-3 px-3 py-2 rounded-lg bg-[var(--wd-accent)]/5">
           <p className="text-[11px] font-medium text-[var(--wd-accent)] leading-relaxed">
             {banterMessage}
           </p>
@@ -178,7 +178,7 @@ export function WeeklyPowerRankingsWidget({ workspaceId, channelId }: Props) {
 
       {/* Last place roast */}
       {lastPlace && data.rankings.length > 2 && (
-        <div className="mt-3 px-3 py-2 rounded-lg bg-[var(--wd-danger)]/5 border border-[var(--wd-danger)]/20">
+        <div className="mt-3 px-3 py-2 rounded-lg bg-[var(--wd-danger)]/5">
           <p className="text-[10px] wd-text-muted leading-relaxed">
             {interpolate(
               pickRankingMessage("last", lastPlace.dotaAccountId, weekSeed),
@@ -190,7 +190,7 @@ export function WeeklyPowerRankingsWidget({ workspaceId, channelId }: Props) {
 
       {/* Most improved callout */}
       {mostImproved && mostImproved.rankDelta > 0 && (
-        <div className="mt-2 px-3 py-2 rounded-lg bg-[var(--wd-success)]/5 border border-[var(--wd-success)]/20">
+        <div className="mt-2 px-3 py-2 rounded-lg bg-[var(--wd-success)]/5">
           <p className="text-[10px] text-[var(--wd-success)] leading-relaxed">
             {interpolate(
               pickRankingMessage("improved", mostImproved.dotaAccountId, weekSeed),

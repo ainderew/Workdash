@@ -36,7 +36,7 @@ export function SessionPulseBanner({ workspaceId, channelId }: Props) {
   if (!data) return null;
 
   return (
-    <div className="mx-3 mb-3 px-3 py-2 rounded-lg bg-[var(--wd-accent)]/8 border border-[var(--wd-accent)]/20 flex items-center gap-2">
+    <div className="mx-3 mb-3 px-3 py-2 rounded-lg bg-[var(--wd-accent)]/8 flex items-center gap-2">
       <div className="shrink-0 text-[var(--wd-accent)]">
         <PulseIcon statType={data.statType} />
       </div>

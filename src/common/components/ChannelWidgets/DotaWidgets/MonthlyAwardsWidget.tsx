@@ -23,7 +23,7 @@ function AwardCard({ award }: { award: MonthlyAwardsData["awards"][number] }) {
   const Icon = ICON_MAP[award.icon] ?? Trophy;
 
   return (
-    <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl border border-[var(--wd-border-subtle)]/30 bg-[var(--wd-warning)]/3">
+    <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-[var(--wd-warning)]/4">
       <div className="shrink-0 text-[var(--wd-warning)]">
         <Icon size={16} />
       </div>
