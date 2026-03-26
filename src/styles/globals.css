@@ -2089,13 +2089,13 @@ input[type="range"].wd-volume-slider::-moz-range-progress {
 
 /* ── Team Leaderboard ── */
 .wd-leaderboard-medal-1 {
-    color: rgb(234 179 8);
+    color: var(--wd-medal-gold, rgb(234 179 8));
 }
 .wd-leaderboard-medal-2 {
-    color: rgb(148 163 184);
+    color: var(--wd-medal-silver, rgb(148 163 184));
 }
 .wd-leaderboard-medal-3 {
-    color: rgb(180 83 9);
+    color: var(--wd-medal-bronze, rgb(180 83 9));
 }
 
 @keyframes wd-leaderboard-crown-pulse {

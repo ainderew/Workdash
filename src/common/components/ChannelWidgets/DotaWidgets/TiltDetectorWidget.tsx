@@ -3,6 +3,7 @@ import { Skull, Flame, AlertTriangle } from "lucide-react";
 import { useWidgetStore } from "@/common/store/widgetStore";
 import { WidgetSkeleton, WidgetEmpty } from "../WidgetShell";
 import { PlayerAvatar } from "./PlayerAvatar";
+import { ResultPills } from "./ResultPills";
 import { pickTiltMessage, interpolate } from "./tiltMessages";
 import type { TiltStatus } from "../_types";
 
@@ -90,19 +91,8 @@ export function TiltDetectorWidget({ workspaceId, channelId }: Props) {
             </div>
 
             {/* W/L indicator boxes */}
-            <div className="flex gap-0.5 mt-2 ml-5">
-              {alert.recentResults.map((r, i) => (
-                <span
-                  key={i}
-                  className={`w-5 h-5 rounded-md text-[10px] font-bold flex items-center justify-center ${
-                    r === "W"
-                      ? "bg-[var(--wd-success)]/25 text-[var(--wd-success)]"
-                      : "bg-[var(--wd-danger)]/25 text-[var(--wd-danger)]"
-                  }`}
-                >
-                  {r}
-                </span>
-              ))}
+            <div className="mt-2 ml-5">
+              <ResultPills results={alert.recentResults} />
             </div>
           </div>
         );

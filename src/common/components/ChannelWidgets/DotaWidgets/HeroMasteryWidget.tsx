@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import Image from "next/image";
 import { useWidgetStore } from "@/common/store/widgetStore";
 import { WidgetSkeleton, WidgetEmpty } from "../WidgetShell";
 import type { HeroMasteryData } from "../_types";
@@ -13,10 +14,12 @@ function HeroRow({ hero }: { hero: HeroMasteryData["players"][number]["topHeroes
   return (
     <div className="flex items-center gap-2 py-1">
       {hero.heroIcon && (
-        <img
+        <Image
           src={hero.heroIcon}
           alt={hero.heroName}
-          className="w-6 h-6 rounded"
+          width={24}
+          height={24}
+          className="rounded"
         />
       )}
       <span className="text-[11px] font-medium wd-text-primary flex-1 truncate">
@@ -88,12 +91,14 @@ export function HeroMasteryWidget({ workspaceId, channelId }: Props) {
     <div className="space-y-2.5">
       {/* Player tabs */}
       {data.players.length > 1 && (
-        <div className="flex gap-0.5 overflow-x-auto no-scrollbar">
+        <div role="tablist" className="flex gap-0.5 overflow-x-auto no-scrollbar">
           {data.players.map((p, i) => (
             <button
               key={p.dotaAccountId}
+              role="tab"
+              aria-selected={i === selectedPlayer}
               onClick={() => setSelectedPlayer(i)}
-              className={`px-2.5 py-1 rounded-lg text-[10px] font-semibold whitespace-nowrap transition-colors ${
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold whitespace-nowrap transition-colors ${
                 i === selectedPlayer
                   ? "wd-bg-accent-soft text-[var(--wd-accent)]"
                   : "wd-text-muted hover:wd-text-primary"

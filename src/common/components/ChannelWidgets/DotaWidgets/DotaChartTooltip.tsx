@@ -11,10 +11,7 @@ interface DotaChartTooltipProps {
   items: TooltipItem[];
 }
 
-/**
- * Glass-morphism tooltip for Nivo charts.
- * Matches the wd-widget-card visual language.
- */
+/** Themed tooltip for Nivo charts. Matches the wd-widget-card visual language. */
 export function DotaChartTooltip({ title, items }: DotaChartTooltipProps) {
   return (
     <div className="wd-chart-tooltip">

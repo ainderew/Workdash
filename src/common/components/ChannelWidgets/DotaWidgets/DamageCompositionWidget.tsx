@@ -73,7 +73,7 @@ export function DamageCompositionWidget({ workspaceId, channelId }: Props) {
                 padAngle={2}
                 cornerRadius={4}
                 colors={{ datum: "data.color" }}
-                arcLabelsTextColor="white"
+                arcLabelsTextColor="var(--wd-text-on-color, #fff)"
                 arcLabel={(d) => `${d.value}%`}
                 arcLabelsSkipAngle={15}
                 enableArcLinkLabels={false}

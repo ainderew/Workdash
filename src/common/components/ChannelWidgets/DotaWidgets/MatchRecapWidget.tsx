@@ -1,4 +1,5 @@
 import React, { useEffect } from "react";
+import Image from "next/image";
 import { Crown } from "lucide-react";
 import { useWidgetStore } from "@/common/store/widgetStore";
 import { WidgetSkeleton, WidgetEmpty } from "../WidgetShell";
@@ -27,10 +28,12 @@ function PlayerRow({ player }: { player: MatchRecapData["players"][number] }) {
     >
       <PlayerAvatar avatarUrl={player.avatarUrl} displayName={player.displayName} size={20} />
       {player.heroIcon && (
-        <img
+        <Image
           src={player.heroIcon}
           alt={player.heroName}
-          className="w-6 h-6 rounded"
+          width={24}
+          height={24}
+          className="rounded"
         />
       )}
       <div className="flex-1 min-w-0">

@@ -20,7 +20,7 @@ export function WidgetChannelSettings({ workspaceId, channelId, onClose }: Props
   }, [workspaceId, channelId, fetchWidgetConfigs, fetchTrackedPlayers]);
 
   return (
-    <div className="wd-bg-panel rounded-lg border wd-border-subtle p-4 space-y-4 w-[380px] shadow-lg">
+    <div className="wd-bg-panel rounded-lg border wd-border-subtle p-4 space-y-4 w-[380px] max-h-[calc(100vh-80px)] overflow-y-auto shadow-lg">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Settings size={16} className="wd-text-muted" />

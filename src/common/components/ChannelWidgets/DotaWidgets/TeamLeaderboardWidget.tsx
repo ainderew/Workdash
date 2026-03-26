@@ -132,10 +132,12 @@ export function TeamLeaderboardWidget({ workspaceId, channelId }: Props) {
   return (
     <div>
       {/* Role tabs */}
-      <div className="flex gap-1 mb-3 overflow-x-auto no-scrollbar">
+      <div role="tablist" className="flex gap-1 mb-3 overflow-x-auto no-scrollbar">
         {data.roles.map((role, i) => (
           <button
             key={role.role}
+            role="tab"
+            aria-selected={activeRole === i}
             onClick={() => setActiveRole(i)}
             className={`px-2.5 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-wide whitespace-nowrap transition-colors ${
               activeRole === i

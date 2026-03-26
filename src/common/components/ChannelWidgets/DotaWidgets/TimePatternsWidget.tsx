@@ -67,12 +67,14 @@ export function TimePatternsWidget({ workspaceId, channelId }: Props) {
     <div>
       {/* Player tabs */}
       {data.players.length > 1 && (
-        <div className="flex gap-1 mb-3 overflow-x-auto no-scrollbar">
+        <div role="tablist" className="flex gap-1 mb-3 overflow-x-auto no-scrollbar">
           {data.players.map((p, i) => (
             <button
               key={p.dotaAccountId}
+              role="tab"
+              aria-selected={activePlayer === i}
               onClick={() => setActivePlayer(i)}
-              className={`px-2.5 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-wide whitespace-nowrap transition-colors ${
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-wide whitespace-nowrap transition-colors ${
                 activePlayer === i
                   ? "wd-bg-accent-soft text-[var(--wd-accent)]"
                   : "wd-text-muted hover:wd-text-primary"

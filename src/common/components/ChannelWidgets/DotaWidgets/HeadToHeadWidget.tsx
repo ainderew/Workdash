@@ -98,17 +98,23 @@ export function HeadToHeadWidget({ workspaceId, channelId }: Props) {
     <div className="space-y-2.5">
       {/* Pair selector */}
       {data.matchups.length > 1 && (
-        <select
-          value={selectedIdx}
-          onChange={(e) => setSelectedIdx(Number(e.target.value))}
-          className="w-full text-[11px] rounded-lg px-2.5 py-1.5 border border-[var(--wd-border-subtle)]/40 bg-[var(--wd-surface-base)] wd-text-primary outline-none"
-        >
+        <div role="tablist" className="flex gap-1 overflow-x-auto no-scrollbar">
           {data.matchups.map((m, i) => (
-            <option key={i} value={i}>
+            <button
+              key={i}
+              role="tab"
+              aria-selected={selectedIdx === i}
+              onClick={() => setSelectedIdx(i)}
+              className={`px-2.5 py-1 rounded-lg text-[10px] font-semibold whitespace-nowrap transition-colors ${
+                selectedIdx === i
+                  ? "wd-bg-accent-soft text-[var(--wd-accent)]"
+                  : "wd-text-muted hover:wd-text-primary"
+              }`}
+            >
               {m.playerA.displayName} vs {m.playerB.displayName}
-            </option>
+            </button>
           ))}
-        </select>
+        </div>
       )}
 
       <MatchupCard matchup={currentMatchup} />

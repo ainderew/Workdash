@@ -61,8 +61,10 @@ export function AvgMatchLengthWidget({ workspaceId, channelId }: Props) {
 
   return (
     <div>
-      <div className="flex gap-1 mb-2">
+      <div role="tablist" className="flex gap-1 mb-2">
         <button
+          role="tab"
+          aria-selected={showAggregate}
           onClick={() => setShowAggregate(true)}
           className={`px-2 py-0.5 rounded text-xs font-medium transition-colors ${
             showAggregate
@@ -73,6 +75,8 @@ export function AvgMatchLengthWidget({ workspaceId, channelId }: Props) {
           Team
         </button>
         <button
+          role="tab"
+          aria-selected={!showAggregate}
           onClick={() => setShowAggregate(false)}
           className={`px-2 py-0.5 rounded text-xs font-medium transition-colors ${
             !showAggregate

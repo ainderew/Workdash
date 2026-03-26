@@ -48,9 +48,7 @@ describe("TiltDetectorWidget", () => {
     });
 
     render(<TiltDetectorWidget workspaceId="ws-1" channelId="ch-1" />);
-    expect(
-      screen.getByText((text) => text.includes("TestPlayer")),
-    ).toBeInTheDocument();
+    expect(screen.getByText("TestPlayer")).toBeInTheDocument();
   });
 
   it("renders banter message for danger (4-loss streak)", () => {
@@ -69,9 +67,7 @@ describe("TiltDetectorWidget", () => {
     });
 
     render(<TiltDetectorWidget workspaceId="ws-1" channelId="ch-1" />);
-    expect(
-      screen.getByText((text) => text.includes("TiltedPlayer")),
-    ).toBeInTheDocument();
+    expect(screen.getByText("TiltedPlayer")).toBeInTheDocument();
   });
 
   it("renders banter message for critical (5+ loss streak)", () => {
@@ -90,9 +86,7 @@ describe("TiltDetectorWidget", () => {
     });
 
     render(<TiltDetectorWidget workspaceId="ws-1" channelId="ch-1" />);
-    expect(
-      screen.getByText((text) => text.includes("SuperTilted")),
-    ).toBeInTheDocument();
+    expect(screen.getByText("SuperTilted")).toBeInTheDocument();
   });
 
   it("renders W/L indicators", () => {
@@ -140,11 +134,7 @@ describe("TiltDetectorWidget", () => {
     });
 
     render(<TiltDetectorWidget workspaceId="ws-1" channelId="ch-1" />);
-    expect(
-      screen.getByText((text) => text.includes("Player1")),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText((text) => text.includes("Player2")),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Player1")).toBeInTheDocument();
+    expect(screen.getByText("Player2")).toBeInTheDocument();
   });
 });

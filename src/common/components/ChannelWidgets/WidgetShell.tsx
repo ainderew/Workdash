@@ -1,5 +1,5 @@
 import React, { Component, type ReactNode } from "react";
-import { Inbox } from "lucide-react";
+import { Inbox, RefreshCw } from "lucide-react";
 
 interface Props {
   children: ReactNode;
@@ -9,8 +9,8 @@ interface ErrorBoundaryState {
   hasError: boolean;
 }
 
-class WidgetErrorBoundary extends Component<Props, ErrorBoundaryState> {
-  constructor(props: Props) {
+class WidgetErrorBoundary extends Component<Props & { onRetry?: () => void }, ErrorBoundaryState> {
+  constructor(props: Props & { onRetry?: () => void }) {
     super(props);
     this.state = { hasError: false };
   }
@@ -19,11 +19,24 @@ class WidgetErrorBoundary extends Component<Props, ErrorBoundaryState> {
     return { hasError: true };
   }
 
+  handleRetry = () => {
+    this.setState({ hasError: false });
+  };
+
   render() {
     if (this.state.hasError) {
       return (
-        <div className="flex items-center justify-center py-6 wd-text-muted text-[11px]">
-          Failed to load widget
+        <div className="flex flex-col items-center justify-center py-6 gap-2">
+          <span className="wd-text-muted text-[11px]">
+            Something went wrong loading this widget
+          </span>
+          <button
+            onClick={this.handleRetry}
+            className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-medium wd-text-muted hover:wd-text-primary transition-colors"
+          >
+            <RefreshCw size={10} />
+            Retry
+          </button>
         </div>
       );
     }

@@ -6,29 +6,11 @@ import { pickHotHandMessage } from "./hotHandMessages";
 import { interpolate } from "./tiltMessages";
 import type { HotHandData } from "../_types";
 import { PlayerAvatar } from "./PlayerAvatar";
+import { ResultPills } from "./ResultPills";
 
 interface Props {
   workspaceId: string;
   channelId: string;
-}
-
-function ResultPills({ results }: { results: ("W" | "L")[] }) {
-  return (
-    <div className="flex gap-0.5">
-      {results.map((r, i) => (
-        <span
-          key={i}
-          className={`w-5 h-5 rounded text-[10px] font-bold flex items-center justify-center ${
-            r === "W"
-              ? "bg-[var(--wd-success)]/25 text-[var(--wd-success)]"
-              : "bg-[var(--wd-danger)]/25 text-[var(--wd-danger)]"
-          }`}
-        >
-          {r}
-        </span>
-      ))}
-    </div>
-  );
 }
 
 function HotHandCard({ player }: { player: HotHandData["players"][number] }) {

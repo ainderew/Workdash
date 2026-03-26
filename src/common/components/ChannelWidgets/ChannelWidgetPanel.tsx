@@ -285,6 +285,7 @@ export function ChannelWidgetPanel({ roomId, workspaceId }: Props) {
     <div className="border-b border-[rgb(var(--wd-border-subtle-rgb)/0.3)]">
       <button
         onClick={() => setCollapsed(!collapsed)}
+        aria-expanded={!collapsed}
         className="flex items-center gap-2 w-full px-4 py-2.5 transition-colors hover:bg-[rgb(var(--wd-surface-elevated-rgb)/0.3)]"
       >
         <Gamepad2 size={14} className="wd-text-muted" />
@@ -302,7 +303,7 @@ export function ChannelWidgetPanel({ roomId, workspaceId }: Props) {
       {!collapsed && (
         <div>
           {availableCategories.length > 1 && (
-            <div className="flex gap-0.5 px-3 pb-2.5 overflow-x-auto no-scrollbar">
+            <div role="tablist" className="flex gap-0.5 px-3 pb-2.5 overflow-x-auto no-scrollbar">
               {availableCategories.map((cat) => {
                 const isActive = cat.id === activeCategory;
                 const CatIcon = cat.icon;
@@ -310,6 +311,8 @@ export function ChannelWidgetPanel({ roomId, workspaceId }: Props) {
                 return (
                   <button
                     key={cat.id}
+                    role="tab"
+                    aria-selected={isActive}
                     onClick={() => setActiveCategory(cat.id)}
                     className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-wide whitespace-nowrap transition-all duration-150 ${
                       isActive
@@ -335,7 +338,7 @@ export function ChannelWidgetPanel({ roomId, workspaceId }: Props) {
           <div
             key={activeCategory}
             className="overflow-y-auto no-scrollbar animate-[wd-widget-card-in_0.2s_ease-out]"
-            style={{ maxHeight: 480 }}
+            style={{ maxHeight: "min(480px, 60vh)" }}
           >
             <div className="flex flex-col gap-3 px-3 pb-3">
               {currentWidgets.map((widgetType, index) => {

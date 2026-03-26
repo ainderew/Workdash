@@ -67,10 +67,12 @@ export function TrendsDashboardWidget({ workspaceId, channelId }: Props) {
 
   return (
     <div>
-      <div className="flex gap-1 mb-2">
+      <div role="tablist" className="flex gap-1 mb-2">
         {(["winRate", "mmr", "heroDiversity"] as const).map((tab) => (
           <button
             key={tab}
+            role="tab"
+            aria-selected={metric === tab}
             onClick={() => setMetric(tab)}
             className={`px-2 py-0.5 rounded text-xs font-medium transition-colors ${
               metric === tab

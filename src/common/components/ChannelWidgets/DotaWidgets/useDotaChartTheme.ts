@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import type { PartialTheme } from "@nivo/theming";
 
 /**
@@ -5,50 +6,53 @@ import type { PartialTheme } from "@nivo/theming";
  * Uses --wd-* design tokens for consistent styling across light/dark modes.
  */
 export function useDotaChartTheme(): PartialTheme {
-  return {
-    text: {
-      fill: "var(--wd-text-primary)",
-      fontSize: 10,
-      fontFamily: "inherit",
-    },
-    axis: {
-      domain: { line: { stroke: "transparent" } },
-      ticks: {
-        line: { stroke: "transparent" },
-        text: { fill: "var(--wd-text-muted)", fontSize: 10 },
+  return useMemo<PartialTheme>(
+    () => ({
+      text: {
+        fill: "var(--wd-text-primary)",
+        fontSize: 10,
+        fontFamily: "inherit",
       },
-      legend: {
-        text: {
-          fill: "var(--wd-text-secondary)",
-          fontSize: 10,
-          fontWeight: 600,
+      axis: {
+        domain: { line: { stroke: "transparent" } },
+        ticks: {
+          line: { stroke: "transparent" },
+          text: { fill: "var(--wd-text-muted)", fontSize: 10 },
+        },
+        legend: {
+          text: {
+            fill: "var(--wd-text-secondary)",
+            fontSize: 10,
+            fontWeight: 600,
+          },
         },
       },
-    },
-    grid: {
-      line: {
-        stroke: "var(--wd-border-subtle)",
-        strokeDasharray: "3 3",
-        strokeOpacity: 0.5,
+      grid: {
+        line: {
+          stroke: "var(--wd-border-subtle)",
+          strokeDasharray: "3 3",
+          strokeOpacity: 0.5,
+        },
       },
-    },
-    legends: {
-      text: { fill: "var(--wd-text-secondary)", fontSize: 10 },
-    },
-    crosshair: {
-      line: {
-        stroke: "var(--wd-text-muted)",
-        strokeOpacity: 0.5,
-        strokeDasharray: "4 4",
+      legends: {
+        text: { fill: "var(--wd-text-secondary)", fontSize: 10 },
       },
-    },
-    tooltip: {
-      container: {
-        background: "transparent",
-        padding: 0,
-        boxShadow: "none",
-        borderRadius: 0,
+      crosshair: {
+        line: {
+          stroke: "var(--wd-text-muted)",
+          strokeOpacity: 0.5,
+          strokeDasharray: "4 4",
+        },
       },
-    },
-  };
+      tooltip: {
+        container: {
+          background: "transparent",
+          padding: 0,
+          boxShadow: "none",
+          borderRadius: 0,
+        },
+      },
+    }),
+    [],
+  );
 }

@@ -22,7 +22,7 @@ export function PlayerAvatar({ avatarUrl, displayName, size = 18 }: Props) {
   return (
     <Image
       src={avatarUrl}
-      alt=""
+      alt={`${displayName}'s avatar`}
       width={size}
       height={size}
       className="rounded-full shrink-0"
