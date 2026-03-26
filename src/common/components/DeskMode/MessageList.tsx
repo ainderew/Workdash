@@ -1158,7 +1158,7 @@ function MessageList({
                                 )}
                                 <div
                                     data-chat-message-id={message.id}
-                                    className={`${(flyoutMessageId && flyoutMessageId !== message.id) || (editingMessageId && editingMessageId !== message.id) ? "" : "group"} flex gap-3 px-1 ${isConsecutive ? "py-0.5" : "py-1"} transition-colors ${flyoutMessageId === message.id ? "relative z-[210]" : editingMessageId === message.id ? "relative z-[205]" : ""} ${
+                                    className={`${(flyoutMessageId && flyoutMessageId !== message.id) || (editingMessageId && editingMessageId !== message.id) ? "" : "group"} flex gap-3 px-1 ${isConsecutive ? "py-0.5" : "pt-3 pb-1"} rounded-md transition-colors hover:bg-[var(--wd-surface-elevated)]/50 ${flyoutMessageId === message.id ? "relative z-[210]" : editingMessageId === message.id ? "relative z-[205]" : ""} ${
                                         highlightedMessageId === message.id ||
                                         isThreadHighlighted
                                             ? "rounded-md bg-[var(--wd-accent-soft)]"

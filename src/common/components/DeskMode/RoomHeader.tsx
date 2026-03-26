@@ -333,9 +333,11 @@ function RoomHeader({
                         </span>
                     ) : "Select a room"}
                 </div>
-                <div className="text-xs wd-text-muted truncate">
-                    {room?.topic || "Persistent room chat"}
-                </div>
+                {room?.topic && (
+                    <div className="text-xs wd-text-muted truncate">
+                        {room.topic}
+                    </div>
+                )}
             </div>
 
             <div className="flex items-center gap-2 shrink-0">

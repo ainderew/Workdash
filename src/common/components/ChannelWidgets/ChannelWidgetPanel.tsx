@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   Award,
@@ -10,6 +10,7 @@ import {
   Eye,
   Flame,
   Gamepad2,
+  GripHorizontal,
   ScrollText,
   Shield,
   Star,
@@ -244,9 +245,18 @@ const CATEGORIES: CategoryDef[] = [
   },
 ];
 
+const MIN_PANEL_HEIGHT = 120;
+const DRAG_HANDLE_HEIGHT = 20;
+
 export function ChannelWidgetPanel({ roomId, workspaceId }: Props) {
   const [collapsed, setCollapsed] = useState(false);
   const [activeCategory, setActiveCategory] = useState("");
+  const [panelHeight, setPanelHeight] = useState<number | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const isDraggingRef = useRef(false);
+  const startYRef = useRef(0);
+  const startHeightRef = useRef(0);
+
   const configs = useWidgetStore((s) => s.configsByChannel[roomId]);
   const fetchWidgetConfigs = useWidgetStore((s) => s.fetchWidgetConfigs);
 
@@ -281,6 +291,40 @@ export function ChannelWidgetPanel({ roomId, workspaceId }: Props) {
     }
   }, [availableCategories, activeCategory]);
 
+  const handleDragStart = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      isDraggingRef.current = true;
+      startYRef.current = e.clientY;
+      startHeightRef.current =
+        panelHeight ?? containerRef.current?.offsetHeight ?? 400;
+
+      const handleMouseMove = (moveEvent: MouseEvent) => {
+        if (!isDraggingRef.current) return;
+        const delta = moveEvent.clientY - startYRef.current;
+        const newHeight = Math.max(
+          MIN_PANEL_HEIGHT,
+          startHeightRef.current + delta,
+        );
+        setPanelHeight(newHeight);
+      };
+
+      const handleMouseUp = () => {
+        isDraggingRef.current = false;
+        document.removeEventListener("mousemove", handleMouseMove);
+        document.removeEventListener("mouseup", handleMouseUp);
+        document.body.style.cursor = "";
+        document.body.style.userSelect = "";
+      };
+
+      document.body.style.cursor = "row-resize";
+      document.body.style.userSelect = "none";
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
+    },
+    [panelHeight],
+  );
+
   if (enabledTypes.size === 0) return null;
 
   const currentCategory = availableCategories.find(
@@ -290,12 +334,22 @@ export function ChannelWidgetPanel({ roomId, workspaceId }: Props) {
     ? currentCategory.widgetTypes.filter((wt) => enabledTypes.has(wt))
     : [];
 
+  const containerStyle: React.CSSProperties = collapsed
+    ? {}
+    : panelHeight != null
+      ? { height: panelHeight, minHeight: MIN_PANEL_HEIGHT, flexShrink: 0 }
+      : { flex: "999 1 0%", minHeight: MIN_PANEL_HEIGHT };
+
   return (
-    <div className="border-b wd-border-subtle bg-[var(--wd-surface-base)]">
+    <div
+      ref={containerRef}
+      className="flex flex-col border-b wd-border-subtle bg-[var(--wd-surface-base)]"
+      style={containerStyle}
+    >
       <button
         onClick={() => setCollapsed(!collapsed)}
         aria-expanded={!collapsed}
-        className="flex items-center gap-2 w-full px-4 py-2.5 transition-colors hover:bg-[var(--wd-surface-elevated)]"
+        className="flex items-center gap-2 w-full px-4 py-2.5 transition-colors hover:bg-[var(--wd-surface-elevated)] shrink-0"
       >
         <Gamepad2 size={14} className="wd-text-muted" />
         <span className="text-[11px] font-semibold uppercase tracking-wider wd-text-muted">
@@ -310,9 +364,9 @@ export function ChannelWidgetPanel({ roomId, workspaceId }: Props) {
       </button>
 
       {!collapsed && (
-        <div>
+        <div className="flex flex-col flex-1 min-h-0">
           {availableCategories.length > 1 && (
-            <div role="tablist" className="flex gap-0.5 px-3 pb-2.5 overflow-x-auto no-scrollbar">
+            <div role="tablist" className="flex gap-0.5 px-3 pb-2.5 overflow-x-auto no-scrollbar shrink-0">
               {availableCategories.map((cat) => {
                 const isActive = cat.id === activeCategory;
                 const CatIcon = cat.icon;
@@ -346,8 +400,7 @@ export function ChannelWidgetPanel({ roomId, workspaceId }: Props) {
 
           <div
             key={activeCategory}
-            className="overflow-y-auto no-scrollbar animate-[wd-widget-card-in_0.2s_ease-out]"
-            style={{ maxHeight: "min(480px, 60vh)" }}
+            className="overflow-y-auto no-scrollbar animate-[wd-widget-card-in_0.2s_ease-out] flex-1 min-h-0"
           >
             <div className="flex flex-col gap-3 px-3 pb-3">
               {currentWidgets.map((widgetType, index) => {
@@ -375,6 +428,18 @@ export function ChannelWidgetPanel({ roomId, workspaceId }: Props) {
                 );
               })}
             </div>
+          </div>
+
+          {/* Drag handle for resizing */}
+          <div
+            onMouseDown={handleDragStart}
+            className="shrink-0 flex items-center justify-center cursor-row-resize group hover:bg-[var(--wd-surface-elevated)] transition-colors"
+            style={{ height: DRAG_HANDLE_HEIGHT }}
+          >
+            <GripHorizontal
+              size={14}
+              className="wd-text-muted opacity-40 group-hover:opacity-80 transition-opacity"
+            />
           </div>
         </div>
       )}
