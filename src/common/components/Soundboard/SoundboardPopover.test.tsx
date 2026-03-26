@@ -1,8 +1,15 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import useSoundboardStore from '@/common/store/soundboardStore';
 import type { SoundboardSound } from './_types';
+
+vi.mock('@/communication/soundboard/soundboardService', () => ({
+  SoundboardService: {
+    getInstance: () => ({ setVolume: vi.fn() }),
+  },
+}));
+
+import useSoundboardStore from '@/common/store/soundboardStore';
 
 // ---------------------------------------------------------------------------
 // Module-level mocks
@@ -97,6 +104,7 @@ beforeEach(() => {
     isPlaying: false,
     lastPlayedAt: null,
     cooldownMs: 5000,
+    volume: 1,
   });
   mockUseSoundboardPlay.mockReturnValue({
     playSound: mockPlaySound,
@@ -281,5 +289,48 @@ describe('SoundboardPopover — sound card disabled state', () => {
     fireEvent.click(screen.getByTestId('sound-card-ws-1'));
 
     expect(mockPlaySound).toHaveBeenCalledWith(expect.objectContaining({ id: 'ws-1' }));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Volume slider
+// ---------------------------------------------------------------------------
+
+describe('SoundboardPopover — volume slider', () => {
+  it('should render a volume slider with aria-label "Soundboard volume"', () => {
+    render(<SoundboardPopover />);
+    expect(screen.getByRole('slider', { name: 'Soundboard volume' })).toBeInTheDocument();
+  });
+
+  it('should display 100% volume by default', () => {
+    render(<SoundboardPopover />);
+    expect(screen.getByText('100%')).toBeInTheDocument();
+    expect(screen.getByRole('slider', { name: 'Soundboard volume' })).toHaveValue('100');
+  });
+
+  it('should display the current volume percentage from the store', () => {
+    useSoundboardStore.setState({ volume: 0.75 });
+    render(<SoundboardPopover />);
+    expect(screen.getByText('75%')).toBeInTheDocument();
+    expect(screen.getByRole('slider', { name: 'Soundboard volume' })).toHaveValue('75');
+  });
+
+  it('should call setVolume when slider value changes', () => {
+    const setVolumeSpy = vi.spyOn(useSoundboardStore.getState(), 'setVolume');
+    render(<SoundboardPopover />);
+
+    fireEvent.change(screen.getByRole('slider', { name: 'Soundboard volume' }), {
+      target: { value: '50' },
+    });
+
+    expect(setVolumeSpy).toHaveBeenCalledWith(0.5);
+    setVolumeSpy.mockRestore();
+  });
+
+  it('should show 0% when volume is set to 0', () => {
+    useSoundboardStore.setState({ volume: 0 });
+    render(<SoundboardPopover />);
+    expect(screen.getByText('0%')).toBeInTheDocument();
+    expect(screen.getByRole('slider', { name: 'Soundboard volume' })).toHaveValue('0');
   });
 });

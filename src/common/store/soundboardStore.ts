@@ -1,5 +1,18 @@
 import { create } from 'zustand';
 import type { SoundboardSound } from '@/common/components/Soundboard/_types';
+import { SoundboardService } from '@/communication/soundboard/soundboardService';
+
+const VOLUME_STORAGE_KEY = 'wd-soundboard-volume';
+const DEFAULT_VOLUME = 1;
+
+function getPersistedVolume(): number {
+  if (typeof window === 'undefined') return DEFAULT_VOLUME;
+  const stored = localStorage.getItem(VOLUME_STORAGE_KEY);
+  if (stored === null) return DEFAULT_VOLUME;
+  const parsed = Number(stored);
+  if (Number.isNaN(parsed) || parsed < 0 || parsed > 1) return DEFAULT_VOLUME;
+  return parsed;
+}
 
 type SoundboardState = {
   workspaceSounds: SoundboardSound[];
@@ -10,6 +23,8 @@ type SoundboardState = {
   lastPlayedAt: number | null;
   cooldownMs: number;
 
+  volume: number;
+
   setSounds: (workspace: SoundboardSound[], personal: SoundboardSound[]) => void;
   setLoading: (loading: boolean) => void;
   setFetchedWorkspaceId: (id: string | null) => void;
@@ -17,6 +32,7 @@ type SoundboardState = {
   removeSound: (soundId: string) => void;
   setIsPlaying: (playing: boolean) => void;
   setLastPlayedAt: (timestamp: number) => void;
+  setVolume: (volume: number) => void;
   canPlay: () => boolean;
 };
 
@@ -28,6 +44,7 @@ const useSoundboardStore = create<SoundboardState>((set, get) => ({
   isPlaying: false,
   lastPlayedAt: null,
   cooldownMs: 5000,
+  volume: getPersistedVolume(),
 
   setSounds: (workspace, personal) =>
     set({ workspaceSounds: workspace, personalSounds: personal }),
@@ -55,6 +72,13 @@ const useSoundboardStore = create<SoundboardState>((set, get) => ({
   setIsPlaying: (playing) => set({ isPlaying: playing }),
 
   setLastPlayedAt: (timestamp) => set({ lastPlayedAt: timestamp }),
+
+  setVolume: (volume) => {
+    const clamped = Math.max(0, Math.min(1, volume));
+    set({ volume: clamped });
+    localStorage.setItem(VOLUME_STORAGE_KEY, String(clamped));
+    SoundboardService.getInstance().setVolume(clamped);
+  },
 
   canPlay: () => {
     const { isPlaying, lastPlayedAt, cooldownMs } = get();

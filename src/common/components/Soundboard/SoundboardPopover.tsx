@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Volume2, Volume1, VolumeX } from 'lucide-react';
 import { motion } from 'framer-motion';
 import useSoundboardStore from '@/common/store/soundboardStore';
 import { useSoundboardPlay } from './hooks/useSoundboardPlay';
@@ -12,10 +12,14 @@ function SoundboardPopover() {
   const workspaceSounds = useSoundboardStore((s) => s.workspaceSounds);
   const personalSounds = useSoundboardStore((s) => s.personalSounds);
   const isLoading = useSoundboardStore((s) => s.isLoading);
+  const volume = useSoundboardStore((s) => s.volume);
+  const setVolume = useSoundboardStore((s) => s.setVolume);
   const { playSound, isPlaying, canPlay, cooldownRemaining } = useSoundboardPlay();
 
   const sounds = activeTab === 'workspace' ? workspaceSounds : personalSounds;
   const hasCooldown = cooldownRemaining > 0;
+  const volumePct = Math.round(volume * 100);
+  const VolumeIcon = volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
 
   return (
     <div
@@ -27,15 +31,37 @@ function SoundboardPopover() {
       onClick={(e) => e.stopPropagation()}
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-3.5 pt-3 pb-1.5">
-        <span className="text-[11px] font-bold wd-text-primary uppercase tracking-widest">
-          Soundboard
-        </span>
-        {hasCooldown && (
-          <span className="text-[10px] font-medium wd-text-muted tabular-nums">
-            {(cooldownRemaining / 1000).toFixed(1)}s
+      <div className="px-3.5 pt-3 pb-1.5 flex flex-col gap-1.5">
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-bold wd-text-primary uppercase tracking-widest">
+            Soundboard
           </span>
-        )}
+          {hasCooldown && (
+            <span className="text-[10px] font-medium wd-text-muted tabular-nums">
+              {(cooldownRemaining / 1000).toFixed(1)}s
+            </span>
+          )}
+        </div>
+        {/* Volume control */}
+        <div className="flex items-center gap-2">
+          <VolumeIcon size={12} className="wd-text-muted flex-shrink-0" />
+          <input
+            type="range"
+            min={0}
+            max={100}
+            value={volumePct}
+            onChange={(e) => setVolume(Number(e.target.value) / 100)}
+            className="wd-volume-slider flex-1 h-1 cursor-pointer"
+            style={{
+              background: `linear-gradient(to right, var(--wd-accent) ${volumePct}%, var(--wd-surface-elevated) ${volumePct}%)`,
+            }}
+            aria-label="Soundboard volume"
+            title={`Volume: ${volumePct}%`}
+          />
+          <span className="text-[9px] wd-text-muted tabular-nums w-6 text-right">
+            {volumePct}%
+          </span>
+        </div>
       </div>
 
       {/* Tabs with sliding pill */}

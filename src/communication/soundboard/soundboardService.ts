@@ -11,6 +11,7 @@ export class SoundboardService {
   private currentProducer: Producer | null = null;
   private isProducing = false;
   private audioBufferCache: Map<string, AudioBuffer> = new Map();
+  private gainNode: GainNode | null = null;
 
   private constructor() {}
 
@@ -26,6 +27,22 @@ export class SoundboardService {
       this.audioContext = new AudioContext();
     }
     return this.audioContext;
+  }
+
+  private getGainNode(): GainNode {
+    const ctx = this.getAudioContext();
+    if (!this.gainNode) {
+      this.gainNode = ctx.createGain();
+      this.gainNode.gain.value = useSoundboardStore.getState().volume;
+    }
+    return this.gainNode;
+  }
+
+  setVolume(volume: number): void {
+    const clamped = Math.max(0, Math.min(1, volume));
+    if (this.gainNode) {
+      this.gainNode.gain.value = clamped;
+    }
   }
 
   private async fetchAudioBuffer(url: string): Promise<AudioBuffer> {
@@ -64,9 +81,11 @@ export class SoundboardService {
       const source = ctx.createBufferSource();
       source.buffer = audioBuffer;
 
+      const gain = this.getGainNode();
       const destination = ctx.createMediaStreamDestination();
-      source.connect(destination);
-      source.connect(ctx.destination);
+      source.connect(gain);
+      gain.connect(destination);
+      gain.connect(ctx.destination);
 
       const [track] = destination.stream.getAudioTracks();
 
@@ -116,6 +135,7 @@ export class SoundboardService {
     this.isProducing = false;
     useSoundboardStore.getState().setIsPlaying(false);
     this.audioBufferCache.clear();
+    this.gainNode = null;
     if (this.audioContext && this.audioContext.state !== 'closed') {
       this.audioContext.close().catch((err) => {
         console.error('[soundboard] Failed to close AudioContext', err);

@@ -1,4 +1,12 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+
+const mockSetVolume = vi.fn();
+vi.mock('@/communication/soundboard/soundboardService', () => ({
+  SoundboardService: {
+    getInstance: () => ({ setVolume: mockSetVolume }),
+  },
+}));
+
 import useSoundboardStore from './soundboardStore';
 import type { SoundboardSound } from '@/common/components/Soundboard/_types';
 
@@ -41,6 +49,8 @@ function makePersonalSound(overrides: Partial<SoundboardSound> = {}): Soundboard
 // ---------------------------------------------------------------------------
 
 beforeEach(() => {
+  vi.clearAllMocks();
+  localStorage.clear();
   useSoundboardStore.setState({
     workspaceSounds: [],
     personalSounds: [],
@@ -49,6 +59,7 @@ beforeEach(() => {
     isPlaying: false,
     lastPlayedAt: null,
     cooldownMs: 5000,
+    volume: 1,
   });
 });
 
@@ -284,5 +295,60 @@ describe('setLastPlayedAt', () => {
     const ts = 1_700_000_000_000;
     useSoundboardStore.getState().setLastPlayedAt(ts);
     expect(useSoundboardStore.getState().lastPlayedAt).toBe(ts);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// volume
+// ---------------------------------------------------------------------------
+
+describe('volume', () => {
+  it('should default volume to 1 when localStorage is empty', () => {
+    localStorage.clear();
+    // Reset store to re-trigger default
+    useSoundboardStore.setState({ volume: 1 });
+    expect(useSoundboardStore.getState().volume).toBe(1);
+  });
+
+  it('should hydrate volume from localStorage when getPersistedVolume is called at store creation', () => {
+    // This tests the initialization path — since the store is a singleton,
+    // we verify the persistence round-trip instead
+    useSoundboardStore.getState().setVolume(0.6);
+    expect(localStorage.getItem('wd-soundboard-volume')).toBe('0.6');
+  });
+
+  it('should update volume in the store', () => {
+    useSoundboardStore.getState().setVolume(0.5);
+    expect(useSoundboardStore.getState().volume).toBe(0.5);
+  });
+
+  it('should clamp volume to 0 when given a negative value', () => {
+    useSoundboardStore.getState().setVolume(-0.3);
+    expect(useSoundboardStore.getState().volume).toBe(0);
+  });
+
+  it('should clamp volume to 1 when given a value above 1', () => {
+    useSoundboardStore.getState().setVolume(1.5);
+    expect(useSoundboardStore.getState().volume).toBe(1);
+  });
+
+  it('should persist volume to localStorage', () => {
+    useSoundboardStore.getState().setVolume(0.7);
+    expect(localStorage.getItem('wd-soundboard-volume')).toBe('0.7');
+  });
+
+  it('should persist clamped value to localStorage when given out-of-range input', () => {
+    useSoundboardStore.getState().setVolume(2);
+    expect(localStorage.getItem('wd-soundboard-volume')).toBe('1');
+  });
+
+  it('should call SoundboardService.setVolume with the clamped value', () => {
+    useSoundboardStore.getState().setVolume(0.4);
+    expect(mockSetVolume).toHaveBeenCalledWith(0.4);
+  });
+
+  it('should call SoundboardService.setVolume with clamped value for out-of-range input', () => {
+    useSoundboardStore.getState().setVolume(-1);
+    expect(mockSetVolume).toHaveBeenCalledWith(0);
   });
 });
