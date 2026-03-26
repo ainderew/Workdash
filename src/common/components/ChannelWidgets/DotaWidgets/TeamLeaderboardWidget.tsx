@@ -40,10 +40,10 @@ function LeaderboardEntry({
 
   return (
     <div
-      className={`flex items-center gap-2.5 px-3 py-2 rounded-xl transition-colors ${
+      className={`flex items-center gap-2.5 px-3 rounded-xl transition-colors ${
         isTopPlayer
-          ? "bg-[var(--wd-accent)]/5"
-          : "bg-[var(--wd-surface-elevated)]/30"
+          ? "py-3 bg-[var(--wd-accent)]/12"
+          : "py-2 bg-[var(--wd-surface-elevated)]"
       }`}
     >
       {/* Rank indicator */}
@@ -51,7 +51,7 @@ function LeaderboardEntry({
         {rank <= 3 ? (
           rank === 1 ? (
             <Crown
-              size={14}
+              size={16}
               className={`${medalClass} wd-leaderboard-crown mx-auto`}
             />
           ) : (
@@ -63,9 +63,9 @@ function LeaderboardEntry({
       </div>
 
       {/* Player name */}
-      <PlayerAvatar avatarUrl={avatarUrl} displayName={displayName} />
+      <PlayerAvatar avatarUrl={avatarUrl} displayName={displayName} size={isTopPlayer ? 24 : 18} />
       <div className="flex-1 min-w-0">
-        <div className="text-xs font-semibold wd-text-primary truncate">
+        <div className={`font-semibold wd-text-primary truncate ${isTopPlayer ? "text-[13px]" : "text-xs"}`}>
           {displayName}
           {isTopPlayer && (
             <span className="ml-1.5 text-[9px] font-bold uppercase tracking-wider text-[var(--wd-accent)]">
@@ -93,9 +93,9 @@ function LeaderboardEntry({
             {winRate}%
           </span>
         </div>
-        <div className="h-1 rounded-full bg-[var(--wd-border-subtle)]/30 overflow-hidden">
+        <div className="h-1.5 rounded-full bg-[var(--wd-surface-elevated)] overflow-hidden">
           <div
-            className={`h-full rounded-full transition-all ${
+            className={`h-full rounded-full wd-wr-bar-transition ${
               winRate >= 55
                 ? "bg-[var(--wd-success)]"
                 : winRate <= 45

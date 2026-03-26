@@ -6,19 +6,24 @@ interface Props {
 
 export function ResultPills({ results }: Props) {
   return (
-    <div className="flex gap-0.5">
-      {results.map((r, i) => (
-        <span
-          key={i}
-          className={`w-5 h-5 rounded-md text-[10px] font-bold flex items-center justify-center ${
-            r === "W"
-              ? "bg-[var(--wd-success)]/25 text-[var(--wd-success)]"
-              : "bg-[var(--wd-danger)]/25 text-[var(--wd-danger)]"
-          }`}
-        >
-          {r}
-        </span>
-      ))}
+    <div className="flex items-center gap-0.5">
+      {results.map((r, i) => {
+        const isLatest = i === results.length - 1;
+        return (
+          <span
+            key={i}
+            className={`flex items-center justify-center rounded-md text-[10px] font-bold ${
+              isLatest ? "w-6 h-6" : "w-5 h-5"
+            } ${
+              r === "W"
+                ? "bg-[var(--wd-success)]/25 text-[var(--wd-success)]"
+                : "bg-[var(--wd-danger)]/25 text-[var(--wd-danger)]"
+            }`}
+          >
+            {r}
+          </span>
+        );
+      })}
     </div>
   );
 }

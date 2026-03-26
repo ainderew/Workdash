@@ -20,10 +20,10 @@ function ClutchCard({ player }: { player: ClutchFactorData["players"][number] })
     <div
       className={`px-3 py-2.5 rounded-xl ${
         isClutch
-          ? "bg-[var(--wd-success)]/5"
+          ? "bg-[var(--wd-success)]/12"
           : isChoke
-            ? "bg-[var(--wd-danger)]/5"
-            : "bg-[var(--wd-surface-elevated)]/30"
+            ? "bg-[var(--wd-danger)]/12"
+            : "bg-[var(--wd-surface-elevated)]"
       }`}
     >
       <div className="flex items-center gap-2 mb-2">
@@ -53,9 +53,9 @@ function ClutchCard({ player }: { player: ClutchFactorData["players"][number] })
               {player.closeGameWinRate}%
             </span>
           </div>
-          <div className="h-1 rounded-full bg-[var(--wd-border-subtle)]/30 overflow-hidden">
+          <div className="h-1.5 rounded-full bg-[var(--wd-surface-elevated)] overflow-hidden">
             <div
-              className="h-full rounded-full bg-[var(--wd-accent)]"
+              className="h-full rounded-full bg-[var(--wd-accent)] wd-wr-bar-transition"
               style={{ width: `${Math.min(player.closeGameWinRate, 100)}%` }}
             />
           </div>
@@ -67,9 +67,9 @@ function ClutchCard({ player }: { player: ClutchFactorData["players"][number] })
               {player.normalWinRate}%
             </span>
           </div>
-          <div className="h-1 rounded-full bg-[var(--wd-border-subtle)]/30 overflow-hidden">
+          <div className="h-1.5 rounded-full bg-[var(--wd-surface-elevated)] overflow-hidden">
             <div
-              className="h-full rounded-full bg-[var(--wd-border-subtle)]"
+              className="h-full rounded-full bg-[var(--wd-border-subtle)] wd-wr-bar-transition"
               style={{ width: `${Math.min(player.normalWinRate, 100)}%` }}
             />
           </div>

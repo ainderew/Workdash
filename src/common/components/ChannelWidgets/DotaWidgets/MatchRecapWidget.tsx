@@ -22,8 +22,8 @@ function PlayerRow({ player }: { player: MatchRecapData["players"][number] }) {
     <div
       className={`flex items-center gap-2 py-1.5 px-2 rounded-lg ${
         player.won
-          ? "bg-[var(--wd-success)]/5"
-          : "bg-[var(--wd-danger)]/5"
+          ? "bg-[var(--wd-success)]/12"
+          : "bg-[var(--wd-danger)]/12"
       }`}
     >
       <PlayerAvatar avatarUrl={player.avatarUrl} displayName={player.displayName} size={20} />

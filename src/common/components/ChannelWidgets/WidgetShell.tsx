@@ -60,9 +60,11 @@ export function WidgetSkeleton() {
 
 export function WidgetEmpty({ message }: { message: string }) {
   return (
-    <div className="flex flex-col items-center justify-center py-6 gap-2">
-      <Inbox size={18} className="wd-text-muted opacity-40" />
-      <span className="wd-text-muted text-[11px] text-center leading-relaxed">
+    <div className="flex flex-col items-center justify-center py-6 gap-2.5 wd-empty-state">
+      <div className="w-8 h-8 rounded-full bg-[var(--wd-surface-elevated)]/50 flex items-center justify-center">
+        <Inbox size={16} className="wd-text-muted opacity-50" />
+      </div>
+      <span className="wd-text-muted text-[11px] text-center leading-relaxed max-w-[200px]">
         {message}
       </span>
     </div>

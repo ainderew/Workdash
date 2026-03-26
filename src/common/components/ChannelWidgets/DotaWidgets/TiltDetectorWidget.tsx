@@ -18,22 +18,26 @@ const SEVERITY_CONFIG: Record<
     icon: typeof AlertTriangle;
     bgClass: string;
     textClass: string;
+    iconClass: string;
   }
 > = {
   warning: {
     icon: AlertTriangle,
-    bgClass: "bg-[var(--wd-warning)]/8",
+    bgClass: "bg-[var(--wd-warning)]/15",
     textClass: "text-[var(--wd-warning)]",
+    iconClass: "",
   },
   danger: {
     icon: Flame,
-    bgClass: "bg-[var(--wd-danger)]/10",
+    bgClass: "bg-[var(--wd-danger)]/15",
     textClass: "text-[var(--wd-danger)]",
+    iconClass: "wd-fire-icon",
   },
   critical: {
     icon: Skull,
-    bgClass: "bg-[var(--wd-danger)]/15",
+    bgClass: "bg-[var(--wd-danger)]/20",
     textClass: "text-[var(--wd-danger)]",
+    iconClass: "wd-fire-icon",
   },
 };
 
@@ -78,13 +82,13 @@ export function TiltDetectorWidget({ workspaceId, channelId }: Props) {
                 <div className="flex items-center gap-1.5">
                   <Icon
                     size={12}
-                    className={`${config.textClass} shrink-0`}
+                    className={`${config.textClass} ${config.iconClass} shrink-0`}
                   />
                   <span className="text-[11px] font-semibold wd-text-primary truncate">
                     {alert.displayName}
                   </span>
                 </div>
-                <p className="text-[11px] wd-text-secondary leading-relaxed mt-0.5">
+                <p className="text-[11px] wd-text-secondary leading-relaxed mt-0.5 font-medium">
                   {message}
                 </p>
               </div>

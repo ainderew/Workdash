@@ -22,16 +22,16 @@ function HotHandCard({ player }: { player: HotHandData["players"][number] }) {
     <div
       className={`px-3 py-2.5 rounded-xl transition-colors ${
         isHot
-          ? "bg-[var(--wd-warning)]/5"
+          ? "bg-[var(--wd-warning)]/15"
           : isCold
-            ? "bg-[var(--wd-info)]/5"
-            : "bg-[var(--wd-surface-elevated)]/30"
+            ? "bg-[var(--wd-info)]/15"
+            : "bg-[var(--wd-surface-elevated)]"
       }`}
     >
       <div className="flex items-center gap-2 mb-1.5">
         <PlayerAvatar avatarUrl={player.avatarUrl} displayName={player.displayName} />
         {isHot ? (
-          <Flame size={14} className="text-[var(--wd-warning)]" />
+          <Flame size={14} className="text-[var(--wd-warning)] wd-fire-icon" />
         ) : isCold ? (
           <Snowflake size={14} className="text-[var(--wd-info)]" />
         ) : null}
@@ -54,7 +54,7 @@ function HotHandCard({ player }: { player: HotHandData["players"][number] }) {
       <ResultPills results={player.recentResults} />
 
       {banterMessage && (
-        <p className="mt-1.5 text-[10px] wd-text-muted leading-relaxed">
+        <p className="mt-1.5 text-[11px] wd-text-secondary leading-relaxed">
           {interpolate(banterMessage, { name: player.displayName, score: player.score })}
         </p>
       )}

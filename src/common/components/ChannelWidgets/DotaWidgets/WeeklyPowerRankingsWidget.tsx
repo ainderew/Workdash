@@ -53,19 +53,19 @@ function RankingEntry({ ranking, isLast }: Omit<RankingEntryProps, "weekSeed">) 
 
   return (
     <div
-      className={`flex items-center gap-2.5 px-3 py-2 rounded-xl transition-colors ${
+      className={`flex items-center gap-2.5 px-3 rounded-xl transition-colors ${
         isFirst
-          ? "bg-[var(--wd-accent)]/5"
+          ? "py-3 bg-[var(--wd-accent)]/12"
           : isLast
-            ? "bg-[var(--wd-danger)]/4"
-            : "bg-[var(--wd-surface-elevated)]/30"
+            ? "py-2 bg-[var(--wd-danger)]/10"
+            : "py-2 bg-[var(--wd-surface-elevated)]"
       }`}
     >
       {/* Rank */}
       <div className="w-6 shrink-0 text-center">
         {isFirst ? (
           <Crown
-            size={14}
+            size={16}
             className="wd-leaderboard-medal-1 wd-leaderboard-crown mx-auto"
           />
         ) : (
@@ -76,10 +76,10 @@ function RankingEntry({ ranking, isLast }: Omit<RankingEntryProps, "weekSeed">) 
       </div>
 
       {/* Player info */}
-      <PlayerAvatar avatarUrl={ranking.avatarUrl} displayName={ranking.displayName} size={20} />
+      <PlayerAvatar avatarUrl={ranking.avatarUrl} displayName={ranking.displayName} size={isFirst ? 24 : 20} />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
-          <span className="text-xs font-semibold wd-text-primary truncate">
+          <span className={`font-semibold wd-text-primary truncate ${isFirst ? "text-[13px]" : "text-xs"}`}>
             {ranking.displayName}
           </span>
           {ranking.isMvp && (
@@ -158,8 +158,8 @@ export function WeeklyPowerRankingsWidget({ workspaceId, channelId }: Props) {
     <div>
       {/* Banter callout */}
       {banterMessage && (
-        <div className="mb-3 px-3 py-2 rounded-lg bg-[var(--wd-accent)]/5">
-          <p className="text-[11px] font-medium text-[var(--wd-accent)] leading-relaxed">
+        <div className="mb-3 px-3.5 py-2.5 rounded-xl bg-[var(--wd-accent)]/10">
+          <p className="text-[11px] font-semibold text-[var(--wd-accent)] leading-relaxed">
             {banterMessage}
           </p>
         </div>
@@ -178,8 +178,8 @@ export function WeeklyPowerRankingsWidget({ workspaceId, channelId }: Props) {
 
       {/* Last place roast */}
       {lastPlace && data.rankings.length > 2 && (
-        <div className="mt-3 px-3 py-2 rounded-lg bg-[var(--wd-danger)]/5">
-          <p className="text-[10px] wd-text-muted leading-relaxed">
+        <div className="mt-3 px-3.5 py-2.5 rounded-xl bg-[var(--wd-danger)]/10">
+          <p className="text-[11px] wd-text-secondary leading-relaxed">
             {interpolate(
               pickRankingMessage("last", lastPlace.dotaAccountId, weekSeed),
               { name: lastPlace.displayName },
@@ -190,8 +190,8 @@ export function WeeklyPowerRankingsWidget({ workspaceId, channelId }: Props) {
 
       {/* Most improved callout */}
       {mostImproved && mostImproved.rankDelta > 0 && (
-        <div className="mt-2 px-3 py-2 rounded-lg bg-[var(--wd-success)]/5">
-          <p className="text-[10px] text-[var(--wd-success)] leading-relaxed">
+        <div className="mt-2 px-3.5 py-2.5 rounded-xl bg-[var(--wd-success)]/10">
+          <p className="text-[11px] text-[var(--wd-success)] leading-relaxed font-medium">
             {interpolate(
               pickRankingMessage("improved", mostImproved.dotaAccountId, weekSeed),
               { name: mostImproved.displayName, delta: mostImproved.rankDelta },

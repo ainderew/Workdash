@@ -291,11 +291,11 @@ export function ChannelWidgetPanel({ roomId, workspaceId }: Props) {
     : [];
 
   return (
-    <div className="border-b border-[rgb(var(--wd-border-subtle-rgb)/0.3)]">
+    <div className="border-b wd-border-subtle bg-[var(--wd-surface-base)]">
       <button
         onClick={() => setCollapsed(!collapsed)}
         aria-expanded={!collapsed}
-        className="flex items-center gap-2 w-full px-4 py-2.5 transition-colors hover:bg-[rgb(var(--wd-surface-elevated-rgb)/0.3)]"
+        className="flex items-center gap-2 w-full px-4 py-2.5 transition-colors hover:bg-[var(--wd-surface-elevated)]"
       >
         <Gamepad2 size={14} className="wd-text-muted" />
         <span className="text-[11px] font-semibold uppercase tracking-wider wd-text-muted">
@@ -326,7 +326,7 @@ export function ChannelWidgetPanel({ roomId, workspaceId }: Props) {
                     className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-wide whitespace-nowrap transition-all duration-150 ${
                       isActive
                         ? "wd-bg-accent-soft text-[var(--wd-accent)]"
-                        : "wd-text-muted hover:wd-text-primary hover:bg-[rgb(var(--wd-surface-elevated-rgb)/0.4)]"
+                        : "wd-text-muted hover:wd-text-primary hover:bg-[var(--wd-surface-elevated)]"
                     }`}
                   >
                     <CatIcon size={12} />

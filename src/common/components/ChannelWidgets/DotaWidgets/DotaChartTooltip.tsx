@@ -13,8 +13,16 @@ interface DotaChartTooltipProps {
 
 /** Themed tooltip for Nivo charts. Matches the wd-widget-card visual language. */
 export function DotaChartTooltip({ title, items }: DotaChartTooltipProps) {
+  const accentColor = items[0]?.color;
+
   return (
     <div className="wd-chart-tooltip">
+      {accentColor && (
+        <div
+          className="h-0.5 rounded-full -mx-1 mb-1.5"
+          style={{ backgroundColor: accentColor, opacity: 0.4 }}
+        />
+      )}
       {title && (
         <div className="text-[10px] font-semibold wd-text-primary mb-1">
           {title}
