@@ -46,6 +46,7 @@ import { MatchRecapWidget } from "./DotaWidgets/MatchRecapWidget";
 import { AchievementFeedWidget } from "./DotaWidgets/AchievementFeedWidget";
 import { MonthlyAwardsWidget } from "./DotaWidgets/MonthlyAwardsWidget";
 import { SteamProfileWidget } from "./DotaWidgets/SteamProfileWidget";
+import { PowerRankingsInfoTooltip } from "./DotaWidgets/PowerRankingsInfoTooltip";
 
 interface Props {
   roomId: string;
@@ -58,6 +59,7 @@ interface WidgetMeta {
   icon: React.ComponentType<{ size?: number }>;
   accent: string;
   variant?: "default" | "alert" | "ranking" | "chart";
+  headerExtra?: React.ReactNode;
 }
 
 const WIDGET_META: Record<string, WidgetMeta> = {
@@ -122,6 +124,7 @@ const WIDGET_META: Record<string, WidgetMeta> = {
     icon: Crown,
     accent: "var(--wd-accent)",
     variant: "ranking",
+    headerExtra: <PowerRankingsInfoTooltip />,
   },
   dota_hot_hand: {
     component: HotHandWidget,
@@ -417,6 +420,7 @@ export function ChannelWidgetPanel({ roomId, workspaceId }: Props) {
                     accentColor={meta.accent}
                     index={index}
                     variant={meta.variant}
+                    headerExtra={meta.headerExtra}
                   >
                     <WidgetShell>
                       <Component

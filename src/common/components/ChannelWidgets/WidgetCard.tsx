@@ -8,6 +8,7 @@ interface Props {
   accentColor: string;
   index: number;
   variant?: WidgetVariant;
+  headerExtra?: ReactNode;
   children: ReactNode;
 }
 
@@ -17,6 +18,7 @@ export function WidgetCard({
   accentColor,
   index,
   variant = "default",
+  headerExtra,
   children,
 }: Props) {
   const variantClass =
@@ -43,6 +45,7 @@ export function WidgetCard({
         <span className="text-[11px] font-semibold uppercase tracking-wider wd-text-muted">
           {title}
         </span>
+        {headerExtra && <div className="ml-auto">{headerExtra}</div>}
       </div>
       <div className="px-3.5 pb-3.5">{children}</div>
     </div>
