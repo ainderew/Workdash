@@ -3,7 +3,7 @@ import Image from "next/image";
 import { Crown } from "lucide-react";
 import { useWidgetStore } from "@/common/store/widgetStore";
 import { WidgetSkeleton, WidgetEmpty } from "../WidgetShell";
-import type { MatchRecapData } from "../_types";
+import type { MatchRecapData, MatchRecapEntry } from "../_types";
 import { PlayerAvatar } from "./PlayerAvatar";
 import { PerformanceEstimateTooltip } from "./PerformanceEstimateTooltip";
 
@@ -18,12 +18,24 @@ function formatDuration(seconds: number): string {
   return `${mins}:${String(secs).padStart(2, "0")}`;
 }
 
-function PlayerRow({ player }: { player: MatchRecapData["players"][number] }) {
+function formatTimeAgo(isoDate: string): string {
+  const diff = Date.now() - new Date(isoDate).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
+
+function PlayerRow({ player }: { player: MatchRecapEntry["players"][number] }) {
   return (
-    <div
-      className="flex items-center gap-2.5 py-2 px-3 rounded-xl bg-[var(--wd-surface-panel-2)]"
-    >
-      <PlayerAvatar avatarUrl={player.avatarUrl} displayName={player.displayName} size={24} />
+    <div className="flex items-center gap-2.5 py-2 px-3 rounded-xl bg-[var(--wd-surface-panel-2)]">
+      <PlayerAvatar
+        avatarUrl={player.avatarUrl}
+        displayName={player.displayName}
+        size={24}
+      />
       {player.heroIcon && (
         <Image
           src={player.heroIcon}
@@ -33,30 +45,33 @@ function PlayerRow({ player }: { player: MatchRecapData["players"][number] }) {
           className="rounded-lg ring-1 ring-[var(--wd-border-subtle)]"
         />
       )}
-      {player.performanceEstimate && (
-        <Image
-          src={player.performanceEstimate.imagePath}
-          alt={player.performanceEstimate.label}
-          width={28}
-          height={28}
-          className="shrink-0"
-        />
-      )}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
           <span className="text-[13px] font-semibold wd-text-primary truncate">
             {player.displayName}
           </span>
           {player.isMvp && (
-            <Crown size={12} className="text-[var(--wd-accent)] shrink-0" />
+            <Crown
+              size={12}
+              className="text-[var(--wd-accent)] shrink-0"
+            />
           )}
         </div>
         <div className="text-[10px] wd-text-muted truncate">
           {player.heroName}
         </div>
         {player.performanceEstimate && (
-          <div className="text-[9px] font-semibold text-[var(--wd-accent)] truncate mt-0.5">
-            Played like {player.performanceEstimate.label}
+          <div className="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded-md bg-[var(--wd-accent)]/10 ring-1 ring-[var(--wd-accent)]/20">
+            <Image
+              src={player.performanceEstimate.imagePath}
+              alt={player.performanceEstimate.label}
+              width={14}
+              height={14}
+              className="shrink-0"
+            />
+            <span className="text-[9px] font-semibold text-[var(--wd-accent)] truncate leading-none">
+              Played like {player.performanceEstimate.label}
+            </span>
           </div>
         )}
       </div>
@@ -74,46 +89,34 @@ function PlayerRow({ player }: { player: MatchRecapData["players"][number] }) {
   );
 }
 
-export function MatchRecapWidget({ workspaceId, channelId }: Props) {
-  const fetchWidgetData = useWidgetStore((s) => s.fetchWidgetData);
-  const data = useWidgetStore(
-    (s) => s.widgetDataByKey[`${channelId}:dota_match_recap`],
-  ) as MatchRecapData | undefined;
-
-  useEffect(() => {
-    void fetchWidgetData(workspaceId, channelId, "dota_match_recap");
-  }, [workspaceId, channelId, fetchWidgetData]);
-
-  if (!data) return <WidgetSkeleton />;
-  if (data.players.length === 0)
-    return <WidgetEmpty message="No recent match to recap" />;
-
-  const winners = data.players.filter((p) => p.won);
-  const losers = data.players.filter((p) => !p.won);
-  const hasEstimates = data.players.some((p) => p.performanceEstimate);
+function MatchCard({ match }: { match: MatchRecapEntry }) {
+  const winners = match.players.filter((p) => p.won);
+  const losers = match.players.filter((p) => !p.won);
+  const hasEstimates = match.players.some((p) => p.performanceEstimate);
 
   return (
-    <div className="space-y-2.5">
-      {/* Match header */}
+    <div className="space-y-2">
       <div className="flex items-center justify-between px-1">
         <span
           className={`text-[11px] font-bold uppercase tracking-wider ${
-            data.radiantWin
+            match.radiantWin
               ? "text-[var(--wd-success)]"
               : "text-[var(--wd-danger)]"
           }`}
         >
-          {data.radiantWin ? "Radiant" : "Dire"} Victory
+          {match.radiantWin ? "Radiant" : "Dire"} Victory
         </span>
         <div className="flex items-center gap-1.5">
           <span className="text-[11px] wd-text-muted tabular-nums font-medium">
-            {formatDuration(data.durationSec)}
+            {formatDuration(match.durationSec)}
+          </span>
+          <span className="text-[10px] wd-text-muted">
+            {formatTimeAgo(match.startTime)}
           </span>
           {hasEstimates && <PerformanceEstimateTooltip />}
         </div>
       </div>
 
-      {/* Player list */}
       <div className="space-y-1.5">
         {winners.map((p) => (
           <PlayerRow key={p.dotaAccountId} player={p} />
@@ -125,6 +128,29 @@ export function MatchRecapWidget({ workspaceId, channelId }: Props) {
           <PlayerRow key={p.dotaAccountId} player={p} />
         ))}
       </div>
+    </div>
+  );
+}
+
+export function MatchRecapWidget({ workspaceId, channelId }: Props) {
+  const fetchWidgetData = useWidgetStore((s) => s.fetchWidgetData);
+  const data = useWidgetStore(
+    (s) => s.widgetDataByKey[`${channelId}:dota_match_recap`],
+  ) as MatchRecapData | undefined;
+
+  useEffect(() => {
+    void fetchWidgetData(workspaceId, channelId, "dota_match_recap");
+  }, [workspaceId, channelId, fetchWidgetData]);
+
+  if (!data) return <WidgetSkeleton />;
+  if (!Array.isArray(data) || data.length === 0)
+    return <WidgetEmpty message="No recent match to recap" />;
+
+  return (
+    <div className="space-y-4">
+      {data.map((match) => (
+        <MatchCard key={match.matchId} match={match} />
+      ))}
     </div>
   );
 }

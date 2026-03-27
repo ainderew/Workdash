@@ -352,7 +352,7 @@ export interface HeroMasteryData {
   }[];
 }
 
-export interface MatchRecapData {
+export interface MatchRecapEntry {
   matchId: string;
   startTime: string;
   durationSec: number;
@@ -379,6 +379,8 @@ export interface MatchRecapData {
     };
   }[];
 }
+
+export type MatchRecapData = MatchRecapEntry[];
 
 export interface MilestoneData {
   milestones: {

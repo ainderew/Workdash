@@ -1,5 +1,6 @@
-import React, { useRef, useEffect, useCallback } from 'react';
+import React, { useRef, useEffect, useCallback, useState } from 'react';
 import { Monitor, Pin, PinOff } from 'lucide-react';
+import { ScreenShareLoadingIndicator } from '@/common/components/ScreenShare/ScreenShareLoadingIndicator';
 import type { CallParticipant } from '@/common/store/callStore';
 import useCallStore from '@/common/store/callStore';
 import { ScreenShareViewer } from '@/communication/screenShare/screenShareViewer';
@@ -22,6 +23,7 @@ export default function ScreenShareTile({
   fillCell,
 }: ScreenShareTileProps) {
   const videoContainerRef = useRef<HTMLDivElement>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Targeted selector: only re-renders when THIS participant's producerId changes
   const producerId = useCallStore(
@@ -37,8 +39,11 @@ export default function ScreenShareTile({
   // Local self-view effect — only depends on isLocal + participant identity
   useEffect(() => {
     if (!isLocal) return;
+    setIsLoading(true);
     const container = videoContainerRef.current;
     if (!container) return;
+
+    let disposed = false;
 
     while (container.firstChild) {
       container.removeChild(container.firstChild);
@@ -56,9 +61,13 @@ export default function ScreenShareTile({
     videoEl.style.height = '100%';
     videoEl.style.objectFit = 'contain';
     videoEl.style.backgroundColor = '#000';
+    videoEl.addEventListener('loadeddata', () => {
+      if (!disposed) setIsLoading(false);
+    }, { once: true });
     container.appendChild(videoEl);
 
     return () => {
+      disposed = true;
       videoEl.srcObject = null;
       videoEl.remove();
     };
@@ -68,6 +77,7 @@ export default function ScreenShareTile({
   useEffect(() => {
     if (isLocal) return;
     if (!producerId) return;
+    setIsLoading(true);
     const container = videoContainerRef.current;
     if (!container) return;
 
@@ -97,6 +107,9 @@ export default function ScreenShareTile({
         videoEl.style.height = '100%';
         videoEl.style.objectFit = 'contain';
         videoEl.style.backgroundColor = '#000';
+        videoEl.addEventListener('loadeddata', () => {
+          if (!cancelled) setIsLoading(false);
+        }, { once: true });
         mounted = videoEl;
         container.appendChild(videoEl);
         return;
@@ -153,6 +166,9 @@ export default function ScreenShareTile({
 
       {/* Video container */}
       <div ref={videoContainerRef} className="absolute inset-0" />
+
+      {/* Loading indicator */}
+      {isLoading && <ScreenShareLoadingIndicator />}
 
       {/* Bottom bar */}
       <div

@@ -1,19 +1,24 @@
-import React from "react";
+import React, { useRef } from "react";
 import { X, Maximize2, Minimize2 } from "lucide-react";
 import { ScreenShareViewer } from "@/communication/screenShare/screenShareViewer";
 import { logger } from "@/common/utils/logger";
+import { useVideoLoaded } from "@/common/hooks/useVideoLoaded";
+import { ScreenShareLoadingIndicator } from "./ScreenShareLoadingIndicator";
 
 function ScreeShareContainer({
     producerId,
     isExpanded,
     handleExpand,
-    
+
 }: {
     producerId: string;
     isExpanded: boolean;
     handleExpand: (producerId: string) => void;
     hasMoreThanOneSharing: boolean;
 }) {
+    const videoContainerRef = useRef<HTMLDivElement>(null);
+    const isLoading = useVideoLoaded(videoContainerRef, producerId);
+
     function handleClick(e: React.MouseEvent) {
         e.stopPropagation();
         logger.log("🖱️ Clicked video:", producerId, "isExpanded:", isExpanded);
@@ -33,7 +38,7 @@ function ScreeShareContainer({
             <div
                 onClick={!isExpanded ? handleClick : undefined}
                 className={`
-                    rounded-lg overflow-hidden 
+                    rounded-lg overflow-hidden
                     transition-all duration-300 ease-in-out
                     bg-black
 
@@ -46,14 +51,19 @@ function ScreeShareContainer({
             >
                 {/*Attach Video*/}
                 <div
+                    ref={videoContainerRef}
                     id={producerId}
                     className="w-full h-full relative flex items-center justify-center"
-                />
+                >
+                    {isLoading && (
+                        <ScreenShareLoadingIndicator size={isExpanded ? "md" : "sm"} />
+                    )}
+                </div>
 
                 <div
                     className={`
-                        absolute top-0 left-0 right-0 
-                        bg-gradient-to-b from-black/80 via-black/50 to-transparent 
+                        absolute top-0 left-0 right-0
+                        bg-gradient-to-b from-black/80 via-black/50 to-transparent
                         p-3 flex justify-between items-center z-50
                         ${isExpanded ? "opacity-100" : "opacity-0 hover:opacity-100"}
                         transition-opacity duration-200
