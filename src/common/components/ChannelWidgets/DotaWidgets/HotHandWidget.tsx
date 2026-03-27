@@ -20,26 +20,20 @@ function HotHandCard({ player }: { player: HotHandData["players"][number] }) {
 
   return (
     <div
-      className={`px-3 py-2.5 rounded-xl transition-colors ${
-        isHot
-          ? "bg-[var(--wd-danger)]/10"
-          : isCold
-            ? "bg-[var(--wd-info)]/10"
-            : "bg-[var(--wd-surface-elevated)]"
-      }`}
+      className="px-3.5 py-3 rounded-xl transition-colors bg-[var(--wd-surface-panel-2)]"
     >
-      <div className="flex items-center gap-2 mb-1.5">
-        <PlayerAvatar avatarUrl={player.avatarUrl} displayName={player.displayName} />
+      <div className="flex items-center gap-2.5 mb-2">
+        <PlayerAvatar avatarUrl={player.avatarUrl} displayName={player.displayName} size={28} />
         {isHot ? (
-          <Flame size={14} className="text-[var(--wd-danger)] wd-fire-icon" />
+          <Flame size={16} className="text-[var(--wd-danger)] wd-fire-icon" />
         ) : isCold ? (
-          <Snowflake size={14} className="text-[var(--wd-info)]" />
+          <Snowflake size={16} className="text-[var(--wd-info)]" />
         ) : null}
-        <span className="text-xs font-semibold wd-text-primary">
+        <span className="text-[13px] font-semibold wd-text-primary">
           {player.displayName}
         </span>
         <span
-          className={`ml-auto text-[10px] font-bold uppercase tracking-wider ${
+          className={`ml-auto text-[11px] font-bold uppercase tracking-wider ${
             isHot
               ? "text-[var(--wd-danger)]"
               : isCold
@@ -54,7 +48,7 @@ function HotHandCard({ player }: { player: HotHandData["players"][number] }) {
       <ResultPills results={player.recentResults} />
 
       {banterMessage && (
-        <p className="mt-1.5 text-[11px] wd-text-secondary leading-relaxed">
+        <p className="mt-2 text-[12px] wd-text-secondary leading-relaxed">
           {interpolate(banterMessage, { name: player.displayName, score: player.score })}
         </p>
       )}

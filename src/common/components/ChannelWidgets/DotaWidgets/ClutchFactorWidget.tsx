@@ -18,21 +18,15 @@ function ClutchCard({ player }: { player: ClutchFactorData["players"][number] })
 
   return (
     <div
-      className={`px-3 py-2.5 rounded-xl ${
-        isClutch
-          ? "bg-[var(--wd-success)]/12"
-          : isChoke
-            ? "bg-[var(--wd-danger)]/12"
-            : "bg-[var(--wd-surface-elevated)]"
-      }`}
+      className="px-3.5 py-3 rounded-xl bg-[var(--wd-surface-panel-2)]"
     >
-      <div className="flex items-center gap-2 mb-2">
-        <PlayerAvatar avatarUrl={player.avatarUrl} displayName={player.displayName} />
-        <span className="text-xs font-semibold wd-text-primary">
+      <div className="flex items-center gap-2.5 mb-2.5">
+        <PlayerAvatar avatarUrl={player.avatarUrl} displayName={player.displayName} size={28} />
+        <span className="text-[13px] font-semibold wd-text-primary">
           {player.displayName}
         </span>
         <span
-          className={`ml-auto text-[10px] font-bold uppercase tracking-wider ${
+          className={`ml-auto text-[11px] font-bold uppercase tracking-wider ${
             isClutch
               ? "text-[var(--wd-success)]"
               : isChoke
@@ -45,15 +39,15 @@ function ClutchCard({ player }: { player: ClutchFactorData["players"][number] })
       </div>
 
       {/* Comparison bars */}
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         <div>
-          <div className="flex justify-between text-[10px] mb-0.5">
+          <div className="flex justify-between text-[11px] mb-1">
             <span className="wd-text-muted">Close games</span>
             <span className="font-bold tabular-nums wd-text-primary">
               {player.closeGameWinRate}%
             </span>
           </div>
-          <div className="h-1.5 rounded-full bg-[var(--wd-surface-elevated)] overflow-hidden">
+          <div className="h-2 rounded-full bg-[var(--wd-surface-elevated)] overflow-hidden">
             <div
               className="h-full rounded-full bg-[var(--wd-accent)] wd-wr-bar-transition"
               style={{ width: `${Math.min(player.closeGameWinRate, 100)}%` }}
@@ -61,13 +55,13 @@ function ClutchCard({ player }: { player: ClutchFactorData["players"][number] })
           </div>
         </div>
         <div>
-          <div className="flex justify-between text-[10px] mb-0.5">
+          <div className="flex justify-between text-[11px] mb-1">
             <span className="wd-text-muted">All games</span>
             <span className="font-bold tabular-nums wd-text-primary">
               {player.normalWinRate}%
             </span>
           </div>
-          <div className="h-1.5 rounded-full bg-[var(--wd-surface-elevated)] overflow-hidden">
+          <div className="h-2 rounded-full bg-[var(--wd-surface-elevated)] overflow-hidden">
             <div
               className="h-full rounded-full bg-[var(--wd-border-subtle)] wd-wr-bar-transition"
               style={{ width: `${Math.min(player.normalWinRate, 100)}%` }}
@@ -76,12 +70,12 @@ function ClutchCard({ player }: { player: ClutchFactorData["players"][number] })
         </div>
       </div>
 
-      <div className="mt-1 text-[10px] wd-text-muted">
+      <div className="mt-2 text-[11px] wd-text-muted">
         {player.closeGamesPlayed} close games · Factor: {player.clutchFactor}x
       </div>
 
       {banterMessage && (
-        <p className="mt-1.5 text-[10px] wd-text-muted leading-relaxed italic">
+        <p className="mt-2 text-[11px] wd-text-muted leading-relaxed italic">
           {interpolate(banterMessage, { name: player.displayName })}
         </p>
       )}

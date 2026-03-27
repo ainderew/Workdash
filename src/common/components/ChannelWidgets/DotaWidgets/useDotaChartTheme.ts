@@ -10,19 +10,19 @@ export function useDotaChartTheme(): PartialTheme {
     () => ({
       text: {
         fill: "var(--wd-text-primary)",
-        fontSize: 10,
+        fontSize: 11,
         fontFamily: "inherit",
       },
       axis: {
         domain: { line: { stroke: "transparent" } },
         ticks: {
           line: { stroke: "transparent" },
-          text: { fill: "var(--wd-text-muted)", fontSize: 10 },
+          text: { fill: "var(--wd-text-muted)", fontSize: 11 },
         },
         legend: {
           text: {
             fill: "var(--wd-text-secondary)",
-            fontSize: 10,
+            fontSize: 11,
             fontWeight: 600,
           },
         },

@@ -16,19 +16,19 @@ function ProfileCard({ player }: { player: SteamProfileData["players"][number] }
   const steamProfileUrl = `https://steamcommunity.com/profiles/${player.steamId64}`;
 
   return (
-    <div className="flex items-start gap-3 px-3 py-3 rounded-xl bg-[var(--wd-surface-elevated)]/30">
+    <div className="flex items-start gap-3.5 px-4 py-3.5 rounded-xl bg-[var(--wd-surface-panel-2)]">
       {/* Avatar */}
       <div className="shrink-0">
         {player.avatarUrl ? (
           <Image
             src={player.avatarUrl}
             alt={`${player.displayName}'s avatar`}
-            width={48}
-            height={48}
-            className="rounded-lg"
+            width={56}
+            height={56}
+            className="rounded-xl ring-2 ring-[var(--wd-border-subtle)]"
           />
         ) : (
-          <div className="w-12 h-12 rounded-lg bg-[var(--wd-surface-elevated)] flex items-center justify-center text-sm font-bold wd-text-muted">
+          <div className="w-14 h-14 rounded-xl bg-[var(--wd-surface-elevated)] ring-2 ring-[var(--wd-border-subtle)] flex items-center justify-center text-base font-bold wd-text-muted">
             {player.displayName.charAt(0).toUpperCase()}
           </div>
         )}
@@ -36,8 +36,8 @@ function ProfileCard({ player }: { player: SteamProfileData["players"][number] }
 
       {/* Info */}
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5">
-          <span className="text-xs font-semibold wd-text-primary truncate">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-semibold wd-text-primary truncate">
             {player.displayName}
           </span>
           <a
@@ -47,46 +47,46 @@ function ProfileCard({ player }: { player: SteamProfileData["players"][number] }
             className="wd-text-muted hover:text-[var(--wd-accent)] transition-colors shrink-0"
             aria-label={`View ${player.displayName}'s Steam profile`}
           >
-            <ExternalLink size={11} />
+            <ExternalLink size={12} />
           </a>
         </div>
 
         {player.personaName && player.personaName !== player.displayName && (
-          <p className="text-[10px] wd-text-muted truncate">{player.personaName}</p>
+          <p className="text-[11px] wd-text-muted truncate mt-0.5">{player.personaName}</p>
         )}
 
         {/* Rank + MMR row */}
-        <div className="flex items-center gap-2 mt-1.5">
+        <div className="flex items-center gap-2.5 mt-2">
           {medal && (
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-[var(--wd-surface-elevated)]">
               <Image
                 src={medal.imagePath}
                 alt={medal.label}
-                width={18}
-                height={18}
+                width={22}
+                height={22}
               />
-              <span className="text-[10px] font-semibold wd-text-primary">
+              <span className="text-[11px] font-semibold wd-text-primary">
                 {medal.label}
               </span>
             </div>
           )}
           {player.mmrEstimate !== null && player.mmrEstimate > 0 && (
-            <span className="text-[10px] wd-text-muted tabular-nums">
+            <span className="text-[11px] wd-text-secondary tabular-nums font-medium">
               ~{player.mmrEstimate} MMR
             </span>
           )}
         </div>
 
         {/* Stats row */}
-        <div className="flex items-center gap-2 mt-1">
+        <div className="flex items-center gap-2 mt-2">
           {player.totalGames > 0 && (
             <>
-              <span className="text-[10px] wd-text-muted tabular-nums">
-                {player.totalGames}g
+              <span className="text-[11px] wd-text-secondary tabular-nums">
+                {player.totalGames} games
               </span>
-              <span className="text-[10px] wd-text-muted">·</span>
+              <span className="text-[11px] wd-text-muted">·</span>
               <span
-                className={`text-[10px] font-semibold tabular-nums ${
+                className={`text-[11px] font-semibold tabular-nums ${
                   player.winRate >= 55
                     ? "text-[var(--wd-success)]"
                     : player.winRate <= 45
@@ -100,8 +100,8 @@ function ProfileCard({ player }: { player: SteamProfileData["players"][number] }
           )}
           {player.favoriteHero && (
             <>
-              <span className="text-[10px] wd-text-muted">·</span>
-              <span className="text-[10px] wd-text-muted truncate">
+              <span className="text-[11px] wd-text-muted">·</span>
+              <span className="text-[11px] wd-text-secondary truncate">
                 {player.favoriteHero.heroName} ({player.favoriteHero.games}g)
               </span>
             </>

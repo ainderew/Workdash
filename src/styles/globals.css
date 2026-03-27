@@ -153,7 +153,18 @@ body {
     --wd-danger: rgb(var(--wd-danger-rgb) / 1);
     --wd-danger-soft: rgb(var(--wd-danger-rgb) / var(--wd-danger-soft-alpha));
     --wd-warning: rgb(var(--wd-warning-rgb) / 1);
+    --wd-warning-soft: rgb(var(--wd-warning-rgb) / var(--wd-accent-soft-alpha));
     --wd-info: rgb(var(--wd-info-rgb) / 1);
+    --wd-info-soft: rgb(var(--wd-info-rgb) / var(--wd-accent-soft-alpha));
+    --wd-success-soft: rgb(var(--wd-success-rgb) / var(--wd-accent-soft-alpha));
+
+    /* Dota chart data-visualization palette (6 perceptually spaced hues) */
+    --wd-dota-1: rgb(var(--wd-dota-1-rgb) / 1);
+    --wd-dota-2: rgb(var(--wd-dota-2-rgb) / 1);
+    --wd-dota-3: rgb(var(--wd-dota-3-rgb) / 1);
+    --wd-dota-4: rgb(var(--wd-dota-4-rgb) / 1);
+    --wd-dota-5: rgb(var(--wd-dota-5-rgb) / 1);
+    --wd-dota-6: rgb(var(--wd-dota-6-rgb) / 1);
 
     --wd-panel-height: 5rem;
 
@@ -258,6 +269,14 @@ body {
     --wd-neo-light-alpha: 0.8;
     --wd-neo-highlight-alpha: 0.18;
 
+    /* Dota chart palette — blue-anchored, 6 hues ~60° apart */
+    --wd-dota-1-rgb: 99 102 241;   /* indigo — anchor */
+    --wd-dota-2-rgb: 16 185 129;   /* emerald — cool complement */
+    --wd-dota-3-rgb: 245 158 11;   /* amber — warm accent */
+    --wd-dota-4-rgb: 244 63 94;    /* rose — dramatic pop */
+    --wd-dota-5-rgb: 139 92 246;   /* violet — analogous */
+    --wd-dota-6-rgb: 6 182 212;    /* cyan — bridge */
+
 }
 
 [data-theme="cyber"] {
@@ -315,6 +334,14 @@ body {
     --wd-neo-dark-alpha: 0.5;
     --wd-neo-light-alpha: 0.2;
     --wd-neo-highlight-alpha: 0.04;
+
+    /* Dota chart palette — purple-anchored, bright on dark */
+    --wd-dota-1-rgb: 192 132 252;  /* lavender */
+    --wd-dota-2-rgb: 52 211 153;   /* mint */
+    --wd-dota-3-rgb: 251 146 60;   /* tangerine */
+    --wd-dota-4-rgb: 244 114 182;  /* pink */
+    --wd-dota-5-rgb: 56 189 248;   /* sky */
+    --wd-dota-6-rgb: 250 204 21;   /* yellow */
 
 }
 
@@ -374,6 +401,14 @@ body {
     --wd-neo-light-alpha: 0.8;
     --wd-neo-highlight-alpha: 0.18;
 
+    /* Dota chart palette — green-anchored, earthy harmony */
+    --wd-dota-1-rgb: 5 150 105;    /* emerald — anchor */
+    --wd-dota-2-rgb: 59 130 246;   /* blue — complement */
+    --wd-dota-3-rgb: 234 88 12;    /* burnt orange — warm */
+    --wd-dota-4-rgb: 190 24 93;    /* deep pink — contrast */
+    --wd-dota-5-rgb: 139 92 246;   /* violet — distant */
+    --wd-dota-6-rgb: 202 138 4;    /* dark gold — warm bridge */
+
 }
 
 [data-theme="a11y"] {
@@ -431,6 +466,14 @@ body {
     --wd-neo-dark-alpha: 0.55;
     --wd-neo-light-alpha: 0.15;
     --wd-neo-highlight-alpha: 0.03;
+
+    /* Dota chart palette — high-contrast for a11y */
+    --wd-dota-1-rgb: 250 204 21;   /* yellow — anchor */
+    --wd-dota-2-rgb: 56 189 248;   /* cyan */
+    --wd-dota-3-rgb: 74 222 128;   /* green */
+    --wd-dota-4-rgb: 248 113 113;  /* salmon */
+    --wd-dota-5-rgb: 212 212 212;  /* silver */
+    --wd-dota-6-rgb: 192 132 252;  /* lavender */
 
 }
 
@@ -490,6 +533,14 @@ body {
     --wd-neo-light-alpha: 0.2;
     --wd-neo-highlight-alpha: 0.04;
 
+    /* Dota chart palette — indigo-anchored, bright on dark */
+    --wd-dota-1-rgb: 129 140 248;  /* periwinkle */
+    --wd-dota-2-rgb: 74 222 128;   /* green */
+    --wd-dota-3-rgb: 251 146 60;   /* orange */
+    --wd-dota-4-rgb: 244 114 182;  /* pink */
+    --wd-dota-5-rgb: 56 189 248;   /* sky */
+    --wd-dota-6-rgb: 250 204 21;   /* yellow */
+
 }
 
 [data-theme="discord-classic"] {
@@ -547,6 +598,14 @@ body {
     --wd-neo-dark-alpha: 0.45;
     --wd-neo-light-alpha: 0.18;
     --wd-neo-highlight-alpha: 0.05;
+
+    /* Dota chart palette — muted indigo-anchored, vintage feel */
+    --wd-dota-1-rgb: 114 120 235;  /* muted periwinkle */
+    --wd-dota-2-rgb: 59 165 92;    /* muted green */
+    --wd-dota-3-rgb: 250 166 26;   /* muted amber */
+    --wd-dota-4-rgb: 232 121 174;  /* muted pink */
+    --wd-dota-5-rgb: 86 176 232;   /* muted sky */
+    --wd-dota-6-rgb: 240 195 35;   /* muted gold */
 }
 
 /* Keep legacy dark-mode class behavior for out-of-scope marketing/auth pages. */
@@ -2095,26 +2154,29 @@ input[type="range"].wd-volume-slider::-moz-range-progress {
 
 .wd-widget-card {
     animation: wd-widget-card-in 0.3s cubic-bezier(0.25, 1, 0.5, 1) both;
-    border-radius: 12px;
+    border-radius: 14px;
     background: var(--wd-surface-panel);
     border: 1px solid var(--wd-border-subtle);
     overflow: hidden;
     transition: box-shadow 0.2s ease, border-color 0.2s ease;
+    box-shadow:
+        0 1px 3px rgb(0 0 0 / 0.06),
+        inset 0 1px 0 rgb(255 255 255 / 0.04);
 }
 
 .wd-widget-card:hover {
-    box-shadow: 0 2px 16px rgb(0 0 0 / 0.08);
+    box-shadow:
+        0 4px 20px rgb(0 0 0 / 0.12),
+        inset 0 1px 0 rgb(255 255 255 / 0.06);
     border-color: var(--wd-border-strong);
 }
 
 .wd-widget-card-alert {
-    background: var(--wd-surface-panel);
-    border-color: var(--wd-border-subtle);
+    /* Clean cards — no colored borders */
 }
 
 .wd-widget-card-ranking {
-    background: var(--wd-surface-panel);
-    border-color: var(--wd-border-subtle);
+    /* Clean cards — no colored borders */
 }
 
 @keyframes wd-streak-flame {

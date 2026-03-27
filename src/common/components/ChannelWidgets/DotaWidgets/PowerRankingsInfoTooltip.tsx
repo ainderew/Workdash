@@ -23,7 +23,7 @@ export function PowerRankingsInfoTooltip() {
         <button
           type="button"
           aria-label="How power rankings work"
-          className="p-0.5 rounded-md wd-text-muted hover:text-[var(--wd-accent)] hover:bg-[var(--wd-accent)]/10 transition-colors"
+          className="p-0.5 rounded-md wd-text-muted hover:text-[var(--wd-accent)] hover:wd-bg-accent-soft transition-colors"
         >
           <Info size={12} />
         </button>

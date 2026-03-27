@@ -23,19 +23,22 @@ function AwardCard({ award }: { award: MonthlyAwardsData["awards"][number] }) {
   const Icon = ICON_MAP[award.icon] ?? Trophy;
 
   return (
-    <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-[var(--wd-accent)]/6">
-      <div className="shrink-0 text-[var(--wd-accent)]">
-        <Icon size={16} />
+    <div className="flex items-center gap-3 px-3.5 py-3 rounded-xl bg-[var(--wd-surface-panel-2)]">
+      <div
+        className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center"
+        style={{ backgroundColor: "color-mix(in srgb, var(--wd-accent) 15%, transparent)" }}
+      >
+        <Icon size={16} className="text-[var(--wd-accent)]" />
       </div>
-      <PlayerAvatar avatarUrl={award.avatarUrl} displayName={award.displayName} size={20} />
+      <PlayerAvatar avatarUrl={award.avatarUrl} displayName={award.displayName} size={28} />
       <div className="flex-1 min-w-0">
         <div className="text-[10px] font-semibold uppercase tracking-wider text-[var(--wd-accent)]">
           {award.title}
         </div>
-        <div className="text-xs font-bold wd-text-primary truncate">
+        <div className="text-[13px] font-bold wd-text-primary truncate">
           {award.displayName}
         </div>
-        <div className="text-[10px] wd-text-muted tabular-nums">{award.stat}</div>
+        <div className="text-[11px] wd-text-muted tabular-nums">{award.stat}</div>
       </div>
     </div>
   );
@@ -56,11 +59,11 @@ export function MonthlyAwardsWidget({ workspaceId, channelId }: Props) {
     return <WidgetEmpty message="Not enough data for monthly awards yet" />;
 
   return (
-    <div className="space-y-2">
-      <div className="text-[10px] font-semibold uppercase tracking-wider wd-text-muted text-center">
+    <div className="space-y-2.5">
+      <div className="text-[11px] font-semibold uppercase tracking-wider wd-text-muted text-center">
         {data.month}
       </div>
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         {data.awards.map((award, i) => (
           <AwardCard key={`${award.dotaAccountId}-${award.title}-${i}`} award={award} />
         ))}

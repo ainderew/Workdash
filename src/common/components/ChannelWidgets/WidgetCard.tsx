@@ -38,16 +38,16 @@ export function WidgetCard({
         } as React.CSSProperties
       }
     >
-      <div className="flex items-center gap-2 px-3.5 pt-3 pb-1.5">
-        <div className="shrink-0" style={{ color: accentColor }}>
-          <Icon size={13} />
+      <div className="flex items-center gap-2 px-4 pt-3.5 pb-2">
+        <div className="shrink-0 wd-text-muted">
+          <Icon size={14} />
         </div>
-        <span className="text-[11px] font-semibold uppercase tracking-wider wd-text-muted">
+        <span className="text-xs font-semibold uppercase tracking-wider wd-text-muted">
           {title}
         </span>
         {headerExtra && <div className="ml-auto">{headerExtra}</div>}
       </div>
-      <div className="px-3.5 pb-3.5">{children}</div>
+      <div className="px-4 pb-4">{children}</div>
     </div>
   );
 }

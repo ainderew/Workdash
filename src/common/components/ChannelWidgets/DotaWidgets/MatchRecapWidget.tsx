@@ -20,41 +20,37 @@ function formatDuration(seconds: number): string {
 function PlayerRow({ player }: { player: MatchRecapData["players"][number] }) {
   return (
     <div
-      className={`flex items-center gap-2 py-1.5 px-2 rounded-lg ${
-        player.won
-          ? "bg-[var(--wd-success)]/12"
-          : "bg-[var(--wd-danger)]/12"
-      }`}
+      className="flex items-center gap-2.5 py-2 px-3 rounded-xl bg-[var(--wd-surface-panel-2)]"
     >
-      <PlayerAvatar avatarUrl={player.avatarUrl} displayName={player.displayName} size={20} />
+      <PlayerAvatar avatarUrl={player.avatarUrl} displayName={player.displayName} size={24} />
       {player.heroIcon && (
         <Image
           src={player.heroIcon}
           alt={player.heroName}
-          width={24}
-          height={24}
-          className="rounded"
+          width={52}
+          height={52}
+          className="rounded-lg ring-1 ring-[var(--wd-border-subtle)]"
         />
       )}
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1">
-          <span className="text-[11px] font-semibold wd-text-primary truncate">
+        <div className="flex items-center gap-1.5">
+          <span className="text-[13px] font-semibold wd-text-primary truncate">
             {player.displayName}
           </span>
           {player.isMvp && (
-            <Crown size={10} className="text-[var(--wd-accent)] shrink-0" />
+            <Crown size={12} className="text-[var(--wd-accent)] shrink-0" />
           )}
         </div>
-        <div className="text-[9px] wd-text-muted truncate">
+        <div className="text-[10px] wd-text-muted truncate">
           {player.heroName}
         </div>
       </div>
       <div className="text-right shrink-0">
-        <div className="text-[11px] font-bold tabular-nums wd-text-primary">
+        <div className="text-[13px] font-bold tabular-nums wd-text-primary">
           {player.kills}/{player.deaths}/{player.assists}
         </div>
         {player.highlights.length > 0 && (
-          <div className="text-[10px] font-medium text-[var(--wd-accent)] truncate max-w-[80px]">
+          <div className="text-[11px] font-medium text-[var(--wd-accent)] truncate max-w-[90px]">
             {player.highlights[0]}
           </div>
         )}
@@ -81,11 +77,11 @@ export function MatchRecapWidget({ workspaceId, channelId }: Props) {
   const losers = data.players.filter((p) => !p.won);
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2.5">
       {/* Match header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between px-1">
         <span
-          className={`text-[10px] font-bold uppercase tracking-wider ${
+          className={`text-[11px] font-bold uppercase tracking-wider ${
             data.radiantWin
               ? "text-[var(--wd-success)]"
               : "text-[var(--wd-danger)]"
@@ -93,18 +89,18 @@ export function MatchRecapWidget({ workspaceId, channelId }: Props) {
         >
           {data.radiantWin ? "Radiant" : "Dire"} Victory
         </span>
-        <span className="text-[10px] wd-text-muted tabular-nums">
+        <span className="text-[11px] wd-text-muted tabular-nums font-medium">
           {formatDuration(data.durationSec)}
         </span>
       </div>
 
       {/* Player list */}
-      <div className="space-y-1">
+      <div className="space-y-1.5">
         {winners.map((p) => (
           <PlayerRow key={p.dotaAccountId} player={p} />
         ))}
         {losers.length > 0 && winners.length > 0 && (
-          <div className="border-t border-[var(--wd-border-subtle)]/20 my-1" />
+          <div className="border-t border-[var(--wd-border-subtle)] my-1.5" />
         )}
         {losers.map((p) => (
           <PlayerRow key={p.dotaAccountId} player={p} />

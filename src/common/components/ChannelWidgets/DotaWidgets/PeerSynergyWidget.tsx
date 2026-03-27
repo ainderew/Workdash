@@ -14,7 +14,7 @@ function SynergyBar({ synergy }: { synergy: number }) {
   const pct = Math.min(100, Math.max(0, 50 + synergy * 150));
 
   return (
-    <div className="h-1.5 rounded-full bg-[var(--wd-border-subtle)]/30 overflow-hidden relative">
+    <div className="h-2 rounded-full bg-[var(--wd-surface-elevated)] overflow-hidden relative">
       {/* Center marker */}
       <div className="absolute left-1/2 top-0 h-full w-px bg-[var(--wd-border-subtle)]" />
       <div
@@ -38,23 +38,17 @@ function PairCard({ pair }: { pair: PeerSynergyData["pairs"][number] }) {
 
   return (
     <div
-      className={`px-3 py-2.5 rounded-xl ${
-        isPower
-          ? "bg-[var(--wd-success)]/5"
-          : isCursed
-            ? "bg-[var(--wd-danger)]/5"
-            : "bg-[var(--wd-surface-elevated)]/30"
-      }`}
+      className="px-3.5 py-3 rounded-xl bg-[var(--wd-surface-panel-2)]"
     >
-      <div className="flex items-center justify-between mb-1.5">
-        <div className="flex items-center gap-1.5">
-          <PlayerAvatar avatarUrl={pair.playerA.avatarUrl} displayName={pair.playerA.displayName} size={16} />
-          <span className="text-xs font-semibold wd-text-primary">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <PlayerAvatar avatarUrl={pair.playerA.avatarUrl} displayName={pair.playerA.displayName} />
+          <span className="text-[13px] font-semibold wd-text-primary">
             {pair.playerA.displayName}
           </span>
-          <span className="wd-text-muted text-[10px]">+</span>
-          <PlayerAvatar avatarUrl={pair.playerB.avatarUrl} displayName={pair.playerB.displayName} size={16} />
-          <span className="text-xs font-semibold wd-text-primary">
+          <span className="wd-text-muted text-[11px]">+</span>
+          <PlayerAvatar avatarUrl={pair.playerB.avatarUrl} displayName={pair.playerB.displayName} />
+          <span className="text-[13px] font-semibold wd-text-primary">
             {pair.playerB.displayName}
           </span>
         </div>
@@ -71,13 +65,13 @@ function PairCard({ pair }: { pair: PeerSynergyData["pairs"][number] }) {
         </span>
       </div>
 
-      <div className="flex justify-between text-[9px] wd-text-muted mb-0.5">
+      <div className="flex justify-between text-[10px] wd-text-muted mb-1">
         <span>Worse</span>
         <span>Better</span>
       </div>
       <SynergyBar synergy={pair.synergy} />
 
-      <div className="flex justify-between mt-1.5 text-[10px] wd-text-muted">
+      <div className="flex justify-between mt-2 text-[11px] wd-text-muted">
         <span>{pair.games} games together</span>
         <span className="font-bold tabular-nums">{pair.winRate}% WR</span>
         <span className="tabular-nums">

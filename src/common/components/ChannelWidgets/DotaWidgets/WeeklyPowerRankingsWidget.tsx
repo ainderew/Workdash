@@ -20,82 +20,79 @@ interface Props {
 
 interface RankingEntryProps {
   ranking: WeeklyPowerRankingsData["rankings"][number];
-  isLast: boolean;
   weekSeed: number;
 }
 
 function RankDeltaBadge({ delta }: { delta: number }) {
   if (delta > 0) {
     return (
-      <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-[var(--wd-success)]">
-        <ChevronUp size={12} />
+      <span className="inline-flex items-center gap-0.5 text-[11px] font-bold text-[var(--wd-success)]">
+        <ChevronUp size={14} />
         {delta}
       </span>
     );
   }
   if (delta < 0) {
     return (
-      <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-[var(--wd-danger)]">
-        <ChevronDown size={12} />
+      <span className="inline-flex items-center gap-0.5 text-[11px] font-bold text-[var(--wd-danger)]">
+        <ChevronDown size={14} />
         {Math.abs(delta)}
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center text-[10px] wd-text-muted">
-      <Minus size={12} />
+    <span className="inline-flex items-center text-[11px] wd-text-muted">
+      <Minus size={14} />
     </span>
   );
 }
 
-function RankingEntry({ ranking, isLast }: Omit<RankingEntryProps, "weekSeed">) {
+function RankingEntry({ ranking }: Omit<RankingEntryProps, "weekSeed">) {
   const isFirst = ranking.rank === 1;
 
   return (
     <div
-      className={`flex items-center gap-2.5 px-3 rounded-xl transition-colors ${
+      className={`flex items-center gap-3 px-3.5 rounded-xl transition-colors ${
         isFirst
-          ? "py-3 bg-[var(--wd-accent)]/12"
-          : isLast
-            ? "py-2 bg-[var(--wd-danger)]/10"
-            : "py-2 bg-[var(--wd-surface-elevated)]"
+          ? "py-3.5 bg-[var(--wd-surface-panel-2)]"
+          : "py-2.5 bg-[var(--wd-surface-panel-2)]"
       }`}
     >
       {/* Rank */}
-      <div className="w-6 shrink-0 text-center">
+      <div className="w-7 shrink-0 text-center">
         {isFirst ? (
           <Crown
-            size={16}
+            size={18}
             className="wd-leaderboard-medal-1 wd-leaderboard-crown mx-auto"
           />
         ) : (
-          <span className="text-[11px] font-bold wd-text-muted">
+          <span className="text-xs font-bold wd-text-muted">
             {ranking.rank}
           </span>
         )}
       </div>
 
       {/* Player info */}
-      <PlayerAvatar avatarUrl={ranking.avatarUrl} displayName={ranking.displayName} size={isFirst ? 24 : 20} />
+      <PlayerAvatar avatarUrl={ranking.avatarUrl} displayName={ranking.displayName} size={isFirst ? 32 : 26} />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
-          <span className={`font-semibold wd-text-primary truncate ${isFirst ? "text-[13px]" : "text-xs"}`}>
+          <span className={`font-semibold wd-text-primary truncate ${isFirst ? "text-sm" : "text-[13px]"}`}>
             {ranking.displayName}
           </span>
           {ranking.isMvp && (
-            <span className="text-[9px] font-bold uppercase tracking-wider text-[var(--wd-accent)]">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--wd-accent)]">
               MVP
             </span>
           )}
           {ranking.isMostImproved && (
-            <span className="inline-flex items-center gap-0.5 text-[9px] font-bold uppercase tracking-wider text-[var(--wd-success)]">
-              <TrendingUp size={10} />
+            <span className="inline-flex items-center gap-0.5 text-[10px] font-bold uppercase tracking-wider text-[var(--wd-success)]">
+              <TrendingUp size={11} />
               Rising
             </span>
           )}
         </div>
-        <div className="flex items-center gap-2 text-[10px] wd-text-muted">
-          <span>{ranking.gamesPlayed}g</span>
+        <div className="flex items-center gap-2 text-[11px] wd-text-muted mt-0.5">
+          <span>{ranking.gamesPlayed} games</span>
           <span className="wd-text-muted">·</span>
           <span>Impact: {ranking.impactScore}</span>
           {ranking.bestHero.heroName && ranking.bestHero.games > 0 && (
@@ -108,9 +105,9 @@ function RankingEntry({ ranking, isLast }: Omit<RankingEntryProps, "weekSeed">) 
       </div>
 
       {/* Win rate + rank delta */}
-      <div className="flex items-center gap-2 shrink-0">
+      <div className="flex items-center gap-2.5 shrink-0">
         <span
-          className={`text-[11px] font-bold tabular-nums ${
+          className={`text-[12px] font-bold tabular-nums ${
             ranking.winRate >= 55
               ? "text-[var(--wd-success)]"
               : ranking.winRate <= 45
@@ -158,28 +155,27 @@ export function WeeklyPowerRankingsWidget({ workspaceId, channelId }: Props) {
     <div>
       {/* Banter callout */}
       {banterMessage && (
-        <div className="mb-3 px-3.5 py-2.5 rounded-xl bg-[var(--wd-accent)]/10">
-          <p className="text-[11px] font-semibold text-[var(--wd-accent)] leading-relaxed">
+        <div className="mb-3.5 px-4 py-3 rounded-xl bg-[var(--wd-surface-panel-2)]">
+          <p className="text-[12px] font-medium wd-text-secondary leading-relaxed">
             {banterMessage}
           </p>
         </div>
       )}
 
       {/* Rankings list */}
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         {data.rankings.map((ranking) => (
           <RankingEntry
             key={ranking.dotaAccountId}
             ranking={ranking}
-            isLast={lastPlace?.dotaAccountId === ranking.dotaAccountId}
           />
         ))}
       </div>
 
       {/* Last place roast */}
       {lastPlace && data.rankings.length > 2 && (
-        <div className="mt-3 px-3.5 py-2.5 rounded-xl bg-[var(--wd-danger)]/10">
-          <p className="text-[11px] wd-text-secondary leading-relaxed">
+        <div className="mt-3.5 px-4 py-3 rounded-xl bg-[var(--wd-surface-panel-2)]">
+          <p className="text-[12px] wd-text-secondary leading-relaxed">
             {interpolate(
               pickRankingMessage("last", lastPlace.dotaAccountId, weekSeed),
               { name: lastPlace.displayName },
@@ -190,8 +186,8 @@ export function WeeklyPowerRankingsWidget({ workspaceId, channelId }: Props) {
 
       {/* Most improved callout */}
       {mostImproved && mostImproved.rankDelta > 0 && (
-        <div className="mt-2 px-3.5 py-2.5 rounded-xl bg-[var(--wd-success)]/10">
-          <p className="text-[11px] text-[var(--wd-success)] leading-relaxed font-medium">
+        <div className="mt-2.5 px-4 py-3 rounded-xl bg-[var(--wd-surface-panel-2)]">
+          <p className="text-[12px] wd-text-secondary leading-relaxed font-medium">
             {interpolate(
               pickRankingMessage("improved", mostImproved.dotaAccountId, weekSeed),
               { name: mostImproved.displayName, delta: mostImproved.rankDelta },
@@ -201,7 +197,7 @@ export function WeeklyPowerRankingsWidget({ workspaceId, channelId }: Props) {
       )}
 
       {/* Week range */}
-      <div className="mt-2 text-[9px] wd-text-muted text-center">
+      <div className="mt-3 text-[10px] wd-text-muted text-center">
         {data.weekStart} — {data.weekEnd}
       </div>
     </div>

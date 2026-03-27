@@ -40,7 +40,7 @@ export function RolePerformanceWidget({ workspaceId, channelId }: Props) {
   ];
 
   return (
-    <div className="h-[200px]">
+    <div className="h-[220px]">
       <ResponsiveBar
         data={chartData}
         keys={allRoles}

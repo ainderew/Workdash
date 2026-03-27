@@ -12,22 +12,22 @@ interface Props {
 
 function HeroRow({ hero }: { hero: HeroMasteryData["players"][number]["topHeroes"][number] }) {
   return (
-    <div className="flex items-center gap-2 py-1">
+    <div className="flex items-center gap-3 py-1.5">
       {hero.heroIcon && (
         <Image
           src={hero.heroIcon}
           alt={hero.heroName}
-          width={24}
-          height={24}
-          className="rounded"
+          width={52}
+          height={52}
+          className="rounded-lg ring-1 ring-[var(--wd-border-subtle)]"
         />
       )}
-      <span className="text-[11px] font-medium wd-text-primary flex-1 truncate">
+      <span className="text-[13px] font-medium wd-text-primary flex-1 truncate">
         {hero.heroName}
       </span>
-      <span className="text-[10px] tabular-nums wd-text-muted">{hero.games}g</span>
+      <span className="text-[11px] tabular-nums wd-text-muted">{hero.games}g</span>
       <span
-        className={`text-[10px] font-bold tabular-nums ${
+        className={`text-[11px] font-bold tabular-nums min-w-[36px] text-right ${
           hero.winRate >= 55
             ? "text-[var(--wd-success)]"
             : hero.winRate <= 45
@@ -43,22 +43,22 @@ function HeroRow({ hero }: { hero: HeroMasteryData["players"][number]["topHeroes
 
 function RivalryCard({ rivalry }: { rivalry: HeroMasteryData["rivalries"][number] }) {
   return (
-    <div className="rounded-lg bg-[var(--wd-surface-elevated)]/30 p-2.5">
-      <div className="flex items-center gap-2 mb-1.5">
+    <div className="rounded-xl bg-[var(--wd-surface-panel-2)] p-3">
+      <div className="flex items-center gap-2.5 mb-2">
         {rivalry.heroIcon && (
           <img
             src={rivalry.heroIcon}
             alt={rivalry.heroName}
-            className="w-5 h-5 rounded"
+            className="w-10 h-10 rounded-lg ring-1 ring-[var(--wd-border-subtle)]"
           />
         )}
-        <span className="text-[10px] font-semibold uppercase tracking-wider wd-text-muted">
+        <span className="text-[11px] font-semibold uppercase tracking-wider wd-text-muted">
           {rivalry.heroName}
         </span>
       </div>
-      <div className="space-y-0.5">
+      <div className="space-y-1">
         {rivalry.players.map((p) => (
-          <div key={p.dotaAccountId} className="flex justify-between text-[10px]">
+          <div key={p.dotaAccountId} className="flex justify-between text-[11px]">
             <span className="wd-text-primary">{p.displayName}</span>
             <span className="tabular-nums wd-text-muted">
               {p.games}g · <span className="font-bold">{p.winRate}%</span>
@@ -114,10 +114,17 @@ export function HeroMasteryWidget({ workspaceId, channelId }: Props) {
       {/* Top heroes */}
       {player && (
         <div>
-          <div className="text-[10px] font-semibold uppercase tracking-wider wd-text-muted mb-1">
+          <div className="text-[11px] font-semibold uppercase tracking-wider wd-text-muted mb-1.5">
             Top Heroes
           </div>
-          <div className="divide-y divide-[var(--wd-border-subtle)]/20">
+          {/* Column headers */}
+          <div className="flex items-center gap-3 px-0 pb-1 border-b border-[var(--wd-border-subtle)]">
+            <span className="text-[10px] font-medium wd-text-muted uppercase tracking-wide" style={{ marginLeft: 64 }}>Hero</span>
+            <span className="flex-1" />
+            <span className="text-[10px] font-medium wd-text-muted uppercase tracking-wide">Games</span>
+            <span className="text-[10px] font-medium wd-text-muted uppercase tracking-wide min-w-[36px] text-right">WR</span>
+          </div>
+          <div className="divide-y divide-[var(--wd-border-subtle)]">
             {player.topHeroes.map((hero) => (
               <HeroRow key={hero.heroId} hero={hero} />
             ))}
@@ -128,7 +135,7 @@ export function HeroMasteryWidget({ workspaceId, channelId }: Props) {
       {/* Rivalries */}
       {data.rivalries.length > 0 && (
         <div>
-          <div className="text-[10px] font-semibold uppercase tracking-wider wd-text-muted mb-1.5">
+          <div className="text-[11px] font-semibold uppercase tracking-wider wd-text-muted mb-2">
             Hero Rivalries
           </div>
           <div className="space-y-1.5">

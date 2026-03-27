@@ -40,47 +40,45 @@ function LeaderboardEntry({
 
   return (
     <div
-      className={`flex items-center gap-2.5 px-3 rounded-xl transition-colors ${
-        isTopPlayer
-          ? "py-3 bg-[var(--wd-accent)]/12"
-          : "py-2 bg-[var(--wd-surface-elevated)]"
+      className={`flex items-center gap-3 px-3.5 rounded-xl transition-colors bg-[var(--wd-surface-panel-2)] ${
+        isTopPlayer ? "py-3.5" : "py-2.5"
       }`}
     >
       {/* Rank indicator */}
-      <div className="w-6 shrink-0 text-center">
+      <div className="w-7 shrink-0 text-center">
         {rank <= 3 ? (
           rank === 1 ? (
             <Crown
-              size={16}
+              size={18}
               className={`${medalClass} wd-leaderboard-crown mx-auto`}
             />
           ) : (
-            <Medal size={14} className={`${medalClass} mx-auto`} />
+            <Medal size={16} className={`${medalClass} mx-auto`} />
           )
         ) : (
-          <span className="text-[11px] font-bold wd-text-muted">{rank}</span>
+          <span className="text-xs font-bold wd-text-muted">{rank}</span>
         )}
       </div>
 
-      {/* Player name */}
-      <PlayerAvatar avatarUrl={avatarUrl} displayName={displayName} size={isTopPlayer ? 24 : 18} />
+      {/* Player avatar + name */}
+      <PlayerAvatar avatarUrl={avatarUrl} displayName={displayName} size={isTopPlayer ? 32 : 26} />
       <div className="flex-1 min-w-0">
-        <div className={`font-semibold wd-text-primary truncate ${isTopPlayer ? "text-[13px]" : "text-xs"}`}>
+        <div className={`font-semibold wd-text-primary truncate ${isTopPlayer ? "text-sm" : "text-[13px]"}`}>
           {displayName}
           {isTopPlayer && (
-            <span className="ml-1.5 text-[9px] font-bold uppercase tracking-wider text-[var(--wd-accent)]">
+            <span className="ml-2 text-[10px] font-bold uppercase tracking-wider text-[var(--wd-accent)]">
               MVP
             </span>
           )}
         </div>
-        <div className="text-[10px] wd-text-muted">
+        <div className="text-[11px] wd-text-muted mt-0.5">
           {gamesPlayed} games · {avgKda} KDA
         </div>
       </div>
 
       {/* Win rate bar */}
-      <div className="w-16 shrink-0">
-        <div className="flex justify-between text-[10px] mb-0.5">
+      <div className="w-[72px] shrink-0">
+        <div className="flex justify-between text-[11px] mb-1">
           <span
             className={`font-bold tabular-nums ${
               winRate >= 55
@@ -93,7 +91,7 @@ function LeaderboardEntry({
             {winRate}%
           </span>
         </div>
-        <div className="h-1.5 rounded-full bg-[var(--wd-surface-elevated)] overflow-hidden">
+        <div className="h-2 rounded-full bg-[var(--wd-surface-elevated)] overflow-hidden">
           <div
             className={`h-full rounded-full wd-wr-bar-transition ${
               winRate >= 55
@@ -132,20 +130,23 @@ export function TeamLeaderboardWidget({ workspaceId, channelId }: Props) {
   return (
     <div>
       {/* Role tabs */}
-      <div role="tablist" className="flex gap-1 mb-3 overflow-x-auto no-scrollbar">
+      <div role="tablist" className="flex gap-0.5 mb-3.5 border-b border-[var(--wd-border-subtle)] overflow-x-auto no-scrollbar">
         {data.roles.map((role, i) => (
           <button
             key={role.role}
             role="tab"
             aria-selected={activeRole === i}
             onClick={() => setActiveRole(i)}
-            className={`px-2.5 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-wide whitespace-nowrap transition-colors ${
+            className={`px-3 py-2 text-[11px] font-semibold uppercase tracking-wide whitespace-nowrap transition-colors relative ${
               activeRole === i
-                ? "wd-bg-accent-soft text-[var(--wd-accent)]"
+                ? "text-[var(--wd-accent)]"
                 : "wd-text-muted hover:wd-text-primary"
             }`}
           >
             {role.role}
+            {activeRole === i && (
+              <span className="absolute bottom-0 left-1 right-1 h-0.5 rounded-full bg-[var(--wd-accent)]" />
+            )}
           </button>
         ))}
       </div>

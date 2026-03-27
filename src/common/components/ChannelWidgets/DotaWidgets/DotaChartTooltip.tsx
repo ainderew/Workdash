@@ -24,19 +24,19 @@ export function DotaChartTooltip({ title, items }: DotaChartTooltipProps) {
         />
       )}
       {title && (
-        <div className="text-[10px] font-semibold wd-text-primary mb-1">
+        <div className="text-[11px] font-semibold wd-text-primary mb-1.5">
           {title}
         </div>
       )}
-      <div className="space-y-0.5">
+      <div className="space-y-1">
         {items.map((item) => (
           <div
             key={item.label}
-            className="flex items-center gap-2 text-[10px]"
+            className="flex items-center gap-2.5 text-[11px]"
           >
             {item.color && (
               <span
-                className="w-2 h-2 rounded-full shrink-0"
+                className="w-2.5 h-2.5 rounded-full shrink-0"
                 style={{ backgroundColor: item.color }}
               />
             )}

@@ -1,73 +1,95 @@
 /**
  * Token-based color palettes for Dota chart widgets.
- * Uses CSS variable strings so charts inherit the active theme (light/dark).
+ * Uses dedicated --wd-dota-* CSS variables for data visualization,
+ * keeping semantic colors (success/danger/warning) reserved for
+ * actual status indicators (win/loss, tilt severity, etc.).
+ *
+ * Each theme defines 6 perceptually spaced hues (~60° apart)
+ * anchored to the theme's accent family, ensuring:
+ * - No two adjacent series look similar
+ * - Colors don't carry unintended semantic meaning
+ * - Palette works on both light and dark backgrounds
  */
 
-/** 6-color palette for multi-series charts (roles, players) */
+/** 6-color categorical palette for multi-series charts (roles, players) */
 export const DOTA_CHART_PALETTE = [
-  "var(--wd-accent)",
-  "var(--wd-success)",
-  "var(--wd-warning)",
-  "var(--wd-danger)",
-  "var(--wd-info)",
-  "rgb(var(--wd-accent-rgb) / 0.5)",
+  "var(--wd-dota-1)",
+  "var(--wd-dota-2)",
+  "var(--wd-dota-3)",
+  "var(--wd-dota-4)",
+  "var(--wd-dota-5)",
+  "var(--wd-dota-6)",
 ] as const;
 
-/** 4-color palette for ward stats (placed/killed × obs/sen) */
+/**
+ * 4-color ward palette — paired scheme:
+ * cool tones for placed (vision), warm tones for killed (combat)
+ */
 export const WARD_CHART_PALETTE = [
-  "var(--wd-info)",
-  "var(--wd-accent)",
-  "var(--wd-warning)",
-  "var(--wd-danger)",
+  "var(--wd-dota-1)", // Obs Placed — primary cool
+  "var(--wd-dota-5)", // Sen Placed — secondary cool
+  "var(--wd-dota-3)", // Obs Killed — primary warm
+  "var(--wd-dota-4)", // Sen Killed — secondary warm
 ] as const;
 
-/** 3-color palette for damage composition (physical/magical/pure) */
+/**
+ * 3-color damage palette — semantically mapped:
+ * warm for physical, cool for magical, distinct for pure
+ */
 export const DAMAGE_CHART_PALETTE = [
-  "var(--wd-danger)",
-  "var(--wd-info)",
-  "var(--wd-accent)",
+  "var(--wd-dota-3)", // Physical — amber/orange (martial)
+  "var(--wd-dota-1)", // Magical — indigo/cool (arcane)
+  "var(--wd-dota-2)", // Pure — emerald/teal (unique)
 ] as const;
 
 /** SVG gradient definitions for Nivo line charts with area fills */
 export const LINE_CHART_GRADIENT_DEFS = [
   {
-    id: "gradientAccent",
+    id: "gradientDota1",
     type: "linearGradient" as const,
     colors: [
-      { offset: 0, color: "var(--wd-accent)", opacity: 0.4 },
-      { offset: 100, color: "var(--wd-accent)", opacity: 0.02 },
+      { offset: 0, color: "var(--wd-dota-1)", opacity: 0.35 },
+      { offset: 100, color: "var(--wd-dota-1)", opacity: 0.02 },
     ],
   },
   {
-    id: "gradientSuccess",
+    id: "gradientDota2",
     type: "linearGradient" as const,
     colors: [
-      { offset: 0, color: "var(--wd-success)", opacity: 0.4 },
-      { offset: 100, color: "var(--wd-success)", opacity: 0.02 },
+      { offset: 0, color: "var(--wd-dota-2)", opacity: 0.35 },
+      { offset: 100, color: "var(--wd-dota-2)", opacity: 0.02 },
     ],
   },
   {
-    id: "gradientWarning",
+    id: "gradientDota3",
     type: "linearGradient" as const,
     colors: [
-      { offset: 0, color: "var(--wd-warning)", opacity: 0.4 },
-      { offset: 100, color: "var(--wd-warning)", opacity: 0.02 },
+      { offset: 0, color: "var(--wd-dota-3)", opacity: 0.35 },
+      { offset: 100, color: "var(--wd-dota-3)", opacity: 0.02 },
     ],
   },
   {
-    id: "gradientDanger",
+    id: "gradientDota4",
     type: "linearGradient" as const,
     colors: [
-      { offset: 0, color: "var(--wd-danger)", opacity: 0.4 },
-      { offset: 100, color: "var(--wd-danger)", opacity: 0.02 },
+      { offset: 0, color: "var(--wd-dota-4)", opacity: 0.35 },
+      { offset: 100, color: "var(--wd-dota-4)", opacity: 0.02 },
     ],
   },
   {
-    id: "gradientInfo",
+    id: "gradientDota5",
     type: "linearGradient" as const,
     colors: [
-      { offset: 0, color: "var(--wd-info)", opacity: 0.4 },
-      { offset: 100, color: "var(--wd-info)", opacity: 0.02 },
+      { offset: 0, color: "var(--wd-dota-5)", opacity: 0.35 },
+      { offset: 100, color: "var(--wd-dota-5)", opacity: 0.02 },
+    ],
+  },
+  {
+    id: "gradientDota6",
+    type: "linearGradient" as const,
+    colors: [
+      { offset: 0, color: "var(--wd-dota-6)", opacity: 0.35 },
+      { offset: 100, color: "var(--wd-dota-6)", opacity: 0.02 },
     ],
   },
 ];
@@ -78,11 +100,12 @@ export const LINE_CHART_GRADIENT_DEFS = [
  */
 export function buildGradientFills(seriesIds: string[]) {
   const gradientIds = [
-    "gradientAccent",
-    "gradientSuccess",
-    "gradientWarning",
-    "gradientDanger",
-    "gradientInfo",
+    "gradientDota1",
+    "gradientDota2",
+    "gradientDota3",
+    "gradientDota4",
+    "gradientDota5",
+    "gradientDota6",
   ];
   return seriesIds.map((id, i) => ({
     match: { id },

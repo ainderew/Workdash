@@ -20,16 +20,16 @@ function MilestoneCard({ milestone }: { milestone: MilestoneData["milestones"][n
   const Icon = ICON_MAP[milestone.icon] ?? Zap;
 
   return (
-    <div className="flex items-start gap-2.5 px-2.5 py-2 rounded-lg bg-[var(--wd-surface-elevated)]/30">
-      <PlayerAvatar avatarUrl={milestone.avatarUrl} displayName={milestone.displayName} size={18} />
+    <div className="flex items-start gap-3 px-3 py-2.5 rounded-xl bg-[var(--wd-surface-panel-2)]">
+      <PlayerAvatar avatarUrl={milestone.avatarUrl} displayName={milestone.displayName} />
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5">
-          <Icon size={12} className="shrink-0 text-[var(--wd-accent)]" />
-          <span className="text-[11px] font-medium wd-text-primary leading-snug">
+        <div className="flex items-center gap-2">
+          <Icon size={14} className="shrink-0 text-[var(--wd-accent)]" />
+          <span className="text-[12px] font-medium wd-text-primary leading-snug">
             {milestone.message}
           </span>
         </div>
-        <div className="text-[9px] wd-text-muted mt-0.5">{milestone.date}</div>
+        <div className="text-[10px] wd-text-muted mt-1">{milestone.date}</div>
       </div>
     </div>
   );

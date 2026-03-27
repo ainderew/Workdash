@@ -13,25 +13,25 @@ type Matchup = HeadToHeadData["matchups"][number];
 
 function RoleComparison({ role }: { role: Matchup["sharedRoles"][number] }) {
   return (
-    <div className="rounded-lg bg-[var(--wd-surface-elevated)]/30 p-2.5">
-      <div className="text-[10px] font-semibold uppercase tracking-wider wd-text-muted mb-2 text-center">
+    <div className="rounded-xl bg-[var(--wd-surface-panel-2)] p-3">
+      <div className="text-[11px] font-semibold uppercase tracking-wider wd-text-muted mb-2.5 text-center">
         {role.role}
       </div>
-      <div className="grid grid-cols-3 gap-1 text-center">
+      <div className="grid grid-cols-3 gap-1.5 text-center">
         <div>
-          <div className={`text-xs font-bold tabular-nums ${role.winner === "A" ? "text-[var(--wd-success)]" : "wd-text-primary"}`}>
+          <div className={`text-[13px] font-bold tabular-nums ${role.winner === "A" ? "text-[var(--wd-success)]" : "wd-text-primary"}`}>
             {role.playerAWinRate}%
           </div>
-          <div className="text-[9px] wd-text-muted">{role.playerAGames}g · {role.playerAKda} KDA</div>
+          <div className="text-[10px] wd-text-muted mt-0.5">{role.playerAGames}g · {role.playerAKda} KDA</div>
         </div>
         <div className="flex items-center justify-center">
-          <span className="text-[9px] font-bold wd-text-muted">vs</span>
+          <span className="text-[10px] font-bold wd-text-muted">vs</span>
         </div>
         <div>
-          <div className={`text-xs font-bold tabular-nums ${role.winner === "B" ? "text-[var(--wd-success)]" : "wd-text-primary"}`}>
+          <div className={`text-[13px] font-bold tabular-nums ${role.winner === "B" ? "text-[var(--wd-success)]" : "wd-text-primary"}`}>
             {role.playerBWinRate}%
           </div>
-          <div className="text-[9px] wd-text-muted">{role.playerBGames}g · {role.playerBKda} KDA</div>
+          <div className="text-[10px] wd-text-muted mt-0.5">{role.playerBGames}g · {role.playerBKda} KDA</div>
         </div>
       </div>
     </div>
@@ -40,23 +40,23 @@ function RoleComparison({ role }: { role: Matchup["sharedRoles"][number] }) {
 
 function MatchupCard({ matchup }: { matchup: Matchup }) {
   return (
-    <div className="space-y-2">
+    <div className="space-y-2.5">
       {/* Header with names */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
-          <PlayerAvatar avatarUrl={matchup.playerA.avatarUrl} displayName={matchup.playerA.displayName} size={20} />
-          <span className="text-xs font-semibold wd-text-primary">{matchup.playerA.displayName}</span>
+        <div className="flex items-center gap-2">
+          <PlayerAvatar avatarUrl={matchup.playerA.avatarUrl} displayName={matchup.playerA.displayName} size={28} />
+          <span className="text-[13px] font-semibold wd-text-primary">{matchup.playerA.displayName}</span>
         </div>
-        <span className="text-[10px] font-bold wd-text-muted">vs</span>
-        <div className="flex items-center gap-1.5">
-          <span className="text-xs font-semibold wd-text-primary">{matchup.playerB.displayName}</span>
-          <PlayerAvatar avatarUrl={matchup.playerB.avatarUrl} displayName={matchup.playerB.displayName} size={20} />
+        <span className="text-[11px] font-bold wd-text-muted">vs</span>
+        <div className="flex items-center gap-2">
+          <span className="text-[13px] font-semibold wd-text-primary">{matchup.playerB.displayName}</span>
+          <PlayerAvatar avatarUrl={matchup.playerB.avatarUrl} displayName={matchup.playerB.displayName} size={28} />
         </div>
       </div>
 
       {/* Same team stats */}
       {matchup.gamesOnSameTeam > 0 && (
-        <div className="flex items-center justify-center gap-2 text-[10px] wd-text-muted">
+        <div className="flex items-center justify-center gap-2.5 text-[11px] wd-text-muted">
           <span>{matchup.gamesOnSameTeam} games together</span>
           <span className="font-bold tabular-nums text-[var(--wd-accent)]">
             {matchup.winRateTogether}% WR
@@ -66,7 +66,7 @@ function MatchupCard({ matchup }: { matchup: Matchup }) {
 
       {/* Role comparisons */}
       {matchup.sharedRoles.length > 0 && (
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           {matchup.sharedRoles.map((role) => (
             <RoleComparison key={role.role} role={role} />
           ))}

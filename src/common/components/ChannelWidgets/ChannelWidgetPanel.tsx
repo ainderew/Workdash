@@ -369,7 +369,7 @@ export function ChannelWidgetPanel({ roomId, workspaceId }: Props) {
       {!collapsed && (
         <div className="flex flex-col flex-1 min-h-0">
           {availableCategories.length > 1 && (
-            <div role="tablist" className="flex gap-0.5 px-3 pb-2.5 overflow-x-auto no-scrollbar shrink-0">
+            <div role="tablist" className="flex gap-0.5 px-3 pb-0 mb-3 border-b border-[var(--wd-border-subtle)] overflow-x-auto no-scrollbar shrink-0">
               {availableCategories.map((cat) => {
                 const isActive = cat.id === activeCategory;
                 const CatIcon = cat.icon;
@@ -380,14 +380,17 @@ export function ChannelWidgetPanel({ roomId, workspaceId }: Props) {
                     role="tab"
                     aria-selected={isActive}
                     onClick={() => setActiveCategory(cat.id)}
-                    className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-wide whitespace-nowrap transition-all duration-150 ${
+                    className={`flex items-center gap-1.5 px-3 py-2 text-[11px] font-semibold uppercase tracking-wide whitespace-nowrap transition-all duration-150 relative ${
                       isActive
-                        ? "wd-bg-accent-soft text-[var(--wd-accent)]"
-                        : "wd-text-muted hover:wd-text-primary hover:bg-[var(--wd-surface-elevated)]"
+                        ? "text-[var(--wd-accent)]"
+                        : "wd-text-muted hover:wd-text-primary"
                     }`}
                   >
                     <CatIcon size={12} />
                     {cat.label}
+                    {isActive && (
+                      <span className="absolute bottom-0 left-2 right-2 h-0.5 rounded-full bg-[var(--wd-accent)]" />
+                    )}
                   </button>
                 );
               })}

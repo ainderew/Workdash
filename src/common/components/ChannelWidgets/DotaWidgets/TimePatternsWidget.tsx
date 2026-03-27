@@ -14,21 +14,21 @@ interface Props {
 function HeatCell({ winRate, games }: { winRate: number; games: number }) {
   const bg =
     games < 5
-      ? "bg-[var(--wd-border-subtle)]/10"
+      ? "bg-[var(--wd-surface-elevated)]"
       : winRate >= 60
-        ? "bg-[var(--wd-success)]/40"
+        ? "bg-[var(--wd-success-soft)] ring-1 ring-[var(--wd-success)]"
         : winRate >= 50
-          ? "bg-[var(--wd-success)]/20"
+          ? "bg-[var(--wd-success-soft)]"
           : winRate >= 40
-            ? "bg-[var(--wd-warning)]/20"
-            : "bg-[var(--wd-danger)]/30";
+            ? "bg-[var(--wd-warning-soft)]"
+            : "bg-[var(--wd-danger-soft)]";
 
   return (
     <div
       className={`rounded px-1.5 py-1 text-center ${bg}`}
       title={`${winRate}% WR (${games} games)`}
     >
-      <span className="text-[9px] font-bold tabular-nums wd-text-primary">
+      <span className="text-[10px] font-bold tabular-nums wd-text-primary">
         {games >= 5 ? `${winRate}%` : "-"}
       </span>
     </div>
@@ -123,8 +123,8 @@ export function TimePatternsWidget({ workspaceId, channelId }: Props) {
 
       {/* Banter callout */}
       {(player.bestTimeSlot.games >= 5 || player.bestDay.games >= 5) && (
-        <div className="px-3 py-2 rounded-lg bg-[var(--wd-accent)]/5">
-          <p className="text-[10px] text-[var(--wd-accent)] leading-relaxed">
+        <div className="px-3.5 py-2.5 rounded-xl bg-[var(--wd-surface-panel-2)]">
+          <p className="text-[11px] wd-text-secondary leading-relaxed">
             {banterMessage}
           </p>
         </div>
