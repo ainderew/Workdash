@@ -130,7 +130,7 @@ export class ScreenShareViewer {
 
     private async consumeProducer(producerId: string): Promise<void> {
         try {
-            const consumerData = await new Promise<ConsumerData>((resolve) => {
+            const consumerData = await new Promise<ConsumerData>((resolve, reject) => {
                 this.service.socket.emit(
                     "consume",
                     {
@@ -138,7 +138,13 @@ export class ScreenShareViewer {
                         rtpCapabilities: this.service.device!.rtpCapabilities,
                         transportId: this.service.recvTransport!.id,
                     },
-                    resolve,
+                    (response: ConsumerData & { error?: string }) => {
+                        if (response.error) {
+                            reject(new Error(response.error));
+                        } else {
+                            resolve(response);
+                        }
+                    },
                 );
             });
 
@@ -149,13 +155,19 @@ export class ScreenShareViewer {
                 rtpParameters: consumerData.rtpParameters,
             });
 
-            await new Promise((resolve) => {
+            await new Promise<void>((resolve, reject) => {
                 this.service.socket.emit(
                     "resumeConsumer",
                     {
                         consumerId: consumer.id,
                     },
-                    resolve,
+                    (response: { error?: string }) => {
+                        if (response?.error) {
+                            reject(new Error(response.error));
+                        } else {
+                            resolve();
+                        }
+                    },
                 );
             });
 
@@ -193,6 +205,8 @@ export class ScreenShareViewer {
         const videoEl = document.createElement("video") as HTMLVideoElement;
         videoEl.srcObject = new MediaStream([consumer.track]);
         videoEl.autoplay = true;
+        videoEl.muted = true;
+        videoEl.playsInline = true;
         videoEl.controls = false;
         videoEl.style.width = "100%";
         videoEl.dataset.producerId = producerId;

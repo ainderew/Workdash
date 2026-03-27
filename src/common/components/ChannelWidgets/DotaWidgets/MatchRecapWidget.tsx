@@ -5,6 +5,7 @@ import { useWidgetStore } from "@/common/store/widgetStore";
 import { WidgetSkeleton, WidgetEmpty } from "../WidgetShell";
 import type { MatchRecapData } from "../_types";
 import { PlayerAvatar } from "./PlayerAvatar";
+import { PerformanceEstimateTooltip } from "./PerformanceEstimateTooltip";
 
 interface Props {
   workspaceId: string;
@@ -31,6 +32,19 @@ function PlayerRow({ player }: { player: MatchRecapData["players"][number] }) {
           height={52}
           className="rounded-lg ring-1 ring-[var(--wd-border-subtle)]"
         />
+      )}
+      {player.performanceEstimate && (
+        <div className="shrink-0 w-8 flex flex-col items-center">
+          <Image
+            src={player.performanceEstimate.imagePath}
+            alt={player.performanceEstimate.label}
+            width={28}
+            height={28}
+          />
+          <span className="text-[8px] font-bold wd-text-muted leading-tight">
+            {player.performanceEstimate.label}
+          </span>
+        </div>
       )}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
@@ -75,6 +89,7 @@ export function MatchRecapWidget({ workspaceId, channelId }: Props) {
 
   const winners = data.players.filter((p) => p.won);
   const losers = data.players.filter((p) => !p.won);
+  const hasEstimates = data.players.some((p) => p.performanceEstimate);
 
   return (
     <div className="space-y-2.5">
@@ -89,9 +104,12 @@ export function MatchRecapWidget({ workspaceId, channelId }: Props) {
         >
           {data.radiantWin ? "Radiant" : "Dire"} Victory
         </span>
-        <span className="text-[11px] wd-text-muted tabular-nums font-medium">
-          {formatDuration(data.durationSec)}
-        </span>
+        <div className="flex items-center gap-1.5">
+          <span className="text-[11px] wd-text-muted tabular-nums font-medium">
+            {formatDuration(data.durationSec)}
+          </span>
+          {hasEstimates && <PerformanceEstimateTooltip />}
+        </div>
       </div>
 
       {/* Player list */}

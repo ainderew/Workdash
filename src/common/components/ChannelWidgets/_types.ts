@@ -370,6 +370,13 @@ export interface MatchRecapData {
     won: boolean;
     isMvp: boolean;
     highlights: string[];
+    performanceEstimate?: {
+      medal: string;
+      stars: number;
+      label: string;
+      imagePath: string;
+      percentile: number;
+    };
   }[];
 }
 
