@@ -34,17 +34,13 @@ function PlayerRow({ player }: { player: MatchRecapData["players"][number] }) {
         />
       )}
       {player.performanceEstimate && (
-        <div className="shrink-0 w-8 flex flex-col items-center">
-          <Image
-            src={player.performanceEstimate.imagePath}
-            alt={player.performanceEstimate.label}
-            width={28}
-            height={28}
-          />
-          <span className="text-[8px] font-bold wd-text-muted leading-tight">
-            {player.performanceEstimate.label}
-          </span>
-        </div>
+        <Image
+          src={player.performanceEstimate.imagePath}
+          alt={player.performanceEstimate.label}
+          width={28}
+          height={28}
+          className="shrink-0"
+        />
       )}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
@@ -58,6 +54,11 @@ function PlayerRow({ player }: { player: MatchRecapData["players"][number] }) {
         <div className="text-[10px] wd-text-muted truncate">
           {player.heroName}
         </div>
+        {player.performanceEstimate && (
+          <div className="text-[9px] font-semibold text-[var(--wd-accent)] truncate mt-0.5">
+            Played like {player.performanceEstimate.label}
+          </div>
+        )}
       </div>
       <div className="text-right shrink-0">
         <div className="text-[13px] font-bold tabular-nums wd-text-primary">
