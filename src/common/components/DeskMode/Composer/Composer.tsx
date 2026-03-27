@@ -52,7 +52,7 @@ function Composer(props: ComposerProps) {
 
     const tiptap = useTiptapEditor({
         placeholder,
-        disabled: disabled || isSending,
+        disabled,
         onSubmit: () => submitRef.current(),
         onEditLastMessage,
         onTyping,

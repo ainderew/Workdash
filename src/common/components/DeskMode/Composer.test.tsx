@@ -514,10 +514,10 @@ describe('Composer', () => {
       expect(editor).toHaveAttribute('contenteditable', 'false');
     });
 
-    it('sets editor contenteditable to false when isSending', () => {
+    it('keeps editor editable when isSending so user can type next message', () => {
       renderComposer({ isSending: true });
       const editor = getEditor();
-      expect(editor).toHaveAttribute('contenteditable', 'false');
+      expect(editor).toHaveAttribute('contenteditable', 'true');
     });
 
     it('sets editor contenteditable to true when enabled', () => {

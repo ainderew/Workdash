@@ -116,8 +116,14 @@ export function useSendMessage({
         // This is handled by the caller if needed
       }
     } finally {
+      // Only re-focus if the editor lost focus (e.g. file upload dialog).
+      // Avoid unconditional focus — it interrupts typing that's already
+      // happening in the still-editable editor and can swallow keystrokes.
       window.requestAnimationFrame(() => {
-        focusInput();
+        const editorEl = document.querySelector('.tiptap-editor');
+        if (!editorEl?.contains(document.activeElement)) {
+          focusInput();
+        }
       });
     }
   }, [
