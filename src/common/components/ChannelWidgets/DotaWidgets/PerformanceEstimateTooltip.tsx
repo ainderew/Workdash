@@ -1,5 +1,5 @@
 import React from "react";
-import { Info, Coins, Sparkles, Crosshair, Wheat, Swords, Heart } from "lucide-react";
+import { Info, Coins, Sparkles, Crosshair, Wheat, Swords, Heart, Eye } from "lucide-react";
 import {
   Tooltip,
   TooltipTrigger,
@@ -16,12 +16,12 @@ const CORE_FACTORS = [
 ];
 
 const SUPPORT_FACTORS = [
-  { icon: Crosshair, label: "Kills/min", weight: "25%" },
-  { icon: Heart, label: "Healing/min", weight: "25%" },
-  { icon: Swords, label: "Hero Dmg/min", weight: "25%" },
-  { icon: Coins, label: "GPM", weight: "10%" },
-  { icon: Sparkles, label: "XPM", weight: "10%" },
-  { icon: Wheat, label: "Last Hits/min", weight: "5%" },
+  { icon: Eye, label: "Vision (wards + dewards)", weight: "30%" },
+  { icon: Crosshair, label: "Kills/min", weight: "20%" },
+  { icon: Heart, label: "Healing/min", weight: "20%" },
+  { icon: Swords, label: "Hero Dmg/min", weight: "20%" },
+  { icon: Coins, label: "GPM", weight: "5%" },
+  { icon: Sparkles, label: "XPM", weight: "5%" },
 ];
 
 export function PerformanceEstimateTooltip() {
