@@ -6,6 +6,11 @@ import useCallStore from "@/common/store/callStore";
 import useUiStore from "@/common/store/uiStore";
 import { logger } from "@/common/utils/logger";
 import { ConsumerData } from "./_types";
+import {
+    emitWithTimeout,
+    SFU_TIMEOUTS,
+    validateNoError,
+} from "@/communication/utils/emitWithTimeout";
 
 export class ScreenShareViewer {
     private static instance: ScreenShareViewer | null = null;
@@ -66,10 +71,13 @@ export class ScreenShareViewer {
             await this.waitForPlayers();
         }
 
-        const producers = await new Promise<
+        const producers = await emitWithTimeout<
             { producerId: string; socketId: string; source: string; userName?: string; userId?: number }[]
-        >((resolve) => {
-            this.service.socket.emit("getProducers", {}, resolve);
+        >({
+            socket: this.service.socket,
+            event: "getProducers",
+            data: {},
+            timeoutMs: SFU_TIMEOUTS.GET_PRODUCERS,
         });
 
         logger.log(`Found ${producers.length} existing producers`, producers);
@@ -130,22 +138,16 @@ export class ScreenShareViewer {
 
     private async consumeProducer(producerId: string): Promise<void> {
         try {
-            const consumerData = await new Promise<ConsumerData>((resolve, reject) => {
-                this.service.socket.emit(
-                    "consume",
-                    {
-                        producerId,
-                        rtpCapabilities: this.service.device!.rtpCapabilities,
-                        transportId: this.service.recvTransport!.id,
-                    },
-                    (response: ConsumerData & { error?: string }) => {
-                        if (response.error) {
-                            reject(new Error(response.error));
-                        } else {
-                            resolve(response);
-                        }
-                    },
-                );
+            const consumerData = await emitWithTimeout<ConsumerData>({
+                socket: this.service.socket,
+                event: "consume",
+                data: {
+                    producerId,
+                    rtpCapabilities: this.service.device!.rtpCapabilities,
+                    transportId: this.service.recvTransport!.id,
+                },
+                timeoutMs: SFU_TIMEOUTS.CONSUME,
+                validate: validateNoError,
             });
 
             const consumer = await this.service.recvTransport!.consume({
@@ -155,20 +157,12 @@ export class ScreenShareViewer {
                 rtpParameters: consumerData.rtpParameters,
             });
 
-            await new Promise<void>((resolve, reject) => {
-                this.service.socket.emit(
-                    "resumeConsumer",
-                    {
-                        consumerId: consumer.id,
-                    },
-                    (response: { error?: string }) => {
-                        if (response?.error) {
-                            reject(new Error(response.error));
-                        } else {
-                            resolve();
-                        }
-                    },
-                );
+            await emitWithTimeout<unknown>({
+                socket: this.service.socket,
+                event: "resumeConsumer",
+                data: { consumerId: consumer.id },
+                timeoutMs: SFU_TIMEOUTS.RESUME_CONSUMER,
+                validate: validateNoError,
             });
 
             const currentProducerIds =

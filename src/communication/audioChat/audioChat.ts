@@ -11,6 +11,12 @@ import useUiStore from "@/common/store/uiStore";
 import useUserStore from "@/common/store/useStore";
 import { RNNoiseService } from "./rnnoiseService";
 import { toast } from "sonner";
+import {
+    emitWithTimeout,
+    assertTransportReady,
+    SFU_TIMEOUTS,
+    validateNoError,
+} from "@/communication/utils/emitWithTimeout";
 
 interface ConsumerServerResponse {
     id: string;
@@ -62,6 +68,7 @@ export class AudioChat {
 
     private producerToConsumerMap: Map<string, string> = new Map();
     private consumingInFlight = new Set<string>();
+    private joining = false;
     private socketToProducersMap: Map<string, string[]> = new Map();
     private watchingNewProducers = false;
     /** Track music-bot producer IDs for separate gain/processing */
@@ -334,7 +341,8 @@ export class AudioChat {
         const [audioTrack] = processedStream.getAudioTracks();
 
         try {
-            this.audioProducer = await this.sfuService.sendTransport!.produce({
+            assertTransportReady(this.sfuService.sendTransport, "Send");
+            this.audioProducer = await this.sfuService.sendTransport.produce({
                 track: audioTrack,
                 codecOptions: this.getCodecOptions(),
                 appData: { source: 'microphone' },
@@ -402,38 +410,44 @@ export class AudioChat {
     }
 
     public async joinVoiceChat(deviceId?: string) {
-        if (this.audioProducer && !this.audioProducer.closed) {
+        if ((this.audioProducer && !this.audioProducer.closed) || this.joining) {
             return;
         }
-
-        const stream = await navigator.mediaDevices.getUserMedia({
-            audio: this.getAudioConstraints(deviceId),
-        });
-
-        this.currentStream = stream;
-        if (deviceId) {
-            this.currentDeviceId = deviceId;
-        }
-
-        const processedStream = await this.processAudioStream(stream);
-        const [audioTrack] = processedStream.getAudioTracks();
+        this.joining = true;
 
         try {
-            this.audioProducer = await this.sfuService.sendTransport!.produce({
-                track: audioTrack,
-                codecOptions: this.getCodecOptions(),
-                appData: { source: 'microphone' },
+            const stream = await navigator.mediaDevices.getUserMedia({
+                audio: this.getAudioConstraints(deviceId),
             });
-        } catch (err) {
-            stream.getTracks().forEach((t) => t.stop());
-            this.currentStream = null;
-            throw err;
+
+            this.currentStream = stream;
+            if (deviceId) {
+                this.currentDeviceId = deviceId;
+            }
+
+            const processedStream = await this.processAudioStream(stream);
+            const [audioTrack] = processedStream.getAudioTracks();
+
+            try {
+                assertTransportReady(this.sfuService.sendTransport, "Send");
+                this.audioProducer = await this.sfuService.sendTransport.produce({
+                    track: audioTrack,
+                    codecOptions: this.getCodecOptions(),
+                    appData: { source: 'microphone' },
+                });
+            } catch (err) {
+                stream.getTracks().forEach((t) => t.stop());
+                this.currentStream = null;
+                throw err;
+            }
+
+            // Resume AudioContexts after joining (Firefox autoplay policy)
+            await this.resumeAudioContexts();
+
+            this.muteMic();
+        } finally {
+            this.joining = false;
         }
-
-        // Resume AudioContexts after joining (Firefox autoplay policy)
-        await this.resumeAudioContexts();
-
-        this.muteMic();
     }
 
     public async watchNewProducers() {
@@ -456,6 +470,12 @@ export class AudioChat {
                     data.source !== "music-bot" &&
                     data.source !== "soundboard"
                 ) {
+                    return;
+                }
+
+                // Skip soundboard sounds entirely in focus mode —
+                // they're ephemeral so there's nothing to resume later
+                if (data.source === "soundboard" && this.isInFocusMode) {
                     return;
                 }
 
@@ -542,25 +562,18 @@ export class AudioChat {
         }
 
         try {
-            const consumerData: ConsumerServerResponse = await new Promise(
-                (resolve) => {
-                    this.sfuService.socket.emit(
-                        "consume",
-                        {
-                            producerId: producerId,
-                            rtpCapabilities:
-                                this.sfuService.device!.rtpCapabilities,
-                            transportId: this.sfuService.recvTransport!.id,
-                        },
-                        resolve,
-                    );
+            const consumerData = await emitWithTimeout<ConsumerServerResponse>({
+                socket: this.sfuService.socket,
+                event: "consume",
+                data: {
+                    producerId: producerId,
+                    rtpCapabilities:
+                        this.sfuService.device!.rtpCapabilities,
+                    transportId: this.sfuService.recvTransport!.id,
                 },
-            );
-
-            if ((consumerData as unknown as { error: string }).error) {
-                logger.error("Server rejected consume:", consumerData);
-                return;
-            }
+                timeoutMs: SFU_TIMEOUTS.CONSUME,
+                validate: validateNoError,
+            });
 
             const consumer: Consumer =
                 await this.sfuService.recvTransport!.consume({
@@ -578,29 +591,13 @@ export class AudioChat {
                 // Don't tell server to resume — avoid wasting bandwidth
                 // Server will resume when focus mode is lifted
             } else {
-                const resumeResult = await new Promise<
-                    void | { error: string }
-                >((resolve) => {
-                    this.sfuService.socket.emit(
-                        "resumeConsumer",
-                        { consumerId: consumer.id },
-                        resolve,
-                    );
+                await emitWithTimeout<unknown>({
+                    socket: this.sfuService.socket,
+                    event: "resumeConsumer",
+                    data: { consumerId: consumer.id },
+                    timeoutMs: SFU_TIMEOUTS.RESUME_CONSUMER,
+                    validate: validateNoError,
                 });
-                if (
-                    resumeResult &&
-                    typeof resumeResult === "object" &&
-                    "error" in resumeResult
-                ) {
-                    logger.error(
-                        "Failed to resume consumer:",
-                        resumeResult.error,
-                    );
-                    consumer.close();
-                    this.consumers.delete(consumer.id);
-                    this.producerToConsumerMap.delete(producerId);
-                    return;
-                }
             }
 
             logger.log("Consumer resumed, creating Web Audio pipeline...");

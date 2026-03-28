@@ -5,6 +5,11 @@ import useUiStore from "@/common/store/uiStore";
 import { MediaTransportService } from "../mediaTransportService/mediaTransportService";
 import { ConsumerData } from "../screenShare/_types";
 import { Consumer } from "mediasoup-client/types";
+import {
+    emitWithTimeout,
+    SFU_TIMEOUTS,
+    validateNoError,
+} from "@/communication/utils/emitWithTimeout";
 
 export class VideoChatViewer {
     public static instance: VideoChatViewer | null = null;
@@ -88,23 +93,18 @@ export class VideoChatViewer {
                 return;
             }
 
-            const consumerData = await new Promise<ConsumerData>((resolve) => {
-                this.sfuService.socket.emit(
-                    "consume",
-                    {
-                        producerId,
-                        rtpCapabilities:
-                            this.sfuService.device!.rtpCapabilities,
-                        transportId: this.sfuService.recvTransport!.id,
-                    },
-                    resolve,
-                );
+            const consumerData = await emitWithTimeout<ConsumerData>({
+                socket: this.sfuService.socket,
+                event: "consume",
+                data: {
+                    producerId,
+                    rtpCapabilities:
+                        this.sfuService.device!.rtpCapabilities,
+                    transportId: this.sfuService.recvTransport!.id,
+                },
+                timeoutMs: SFU_TIMEOUTS.CONSUME,
+                validate: validateNoError,
             });
-
-            if ((consumerData as unknown as { error: string }).error) {
-                console.error("Server rejected video consume:", consumerData);
-                return;
-            }
 
             const consumer = await this.sfuService.recvTransport!.consume({
                 id: consumerData.id,
@@ -113,14 +113,12 @@ export class VideoChatViewer {
                 rtpParameters: consumerData.rtpParameters,
             });
 
-            await new Promise((resolve) => {
-                this.sfuService.socket.emit(
-                    "resumeConsumer",
-                    {
-                        consumerId: consumer.id,
-                    },
-                    resolve,
-                );
+            await emitWithTimeout<unknown>({
+                socket: this.sfuService.socket,
+                event: "resumeConsumer",
+                data: { consumerId: consumer.id },
+                timeoutMs: SFU_TIMEOUTS.RESUME_CONSUMER,
+                validate: validateNoError,
             });
 
             const currentProducerIds =
@@ -148,7 +146,7 @@ export class VideoChatViewer {
             await this.waitForPlayers();
         }
 
-        const producers = await new Promise<
+        const producers = await emitWithTimeout<
             {
                 producerId: string;
                 socketId: string;
@@ -156,8 +154,11 @@ export class VideoChatViewer {
                 userName?: string;
                 userId?: number;
             }[]
-        >((resolve) => {
-            this.sfuService.socket.emit("getProducers", {}, resolve);
+        >({
+            socket: this.sfuService.socket,
+            event: "getProducers",
+            data: {},
+            timeoutMs: SFU_TIMEOUTS.GET_PRODUCERS,
         });
 
         const relevantProducers = producers.filter(

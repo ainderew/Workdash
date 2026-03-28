@@ -1,5 +1,6 @@
 import { Producer } from "mediasoup-client/types";
 import { MediaTransportService } from "../mediaTransportService/mediaTransportService";
+import { assertTransportReady } from "@/communication/utils/emitWithTimeout";
 
 export class VideoChatService {
     public static instance: VideoChatService | null = null;
@@ -9,6 +10,7 @@ export class VideoChatService {
     private currentStream: MediaStream | null = null;
     private currentDeviceId: string | null = null;
     private switchingCamera = false;
+    private starting = false;
 
     constructor() {
         this.sfuService = MediaTransportService.getInstance();
@@ -89,43 +91,46 @@ export class VideoChatService {
     }
 
     public async startVideoChat(deviceId?: string) {
-        if (this.producer) {
+        if (this.producer || this.starting) {
             return this.producer;
         }
+        this.starting = true;
 
-        const resolvedDeviceId = deviceId ?? this.currentDeviceId ?? undefined;
-
-        const stream = await navigator.mediaDevices.getUserMedia({
-            video: this.getVideoConstraints(resolvedDeviceId),
-            audio: false,
-        });
-
-        const videoTrack = stream.getVideoTracks()[0];
-        
-        
-        
-
-        this.currentStream = stream;
-        if (resolvedDeviceId) {
-            this.currentDeviceId = resolvedDeviceId;
-        }
         try {
-            this.producer = await this.sfuService.sendTransport!.produce({
-                track: videoTrack,
-                encodings: [
-                    { maxBitrate: 200_000, scaleResolutionDownBy: 4, maxFramerate: 15 },
-                    { maxBitrate: 1_000_000, scaleResolutionDownBy: 2, maxFramerate: 30 },
-                    { maxBitrate: 4_000_000, scaleResolutionDownBy: 1, maxFramerate: 30 },
-                ],
-                codecOptions: { videoGoogleStartBitrate: 1500 },
-                appData: {
-                    source: "camera",
-                },
+            const resolvedDeviceId = deviceId ?? this.currentDeviceId ?? undefined;
+
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: this.getVideoConstraints(resolvedDeviceId),
+                audio: false,
             });
-        } catch (err) {
-            stream.getTracks().forEach((t) => t.stop());
-            this.currentStream = null;
-            throw err;
+
+            const videoTrack = stream.getVideoTracks()[0];
+
+            this.currentStream = stream;
+            if (resolvedDeviceId) {
+                this.currentDeviceId = resolvedDeviceId;
+            }
+            try {
+                assertTransportReady(this.sfuService.sendTransport, "Send");
+                this.producer = await this.sfuService.sendTransport.produce({
+                    track: videoTrack,
+                    encodings: [
+                        { maxBitrate: 200_000, scaleResolutionDownBy: 4, maxFramerate: 15 },
+                        { maxBitrate: 1_000_000, scaleResolutionDownBy: 2, maxFramerate: 30 },
+                        { maxBitrate: 4_000_000, scaleResolutionDownBy: 1, maxFramerate: 30 },
+                    ],
+                    codecOptions: { videoGoogleStartBitrate: 1500 },
+                    appData: {
+                        source: "camera",
+                    },
+                });
+            } catch (err) {
+                stream.getTracks().forEach((t) => t.stop());
+                this.currentStream = null;
+                throw err;
+            }
+        } finally {
+            this.starting = false;
         }
     }
 

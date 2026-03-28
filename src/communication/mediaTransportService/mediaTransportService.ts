@@ -13,6 +13,11 @@ import {
 import io from "socket.io-client";
 import { StatusClientService } from "@/communication/status/statusService";
 import { ActivityClientService } from "@/communication/activity/activityService";
+import {
+    emitWithTimeout,
+    SFU_TIMEOUTS,
+    validateNoError,
+} from "@/communication/utils/emitWithTimeout";
 
 
 export class MediaTransportService {
@@ -22,6 +27,7 @@ export class MediaTransportService {
 
     public recvTransport: Transport | null = null;
     public sendTransport: Transport | null = null;
+    public resetting = false;
 
     constructor(jwtToken?: string) {
         this.socket = io(CONFIG.SFU_SERVER_URL, {
@@ -63,6 +69,7 @@ export class MediaTransportService {
 
         this.socket.on("sfuReset", async () => {
             logger.log("SFU worker reset detected — re-initializing transports");
+            this.resetting = true;
             this.sendTransport = null;
             this.recvTransport = null;
 
@@ -82,6 +89,8 @@ export class MediaTransportService {
                 }
             } catch (err) {
                 logger.error("Failed to re-initialize SFU after reset:", err);
+            } finally {
+                this.resetting = false;
             }
         });
     }
@@ -223,18 +232,18 @@ export class MediaTransportService {
         errback: (err: Error) => void,
     ) => {
         try {
-            const { id } = await new Promise<{ id: string }>((resolve) =>
-                this.socket.emit(
-                    "produce",
-                    {
-                        kind,
-                        rtpParameters,
-                        transportId: this.sendTransport!.id,
-                        appData,
-                    },
-                    resolve,
-                ),
-            );
+            const { id } = await emitWithTimeout<{ id: string }>({
+                socket: this.socket,
+                event: "produce",
+                data: {
+                    kind,
+                    rtpParameters,
+                    transportId: this.sendTransport!.id,
+                    appData,
+                },
+                timeoutMs: SFU_TIMEOUTS.PRODUCE,
+                validate: validateNoError,
+            });
             callback({ id });
         } catch (err) {
             errback(err as Error);
@@ -248,15 +257,15 @@ export class MediaTransportService {
             errback: (err: Error) => void,
         ) => {
             try {
-                await new Promise((resolve) => {
-                    this.socket.emit(
-                        "connectTransport",
-                        {
-                            transportId: transport.id,
-                            dtlsParameters,
-                        },
-                        resolve,
-                    );
+                await emitWithTimeout<unknown>({
+                    socket: this.socket,
+                    event: "connectTransport",
+                    data: {
+                        transportId: transport.id,
+                        dtlsParameters,
+                    },
+                    timeoutMs: SFU_TIMEOUTS.CONNECT_TRANSPORT,
+                    validate: validateNoError,
                 });
                 callback();
             } catch (err) {
