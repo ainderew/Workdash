@@ -821,16 +821,24 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
             }
 
             set((state) => {
+                // Preserve DM rooms that were added by reloadDirectRooms
+                const mergedRoomsById = { ...roomsById };
+                for (const entry of Object.values(state.directRoomsById)) {
+                    if (entry.room) {
+                        mergedRoomsById[entry.room.id] = entry.room;
+                    }
+                }
+
                 const hasCurrentRoom =
                     state.currentRoomId
-                    && canUserEnterRoom(roomsById[state.currentRoomId]);
+                    && canUserEnterRoom(mergedRoomsById[state.currentRoomId]);
                 const firstSelectableRoom = roomOrder
-                    .map((roomId) => roomsById[roomId])
+                    .map((roomId) => mergedRoomsById[roomId])
                     .find((room) => canUserEnterRoom(room));
 
                 return {
                     isLoadingRooms: false,
-                    roomsById,
+                    roomsById: mergedRoomsById,
                     roomOrder,
                     unreadByRoomId: {
                         ...unreadByRoomId,
@@ -1002,14 +1010,20 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
             return;
         }
 
+        const isDirect =
+            room?.type === "DIRECT" ||
+            Object.values(get().directRoomsById).some(
+                (entry) => entry.room.id === roomId,
+            );
+
         set({
             currentRoomId: roomId,
             isLoadingMessages: true,
             isLoadingOlderMessages: false,
             error: null,
-            railView: room?.type === "DIRECT" ? "dm" : "server",
+            railView: isDirect ? "dm" : "server",
             selectedWorkspaceId:
-                room && room.type !== "DIRECT"
+                room && !isDirect
                     ? room.workspaceId
                     : get().selectedWorkspaceId,
         });
