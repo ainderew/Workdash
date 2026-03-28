@@ -105,6 +105,28 @@ export function useNowPlaying() {
     setShowQueue(next);
   }, [workspaceId, showQueue]);
 
+  const toggleShuffle = useCallback(() => {
+    if (!workspaceId) return;
+    MusicClientService.getInstance().emitSetShuffle(workspaceId, !(session?.shuffle ?? false));
+  }, [workspaceId, session?.shuffle]);
+
+  const cycleRepeat = useCallback(() => {
+    if (!workspaceId || !session) return;
+    const next = session.repeatMode === 'off' ? 'all'
+      : session.repeatMode === 'all' ? 'one'
+      : 'off';
+    MusicClientService.getInstance().emitSetRepeat(workspaceId, next);
+  }, [workspaceId, session]);
+
+  const reorderQueue = useCallback(
+    (fromIndex: number, toIndex: number) => {
+      if (!workspaceId) return;
+      useMusicStore.getState().reorderQueue(workspaceId, fromIndex, toIndex);
+      MusicClientService.getInstance().emitReorderQueue(workspaceId, fromIndex, toIndex);
+    },
+    [workspaceId],
+  );
+
   return {
     workspaceId,
     session,
@@ -119,9 +141,14 @@ export function useNowPlaying() {
     elapsed,
     trackDuration: session?.currentTrack?.duration ?? 0,
     canManageMusic,
+    shuffle: session?.shuffle ?? false,
+    repeatMode: session?.repeatMode ?? 'off',
     handleToggleListen,
     handleTogglePlayback,
     handleSkip,
     handleToggleQueue,
+    toggleShuffle,
+    cycleRepeat,
+    reorderQueue,
   };
 }

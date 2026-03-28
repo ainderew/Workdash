@@ -62,6 +62,7 @@ export const BOT_REGISTRY: BotDefinition[] = [
       { command: "skip", description: "Skip to the next track" },
       { command: "stop", description: "Stop music and end the session" },
       { command: "volume", description: "Set playback volume", args: "<0-100>" },
+      { command: "playlists", description: "Open the playlists panel" },
     ],
   },
   {

@@ -4,6 +4,7 @@
  */
 
 import useMusicStore from "@/common/store/musicStore";
+import usePlaylistStore from "@/common/store/playlistStore";
 
 interface MusicStatePayload {
     workspaceId: string;
@@ -13,6 +14,8 @@ interface MusicStatePayload {
     volume: number;
     listenerCount: number;
     elapsedSeconds?: number;
+    shuffle?: boolean;
+    repeatMode?: 'off' | 'one' | 'all';
 }
 
 interface MusicTrackPayload {
@@ -34,6 +37,19 @@ export class MusicClientService {
     private socket: SocketIOClient.Socket | null = null;
     private listening = false;
 
+    private playlistsChangedListeners = new Set<(workspaceId: string) => void>();
+    private playlistUpdatedListeners = new Set<(playlistId: string, workspaceId: string) => void>();
+
+    onPlaylistsChanged(cb: (workspaceId: string) => void): () => void {
+        this.playlistsChangedListeners.add(cb);
+        return () => { this.playlistsChangedListeners.delete(cb); };
+    }
+
+    onPlaylistUpdated(cb: (playlistId: string, workspaceId: string) => void): () => void {
+        this.playlistUpdatedListeners.add(cb);
+        return () => { this.playlistUpdatedListeners.delete(cb); };
+    }
+
     private constructor() {}
 
     static getInstance(): MusicClientService {
@@ -53,6 +69,7 @@ export class MusicClientService {
         this.listening = true;
 
         this.socket.on("music:state-changed", (data: MusicStatePayload) => {
+            const current = useMusicStore.getState().getSession(data.workspaceId);
             useMusicStore.getState().setSession(data.workspaceId, {
                 state: data.state,
                 currentTrack: data.currentTrack,
@@ -60,13 +77,15 @@ export class MusicClientService {
                 volume: data.volume,
                 listenerCount: data.listenerCount,
                 elapsedSeconds: data.elapsedSeconds,
+                shuffle: data.shuffle ?? current?.shuffle ?? false,
+                repeatMode: data.repeatMode ?? current?.repeatMode ?? 'off',
             });
         });
 
         this.socket.on("music:track-started", (data: MusicTrackPayload) => {
             const current = useMusicStore.getState().getSession(data.workspaceId);
             useMusicStore.getState().setSession(data.workspaceId, {
-                ...(current ?? { state: "playing", queueLength: 0, volume: 80, listenerCount: 0 }),
+                ...(current ?? { state: "playing", queueLength: 0, volume: 80, listenerCount: 0, shuffle: false, repeatMode: 'off' as const }),
                 state: "playing",
                 currentTrack: data.track,
             });
@@ -97,6 +116,46 @@ export class MusicClientService {
                 });
             }
         });
+
+        this.socket.on("music:playlists:changed", (data: { workspaceId: string }) => {
+            this.playlistsChangedListeners.forEach(cb => cb(data.workspaceId));
+        });
+
+        this.socket.on("music:playlist:updated", (data: { playlistId: string; workspaceId: string }) => {
+            this.playlistUpdatedListeners.forEach(cb => cb(data.playlistId, data.workspaceId));
+        });
+
+        this.socket.on("music:shuffle-changed", (data: { workspaceId: string; shuffle: boolean }) => {
+            const current = useMusicStore.getState().getSession(data.workspaceId);
+            if (current) {
+                useMusicStore.getState().setSession(data.workspaceId, {
+                    ...current,
+                    shuffle: data.shuffle,
+                });
+            }
+        });
+
+        this.socket.on("music:repeat-changed", (data: { workspaceId: string; repeatMode: 'off' | 'one' | 'all' }) => {
+            const current = useMusicStore.getState().getSession(data.workspaceId);
+            if (current) {
+                useMusicStore.getState().setSession(data.workspaceId, {
+                    ...current,
+                    repeatMode: data.repeatMode,
+                });
+            }
+        });
+
+        this.socket.on("music:download:progress", (data: { trackTitle: string; percent: number; phase: 'resolving' | 'downloading' | 'complete' | 'error'; error?: string }) => {
+            usePlaylistStore.getState().setDownloadProgress(data);
+            if (data.phase === 'complete') {
+                setTimeout(() => {
+                    const current = usePlaylistStore.getState().downloadProgress;
+                    if (current?.phase === 'complete') {
+                        usePlaylistStore.getState().setDownloadProgress(null);
+                    }
+                }, 3000);
+            }
+        });
     }
 
     /** Request current music session state from the server (e.g. after
@@ -116,6 +175,8 @@ export class MusicClientService {
                     volume: res.data.volume,
                     listenerCount: res.data.listenerCount,
                     elapsedSeconds: res.data.elapsedSeconds,
+                    shuffle: res.data.shuffle ?? false,
+                    repeatMode: res.data.repeatMode ?? 'off',
                 });
             },
         );
@@ -189,6 +250,61 @@ export class MusicClientService {
                     return;
                 }
                 useMusicStore.getState().setListening(workspaceId, false);
+            },
+        );
+    }
+
+    emitPlayTrack(workspaceId: string, trackId: string, playlistId: string, roomId?: string): void {
+        if (!this.socket) return;
+        this.socket.emit(
+            "music:play-track",
+            { workspaceId, trackId, playlistId, roomId },
+            (res: { ok?: boolean; error?: string }) => {
+                if (res.error) console.error("[music] Play track failed:", res.error);
+            },
+        );
+    }
+
+    emitAddToQueue(workspaceId: string, trackId: string): void {
+        if (!this.socket) return;
+        this.socket.emit(
+            "music:add-to-queue",
+            { workspaceId, trackId },
+            (res: { ok?: boolean; error?: string }) => {
+                if (res.error) console.error("[music] Add to queue failed:", res.error);
+            },
+        );
+    }
+
+    emitSetShuffle(workspaceId: string, shuffle: boolean): void {
+        if (!this.socket) return;
+        this.socket.emit(
+            "music:set-shuffle",
+            { workspaceId, shuffle },
+            (res: { ok?: boolean; error?: string }) => {
+                if (res.error) console.error("[music] Set shuffle failed:", res.error);
+            },
+        );
+    }
+
+    emitSetRepeat(workspaceId: string, repeatMode: 'off' | 'one' | 'all'): void {
+        if (!this.socket) return;
+        this.socket.emit(
+            "music:set-repeat",
+            { workspaceId, repeatMode },
+            (res: { ok?: boolean; error?: string }) => {
+                if (res.error) console.error("[music] Set repeat failed:", res.error);
+            },
+        );
+    }
+
+    emitReorderQueue(workspaceId: string, fromIndex: number, toIndex: number): void {
+        if (!this.socket) return;
+        this.socket.emit(
+            "music:reorder-queue",
+            { workspaceId, fromIndex, toIndex },
+            (res: { ok?: boolean; error?: string }) => {
+                if (res.error) console.error("[music] Reorder queue failed:", res.error);
             },
         );
     }

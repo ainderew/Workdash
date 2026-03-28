@@ -31,7 +31,6 @@ export function Navbar() {
         "User",
     );
 
-    
     useEffect(() => {
         const handleScroll = () => setScrolled(window.scrollY > 50);
         window.addEventListener("scroll", handleScroll);
@@ -63,7 +62,7 @@ export function Navbar() {
         e.preventDefault();
         const element = document.querySelector(href);
         if (element) {
-            const offset = 80; 
+            const offset = 80;
             const bodyRect = document.body.getBoundingClientRect().top;
             const elementRect = element.getBoundingClientRect().top;
             const elementPosition = elementRect - bodyRect;
@@ -99,17 +98,17 @@ export function Navbar() {
                     >
                         <div className="relative">
                             <Image
-                                src="/assets/workdash-logo.png"
+                                src="/assets/workdash-logo.svg"
                                 alt="WorkDash Logo"
                                 width={40}
                                 height={40}
-                                className="w-10 h-auto object-contain group-hover:scale-105 group-hover:brightness-110 transition-all duration-300 z-10 relative"
+                                className="w-8 h-auto object-contain group-hover:scale-105 group-hover:brightness-110 transition-all duration-300 z-10 relative"
                             />
                             <div className="absolute inset-0 bg-cyan-500 blur-xl opacity-15 dark:opacity-25 group-hover:opacity-30 dark:group-hover:opacity-50 rounded-full transition-opacity duration-300" />
                         </div>
-                        <span className="text-xl font-bold tracking-tight text-slate-900 dark:text-white font-mono">
+                        <span className="text-xl font-bold tracking-tight  dark:text-white font-mono">
                             Work
-                            <span className="text-cyan-600 dark:text-cyan-400 drop-shadow-[0_0_10px_rgba(34,211,238,0.5)]">
+                            <span className="text-[#E85D04] drop-shadow-[0_0_10px_rgba(34,211,238,0.5)]">
                                 Dash
                             </span>
                         </span>

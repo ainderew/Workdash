@@ -532,6 +532,58 @@ export interface BotCardRoll {
     rolledBy: string;
 }
 
+// ── Download Progress Bot Cards ──
+
+export interface BotCardDownloadProgress {
+    type: "download_progress";
+    trackTitle: string;
+    percent: number;
+    phase: "resolving" | "downloading" | "complete" | "error";
+}
+
+export interface BotCardDownloadComplete {
+    type: "download_complete";
+    trackTitle: string;
+    artist: string | null;
+    durationFormatted: string;
+}
+
+// ── Playlist Bot Cards ──
+
+export interface BotCardPlaylistCreated {
+    type: "playlist_created";
+    playlistName: string;
+    playlistType: "PERSONAL" | "WORKSPACE";
+}
+
+export interface BotCardPlaylistTrackAdded {
+    type: "playlist_track_added";
+    playlistName: string;
+    trackTitle: string;
+    artist: string | null;
+}
+
+export interface BotCardPlaylistList {
+    type: "playlist_list";
+    playlists: Array<{
+        name: string;
+        type: "PERSONAL" | "WORKSPACE";
+        trackCount: number;
+        creatorName: string;
+    }>;
+}
+
+export interface BotCardPlaylistShow {
+    type: "playlist_show";
+    playlistName: string;
+    tracks: Array<{
+        position: number;
+        title: string;
+        artist: string | null;
+        durationFormatted: string;
+    }>;
+}
+
 export type BotCardPayload =
     | BotCardSearching
     | BotCardNowPlaying
@@ -541,7 +593,13 @@ export type BotCardPayload =
     | BotCardError
     | BotCardSessionEnded
     | BotCardGenericInfo
-    | BotCardRoll;
+    | BotCardRoll
+    | BotCardDownloadProgress
+    | BotCardDownloadComplete
+    | BotCardPlaylistCreated
+    | BotCardPlaylistTrackAdded
+    | BotCardPlaylistList
+    | BotCardPlaylistShow;
 
 export type CreateMessageResponse = {
     message: ChatV2Message | null;

@@ -101,6 +101,8 @@ describe("MusicClientService", () => {
         queueLength: 3,
         volume: 80,
         listenerCount: 2,
+        shuffle: false,
+        repeatMode: "off",
       });
     });
   });

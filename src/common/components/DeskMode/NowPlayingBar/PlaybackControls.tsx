@@ -38,7 +38,7 @@ export function PlaybackControls({
         onClick={onTogglePlayback}
         className={`p-1.5 rounded-full transition-all active:scale-95 ${
           canControl
-            ? `cursor-pointer hover:bg-[var(--wd-surface-elevated)] ${isPlaying ? "wd-playback-pulse" : ""}`
+            ? "cursor-pointer hover:bg-[var(--wd-surface-elevated)]"
             : "opacity-40 cursor-not-allowed"
         }`}
         title={

@@ -42,6 +42,11 @@ vi.mock("@/communication/music/musicService", () => ({
       togglePlayback: mockTogglePlayback,
       skip: mockSkip,
       fetchState: mockFetchState,
+      emitSetShuffle: vi.fn(),
+      emitSetRepeat: vi.fn(),
+      emitReorderQueue: vi.fn(),
+      emitPlayTrack: vi.fn(),
+      emitAddToQueue: vi.fn(),
     })),
   },
 }));
@@ -86,20 +91,42 @@ const mockFetchGlobal = vi.fn().mockResolvedValue({
 });
 global.fetch = mockFetchGlobal;
 
-// Mock QueuePanel to isolate tests
-vi.mock("../QueuePanel", () => ({
-  QueuePanel: ({ tracks }: { tracks: Array<{ title: string }> }) => (
-    <div data-testid="queue-panel">
-      {tracks.length === 0 ? (
-        <span>No songs in queue</span>
-      ) : (
-        <ol>
-          {tracks.map((t, i) => (
-            <li key={i}>{t.title}</li>
-          ))}
-        </ol>
-      )}
-    </div>
+// Mock DnD libraries
+vi.mock("@dnd-kit/core", () => ({
+  DndContext: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  closestCenter: vi.fn(),
+  PointerSensor: vi.fn(),
+  KeyboardSensor: vi.fn(),
+  useSensor: vi.fn(),
+  useSensors: vi.fn(() => []),
+}));
+
+vi.mock("@dnd-kit/sortable", () => ({
+  SortableContext: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  sortableKeyboardCoordinates: vi.fn(),
+  verticalListSortingStrategy: vi.fn(),
+  useSortable: () => ({
+    attributes: {},
+    listeners: {},
+    setNodeRef: vi.fn(),
+    transform: null,
+    transition: null,
+    isDragging: false,
+  }),
+}));
+
+vi.mock("@dnd-kit/utilities", () => ({
+  CSS: { Transform: { toString: () => undefined } },
+}));
+
+vi.mock("@dnd-kit/modifiers", () => ({
+  restrictToVerticalAxis: vi.fn(),
+}));
+
+// Mock QueueItem to isolate tests
+vi.mock("./QueueItem", () => ({
+  QueueItem: ({ track, index }: { track: { title: string }; index: number }) => (
+    <li data-testid={`queue-item-${index}`}>{track.title}</li>
   ),
 }));
 
@@ -112,6 +139,7 @@ function resetMusicStore() {
     sessionsByWorkspace: {},
     queuesByWorkspace: {},
     listeningWorkspaces: new Set<string>(),
+    reorderQueue: vi.fn(),
   };
 }
 
@@ -310,9 +338,8 @@ describe("NowPlayingBar", () => {
       fireEvent.click(queueBtn);
 
       // Queue panel container should have non-zero maxHeight
-      const queueContainer = screen.getByTestId("queue-panel").closest(
-        ".overflow-hidden",
-      );
+      const queueItem = screen.getByTestId("queue-item-0");
+      const queueContainer = queueItem.closest(".overflow-hidden");
       expect(queueContainer).toHaveStyle({ maxHeight: "240px" });
     });
 
@@ -325,9 +352,8 @@ describe("NowPlayingBar", () => {
       fireEvent.click(queueBtn); // open
       fireEvent.click(screen.getByTitle("Hide queue")); // close
 
-      const queueContainer = screen.getByTestId("queue-panel").closest(
-        ".overflow-hidden",
-      );
+      const queueItem = screen.getByTestId("queue-item-0");
+      const queueContainer = queueItem.closest(".overflow-hidden");
       expect(queueContainer).toHaveStyle({ maxHeight: "0px" });
     });
 

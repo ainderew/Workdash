@@ -12,6 +12,8 @@ export interface QueuedTrack {
     requestedBy: string;
 }
 
+export type RepeatMode = 'off' | 'one' | 'all';
+
 export interface MusicSessionState {
     state: "playing" | "paused" | "stopped";
     currentTrack: MusicTrackInfo | null;
@@ -20,6 +22,8 @@ export interface MusicSessionState {
     listenerCount: number;
     /** Server-reported elapsed seconds for the current track. */
     elapsedSeconds?: number;
+    shuffle: boolean;
+    repeatMode: RepeatMode;
 }
 
 interface MusicState {
@@ -33,6 +37,7 @@ interface MusicState {
     setListening: (workspaceId: string, listening: boolean) => void;
     isListening: (workspaceId: string) => boolean;
     setQueue: (workspaceId: string, queue: QueuedTrack[]) => void;
+    reorderQueue: (workspaceId: string, fromIndex: number, toIndex: number) => void;
     clearQueue: (workspaceId: string) => void;
 }
 
@@ -93,6 +98,23 @@ const useMusicStore = create<MusicState>((set, get) => ({
                 [workspaceId]: queue,
             },
         }));
+    },
+
+    reorderQueue: (workspaceId, fromIndex, toIndex) => {
+        set((state) => {
+            const queue = state.queuesByWorkspace[workspaceId];
+            if (!queue) return state;
+            const updated = [...queue];
+            const [moved] = updated.splice(fromIndex, 1);
+            if (!moved) return state;
+            updated.splice(toIndex, 0, moved);
+            return {
+                queuesByWorkspace: {
+                    ...state.queuesByWorkspace,
+                    [workspaceId]: updated,
+                },
+            };
+        });
     },
 
     clearQueue: (workspaceId) => {

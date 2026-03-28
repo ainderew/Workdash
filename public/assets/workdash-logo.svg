@@ -1,0 +1,22 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- WorkDash App Icon — Coral Gradient -->
+  <defs>
+    <linearGradient id="coral-grad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#C2410C"/>
+      <stop offset="100%" stop-color="#E85D04"/>
+    </linearGradient>
+    <clipPath id="icon-clip">
+      <rect width="512" height="512" rx="112"/>
+    </clipPath>
+  </defs>
+  <g clip-path="url(#icon-clip)">
+    <rect width="512" height="512" fill="url(#coral-grad)"/>
+    <svg x="80" y="68" width="352" height="376" viewBox="0 0 200 200">
+      <path d="M36 32Q36 16,52 16L140 16Q156 16,156 32L156 112Q156 128,140 128L92 128L72 156C66 166,70 170,80 168L164 142C176 138,180 132,172 128L156 128L140 128L52 128Q36 128,36 112Z" fill="#fff"/>
+      <rect x="140" y="16" width="16" height="16" rx="2" fill="#c04e04"/>
+      <rect x="64" y="58" width="14" height="14" rx="3" fill="#c04e04"/>
+      <rect x="90" y="58" width="14" height="14" rx="3" fill="#c04e04"/>
+      <rect x="116" y="58" width="14" height="14" rx="3" fill="#c04e04"/>
+    </svg>
+  </g>
+</svg>

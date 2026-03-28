@@ -145,6 +145,7 @@ body {
     --wd-accent: rgb(var(--wd-accent-rgb) / 1);
     --wd-accent-hover: rgb(var(--wd-accent-hover-rgb) / 1);
     --wd-accent-soft: rgb(var(--wd-accent-rgb) / var(--wd-accent-soft-alpha));
+    --wd-accent-soft-solid: color-mix(in srgb, var(--wd-accent) 80%, var(--wd-surface-base));
     --wd-bot-border: rgb(var(--wd-accent-rgb) / 0.5);
     --wd-bot-bg: rgb(var(--wd-accent-rgb) / 0.04);
     --wd-bot-bg-hover: rgb(var(--wd-accent-rgb) / 0.08);
@@ -1604,6 +1605,100 @@ input[type="range"].wd-volume-slider::-moz-range-progress {
   0% { opacity: 0.4; }
   50% { opacity: 0.15; }
   100% { opacity: 0.4; }
+}
+
+/* ── Playlist sidebar animations ──────────────────────────────────── */
+
+@keyframes wd-playlist-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.wd-playlist-enter {
+  animation: wd-playlist-slide-in 200ms cubic-bezier(0.25, 1, 0.5, 1) both;
+}
+
+@keyframes wd-playlist-track-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.wd-playlist-track-in {
+  animation: wd-playlist-track-in 250ms cubic-bezier(0.25, 1, 0.5, 1) both;
+}
+
+@keyframes wd-playlist-progress-glow {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+.wd-playlist-progress-glow {
+  animation: wd-playlist-progress-glow 1.5s ease-in-out infinite;
+}
+
+@keyframes wd-playlist-disc-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.wd-playlist-disc-spin {
+  animation: wd-playlist-disc-spin 3s linear infinite;
+}
+
+/* ── Mini player equalizer bars ───────────────────────────────────── */
+
+@keyframes wd-eq-bounce {
+  0%, 100% { height: 3px; }
+  50% { height: 14px; }
+}
+
+.wd-eq-bar {
+  width: 3px;
+  border-radius: 9999px;
+  background: white;
+  opacity: 0.9;
+}
+
+.wd-eq-bar-1 { animation: wd-eq-bounce 0.8s ease-in-out infinite; }
+.wd-eq-bar-2 { animation: wd-eq-bounce 0.8s ease-in-out 0.2s infinite; }
+.wd-eq-bar-3 { animation: wd-eq-bounce 0.8s ease-in-out 0.4s infinite; }
+
+/* ── Mini player entrance ────────────────────────────────────────── */
+
+@keyframes wd-miniplayer-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.wd-miniplayer-enter {
+  animation: wd-miniplayer-enter 300ms cubic-bezier(0.25, 1, 0.5, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wd-playlist-enter { animation: none; }
+  .wd-playlist-track-in { animation: none; }
+  .wd-playlist-progress-glow { animation: none; }
+  .wd-playlist-disc-spin { animation: none; }
+  .wd-eq-bar-1, .wd-eq-bar-2, .wd-eq-bar-3 { animation: none; height: 8px; }
+  .wd-miniplayer-enter { animation: none; }
 }
 
 @keyframes wd-pz-section-open {

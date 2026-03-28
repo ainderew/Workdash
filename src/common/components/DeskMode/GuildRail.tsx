@@ -6,6 +6,7 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { toWorkspaceInitials } from "@/common/utils/workspaceDisplay";
+import DesktopAppButton from "./DesktopApp/DesktopAppButton";
 
 type GuildRailWorkspace = {
     id: string;
@@ -55,7 +56,7 @@ function RailButton({
                     type="button"
                     onClick={onClick}
                     onContextMenu={onContextMenu}
-                    className="group relative w-11 h-11 rounded-xl wd-bg-elevated wd-text-primary transition-all duration-200 hover:bg-[var(--wd-accent-soft)] hover:wd-text-accent bg-cover bg-center"
+                    className="group relative w-11 h-11 rounded-xl wd-bg-elevated wd-text-primary transition-all duration-200 hover:bg-[var(--wd-accent-soft-solid)] hover:wd-text-accent bg-cover bg-center cursor-pointer"
                     style={
                         backgroundImageUrl
                             ? { backgroundImage: `url(${backgroundImageUrl})` }
@@ -208,6 +209,8 @@ function GuildRail({
             >
                 <MessageSquareMore size={18} />
             </RailButton>
+
+            <DesktopAppButton />
 
             {contextMenu && (
                 <div

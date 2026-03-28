@@ -20,6 +20,8 @@ import type {
     WorkspaceMember,
 } from "@/communication/chatV2/_types";
 import ChannelSidebar from "./ChannelSidebar";
+import { PlaylistSidebar } from "./ChannelSidebar/PlaylistPanel/PlaylistSidebar";
+import usePlaylistStore from "@/common/store/playlistStore";
 import Composer from "./Composer";
 import DeskSearchResultsPanel from "./DeskSearchResultsPanel";
 import DirectMessageSidebar from "./DirectMessageSidebar";
@@ -818,7 +820,7 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
                 <div className="flex-1 min-w-0 pb-2 flex">
                     <div className="flex-1 min-w-0 h-full min-h-0 flex rounded-lg overflow-visible outline-1 outline-[color:var(--wd-border-subtle)] shadow-[0_8px_24px_rgba(0,0,0,0.22),0_0_14px_rgba(88,101,242,0.08)]">
                         <div
-                            className="shrink-0 overflow-hidden transition-[width] duration-50 ease-out h-full"
+                            className="shrink-0 overflow-hidden transition-[width] duration-50 ease-out h-full relative"
                             style={{
                                 width: isSidebarCollapsed
                                     ? 48
@@ -827,6 +829,9 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
                                       : 320,
                             }}
                         >
+                            {!isSidebarCollapsed && railView === "server" && (
+                                <PlaylistSidebar workspaceId={selectedWorkspaceId} />
+                            )}
                             {isSidebarCollapsed ? (
                                 <CollapsedSidebarRail
                                     mode={railView}
@@ -1086,6 +1091,10 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
                                     attachments,
                                     options,
                                 ) => {
+                                    if (content.trim() === '/playlists') {
+                                        usePlaylistStore.getState().setSidebarOpen(true);
+                                        return;
+                                    }
                                     await sendMessage(content, attachments, {
                                         mentionedUserIds:
                                             options?.mentionedUserIds,

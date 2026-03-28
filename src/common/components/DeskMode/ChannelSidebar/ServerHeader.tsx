@@ -3,6 +3,7 @@ import Image from 'next/image';
 import {
   Bell,
   ChevronDown,
+  Disc3,
   FolderPlus,
   LogOut,
   PanelLeftClose,
@@ -11,6 +12,7 @@ import {
   UserPlus,
   Users,
 } from 'lucide-react';
+import usePlaylistStore from '@/common/store/playlistStore';
 import {
   Tooltip,
   TooltipTrigger,
@@ -180,6 +182,17 @@ function ServerHeader({
                 <Users size={17} className="wd-text-secondary" />
               </button>
             )}
+            <button
+              type="button"
+              onClick={() => {
+                usePlaylistStore.getState().toggleSidebar();
+                onDismissMenus();
+              }}
+              className="flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm wd-text-primary transition-colors hover:bg-[var(--wd-surface-elevated)]"
+            >
+              <span>Playlists</span>
+              <Disc3 size={17} className="wd-text-secondary" />
+            </button>
           </div>
 
           <div className="my-1 h-px bg-[var(--wd-border-subtle)]" />
