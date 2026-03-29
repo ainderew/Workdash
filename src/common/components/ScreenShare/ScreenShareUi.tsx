@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { ScreenShareViewer } from "@/communication/screenShare/screenShareViewer";
-import ScreeShareContainer from "./ScreeShareContainer";
+import ScreenShareContainer from "./ScreenShareContainer";
 
 type VideoState = {
     producerId: string;
@@ -40,11 +40,11 @@ function ScreenShareUi({ isGameReady }: ScreenShareUiProps) {
             });
         }
 
-        service.updateComponentStateCallback = updateScreenState;
+        const unsubscribe = service.subscribe(updateScreenState);
         updateScreenState();
 
         return () => {
-            service.updateComponentStateCallback = null;
+            unsubscribe();
         };
     }, []);
 
@@ -96,7 +96,7 @@ function ScreenShareUi({ isGameReady }: ScreenShareUiProps) {
     return (
         <>
             {expandedVideo && (
-                <ScreeShareContainer
+                <ScreenShareContainer
                     key={`expanded-${expandedVideo.producerId}`}
                     producerId={expandedVideo.producerId}
                     isExpanded={true}
@@ -117,7 +117,7 @@ function ScreenShareUi({ isGameReady }: ScreenShareUiProps) {
                 `}
             >
                 {collapsedVideos.map((video) => (
-                    <ScreeShareContainer
+                    <ScreenShareContainer
                         key={`collapsed-${video.producerId}`}
                         producerId={video.producerId}
                         isExpanded={false}

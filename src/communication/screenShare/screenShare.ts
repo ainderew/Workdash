@@ -86,10 +86,18 @@ export class ScreenShareService {
                 this.currentStream = null;
             }
             if (this.screenAudioProducer && !this.screenAudioProducer.closed) {
+                this.sfuService.socket.emit("producerClosed", {
+                    producerId: this.screenAudioProducer.id,
+                    kind: "audio",
+                });
                 this.screenAudioProducer.close();
                 this.screenAudioProducer = null;
             }
             if (this.screenProducer && !this.screenProducer.closed) {
+                this.sfuService.socket.emit("producerClosed", {
+                    producerId: this.screenProducer.id,
+                    kind: "video",
+                });
                 this.screenProducer.close();
                 this.screenProducer = null;
             }

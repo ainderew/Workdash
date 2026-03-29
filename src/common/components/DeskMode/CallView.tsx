@@ -72,9 +72,7 @@ export default function CallView({ channelId, onLeave, onPictureInPicture, onFul
     viewer.loadExistingProducers();
 
     const screenViewer = ScreenShareViewer.getInstance();
-    // Set callback so displayVideo() doesn't bail when ScreenShareUi is unmounted in desk mode
-    const prevCallback = screenViewer.updateComponentStateCallback;
-    screenViewer.updateComponentStateCallback = () => {};
+    const unsubScreenShare = screenViewer.subscribe(() => {});
     screenViewer.loadExistingProducers();
 
     const audio = AudioChat.getInstance();
@@ -82,8 +80,7 @@ export default function CallView({ channelId, onLeave, onPictureInPicture, onFul
     audio.loadExistingProducers();
 
     return () => {
-      // Restore previous callback (world-mode ScreenShareUi may re-mount)
-      screenViewer.updateComponentStateCallback = prevCallback;
+      unsubScreenShare();
     };
   }, []);
 

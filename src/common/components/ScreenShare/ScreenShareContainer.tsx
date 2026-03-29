@@ -3,7 +3,7 @@ import { X, Maximize2, Minimize2 } from "lucide-react";
 import { useVideoLoaded } from "@/common/hooks/useVideoLoaded";
 import { ScreenShareLoadingIndicator } from "./ScreenShareLoadingIndicator";
 
-function ScreeShareContainer({
+function ScreenShareContainer({
     producerId,
     isExpanded,
     handleExpand,
@@ -24,7 +24,6 @@ function ScreeShareContainer({
 
     return (
         <>
-            {}
             {isExpanded && (
                 <div
                     className="backdrop fixed inset-0 bg-black/85 z-40 backdrop-blur-sm"
@@ -111,4 +110,4 @@ function ScreeShareContainer({
     );
 }
 
-export default ScreeShareContainer;
+export default ScreenShareContainer;

@@ -16,9 +16,11 @@ export class ScreenShareViewer {
     private static instance: ScreenShareViewer | null = null;
     private service: MediaTransportService;
     private consumers: Map<string, Consumer> = new Map();
-    public videoElements: Map<string, HTMLVideoElement> = new Map();
-    public videoOwnerMap: Record<string, string> = {};
-    public updateComponentStateCallback: (() => void) | null = null;
+    private _videoElements: Map<string, HTMLVideoElement> = new Map();
+    private _videoOwnerMap: Record<string, string> = {};
+    private _subscribers: Set<() => void> = new Set();
+    private dataCheckTimers: Map<string, ReturnType<typeof setTimeout>> =
+        new Map();
 
     private constructor() {
         this.service = MediaTransportService.getInstance();
@@ -30,6 +32,27 @@ export class ScreenShareViewer {
             ScreenShareViewer.instance = new ScreenShareViewer();
         }
         return ScreenShareViewer.instance;
+    }
+
+    public get videoElements(): ReadonlyMap<string, HTMLVideoElement> {
+        return this._videoElements;
+    }
+
+    public get videoOwnerMap(): Readonly<Record<string, string>> {
+        return this._videoOwnerMap;
+    }
+
+    public subscribe(callback: () => void): () => void {
+        this._subscribers.add(callback);
+        return () => {
+            this._subscribers.delete(callback);
+        };
+    }
+
+    private notifySubscribers(): void {
+        for (const cb of this._subscribers) {
+            cb();
+        }
     }
 
     private setupListeners(): void {
@@ -48,9 +71,11 @@ export class ScreenShareViewer {
             }) => {
                 if (source !== "screen") return;
 
-                this.videoOwnerMap[producerId] = userName;
+                this._videoOwnerMap[producerId] = userName;
                 if (userId != null) {
-                    useCallStore.getState().setScreenProducerUser(producerId, userId);
+                    useCallStore
+                        .getState()
+                        .setScreenProducerUser(producerId, userId);
                 }
                 await this.consumeProducer(producerId);
             },
@@ -67,12 +92,20 @@ export class ScreenShareViewer {
     public async loadExistingProducers(): Promise<void> {
         // In desk mode there are no Phaser players; skip the wait.
         if (useUiStore.getState().interactionMode !== "desk") {
-            logger.log("Waiting for players to load before loading producers...");
+            logger.log(
+                "Waiting for players to load before loading producers...",
+            );
             await this.waitForPlayers();
         }
 
         const producers = await emitWithTimeout<
-            { producerId: string; socketId: string; source: string; userName?: string; userId?: number }[]
+            {
+                producerId: string;
+                socketId: string;
+                source: string;
+                userName?: string;
+                userId?: number;
+            }[]
         >({
             socket: this.service.socket,
             event: "getProducers",
@@ -88,29 +121,72 @@ export class ScreenShareViewer {
         for (const producer of relevantProducers) {
             // Store userId mapping for screen share tiles
             if (producer.userId != null) {
-                useCallStore.getState().setScreenProducerUser(producer.producerId, producer.userId);
+                useCallStore
+                    .getState()
+                    .setScreenProducerUser(
+                        producer.producerId,
+                        producer.userId,
+                    );
             }
 
             // Store userName if available
             if (producer.userName) {
-                logger.log("📝 Storing userName for producer:", producer.producerId, "→", producer.userName);
-                this.videoOwnerMap[producer.producerId] = producer.userName;
+                logger.log(
+                    "📝 Storing userName for producer:",
+                    producer.producerId,
+                    "→",
+                    producer.userName,
+                );
+                this._videoOwnerMap[producer.producerId] = producer.userName;
             } else {
                 // Look up player name from playerStore using socketId
                 const playerMap = usePlayersStore.getState().playerMap;
-
                 const player = playerMap[producer.socketId];
                 if (player?.name) {
-                    logger.log("📝 Found userName in playerStore:", producer.producerId, "→", player.name);
-                    this.videoOwnerMap[producer.producerId] = player.name;
+                    logger.log(
+                        "📝 Found userName in playerStore:",
+                        producer.producerId,
+                        "→",
+                        player.name,
+                    );
+                    this._videoOwnerMap[producer.producerId] = player.name;
                 } else {
-                    logger.warn("No player found in playerStore for socketId:", producer.socketId);
-                    this.videoOwnerMap[producer.producerId] = "Unknown User";
+                    logger.warn(
+                        "No player found in playerStore for socketId:",
+                        producer.socketId,
+                    );
+                    this._videoOwnerMap[producer.producerId] = "Unknown User";
                 }
             }
+        }
 
-            // Consume producer immediately
-            await this.consumeProducer(producer.producerId);
+        await Promise.all(
+            relevantProducers.map((producer) =>
+                this.consumeProducer(producer.producerId),
+            ),
+        );
+
+        const unknownProducers = relevantProducers.filter(
+            (p) => this._videoOwnerMap[p.producerId] === "Unknown User",
+        );
+        if (unknownProducers.length > 0) {
+            const unsub = usePlayersStore.subscribe((state) => {
+                let resolved = 0;
+                for (const p of unknownProducers) {
+                    if (this._videoOwnerMap[p.producerId] !== "Unknown User") {
+                        resolved++;
+                        continue;
+                    }
+                    const player = state.playerMap[p.socketId];
+                    if (player?.name) {
+                        this._videoOwnerMap[p.producerId] = player.name;
+                        resolved++;
+                    }
+                }
+                if (resolved === unknownProducers.length) unsub();
+                this.notifySubscribers();
+            });
+            setTimeout(() => unsub(), 30_000);
         }
     }
 
@@ -122,17 +198,18 @@ export class ScreenShareViewer {
             const playerCount = Object.keys(playerMap).length;
 
             if (playerCount > 0) {
-                logger.log(`✅ Players loaded (${playerCount} players in map)`);
+                logger.log(
+                    `✅ Players loaded (${playerCount} players in map)`,
+                );
                 return;
             }
 
             // Wait 100ms before checking again
-            await new Promise(resolve => setTimeout(resolve, 100));
+            await new Promise((resolve) => setTimeout(resolve, 100));
         }
 
         logger.warn("Timeout waiting for players - proceeding anyway");
     }
-
 
     private async consumeProducer(producerId: string): Promise<void> {
         try {
@@ -167,7 +244,9 @@ export class ScreenShareViewer {
                 useUserStore.getState().user.producerIds ?? [];
 
             this.consumers.set(producerId, consumer);
-            useCallStore.getState().setProducerConsumer(producerId, consumer.id);
+            useCallStore
+                .getState()
+                .setProducerConsumer(producerId, consumer.id);
             useUserStore.getState().updateUser({
                 producerIds: [...currentProducerIds, producerId],
             });
@@ -181,18 +260,28 @@ export class ScreenShareViewer {
     }
 
     private displayVideo(producerId: string, consumer: Consumer): void {
-        if (!this.updateComponentStateCallback) return;
+        if (this._subscribers.size === 0) return;
 
         // Check if track is live/active
-        if (consumer.track.readyState !== 'live') {
-            logger.warn("Skipping dead track for producer:", producerId, "readyState:", consumer.track.readyState);
+        if (consumer.track.readyState !== "live") {
+            logger.warn(
+                "Skipping dead track for producer:",
+                producerId,
+                "readyState:",
+                consumer.track.readyState,
+            );
             // Close the consumer for this dead track
             consumer.close();
             this.consumers.delete(producerId);
             return;
         }
 
-        logger.log("✅ Creating video element for producer:", producerId, "track state:", consumer.track.readyState);
+        logger.log(
+            "✅ Creating video element for producer:",
+            producerId,
+            "track state:",
+            consumer.track.readyState,
+        );
 
         const videoEl = document.createElement("video") as HTMLVideoElement;
         videoEl.srcObject = new MediaStream([consumer.track]);
@@ -200,13 +289,12 @@ export class ScreenShareViewer {
         videoEl.muted = true;
         videoEl.playsInline = true;
         videoEl.controls = false;
-        videoEl.style.width = "100%";
         videoEl.dataset.producerId = producerId;
 
         videoEl.style.width = "100%";
         videoEl.style.height = "100%";
         videoEl.style.objectFit = "contain";
-        videoEl.style.backgroundColor = "#000";
+        videoEl.style.backgroundColor = "var(--wd-surface-base)";
         videoEl.style.display = "block";
 
         // Monitor track state changes
@@ -218,20 +306,30 @@ export class ScreenShareViewer {
         // Set up timeout to detect black screens (no data received)
         let hasReceivedData = false;
         const dataCheckTimeout = setTimeout(() => {
+            this.dataCheckTimers.delete(producerId);
             if (!hasReceivedData) {
-                logger.warn("No data received for producer:", producerId, "after 10s - removing");
+                logger.warn(
+                    "No data received for producer:",
+                    producerId,
+                    "after 10s - removing",
+                );
                 this.removeScreenShareVideo(producerId);
             }
         }, 10000);
+        this.dataCheckTimers.set(producerId, dataCheckTimeout);
 
         videoEl.onloadeddata = () => {
             hasReceivedData = true;
-            clearTimeout(dataCheckTimeout);
+            const timer = this.dataCheckTimers.get(producerId);
+            if (timer) {
+                clearTimeout(timer);
+                this.dataCheckTimers.delete(producerId);
+            }
             logger.log("📺 Video data loaded for producer:", producerId);
         };
 
-        this.videoElements.set(producerId, videoEl);
-        this.updateComponentStateCallback!();
+        this._videoElements.set(producerId, videoEl);
+        this.notifySubscribers();
     }
 
     public pauseAllConsumers() {
@@ -252,6 +350,12 @@ export class ScreenShareViewer {
     public removeScreenShareVideo(producerId: string) {
         logger.log("🧹 Removing screenshare producer:", producerId);
 
+        const timer = this.dataCheckTimers.get(producerId);
+        if (timer) {
+            clearTimeout(timer);
+            this.dataCheckTimers.delete(producerId);
+        }
+
         // Close and remove the consumer
         const consumer = this.consumers.get(producerId);
         if (consumer) {
@@ -261,42 +365,43 @@ export class ScreenShareViewer {
         }
 
         // Remove the video element
-        const videoEl = this.videoElements.get(producerId);
+        const videoEl = this._videoElements.get(producerId);
         if (videoEl) {
             logger.log("🗑️ Removing video element for producer:", producerId);
-            videoEl.srcObject = null; // Clear the stream
-            videoEl.remove(); // Remove from DOM if attached
-            this.videoElements.delete(producerId);
+            videoEl.srcObject = null;
+            videoEl.remove();
+            this._videoElements.delete(producerId);
         }
 
         // Remove from owner map and callStore screen producer map
-        delete this.videoOwnerMap[producerId];
+        delete this._videoOwnerMap[producerId];
         useCallStore.getState().removeScreenProducer(producerId);
 
         // Remove from user store
-        const currentProducerIds = useUserStore.getState().user.producerIds ?? [];
-        const updatedProducerIds = currentProducerIds.filter(id => id !== producerId);
+        const currentProducerIds =
+            useUserStore.getState().user.producerIds ?? [];
+        const updatedProducerIds = currentProducerIds.filter(
+            (id) => id !== producerId,
+        );
         useUserStore.getState().updateUser({
             producerIds: updatedProducerIds,
         });
 
         // Update UI
-        if (this.updateComponentStateCallback) {
-            this.updateComponentStateCallback();
-        }
+        this.notifySubscribers();
 
         logger.log("✅ Screenshare cleanup complete for producer:", producerId);
     }
 
     public cleanup(): void {
-        this.consumers.forEach((consumer) => consumer.close());
-        this.videoElements.forEach((el) => {
-            el.srcObject = null;
-            el.remove();
-        });
-        this.consumers.clear();
-        this.videoElements.clear();
-        this.videoOwnerMap = {};
-        this.updateComponentStateCallback?.();
+        for (const timer of this.dataCheckTimers.values()) {
+            clearTimeout(timer);
+        }
+        this.dataCheckTimers.clear();
+
+        const producerIds = Array.from(this.consumers.keys());
+        for (const producerId of producerIds) {
+            this.removeScreenShareVideo(producerId);
+        }
     }
 }
