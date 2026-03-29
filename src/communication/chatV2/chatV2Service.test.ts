@@ -20,6 +20,17 @@ vi.mock('@/communication/mediaTransportService/mediaTransportService', () => ({
   },
 }));
 
+vi.mock('@/common/utils/tokenStore', () => ({
+  tokenStore: { getJwt: vi.fn(() => 'test-jwt') },
+}));
+
+vi.mock('@/common/utils/config', () => ({
+  CONFIG: { SFU_SERVER_URL: 'http://localhost:3001' },
+}));
+
+const mockFetch = vi.fn();
+vi.stubGlobal('fetch', mockFetch);
+
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 vi.stubGlobal('setTimeout', vi.fn((_fn: () => void) => 999));
 vi.stubGlobal('clearTimeout', vi.fn());
@@ -52,6 +63,7 @@ function simulateError(error: string) {
 beforeEach(() => {
   vi.clearAllMocks();
   mockSocket.connected = true;
+  mockFetch.mockReset();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (ChatV2Service as any).instance = undefined;
 });
@@ -383,6 +395,7 @@ describe('ChatV2Service', () => {
       'chat:v2:typing:stop',
       'achievement:unlocked',
       'chat:v2:room:member:added',
+      'workspace:member:award-updated',
     ];
 
     it('setupRealtimeHandlers registers the correct event names', () => {
@@ -402,7 +415,7 @@ describe('ChatV2Service', () => {
         (call: unknown[]) => call[0],
       );
       expect(registeredEvents).toEqual(EXPECTED_EVENTS);
-      expect(mockOn).toHaveBeenCalledTimes(12);
+      expect(mockOn).toHaveBeenCalledTimes(13);
     });
 
     it('setupRealtimeHandlers teardown removes all event listeners', () => {
@@ -420,7 +433,7 @@ describe('ChatV2Service', () => {
         (call: unknown[]) => call[0],
       );
       expect(removedEvents).toEqual(EXPECTED_EVENTS);
-      expect(mockOff).toHaveBeenCalledTimes(12);
+      expect(mockOff).toHaveBeenCalledTimes(13);
 
       // Each off call should pass the same handler reference that was registered
       for (let i = 0; i < EXPECTED_EVENTS.length; i++) {
@@ -490,14 +503,247 @@ describe('ChatV2Service', () => {
       });
 
       // The first set of handlers should have been removed
-      expect(mockOff).toHaveBeenCalledTimes(12);
+      expect(mockOff).toHaveBeenCalledTimes(13);
       const removedEvents = mockOff.mock.calls.map(
         (call: unknown[]) => call[0],
       );
       expect(removedEvents).toEqual(EXPECTED_EVENTS);
 
-      // And the second set should be registered (total 20 on calls)
-      expect(mockOn).toHaveBeenCalledTimes(24);
+      // And the second set should be registered (total on calls)
+      expect(mockOn).toHaveBeenCalledTimes(26);
+    });
+
+    it('onAwardTagsUpdated callback is invoked when socket event has workspaceId and awards', () => {
+      const service = ChatV2Service.getInstance();
+      const onAwardTagsUpdated = vi.fn();
+
+      service.setupRealtimeHandlers({
+        onMessageNew: vi.fn(),
+        onMessageUpdate: vi.fn(),
+        onMessageDelete: vi.fn(),
+        onAwardTagsUpdated,
+      });
+
+      const awardCall = mockOn.mock.calls.find(
+        (call: unknown[]) => call[0] === 'workspace:member:award-updated',
+      );
+      const handler = awardCall![1] as (payload: unknown) => void;
+
+      const payload = {
+        workspaceId: 'ws-1',
+        awards: { '42': { type: 'MVP', label: 'MVP' } },
+      };
+      handler(payload);
+
+      expect(onAwardTagsUpdated).toHaveBeenCalledWith(payload);
+    });
+
+    it('onAwardTagsUpdated does not fire when payload has no workspaceId', () => {
+      const service = ChatV2Service.getInstance();
+      const onAwardTagsUpdated = vi.fn();
+
+      service.setupRealtimeHandlers({
+        onMessageNew: vi.fn(),
+        onMessageUpdate: vi.fn(),
+        onMessageDelete: vi.fn(),
+        onAwardTagsUpdated,
+      });
+
+      const awardCall = mockOn.mock.calls.find(
+        (call: unknown[]) => call[0] === 'workspace:member:award-updated',
+      );
+      const handler = awardCall![1] as (payload: unknown) => void;
+
+      handler({ awards: { '42': { type: 'MVP', label: 'MVP' } } });
+
+      expect(onAwardTagsUpdated).not.toHaveBeenCalled();
+    });
+
+    it('onAwardTagsUpdated does not fire when payload has no awards field', () => {
+      const service = ChatV2Service.getInstance();
+      const onAwardTagsUpdated = vi.fn();
+
+      service.setupRealtimeHandlers({
+        onMessageNew: vi.fn(),
+        onMessageUpdate: vi.fn(),
+        onMessageDelete: vi.fn(),
+        onAwardTagsUpdated,
+      });
+
+      const awardCall = mockOn.mock.calls.find(
+        (call: unknown[]) => call[0] === 'workspace:member:award-updated',
+      );
+      const handler = awardCall![1] as (payload: unknown) => void;
+
+      handler({ workspaceId: 'ws-1' });
+
+      expect(onAwardTagsUpdated).not.toHaveBeenCalled();
+    });
+
+    it('onAwardTagsUpdated does not throw when handler is not provided', () => {
+      const service = ChatV2Service.getInstance();
+
+      service.setupRealtimeHandlers({
+        onMessageNew: vi.fn(),
+        onMessageUpdate: vi.fn(),
+        onMessageDelete: vi.fn(),
+      });
+
+      const awardCall = mockOn.mock.calls.find(
+        (call: unknown[]) => call[0] === 'workspace:member:award-updated',
+      );
+      const handler = awardCall![1] as (payload: unknown) => void;
+
+      expect(() =>
+        handler({ workspaceId: 'ws-1', awards: {} }),
+      ).not.toThrow();
+    });
+  });
+
+  describe('listMyAwards', () => {
+    it('emits "dota:awards:list" with workspaceId', async () => {
+      simulateSuccess({
+        awards: [{ type: 'MVP', label: 'MVP' }],
+        selectedType: 'MVP',
+        hidden: false,
+      });
+      const service = ChatV2Service.getInstance();
+
+      await service.listMyAwards('ws-1');
+
+      expect(mockEmit).toHaveBeenCalledWith(
+        'dota:awards:list',
+        { workspaceId: 'ws-1' },
+        expect.any(Function),
+      );
+    });
+
+    it('returns awards array and normalised selectedType/hidden from server response', async () => {
+      simulateSuccess({
+        awards: [
+          { type: 'MVP', label: 'MVP' },
+          { type: 'HOT_HAND', label: 'Hot Hand' },
+        ],
+        selectedType: 'HOT_HAND',
+        hidden: true,
+      });
+      const service = ChatV2Service.getInstance();
+
+      const result = await service.listMyAwards('ws-1');
+
+      expect(result.awards).toEqual([
+        { type: 'MVP', label: 'MVP' },
+        { type: 'HOT_HAND', label: 'Hot Hand' },
+      ]);
+      expect(result.selectedType).toBe('HOT_HAND');
+      expect(result.hidden).toBe(true);
+    });
+
+    it('defaults awards to empty array when server omits the field', async () => {
+      simulateSuccess({});
+      const service = ChatV2Service.getInstance();
+
+      const result = await service.listMyAwards('ws-1');
+
+      expect(result.awards).toEqual([]);
+    });
+
+    it('defaults selectedType to null when server omits the field', async () => {
+      simulateSuccess({ awards: [] });
+      const service = ChatV2Service.getInstance();
+
+      const result = await service.listMyAwards('ws-1');
+
+      expect(result.selectedType).toBeNull();
+    });
+
+    it('defaults hidden to false when server omits the field', async () => {
+      simulateSuccess({ awards: [] });
+      const service = ChatV2Service.getInstance();
+
+      const result = await service.listMyAwards('ws-1');
+
+      expect(result.hidden).toBe(false);
+    });
+
+    it('rejects when socket returns an error', async () => {
+      simulateError('Dota integration not linked');
+      const service = ChatV2Service.getInstance();
+
+      await expect(service.listMyAwards('ws-1')).rejects.toThrow(
+        'Dota integration not linked',
+      );
+    });
+  });
+
+  describe('updateAwardTagPreference', () => {
+    it('PATCHes /api/settings with workspaceId and selectedAwardTag in the body', async () => {
+      mockFetch.mockResolvedValue({ ok: true });
+      const service = ChatV2Service.getInstance();
+
+      await service.updateAwardTagPreference('ws-1', 'MVP');
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://localhost:3001/api/settings',
+        expect.objectContaining({
+          method: 'PATCH',
+          body: JSON.stringify({ workspaceId: 'ws-1', selectedAwardTag: 'MVP' }),
+        }),
+      );
+    });
+
+    it('includes hideAwardTag in the body when provided', async () => {
+      mockFetch.mockResolvedValue({ ok: true });
+      const service = ChatV2Service.getInstance();
+
+      await service.updateAwardTagPreference('ws-1', 'MVP', true);
+
+      const call = mockFetch.mock.calls[0];
+      const body = JSON.parse(call[1].body as string);
+      expect(body).toEqual({ workspaceId: 'ws-1', selectedAwardTag: 'MVP', hideAwardTag: true });
+    });
+
+    it('omits hideAwardTag from the body when undefined', async () => {
+      mockFetch.mockResolvedValue({ ok: true });
+      const service = ChatV2Service.getInstance();
+
+      await service.updateAwardTagPreference('ws-1', null);
+
+      const call = mockFetch.mock.calls[0];
+      const body = JSON.parse(call[1].body as string);
+      expect(body).not.toHaveProperty('hideAwardTag');
+      expect(body.workspaceId).toBe('ws-1');
+      expect(body.selectedAwardTag).toBeNull();
+    });
+
+    it('sends Bearer token in Authorization header', async () => {
+      mockFetch.mockResolvedValue({ ok: true });
+      const service = ChatV2Service.getInstance();
+
+      await service.updateAwardTagPreference('ws-1', 'MVP');
+
+      const call = mockFetch.mock.calls[0];
+      expect(call[1].headers).toMatchObject({
+        Authorization: 'Bearer test-jwt',
+      });
+    });
+
+    it('throws when fetch returns a network error', async () => {
+      mockFetch.mockRejectedValue(new TypeError('Failed to fetch'));
+      const service = ChatV2Service.getInstance();
+
+      await expect(service.updateAwardTagPreference('ws-1', 'MVP')).rejects.toThrow(
+        'Failed to fetch',
+      );
+    });
+
+    it('throws when fetch response is not ok with status code in message', async () => {
+      mockFetch.mockResolvedValue({ ok: false, status: 500, text: () => Promise.resolve('') });
+      const service = ChatV2Service.getInstance();
+
+      await expect(service.updateAwardTagPreference('ws-1', 'MVP')).rejects.toThrow(
+        'Failed to update award tag preference: 500',
+      );
     });
   });
 });

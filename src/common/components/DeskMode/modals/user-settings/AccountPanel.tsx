@@ -9,9 +9,12 @@ import { useAvatarUpload } from '../hooks/useAvatarUpload';
 import { useBannerEditor } from '../../profile-popover/hooks/useBannerEditor';
 import { ProfileBannerEditor } from '../../profile-popover/ProfileBannerEditor';
 import { getBannerStyle } from '../../profile-popover/ProfileBanner';
+import AwardTagSelector from '@/common/components/AwardTag/AwardTagSelector';
 import type { BannerConfig } from '@/communication/chatV2/_types';
 import { ChatV2Service } from '@/communication/chatV2/chatV2Service';
 import useUserStore from '@/common/store/useStore';
+import useChatV2Store from '@/common/store/chatV2Store';
+import { useAwardTagEditor } from '../hooks/useAwardTagEditor';
 
 interface AccountPanelProps {
   onClose: () => void;
@@ -80,6 +83,10 @@ function AccountPanel({ onClose }: AccountPanelProps) {
   const banner = useBannerEditor(currentBanner, (newBanner) => {
     setCurrentBanner(newBanner);
   });
+
+  // ---------- Award Tag ----------
+  const selectedWorkspaceId = useChatV2Store((s) => s.selectedWorkspaceId);
+  const awardTag = useAwardTagEditor(selectedWorkspaceId, chatV2Service);
 
   const avatar = useAvatarUpload();
   const profile = useProfileForm({
@@ -329,6 +336,31 @@ function AccountPanel({ onClose }: AccountPanelProps) {
             style={{ backgroundColor: 'var(--wd-surface-elevated)' }}
           />
         </div>
+      </div>
+
+      {/* ── Display Tag ── */}
+      <div
+        className="rounded-xl border wd-border-subtle p-4 space-y-3"
+        style={{ backgroundColor: 'var(--wd-surface-panel-2)' }}
+      >
+        <p className="text-[10px] font-bold uppercase tracking-widest wd-text-muted flex items-center gap-2">
+          <span
+            className="h-1.5 w-1.5 rounded-full"
+            style={{ backgroundColor: 'var(--wd-accent)' }}
+            aria-hidden="true"
+          />
+          Display Tag
+        </p>
+        <p className="text-xs wd-text-muted">
+          Choose which Dota 2 award to display next to your name.
+        </p>
+        <AwardTagSelector
+          availableAwards={awardTag.availableAwards}
+          selectedType={awardTag.selectedTag}
+          hidden={awardTag.hideTag}
+          onSelect={awardTag.handleTagSelect}
+          onToggleHidden={awardTag.handleToggleHidden}
+        />
       </div>
 
       {/* ── Error + Actions ── */}

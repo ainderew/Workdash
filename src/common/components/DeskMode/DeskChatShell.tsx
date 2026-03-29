@@ -11,6 +11,7 @@ import useWorkspaceStore from "@/common/store/workspaceStore";
 import useUiStore from "@/common/store/uiStore";
 import { ChatV2Service } from "@/communication/chatV2/chatV2Service";
 import type {
+    AwardTagData,
     ChatV2DirectRoom,
     ChatV2Message,
     ChatV2MessageSearchSort,
@@ -475,6 +476,33 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
         })();
         return () => { cancelled = true; };
     }, [selectedWorkspaceId, chatV2Service, selectedWorkspace?.ownerId]);
+
+    const awardTagMap = useMemo(() => {
+        const map = new Map<number, AwardTagData>();
+        for (const wm of wsMembers) {
+            if (wm.awardTag) map.set(wm.userId, wm.awardTag);
+        }
+        return map;
+    }, [wsMembers]);
+
+    // Real-time award tag updates (via chatV2Store.awardTagUpdate)
+    const awardTagUpdate = useChatV2Store((s) => s.awardTagUpdate);
+    useEffect(() => {
+        if (!awardTagUpdate) return;
+        if (awardTagUpdate.workspaceId !== selectedWorkspaceId) return;
+        const { awards } = awardTagUpdate;
+        if (!awards || Object.keys(awards).length === 0) return;
+        setWsMembers((prev) => {
+            let changed = false;
+            const next = prev.map((m) => {
+                const key = String(m.userId);
+                if (!(key in awards)) return m;
+                changed = true;
+                return { ...m, awardTag: awards[key] ?? null };
+            });
+            return changed ? next : prev;
+        });
+    }, [awardTagUpdate, selectedWorkspaceId]);
 
     // Throttled typing indicator
     const lastTypingEmitRef = useRef(0);
@@ -1028,6 +1056,7 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
                                 messages={roomMessages}
                                 isLoading={effectiveIsLoading}
                                 memberRoleColors={memberRoleColors}
+                                awardTagMap={awardTagMap}
                                 isLoadingOlderMessages={isLoadingOlderMessages}
                                 hasMoreMessages={
                                     currentRoomId

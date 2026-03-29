@@ -7,10 +7,12 @@ import React, {
 } from "react";
 import Image from "next/image";
 import type {
+    AwardTagData,
     ChatV2Attachment,
     ChatV2FriendshipStatus,
     ChatV2Message,
 } from "@/communication/chatV2/_types";
+import AwardTag from "@/common/components/AwardTag/AwardTag";
 import { ChatV2Service } from "@/communication/chatV2/chatV2Service";
 import { getStandaloneGifUrl } from "@/communication/chatV2/gifUrl";
 import {
@@ -72,6 +74,7 @@ interface MessageListProps {
     hasMoreMessages?: boolean;
     onLoadOlderMessages?: () => void;
     memberRoleColors?: Map<number, string>;
+    awardTagMap?: Map<number, AwardTagData>;
     pinnedMessageIds?: Map<string, { pinnedByName: string }>;
     onPinMessage?: (messageId: string) => void;
     onUnpinMessage?: (messageId: string) => void;
@@ -199,6 +202,7 @@ function MessageList({
     hasMoreMessages = true,
     onLoadOlderMessages,
     memberRoleColors,
+    awardTagMap,
     pinnedMessageIds,
     onPinMessage,
     onUnpinMessage,
@@ -1321,6 +1325,16 @@ function MessageList({
                                                 >
                                                     {senderName}
                                                 </span>
+                                                {(() => {
+                                                    const senderAward = awardTagMap?.get(message.senderUserId);
+                                                    return senderAward ? (
+                                                        <AwardTag
+                                                            type={senderAward.type}
+                                                            label={senderAward.label}
+                                                            size="xs"
+                                                        />
+                                                    ) : null;
+                                                })()}
                                                 {isBot && (
                                                     <span className="inline-flex items-center rounded-[3px] bg-[var(--wd-bot-badge-bg)] px-[5px] py-px text-[0.625rem] font-semibold uppercase tracking-wide wd-text-accent">
                                                         BOT
@@ -1691,6 +1705,7 @@ function MessageList({
                         <ProfilePopover
                             popover={profilePopover}
                             onClose={() => setProfilePopover(null)}
+                            awardTag={awardTagMap?.get(profilePopover.senderUserId)}
                             onAvatarUpdated={(newAvatar) => {
                                 setProfilePopover({
                                     ...profilePopover,

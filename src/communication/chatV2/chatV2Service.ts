@@ -1,5 +1,6 @@
 import { MediaTransportService } from "@/communication/mediaTransportService/mediaTransportService";
 import { tokenStore } from "@/common/utils/tokenStore";
+import { CONFIG } from "@/common/utils/config";
 import type { CustomEmoji } from "@/common/store/customEmojiStore";
 import type {
     AchievementUnlockPayload,
@@ -30,6 +31,8 @@ import type {
     Workspace,
     WorkspaceInvite,
     WorkspaceMap,
+    AwardTagData,
+    DotaAwardTagType,
     WorkspaceMember,
     WorkspaceRole,
     DotaRecentMatch,
@@ -63,6 +66,7 @@ type RealtimeHandlers = {
     onTypingStop?: (payload: { roomId: string; userId: number }) => void;
     onAchievementUnlocked?: (payload: AchievementUnlockPayload) => void;
     onRoomMemberAdded?: (payload: { roomId: string; role: string }) => void;
+    onAwardTagsUpdated?: (payload: { workspaceId: string; awards: Record<string, AwardTagData> }) => void;
 };
 
 export class ChatV2Service {
@@ -211,6 +215,12 @@ export class ChatV2Service {
             }
         };
 
+        const onAwardTagsUpdated = (payload: { workspaceId: string; awards?: Record<string, AwardTagData> }) => {
+            if (payload?.workspaceId && payload.awards) {
+                handlers.onAwardTagsUpdated?.(payload as { workspaceId: string; awards: Record<string, AwardTagData> });
+            }
+        };
+
         this.transport.socket.on("chat:v2:message:new", onMessageNew);
         this.transport.socket.on("chat:v2:message:update", onMessageUpdate);
         this.transport.socket.on("chat:v2:message:delete", onMessageDelete);
@@ -229,6 +239,7 @@ export class ChatV2Service {
         this.transport.socket.on("chat:v2:typing:stop", onTypingStop);
         this.transport.socket.on("achievement:unlocked", onAchievementUnlocked);
         this.transport.socket.on("chat:v2:room:member:added", onRoomMemberAdded);
+        this.transport.socket.on("workspace:member:award-updated", onAwardTagsUpdated);
 
         this.teardownRealtimeHandlers = () => {
             this.transport.socket.off("chat:v2:message:new", onMessageNew);
@@ -249,6 +260,7 @@ export class ChatV2Service {
             this.transport.socket.off("chat:v2:typing:stop", onTypingStop);
             this.transport.socket.off("achievement:unlocked", onAchievementUnlocked);
             this.transport.socket.off("chat:v2:room:member:added", onRoomMemberAdded);
+            this.transport.socket.off("workspace:member:award-updated", onAwardTagsUpdated);
             this.teardownRealtimeHandlers = null;
         };
 
@@ -1357,5 +1369,53 @@ export class ChatV2Service {
             "achievement:display:update",
             { items },
         );
+    }
+
+    // ─── Dota Award Tags ─────────────────────────────────────────
+
+    async listMyAwards(workspaceId: string): Promise<{
+        awards: AwardTagData[];
+        selectedType?: DotaAwardTagType | null;
+        hidden?: boolean;
+    }> {
+        const response = await this.emitWithAck<{
+            awards: AwardTagData[];
+            selectedType?: DotaAwardTagType | null;
+            hidden?: boolean;
+        }>("dota:awards:list", { workspaceId });
+        return {
+            awards: response.awards ?? [],
+            selectedType: response.selectedType ?? null,
+            hidden: response.hidden ?? false,
+        };
+    }
+
+    async updateAwardTagPreference(
+        workspaceId: string,
+        selectedAwardTag: DotaAwardTagType | null,
+        hideAwardTag?: boolean,
+    ): Promise<void> {
+        // NOTE: settings endpoint intentionally uses REST — socket ack not supported for this route
+        const payload: { workspaceId: string; selectedAwardTag: DotaAwardTagType | null; hideAwardTag?: boolean } = { workspaceId, selectedAwardTag };
+        if (hideAwardTag !== undefined) {
+            payload.hideAwardTag = hideAwardTag;
+        }
+        const token = tokenStore.getJwt();
+        if (!token) throw new Error("Not authenticated");
+        const response = await fetch(
+            `${CONFIG.SFU_SERVER_URL}/api/settings`,
+            {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify(payload),
+            },
+        );
+        if (!response.ok) {
+            const body = await response.text().catch(() => '');
+            throw new Error(`Failed to update award tag preference: ${response.status}${body ? ` — ${body}` : ''}`);
+        }
     }
 }

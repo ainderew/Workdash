@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { ChatV2Service } from "@/communication/chatV2/chatV2Service";
 import { EventBus } from "@/game/EventBus";
 import type {
+    AwardTagData,
     ChatV2CreateAttachment,
     ChatV2DirectRoom,
     ChatV2FrequentEmoji,
@@ -212,6 +213,7 @@ type ChatV2State = {
     typingUsersByRoomId: Record<string, { userId: number; displayName: string; expiresAt: number }[]>;
     setTypingUser: (roomId: string, userId: number, displayName: string) => void;
     clearTypingUser: (roomId: string, userId: number) => void;
+    awardTagUpdate: { workspaceId: string; awards: Record<string, AwardTagData> } | null;
     clear: () => void;
 };
 
@@ -530,6 +532,7 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
     pinnedMessagesByRoomId: {},
     isLoadingPinnedMessages: false,
     typingUsersByRoomId: {},
+    awardTagUpdate: null,
 
     setRailView: (view) => {
         set({ railView: view });
@@ -758,6 +761,9 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
                         memberAddedDebounceTimer = null;
                         void get().reloadRoomStructure();
                     }, MEMBER_ADDED_DEBOUNCE_MS);
+                },
+                onAwardTagsUpdated: (payload) => {
+                    set({ awardTagUpdate: payload });
                 },
             });
 
@@ -2060,6 +2066,7 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
             pinnedMessagesByRoomId: {},
             isLoadingPinnedMessages: false,
             typingUsersByRoomId: {},
+            awardTagUpdate: null,
         });
     },
 }));

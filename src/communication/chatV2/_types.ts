@@ -173,6 +173,7 @@ export type ChatV2RoomMember = {
         email: string;
         image?: string | null;
         characterCustomization?: ChatV2CharacterCustomization | null;
+        awardTag?: AwardTagData | null;
     };
 };
 
@@ -300,6 +301,16 @@ export type ChatV2PinnedMessage = {
     message: ChatV2Message;
 };
 
+// --- Dota Award Tag types ---
+
+export type DotaAwardTagType = "MVP" | "RISING" | "BEST_WINRATE" | "HOT_HAND";
+
+export type AwardTagData = {
+    type: DotaAwardTagType;
+    label: string;
+    metadata?: Record<string, unknown>;
+};
+
 // --- Workspace types ---
 
 export type Workspace = {
@@ -356,6 +367,7 @@ export type WorkspaceMember = {
         manualLock: boolean;
     };
     activity?: UserActivity | null;
+    awardTag?: AwardTagData | null;
 };
 
 export type WorkspaceRole = {

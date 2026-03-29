@@ -52,6 +52,87 @@ body {
 /*     font-size: 0.8em; */
 /* } */
 
+/* ── Award Tag ────────────────────────────────────────────── */
+.wd-award-tag {
+    color: var(--wd-award-text);
+    background:
+        linear-gradient(
+            48deg,
+            transparent 0%,
+            rgba(180, 178, 174, 0.18) 14.5%,
+            transparent 15.5%,
+            transparent 30%,
+            rgba(140, 138, 134, 0.22) 30.3%,
+            transparent 31.5%,
+            transparent 52%,
+            rgba(160, 158, 154, 0.16) 52.2%,
+            transparent 53.5%,
+            transparent 71%,
+            rgba(120, 118, 114, 0.2) 71.3%,
+            transparent 72.5%,
+            transparent 88%,
+            rgba(150, 148, 144, 0.14) 88.2%,
+            transparent 89.5%
+        ),
+        linear-gradient(
+            132deg,
+            transparent 10%,
+            rgba(170, 168, 164, 0.15) 10.3%,
+            transparent 11.5%,
+            transparent 38%,
+            rgba(130, 128, 124, 0.2) 38.2%,
+            transparent 39.5%,
+            transparent 62%,
+            rgba(150, 148, 144, 0.17) 62.2%,
+            transparent 63.5%,
+            transparent 85%,
+            rgba(110, 108, 104, 0.15) 85.2%,
+            transparent 86.5%
+        ),
+        var(--wd-award-bg);
+    border: 1px solid var(--wd-award-border);
+    box-shadow: var(--wd-award-shadow);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+}
+
+.wd-award-tag-icon {
+    background-color: var(--wd-award-color);
+    filter: drop-shadow(0 0 2px rgba(var(--wd-award-glow), 0.5));
+}
+
+.wd-award-tag[data-award="mvp"] {
+    --wd-award-color: var(--wd-award-mvp);
+    --wd-award-glow: var(--wd-award-mvp-glow);
+}
+.wd-award-tag[data-award="mvp"] .wd-award-tag-icon {
+    mask: url('/assets/awards/mvp.svg') center/contain no-repeat;
+    -webkit-mask: url('/assets/awards/mvp.svg') center/contain no-repeat;
+}
+.wd-award-tag[data-award="rising"] {
+    --wd-award-color: var(--wd-award-rising);
+    --wd-award-glow: var(--wd-award-rising-glow);
+}
+.wd-award-tag[data-award="rising"] .wd-award-tag-icon {
+    mask: url('/assets/awards/rising.svg') center/contain no-repeat;
+    -webkit-mask: url('/assets/awards/rising.svg') center/contain no-repeat;
+}
+.wd-award-tag[data-award="best-winrate"] {
+    --wd-award-color: var(--wd-award-best-winrate);
+    --wd-award-glow: var(--wd-award-best-winrate-glow);
+}
+.wd-award-tag[data-award="best-winrate"] .wd-award-tag-icon {
+    mask: url('/assets/awards/best-winrate.svg') center/contain no-repeat;
+    -webkit-mask: url('/assets/awards/best-winrate.svg') center/contain no-repeat;
+}
+.wd-award-tag[data-award="hot-hand"] {
+    --wd-award-color: var(--wd-award-hot-hand);
+    --wd-award-glow: var(--wd-award-hot-hand-glow);
+}
+.wd-award-tag[data-award="hot-hand"] .wd-award-tag-icon {
+    mask: url('/assets/awards/hot-hand.svg') center/contain no-repeat;
+    -webkit-mask: url('/assets/awards/hot-hand.svg') center/contain no-repeat;
+}
+
 @theme inline {
     --radius-sm: calc(var(--radius) - 4px);
     --radius-md: calc(var(--radius) - 2px);
@@ -168,6 +249,27 @@ body {
     --wd-dota-6: rgb(var(--wd-dota-6-rgb) / 1);
 
     --wd-panel-height: 5rem;
+
+    /* Dota award tag per-type accent colors */
+    --wd-award-mvp: #d4a843;
+    --wd-award-mvp-glow: 212, 168, 67;
+    --wd-award-rising: #7a9e6a;
+    --wd-award-rising-glow: 122, 158, 106;
+    --wd-award-best-winrate: #7a9ab8;
+    --wd-award-best-winrate-glow: 122, 154, 184;
+    --wd-award-hot-hand: #c86838;
+    --wd-award-hot-hand-glow: 200, 104, 56;
+
+    /* Award tag badge surface (theme-invariant — metallic dark) */
+    --wd-award-text: #a8a29e;
+    --wd-award-bg: linear-gradient(180deg, #565460 0%, #4D4D54 30%, #444450 60%, #3e3e48 100%);
+    --wd-award-border: rgba(120, 118, 130, 0.45);
+    --wd-award-shadow:
+      inset 0 1px 0 rgba(160, 158, 170, 0.15),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.5),
+      inset 1px 0 0 rgba(140, 138, 148, 0.08),
+      inset -1px 0 0 rgba(140, 138, 148, 0.08),
+      0 1px 3px rgba(0, 0, 0, 0.5);
 
     /* Login page tokens */
     --wd-login-accent: #2563eb;

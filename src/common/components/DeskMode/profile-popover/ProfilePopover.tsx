@@ -19,18 +19,22 @@ import { DotaMedalBadge } from './DotaMedalBadge';
 import { BetrayalStatsBadge } from './BetrayalStatsBadge';
 import { AchievementBadges } from './AchievementBadges';
 import { ActivityText } from '../ActivityText';
+import AwardTag from '@/common/components/AwardTag/AwardTag';
+import type { AwardTagData } from '@/communication/chatV2/_types';
 import useChatV2Store from '@/common/store/chatV2Store';
 
 interface ProfilePopoverProps {
   popover: ProfilePopoverState;
   onClose: () => void;
   onAvatarUpdated: (avatar: SenderAvatar) => void;
+  awardTag?: AwardTagData | null;
 }
 
 export function ProfilePopover({
   popover,
   onClose,
   onAvatarUpdated,
+  awardTag,
 }: ProfilePopoverProps) {
   const updateUser = useUserStore((state) => state.updateUser);
   const { profile, setProfile, isLoading, error } = useProfilePopover(
@@ -323,9 +327,18 @@ export function ProfilePopover({
         )}
 
         <div className="mt-2.5 space-y-0.5 overflow-hidden">
-          <p className="text-[17px] font-semibold tracking-[-0.01em] wd-text-primary truncate">
-            {popover.senderName}
-          </p>
+          <div className="flex items-center gap-2 min-w-0">
+            <p className="text-[17px] font-semibold tracking-[-0.01em] wd-text-primary truncate">
+              {popover.senderName}
+            </p>
+            {awardTag && (
+              <AwardTag
+                type={awardTag.type}
+                label={awardTag.label}
+                size="sm"
+              />
+            )}
+          </div>
           <p className="text-[11px] font-mono wd-text-muted opacity-60">
             ID {popover.senderUserId}
           </p>

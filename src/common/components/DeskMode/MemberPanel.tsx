@@ -1,5 +1,6 @@
 import React from "react";
 import type {
+    AwardTagData,
     ChatV2RoomMember,
     WorkspaceMember,
     WorkspaceRole,
@@ -15,6 +16,7 @@ import {
 import UserAvatar from "./UserAvatar";
 import PresenceDot from "./PresenceDot";
 import { ActivityText } from "./ActivityText";
+import AwardTag from "@/common/components/AwardTag/AwardTag";
 import useChatV2Store from "@/common/store/chatV2Store";
 import { usePresenceStore } from "@/common/store/presenceStore";
 import { colorToHex } from "@/common/utils/roleColor";
@@ -205,6 +207,7 @@ function MemberPanel({
                                                 key={`${member.roomId}-${member.userId}`}
                                                 member={member}
                                                 nameColor={memberRoleColors?.get(member.userId)}
+                                                awardTag={wsMemberMap.get(member.userId)?.awardTag}
                                                 onRemove={() =>
                                                     onRemoveMember(
                                                         member.userId,
@@ -228,6 +231,7 @@ function MemberPanel({
                                                 key={`${member.roomId}-${member.userId}`}
                                                 member={member}
                                                 nameColor={memberRoleColors?.get(member.userId)}
+                                                awardTag={wsMemberMap.get(member.userId)?.awardTag}
                                                 onRemove={() =>
                                                     onRemoveMember(
                                                         member.userId,
@@ -266,6 +270,7 @@ function MemberPanel({
                                                     key={`${member.roomId}-${member.userId}`}
                                                     member={member}
                                                     nameColor={memberRoleColors?.get(member.userId)}
+                                                    awardTag={wsMemberMap.get(member.userId)?.awardTag}
                                                     onRemove={() =>
                                                         onRemoveMember(
                                                             member.userId,
@@ -303,11 +308,13 @@ function MemberRow({
     nameColor,
     onRemove,
     isOffline = false,
+    awardTag,
 }: {
     member: ChatV2RoomMember;
     nameColor?: string;
     onRemove: () => void;
     isOffline?: boolean;
+    awardTag?: AwardTagData | null;
 }) {
     const displayName = getDisplayName(member.user, `User ${member.userId}`);
     const selectedWorkspaceId = useChatV2Store(
@@ -328,12 +335,21 @@ function MemberRow({
                 <PresenceDot userId={member.userId} size="xs" />
             </div>
             <div className="flex-1 min-w-0">
-                <span
-                    className={`text-sm truncate block transition-colors ${nameColor ? "font-medium" : "wd-text-secondary group-hover:wd-text-primary"}`}
-                    style={nameColor ? { color: nameColor } : undefined}
-                >
-                    {displayName}
-                </span>
+                <div className="flex items-center gap-1.5 min-w-0">
+                    <span
+                        className={`text-sm truncate transition-colors ${nameColor ? "font-medium" : "wd-text-secondary group-hover:wd-text-primary"}`}
+                        style={nameColor ? { color: nameColor } : undefined}
+                    >
+                        {displayName}
+                    </span>
+                    {awardTag && (
+                        <AwardTag
+                            type={awardTag.type}
+                            label={awardTag.label}
+                            size="xs"
+                        />
+                    )}
+                </div>
                 <ActivityText
                     userId={member.userId}
                     workspaceId={selectedWorkspaceId}
