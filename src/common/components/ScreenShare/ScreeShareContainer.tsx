@@ -1,7 +1,5 @@
 import React, { useRef } from "react";
 import { X, Maximize2, Minimize2 } from "lucide-react";
-import { ScreenShareViewer } from "@/communication/screenShare/screenShareViewer";
-import { logger } from "@/common/utils/logger";
 import { useVideoLoaded } from "@/common/hooks/useVideoLoaded";
 import { ScreenShareLoadingIndicator } from "./ScreenShareLoadingIndicator";
 
@@ -9,19 +7,18 @@ function ScreeShareContainer({
     producerId,
     isExpanded,
     handleExpand,
-
+    ownerName,
 }: {
     producerId: string;
     isExpanded: boolean;
     handleExpand: (producerId: string) => void;
-    hasMoreThanOneSharing: boolean;
+    ownerName: string;
 }) {
     const videoContainerRef = useRef<HTMLDivElement>(null);
     const isLoading = useVideoLoaded(videoContainerRef, producerId);
 
     function handleClick(e: React.MouseEvent) {
         e.stopPropagation();
-        logger.log("🖱️ Clicked video:", producerId, "isExpanded:", isExpanded);
         handleExpand(producerId);
     }
 
@@ -107,7 +104,7 @@ function ScreeShareContainer({
                 )}
 
                 <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-sm px-2 py-1 rounded text-white text-xs font-mono z-50">
-                    {ScreenShareViewer.getInstance().videoOwnerMap[producerId]}
+                    {ownerName}
                 </div>
             </div>
         </>

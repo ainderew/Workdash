@@ -5,6 +5,7 @@ import ScreeShareContainer from "./ScreeShareContainer";
 type VideoState = {
     producerId: string;
     isExpanded: boolean;
+    ownerName: string;
 };
 
 interface ScreenShareUiProps {
@@ -21,14 +22,21 @@ function ScreenShareUi({ isGameReady }: ScreenShareUiProps) {
             const vidArray = Array.from(service.videoElements.keys());
 
             setVideosTracked((prev) => {
-                const newVideos = vidArray.map((vid) => {
+                const prevKeys = prev.map((v) => v.producerId).sort().join(",");
+                const nextKeys = [...vidArray].sort().join(",");
+                const ownersSame = prev.every(
+                    (v) => service.videoOwnerMap[v.producerId] === v.ownerName,
+                );
+                if (prevKeys === nextKeys && ownersSame) return prev;
+
+                return vidArray.map((vid) => {
                     const existing = prev.find((v) => v.producerId === vid);
                     return {
                         producerId: vid,
                         isExpanded: existing?.isExpanded ?? false,
+                        ownerName: service.videoOwnerMap[vid] ?? "Unknown User",
                     };
                 });
-                return newVideos;
             });
         }
 
@@ -93,7 +101,7 @@ function ScreenShareUi({ isGameReady }: ScreenShareUiProps) {
                     producerId={expandedVideo.producerId}
                     isExpanded={true}
                     handleExpand={handleExpand}
-                    hasMoreThanOneSharing={videosTracked.length > 1}
+                    ownerName={expandedVideo.ownerName}
                 />
             )}
 
@@ -105,7 +113,7 @@ function ScreenShareUi({ isGameReady }: ScreenShareUiProps) {
                             ? "left-10 top-1/2 -translate-y-1/2 flex-col"
                             : "top-5 left-5 flex-col"
                     }
-                    ${hasExpandedVideo && collapsedVideos.length > 3 ? "overflow-x-auto max-w-[90vw]" : ""}
+                    ${hasExpandedVideo && collapsedVideos.length > 3 ? "overflow-y-auto max-h-[80vh]" : ""}
                 `}
             >
                 {collapsedVideos.map((video) => (
@@ -114,7 +122,7 @@ function ScreenShareUi({ isGameReady }: ScreenShareUiProps) {
                         producerId={video.producerId}
                         isExpanded={false}
                         handleExpand={handleExpand}
-                        hasMoreThanOneSharing={videosTracked.length > 1}
+                        ownerName={video.ownerName}
                     />
                 ))}
             </div>

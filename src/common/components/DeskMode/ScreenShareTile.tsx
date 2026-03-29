@@ -50,7 +50,10 @@ export default function ScreenShareTile({
     }
 
     const stream = ScreenShareService.getInstance().getCurrentStream();
-    if (!stream) return;
+    if (!stream) {
+      setIsLoading(false);
+      return;
+    }
 
     const videoEl = document.createElement('video');
     videoEl.srcObject = stream;
@@ -60,7 +63,7 @@ export default function ScreenShareTile({
     videoEl.style.width = '100%';
     videoEl.style.height = '100%';
     videoEl.style.objectFit = 'contain';
-    videoEl.style.backgroundColor = '#000';
+    videoEl.style.backgroundColor = 'var(--wd-surface-base)';
     videoEl.addEventListener('loadeddata', () => {
       if (!disposed) setIsLoading(false);
     }, { once: true });
@@ -106,7 +109,7 @@ export default function ScreenShareTile({
         videoEl.style.width = '100%';
         videoEl.style.height = '100%';
         videoEl.style.objectFit = 'contain';
-        videoEl.style.backgroundColor = '#000';
+        videoEl.style.backgroundColor = 'var(--wd-surface-base)';
         videoEl.addEventListener('loadeddata', () => {
           if (!cancelled) setIsLoading(false);
         }, { once: true });
@@ -118,6 +121,8 @@ export default function ScreenShareTile({
       // Video element not ready yet — retry (consumeProducer is async)
       if (++attempts < MAX_ATTEMPTS) {
         retryTimer = window.setTimeout(attach, 200);
+      } else if (!cancelled) {
+        setIsLoading(false);
       }
     };
 
@@ -138,7 +143,7 @@ export default function ScreenShareTile({
       className="relative overflow-hidden rounded-lg border wd-border-subtle h-full min-w-0 group/tile"
       style={{
         aspectRatio: fillCell ? 'auto' : '16 / 9',
-        backgroundColor: '#000',
+        backgroundColor: 'var(--wd-surface-base)',
       }}
     >
       {/* Pin button — top-right, visible on hover or when pinned */}
@@ -151,7 +156,7 @@ export default function ScreenShareTile({
           }}
           className={`absolute top-1 right-1 z-10 inline-flex items-center justify-center h-6 w-6 rounded transition-opacity ${
             isPinned
-              ? 'opacity-100 bg-blue-500/80'
+              ? 'opacity-100 bg-[var(--wd-accent)]/80'
               : 'opacity-0 group-hover/tile:opacity-100 bg-black/50 hover:bg-black/70'
           }`}
           title={isPinned ? 'Unpin' : 'Pin'}
@@ -177,7 +182,7 @@ export default function ScreenShareTile({
           background: 'linear-gradient(transparent, rgba(0,0,0,0.6))',
         }}
       >
-        <Monitor size={11} className="text-blue-400 shrink-0" />
+        <Monitor size={11} className="text-[var(--wd-accent)] shrink-0" />
         <span className="text-xs font-medium text-white truncate">
           {participant.displayName}
           <span className="text-white/60 ml-1">(Screen)</span>

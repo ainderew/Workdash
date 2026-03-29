@@ -10,9 +10,9 @@ export class ScreenShareService {
     private screenAudioProducer: Producer | null = null;
     private currentStream: MediaStream | null = null;
     private starting = false;
-    public static instance: ScreenShareService | null = null;
+    private static instance: ScreenShareService | null = null;
 
-    constructor() {
+    private constructor() {
         this.sfuService = MediaTransportService.getInstance();
     }
 
@@ -79,6 +79,21 @@ export class ScreenShareService {
             };
 
             return stream;
+        } catch (error) {
+            // Roll back partially-constructed state so the stream doesn't leak
+            if (this.currentStream) {
+                this.currentStream.getTracks().forEach((track) => track.stop());
+                this.currentStream = null;
+            }
+            if (this.screenAudioProducer && !this.screenAudioProducer.closed) {
+                this.screenAudioProducer.close();
+                this.screenAudioProducer = null;
+            }
+            if (this.screenProducer && !this.screenProducer.closed) {
+                this.screenProducer.close();
+                this.screenProducer = null;
+            }
+            throw error;
         } finally {
             this.starting = false;
         }
@@ -97,7 +112,7 @@ export class ScreenShareService {
     }
 
     public stopScreenShare(): void {
-        if (!this.screenProducer) {
+        if (!this.screenProducer || this.screenProducer.closed) {
             return;
         }
 
