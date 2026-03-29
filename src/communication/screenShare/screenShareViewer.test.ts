@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 // ── Shared mocks ──────────────────────────────────────────────────────────────
 
@@ -349,6 +349,420 @@ describe("ScreenShareViewer", () => {
             (viewer as any)._videoOwnerMap["prod-a"] = "Alice";
 
             expect(viewer.videoOwnerMap["prod-a"]).toBe("Alice");
+        });
+    });
+
+    // ── setupListeners() ────────────────────────────────────────────────
+
+    describe("setupListeners() — socket event wiring", () => {
+        it("ignores newProducer events where source !== 'screen'", () => {
+            // Capture the newProducer handler registered during construction
+            const viewer = ScreenShareViewer.getInstance();
+            const v = viewer as any;
+
+            // Find the handler registered for "newProducer"
+            const newProducerCall = mockSocketOn.mock.calls.find(
+                ([event]: [string]) => event === "newProducer",
+            );
+            expect(newProducerCall).toBeDefined();
+            const handler = newProducerCall![1] as (payload: unknown) => void;
+
+            handler({
+                producerId: "prod-x",
+                userName: "Alice",
+                userId: 1,
+                source: "camera",           // not "screen"
+            });
+
+            expect(v._videoOwnerMap["prod-x"]).toBeUndefined();
+        });
+
+        it("writes videoOwnerMap entry when newProducer arrives with source === 'screen'", async () => {
+            const viewer = ScreenShareViewer.getInstance();
+            const v = viewer as any;
+
+            // Stub consumeProducer so we do not need a full SFU round-trip
+            vi.spyOn(v, "consumeProducer").mockResolvedValue(undefined);
+
+            const newProducerCall = mockSocketOn.mock.calls.find(
+                ([event]: [string]) => event === "newProducer",
+            );
+            const handler = newProducerCall![1] as (payload: unknown) => Promise<void>;
+
+            await handler({
+                producerId: "prod-screen",
+                userName: "Bob",
+                userId: 42,
+                source: "screen",
+            });
+
+            expect(v._videoOwnerMap["prod-screen"]).toBe("Bob");
+        });
+
+        it("calls consumeProducer for a newProducer screen event", async () => {
+            const viewer = ScreenShareViewer.getInstance();
+            const v = viewer as any;
+            const consumeSpy = vi.spyOn(v, "consumeProducer").mockResolvedValue(undefined);
+
+            const newProducerCall = mockSocketOn.mock.calls.find(
+                ([event]: [string]) => event === "newProducer",
+            );
+            const handler = newProducerCall![1] as (payload: unknown) => Promise<void>;
+
+            await handler({
+                producerId: "prod-screen-2",
+                userName: "Carol",
+                source: "screen",
+            });
+
+            expect(consumeSpy).toHaveBeenCalledWith("prod-screen-2");
+        });
+
+        it("calls removeScreenShareVideo when endScreenShare fires", () => {
+            const viewer = ScreenShareViewer.getInstance();
+            const consumer = makeConsumer("ca");
+            (viewer as any).consumers.set("prod-a", consumer);
+
+            const endShareCall = mockSocketOn.mock.calls.find(
+                ([event]: [string]) => event === "endScreenShare",
+            );
+            expect(endShareCall).toBeDefined();
+            const handler = endShareCall![1] as (payload: unknown) => void;
+
+            handler({ producerId: "prod-a" });
+
+            expect(consumer.close).toHaveBeenCalledTimes(1);
+        });
+    });
+
+    // ── displayVideo() — internal path via consumeProducer ──────────────
+
+    describe("displayVideo() — internal rendering logic", () => {
+        beforeEach(() => {
+            // jsdom does not implement MediaStream — stub it so displayVideo can
+            // assign srcObject = new MediaStream([track]) without throwing.
+            vi.stubGlobal(
+                "MediaStream",
+                vi.fn().mockImplementation(() => ({ getTracks: vi.fn(() => []) })),
+            );
+        });
+
+        afterEach(() => {
+            vi.unstubAllGlobals();
+        });
+
+        it("does not create a video element when no subscribers are registered", async () => {
+            const viewer = ScreenShareViewer.getInstance();
+            const v = viewer as any;
+
+            // Bypass the full SFU handshake — call displayVideo directly
+            const consumer = makeConsumer("ca");
+            // No subscribers registered
+            v.displayVideo("prod-a", consumer);
+
+            expect(v._videoElements.has("prod-a")).toBe(false);
+        });
+
+        it("closes the consumer and removes it when track readyState !== 'live'", () => {
+            const viewer = ScreenShareViewer.getInstance();
+            const v = viewer as any;
+
+            viewer.subscribe(vi.fn());   // ensure subscribers exist
+
+            const consumer = makeConsumer("ca");
+            consumer.track.readyState = "ended" as MediaStreamTrackState;
+            v.consumers.set("prod-a", consumer);
+
+            v.displayVideo("prod-a", consumer);
+
+            expect(consumer.close).toHaveBeenCalledTimes(1);
+            expect(v.consumers.has("prod-a")).toBe(false);
+            expect(v._videoElements.has("prod-a")).toBe(false);
+        });
+
+        it("creates a video element and notifies subscribers for a live track", () => {
+            const viewer = ScreenShareViewer.getInstance();
+            const v = viewer as any;
+
+            const callback = vi.fn();
+            viewer.subscribe(callback);
+
+            const consumer = makeConsumer("ca");
+            v.displayVideo("prod-a", consumer);
+
+            expect(v._videoElements.has("prod-a")).toBe(true);
+            expect(callback).toHaveBeenCalledTimes(1);
+        });
+
+        it("sets a 10 s data-check timer that auto-removes the video on expiry", () => {
+            vi.useFakeTimers();
+            const viewer = ScreenShareViewer.getInstance();
+            const v = viewer as any;
+
+            viewer.subscribe(vi.fn());
+
+            const consumer = makeConsumer("ca");
+            v.consumers.set("prod-a", consumer);
+            v.displayVideo("prod-a", consumer);
+
+            // Timer is registered
+            expect(v.dataCheckTimers.has("prod-a")).toBe(true);
+
+            // Advance past the 10 s threshold without triggering onloadeddata
+            vi.advanceTimersByTime(10_001);
+
+            // Video element and consumer should have been removed
+            expect(v._videoElements.has("prod-a")).toBe(false);
+            vi.useRealTimers();
+        });
+
+        it("cancels the data-check timer when onloadeddata fires before 10 s", () => {
+            vi.useFakeTimers();
+            const viewer = ScreenShareViewer.getInstance();
+            const v = viewer as any;
+
+            viewer.subscribe(vi.fn());
+
+            const consumer = makeConsumer("ca");
+            v.consumers.set("prod-a", consumer);
+            v.displayVideo("prod-a", consumer);
+
+            const videoEl = v._videoElements.get("prod-a") as HTMLVideoElement;
+            expect(videoEl).toBeDefined();
+
+            // Simulate data arriving
+            videoEl.onloadeddata!(new Event("loadeddata") as any);
+
+            // Timer should have been cleared
+            expect(v.dataCheckTimers.has("prod-a")).toBe(false);
+
+            // Advancing past 10 s should no longer remove the video
+            vi.advanceTimersByTime(10_001);
+            expect(v._videoElements.has("prod-a")).toBe(true);
+
+            vi.useRealTimers();
+        });
+
+        it("calls removeScreenShareVideo when track.onended fires", () => {
+            const viewer = ScreenShareViewer.getInstance();
+            const v = viewer as any;
+
+            viewer.subscribe(vi.fn());
+
+            const consumer = makeConsumer("ca");
+            v.consumers.set("prod-a", consumer);
+            v.displayVideo("prod-a", consumer);
+
+            // Simulate browser signalling the track ended
+            consumer.track.onended!();
+
+            expect(v._videoElements.has("prod-a")).toBe(false);
+            expect(v.consumers.has("prod-a")).toBe(false);
+        });
+    });
+
+    // ── loadExistingProducers() ──────────────────────────────────────────
+
+    describe("loadExistingProducers()", () => {
+        let emitWithTimeoutMock: ReturnType<typeof vi.fn>;
+
+        beforeEach(async () => {
+            // Re-import to get the fresh mock reference after resetModules
+            const { emitWithTimeout } = await import(
+                "@/communication/utils/emitWithTimeout"
+            );
+            emitWithTimeoutMock = emitWithTimeout as ReturnType<typeof vi.fn>;
+        });
+
+        it("skips waitForPlayers when interactionMode is 'desk'", async () => {
+            // uiStore mock already returns "desk"
+            const viewer = ScreenShareViewer.getInstance();
+            const v = viewer as any;
+
+            const waitSpy = vi.spyOn(v, "waitForPlayers").mockResolvedValue(undefined);
+            const consumeSpy = vi.spyOn(v, "consumeProducer").mockResolvedValue(undefined);
+
+            emitWithTimeoutMock.mockResolvedValue([]);
+
+            await viewer.loadExistingProducers();
+
+            expect(waitSpy).not.toHaveBeenCalled();
+            expect(consumeSpy).not.toHaveBeenCalled();
+        });
+
+        it("ignores non-screen producers returned by getProducers", async () => {
+            const viewer = ScreenShareViewer.getInstance();
+            const v = viewer as any;
+
+            vi.spyOn(v, "consumeProducer").mockResolvedValue(undefined);
+
+            emitWithTimeoutMock.mockResolvedValue([
+                { producerId: "cam-1", socketId: "s1", source: "camera" },
+                { producerId: "screen-1", socketId: "s2", source: "screen", userName: "Alice", userId: 1 },
+            ]);
+
+            await viewer.loadExistingProducers();
+
+            // Only the screen producer should have been consumed
+            expect(v.consumeProducer).toHaveBeenCalledTimes(1);
+            expect(v.consumeProducer).toHaveBeenCalledWith("screen-1");
+        });
+
+        it("stores userName from getProducers response when provided", async () => {
+            const viewer = ScreenShareViewer.getInstance();
+            const v = viewer as any;
+
+            vi.spyOn(v, "consumeProducer").mockResolvedValue(undefined);
+
+            emitWithTimeoutMock.mockResolvedValue([
+                { producerId: "screen-1", socketId: "s1", source: "screen", userName: "Alice", userId: 1 },
+            ]);
+
+            await viewer.loadExistingProducers();
+
+            expect(v._videoOwnerMap["screen-1"]).toBe("Alice");
+        });
+
+        it("falls back to playerStore when producer has no userName", async () => {
+            const viewer = ScreenShareViewer.getInstance();
+            const v = viewer as any;
+
+            vi.spyOn(v, "consumeProducer").mockResolvedValue(undefined);
+
+            emitWithTimeoutMock.mockResolvedValue([
+                { producerId: "screen-1", socketId: "socket-abc", source: "screen" },
+            ]);
+
+            // Provide a matching player in the mock playerStore
+            const { default: usePlayersStore } = await import("@/common/store/playerStore");
+            (usePlayersStore.getState as ReturnType<typeof vi.fn>).mockReturnValue({
+                playerMap: { "socket-abc": { name: "Dan" } },
+            });
+
+            await viewer.loadExistingProducers();
+
+            expect(v._videoOwnerMap["screen-1"]).toBe("Dan");
+        });
+
+        it("assigns 'Unknown User' when neither userName nor playerStore has the name", async () => {
+            const viewer = ScreenShareViewer.getInstance();
+            const v = viewer as any;
+
+            vi.spyOn(v, "consumeProducer").mockResolvedValue(undefined);
+
+            emitWithTimeoutMock.mockResolvedValue([
+                { producerId: "screen-1", socketId: "socket-xyz", source: "screen" },
+            ]);
+
+            await viewer.loadExistingProducers();
+
+            expect(v._videoOwnerMap["screen-1"]).toBe("Unknown User");
+        });
+
+        it("resolves 'Unknown User' name when playerStore fires a matching update", async () => {
+            const viewer = ScreenShareViewer.getInstance();
+            const v = viewer as any;
+
+            vi.spyOn(v, "consumeProducer").mockResolvedValue(undefined);
+
+            emitWithTimeoutMock.mockResolvedValue([
+                { producerId: "screen-1", socketId: "socket-late", source: "screen" },
+            ]);
+
+            const { default: usePlayersStore } = await import("@/common/store/playerStore");
+            let capturedSubscriberFn: ((state: { playerMap: Record<string, { name: string }> }) => void) | null = null;
+            (usePlayersStore.subscribe as ReturnType<typeof vi.fn>).mockImplementation(
+                (fn: (state: { playerMap: Record<string, { name: string }> }) => void) => {
+                    capturedSubscriberFn = fn;
+                    return vi.fn();
+                },
+            );
+
+            await viewer.loadExistingProducers();
+
+            expect(v._videoOwnerMap["screen-1"]).toBe("Unknown User");
+
+            // Simulate playerStore update arriving with the resolved name
+            capturedSubscriberFn!({ playerMap: { "socket-late": { name: "Eve" } } });
+
+            expect(v._videoOwnerMap["screen-1"]).toBe("Eve");
+        });
+    });
+
+    // ── pauseAllConsumers() / resumeAllConsumers() ───────────────────────
+
+    describe("pauseAllConsumers() / resumeAllConsumers()", () => {
+        it("calls pause() on every tracked consumer", () => {
+            const viewer = ScreenShareViewer.getInstance();
+            const v = viewer as any;
+            const ca = makeConsumer("ca");
+            const cb = makeConsumer("cb");
+            v.consumers.set("prod-a", ca);
+            v.consumers.set("prod-b", cb);
+
+            viewer.pauseAllConsumers();
+
+            expect(ca.pause).toHaveBeenCalledTimes(1);
+            expect(cb.pause).toHaveBeenCalledTimes(1);
+        });
+
+        it("calls resume() on every tracked consumer", () => {
+            const viewer = ScreenShareViewer.getInstance();
+            const v = viewer as any;
+            const ca = makeConsumer("ca");
+            const cb = makeConsumer("cb");
+            v.consumers.set("prod-a", ca);
+            v.consumers.set("prod-b", cb);
+
+            viewer.resumeAllConsumers();
+
+            expect(ca.resume).toHaveBeenCalledTimes(1);
+            expect(cb.resume).toHaveBeenCalledTimes(1);
+        });
+    });
+
+    // ── cleanup() timer ordering ─────────────────────────────────────────
+
+    describe("cleanup() — timer cancellation ordering", () => {
+        it("clears all timers before iterating consumers so timers cannot fire mid-cleanup", () => {
+            vi.useFakeTimers();
+            const viewer = ScreenShareViewer.getInstance();
+            const v = viewer as any;
+
+            const consumer = makeConsumer("ca");
+            v.consumers.set("prod-a", consumer);
+
+            // Manually inject a data-check timer for this producer
+            const timer = setTimeout(() => {
+                // If this fires it would call removeScreenShareVideo a second time
+                viewer.removeScreenShareVideo("prod-a");
+            }, 1);
+            v.dataCheckTimers.set("prod-a", timer);
+
+            // cleanup() should clear the timer before processing consumers
+            viewer.cleanup();
+
+            // Advancing time must not cause a double-close
+            vi.advanceTimersByTime(100);
+            expect(consumer.close).toHaveBeenCalledTimes(1);
+
+            vi.useRealTimers();
+        });
+    });
+
+    // ── removeScreenShareVideo() — no-op subscriber check ───────────────
+
+    describe("removeScreenShareVideo() — extended", () => {
+        it("does not fire an extra subscriber notification for a completely unknown producerId", () => {
+            const viewer = ScreenShareViewer.getInstance();
+            const callback = vi.fn();
+            viewer.subscribe(callback);
+
+            // Still notifies once (the implementation always calls notifySubscribers)
+            // — this test locks in the existing contract so a future change is caught.
+            viewer.removeScreenShareVideo("totally-unknown");
+
+            expect(callback).toHaveBeenCalledTimes(1);
         });
     });
 });

@@ -76,7 +76,8 @@ export default function ScreenShareTile({
     };
   }, [isLocal, participant.userId]);
 
-  // Remote view effect — only depends on producerId
+  // Remote view effect — subscribes to viewer changes so it reacts when
+  // consumeProducer completes (even after retries), instead of blind-polling.
   useEffect(() => {
     if (isLocal) return;
     if (!producerId) return;
@@ -89,48 +90,55 @@ export default function ScreenShareTile({
     }
 
     let cancelled = false;
-    let retryTimer: number | undefined;
     let mounted: HTMLVideoElement | null = null;
-    let attempts = 0;
-    const MAX_ATTEMPTS = 25; // 5 seconds total (25 x 200ms)
 
-    const attach = () => {
-      if (cancelled) return;
-
+    const tryAttach = (): boolean => {
+      if (cancelled) return true;
       const viewer = ScreenShareViewer.getInstance();
       const sourceEl = viewer.videoElements.get(producerId);
+      if (!sourceEl?.srcObject) return false;
 
-      if (sourceEl?.srcObject) {
-        const videoEl = document.createElement('video');
-        videoEl.srcObject = sourceEl.srcObject;
-        videoEl.autoplay = true;
-        videoEl.playsInline = true;
-        videoEl.muted = true;
-        videoEl.style.width = '100%';
-        videoEl.style.height = '100%';
-        videoEl.style.objectFit = 'contain';
-        videoEl.style.backgroundColor = 'var(--wd-surface-base)';
-        videoEl.addEventListener('loadeddata', () => {
-          if (!cancelled) setIsLoading(false);
-        }, { once: true });
-        mounted = videoEl;
-        container.appendChild(videoEl);
-        return;
-      }
-
-      // Video element not ready yet — retry (consumeProducer is async)
-      if (++attempts < MAX_ATTEMPTS) {
-        retryTimer = window.setTimeout(attach, 200);
-      } else if (!cancelled) {
-        setIsLoading(false);
-      }
+      const videoEl = document.createElement('video');
+      videoEl.srcObject = sourceEl.srcObject;
+      videoEl.autoplay = true;
+      videoEl.playsInline = true;
+      videoEl.muted = true;
+      videoEl.style.width = '100%';
+      videoEl.style.height = '100%';
+      videoEl.style.objectFit = 'contain';
+      videoEl.style.backgroundColor = 'var(--wd-surface-base)';
+      videoEl.addEventListener('loadeddata', () => {
+        if (!cancelled) setIsLoading(false);
+      }, { once: true });
+      mounted = videoEl;
+      container.appendChild(videoEl);
+      return true;
     };
 
-    attach();
+    // Try immediately — the video element may already exist
+    if (tryAttach()) return () => { cancelled = true; };
+
+    // Subscribe to viewer notifications — fires when consumeProducer
+    // completes (including after retries) and calls displayVideo().
+    const viewer = ScreenShareViewer.getInstance();
+    const unsub = viewer.subscribe(() => {
+      if (cancelled) return;
+      if (tryAttach()) unsub();
+    });
+
+    // Safety timeout: stop waiting after 30s (covers 4 consume attempts
+    // with exponential backoff: 0s + 1s + 2s + 4s + consume timeouts)
+    const safetyTimer = window.setTimeout(() => {
+      if (!cancelled && !mounted) {
+        unsub();
+        setIsLoading(false);
+      }
+    }, 30_000);
 
     return () => {
       cancelled = true;
-      if (retryTimer != null) clearTimeout(retryTimer);
+      unsub();
+      clearTimeout(safetyTimer);
       if (mounted) {
         mounted.srcObject = null;
         mounted.remove();

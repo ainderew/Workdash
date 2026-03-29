@@ -211,21 +211,31 @@ export class ScreenShareViewer {
         logger.warn("Timeout waiting for players - proceeding anyway");
     }
 
-    private async consumeProducer(producerId: string): Promise<void> {
+    private static readonly CONSUME_MAX_RETRIES = 3;
+    private static readonly CONSUME_RETRY_BASE_MS = 1000;
+
+    private async consumeProducer(
+        producerId: string,
+        attempt = 0,
+    ): Promise<void> {
         try {
+            if (!this.service.recvTransport || this.service.recvTransport.closed) {
+                throw new Error("recvTransport not available");
+            }
+
             const consumerData = await emitWithTimeout<ConsumerData>({
                 socket: this.service.socket,
                 event: "consume",
                 data: {
                     producerId,
                     rtpCapabilities: this.service.device!.rtpCapabilities,
-                    transportId: this.service.recvTransport!.id,
+                    transportId: this.service.recvTransport.id,
                 },
                 timeoutMs: SFU_TIMEOUTS.CONSUME,
                 validate: validateNoError,
             });
 
-            const consumer = await this.service.recvTransport!.consume({
+            const consumer = await this.service.recvTransport.consume({
                 id: consumerData.id,
                 producerId: consumerData.producerId,
                 kind: consumerData.kind,
@@ -255,7 +265,24 @@ export class ScreenShareViewer {
                 this.displayVideo(producerId, consumer);
             }
         } catch (error) {
-            logger.error("Error consuming producer:", error);
+            if (attempt < ScreenShareViewer.CONSUME_MAX_RETRIES) {
+                const delayMs =
+                    ScreenShareViewer.CONSUME_RETRY_BASE_MS * 2 ** attempt;
+                logger.warn(
+                    `consumeProducer failed (attempt ${attempt + 1}/${ScreenShareViewer.CONSUME_MAX_RETRIES + 1}), retrying in ${delayMs}ms:`,
+                    (error as Error).message,
+                );
+                await new Promise((r) => setTimeout(r, delayMs));
+                // Bail out if the producer was removed while waiting
+                if (!useCallStore.getState().screenProducerUserMap[producerId]) {
+                    return;
+                }
+                return this.consumeProducer(producerId, attempt + 1);
+            }
+            logger.error(
+                `consumeProducer failed after ${attempt + 1} attempts:`,
+                error,
+            );
         }
     }
 
