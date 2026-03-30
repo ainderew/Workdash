@@ -398,6 +398,8 @@ export interface MatchRecapEntry {
         hhpm: number | null;
       };
       weights: Record<string, number>;
+      durationMin: number;
+      allTierAverages?: Record<string, Record<string, number>>;
       visionStats?: {
         obsPlaced: number;
         senPlaced: number;
