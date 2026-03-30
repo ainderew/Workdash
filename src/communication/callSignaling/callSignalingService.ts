@@ -82,6 +82,7 @@ export class CallSignalingService {
 
     initCallOwnershipChannel((msg) => {
       if (msg.type === "transfer-initiated" && msg.tabId !== getTabId()) {
+        // no-op: placeholder for future cross-tab transfer handling
       }
     });
 
