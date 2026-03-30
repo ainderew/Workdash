@@ -8,6 +8,14 @@ import { ScreenShareService } from "@/communication/screenShare/screenShare";
 import { ScreenShareViewer } from "@/communication/screenShare/screenShareViewer";
 import { logger } from "@/common/utils/logger";
 import useFocusStore from "@/common/store/focusStore";
+import useUserStore from "@/common/store/useStore";
+import { getDeviceId } from "@/communication/callSignaling/deviceId";
+import {
+  initCallOwnershipChannel,
+  broadcastCallOwnership,
+  destroyCallOwnershipChannel,
+  getTabId,
+} from "@/communication/callSignaling/callOwnershipChannel";
 
 // ----------------------------------------------------------------
 // Types (server response shapes)
@@ -41,6 +49,9 @@ export class CallSignalingService {
   private static instance: CallSignalingService | null = null;
   private socket: SocketIOClient.Socket;
   private listening = false;
+  private onConnectHandler = () => {
+    this.registerSession();
+  };
 
   private constructor() {
     this.socket = MediaTransportService.getInstance().socket;
@@ -53,6 +64,10 @@ export class CallSignalingService {
     return CallSignalingService.instance;
   }
 
+  private getLocalUserId(): number | undefined {
+    return useUserStore.getState().backendUser?.id;
+  }
+
   // ----------------------------------------------------------------
   // Socket event listeners (register once)
   // ----------------------------------------------------------------
@@ -60,6 +75,15 @@ export class CallSignalingService {
   setupListeners(): void {
     if (this.listening) return;
     this.listening = true;
+
+    this.registerSession();
+
+    this.socket.on("connect", this.onConnectHandler);
+
+    initCallOwnershipChannel((msg) => {
+      if (msg.type === "transfer-initiated" && msg.tabId !== getTabId()) {
+      }
+    });
 
     const store = useCallStore.getState;
 
@@ -99,7 +123,9 @@ export class CallSignalingService {
       ({ channelId, userId }: { channelId: string; userId: number }) => {
         const isInCall = store().currentCall?.channelId === channelId;
         store().handleParticipantLeft(channelId, userId);
-        useFocusStore.getState().removeRemoteFocusMode(userId);
+        if (userId !== this.getLocalUserId()) {
+          useFocusStore.getState().removeRemoteFocusMode(userId);
+        }
         if (isInCall) {
           playCallSound("end-call");
         }
@@ -120,6 +146,51 @@ export class CallSignalingService {
         store().handleMediaChanged(channelId, userId, media);
       },
     );
+
+    this.socket.on(
+      "call:ownership-changed",
+      async (data: {
+        channelId: string;
+        newOwnerSocketId: string;
+        userId: number;
+      }) => {
+        const isMe = data.newOwnerSocketId === this.socket.id;
+        if (isMe) {
+          const alreadySetUp =
+            store().currentCall?.channelId === data.channelId &&
+            store().isCallOwner;
+          store().setCallOwnershipStatus(data.channelId, "owner");
+          if (!alreadySetUp) {
+            store().setCurrentCall(data.channelId);
+            try {
+              await AudioChat.getInstance().joinVoiceChat();
+            } catch (err) {
+              logger.error("Failed to set up media after ownership change:", err);
+            }
+          }
+          broadcastCallOwnership("call-claimed", data.channelId);
+        } else {
+          this.teardownCallMedia();
+          store().setCallOwnershipStatus(data.channelId, "passive");
+        }
+      },
+    );
+
+    this.socket.on(
+      "call:ownership-lost",
+      (data: { channelId: string; reason: string }) => {
+        store().setCallOwnershipStatus(data.channelId, "rejoin-available");
+        broadcastCallOwnership("call-lost", data.channelId);
+      },
+    );
+
+    this.socket.on(
+      "call:ownership-cleared",
+      (data: { channelId: string; reason: string }) => {
+        store().setCurrentCall(null);
+        broadcastCallOwnership("call-released", data.channelId);
+      },
+    );
   }
 
   teardown(): void {
@@ -129,7 +200,93 @@ export class CallSignalingService {
     this.socket.off("call:participant_joined");
     this.socket.off("call:participant_left");
     this.socket.off("call:media_changed");
+    this.socket.off("call:ownership-changed");
+    this.socket.off("call:ownership-lost");
+    this.socket.off("call:ownership-cleared");
+    this.socket.off("connect", this.onConnectHandler);
+    destroyCallOwnershipChannel();
     this.listening = false;
+  }
+
+  private registerSession(): void {
+    const deviceId = getDeviceId();
+    this.socket.emit(
+      "session:register",
+      { deviceId },
+      (response: { ok?: boolean; error?: string; activeCall?: { channelId: string; isOwner: boolean } }) => {
+        if (response.error) {
+          logger.error("session:register failed:", response.error);
+          return;
+        }
+        if (response.activeCall) {
+          useCallStore.getState().setCallOwnershipStatus(
+            response.activeCall.channelId,
+            response.activeCall.isOwner ? "owner" : "passive",
+          );
+        }
+      },
+    );
+  }
+
+  private teardownCallMedia(): void {
+    VideoChatService.getInstance().stopVideoChat();
+    ScreenShareService.getInstance().stopScreenShare();
+    AudioChat.getInstance().stopMic();
+    VideoChatViewer.getInstance().closeAllConsumers();
+    ScreenShareViewer.getInstance().closeAllConsumers();
+    AudioChat.getInstance().closeAllAudioConsumers();
+  }
+
+  async transferCallToThisTab(
+    channelId: string,
+  ): Promise<{ success: boolean; error?: string }> {
+    const store = useCallStore.getState();
+    const prevState = {
+      currentCall: store.currentCall,
+      localMedia: store.localMedia,
+      callOwnershipStatus: store.callOwnershipStatus,
+      isCallOwner: store.isCallOwner,
+      ownershipChannelId: store.ownershipChannelId,
+    };
+
+    useCallStore.getState().setCurrentCall(channelId);
+
+    return new Promise((resolve) => {
+      let settled = false;
+
+      const rollback = () => {
+        if (settled) return;
+        settled = true;
+        useCallStore.setState(prevState);
+        resolve({ success: false, error: "Disconnected during transfer" });
+      };
+      this.socket.once("disconnect", rollback);
+
+      this.socket.emit(
+        "call:transfer-request",
+        { channelId },
+        (res: AckResponse) => {
+          this.socket.off("disconnect", rollback);
+          if (settled) return;
+          settled = true;
+
+          if (res.error) {
+            useCallStore.setState(prevState);
+            resolve({ success: false, error: res.error });
+            return;
+          }
+
+          broadcastCallOwnership("call-claimed", channelId);
+          resolve({ success: true });
+        },
+      );
+    });
+  }
+
+  async rejoinCall(
+    channelId: string,
+  ): Promise<{ success: boolean; error?: string }> {
+    return this.transferCallToThisTab(channelId);
   }
 
   // ----------------------------------------------------------------
@@ -146,7 +303,8 @@ export class CallSignalingService {
         { channelId, type },
         async (res: AckResponse<CallPresence>) => {
           if (res.error) return reject(new Error(res.error));
-          useCallStore.getState().setCurrentCall(channelId);
+          useCallStore.getState().setCurrentCallAsOwner(channelId);
+          broadcastCallOwnership("call-claimed", channelId);
           playCallSound("join-call");
           try {
             await AudioChat.getInstance().joinVoiceChat();
@@ -166,7 +324,8 @@ export class CallSignalingService {
         { channelId },
         async (res: AckResponse<CallPresence>) => {
           if (res.error) return reject(new Error(res.error));
-          useCallStore.getState().setCurrentCall(channelId);
+          useCallStore.getState().setCurrentCallAsOwner(channelId);
+          broadcastCallOwnership("call-claimed", channelId);
           playCallSound("join-call");
           try {
             await AudioChat.getInstance().joinVoiceChat();
@@ -191,7 +350,9 @@ export class CallSignalingService {
         VideoChatViewer.getInstance().closeAllConsumers();
         ScreenShareViewer.getInstance().closeAllConsumers();
         AudioChat.getInstance().closeAllAudioConsumers();
+        useCallStore.getState().clearCallOwnership();
         useCallStore.getState().setCurrentCall(null);
+        broadcastCallOwnership("call-released", channelId);
         playCallSound("end-call");
       };
 
@@ -244,7 +405,7 @@ export class CallSignalingService {
           if (res.calls) {
             useCallStore
               .getState()
-              .handleBulkCallState(res.calls as unknown as CallPresence[], channelIds);
+              .handleBulkCallState(res.calls, channelIds);
           }
           resolve();
         },

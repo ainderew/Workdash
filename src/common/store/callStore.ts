@@ -17,6 +17,8 @@ export interface CallParticipant {
   media: CallParticipantMedia;
 }
 
+export type CallOwnershipStatus = "owner" | "passive" | "rejoin-available";
+
 export interface CallPresence {
   channelId: string;
   type: "audio" | "video";
@@ -103,6 +105,10 @@ interface CallState {
   /** Latest WebRTC stats snapshot */
   statsSnapshot: StatsSnapshot | null;
 
+  isCallOwner: boolean;
+  callOwnershipStatus: CallOwnershipStatus | null;
+  ownershipChannelId: string | null;
+
   // Actions driven by socket events
   handleCallStarted: (call: CallPresence) => void;
   handleCallEnded: (channelId: string) => void;
@@ -144,6 +150,10 @@ interface CallState {
   setPinnedTileKey: (key: string | null) => void;
   setScreenShareAutoFullscreen: (value: boolean) => void;
 
+  setCallOwnershipStatus: (channelId: string, status: CallOwnershipStatus) => void;
+  setCurrentCallAsOwner: (channelId: string) => void;
+  clearCallOwnership: () => void;
+
   // Quality stats
   setConnectionQuality: (q: ConnectionQuality) => void;
   setStatsSnapshot: (s: StatsSnapshot | null) => void;
@@ -170,12 +180,15 @@ const useCallStore = create<CallState>((set) => ({
   producerToConsumerMap: {},
   manualFloating: false,
   floatingPosition: null,
-  floatingWindowState: 'expanded' as FloatingWindowState,
+  floatingWindowState: 'expanded' satisfies FloatingWindowState,
   channelContentRect: null,
   pinnedTileKey: null,
   screenShareAutoFullscreen: false,
-  connectionQuality: 'unknown' as ConnectionQuality,
+  connectionQuality: 'unknown' satisfies ConnectionQuality,
   statsSnapshot: null,
+  isCallOwner: false,
+  callOwnershipStatus: null,
+  ownershipChannelId: null,
 
   handleCallStarted: (call) =>
     set((state) => ({
@@ -190,12 +203,18 @@ const useCallStore = create<CallState>((set) => ({
       const next = { ...state.activeCallsByChannel };
       delete next[channelId];
       const wasInCall = state.currentCall?.channelId === channelId;
+      const clearOwnership = state.ownershipChannelId === channelId;
       return {
         activeCallsByChannel: next,
         currentCall: wasInCall ? null : state.currentCall,
         localMedia: wasInCall ? { ...initialLocalMedia } : state.localMedia,
         pinnedTileKey: wasInCall ? null : state.pinnedTileKey,
         screenShareAutoFullscreen: wasInCall ? false : state.screenShareAutoFullscreen,
+        ...(clearOwnership && {
+          callOwnershipStatus: null,
+          isCallOwner: false,
+          ownershipChannelId: null,
+        }),
       };
     }),
 
@@ -396,6 +415,11 @@ const useCallStore = create<CallState>((set) => ({
     set(() => ({
       currentCall: channelId ? { channelId } : null,
       localMedia: channelId ? { audio: false, video: false, screen: false } : { ...initialLocalMedia },
+      ...(!channelId && {
+        callOwnershipStatus: null,
+        isCallOwner: false,
+        ownershipChannelId: null,
+      }),
     })),
 
   setLocalMedia: (media) =>
@@ -421,6 +445,29 @@ const useCallStore = create<CallState>((set) => ({
   setScreenShareAutoFullscreen: (value) =>
     set(() => ({ screenShareAutoFullscreen: value })),
 
+  setCallOwnershipStatus: (channelId, status) =>
+    set(() => ({
+      callOwnershipStatus: status,
+      isCallOwner: status === "owner",
+      ownershipChannelId: channelId,
+    })),
+
+  setCurrentCallAsOwner: (channelId) =>
+    set(() => ({
+      currentCall: { channelId },
+      localMedia: { audio: false, video: false, screen: false },
+      callOwnershipStatus: "owner" satisfies CallOwnershipStatus,
+      isCallOwner: true,
+      ownershipChannelId: channelId,
+    })),
+
+  clearCallOwnership: () =>
+    set(() => ({
+      callOwnershipStatus: null,
+      isCallOwner: false,
+      ownershipChannelId: null,
+    })),
+
   setConnectionQuality: (q) =>
     set(() => ({ connectionQuality: q })),
 
@@ -436,6 +483,9 @@ const useCallStore = create<CallState>((set) => ({
       producerToConsumerMap: {},
       pinnedTileKey: null,
       screenShareAutoFullscreen: false,
+      isCallOwner: false,
+      callOwnershipStatus: null,
+      ownershipChannelId: null,
     })),
 
   reset: () =>
@@ -449,12 +499,15 @@ const useCallStore = create<CallState>((set) => ({
       producerToConsumerMap: {},
       manualFloating: false,
       floatingPosition: null,
-      floatingWindowState: 'expanded' as FloatingWindowState,
+      floatingWindowState: 'expanded' satisfies FloatingWindowState,
       channelContentRect: null,
       pinnedTileKey: null,
       screenShareAutoFullscreen: false,
-      connectionQuality: 'unknown' as ConnectionQuality,
+      connectionQuality: 'unknown' satisfies ConnectionQuality,
       statsSnapshot: null,
+      isCallOwner: false,
+      callOwnershipStatus: null,
+      ownershipChannelId: null,
     })),
 }));
 

@@ -50,6 +50,7 @@ const mockRemoveScreenProducer = vi.fn();
 vi.mock("@/common/store/callStore", () => ({
     default: {
         getState: vi.fn(() => ({
+            isCallOwner: true,
             setScreenProducerUser: vi.fn(),
             setProducerConsumer: vi.fn(),
             removeScreenProducer: mockRemoveScreenProducer,

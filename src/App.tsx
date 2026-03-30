@@ -43,6 +43,7 @@ import { useAchievementListener } from "@/common/hooks/useAchievementListener";
 import { useDeviceEnumeration } from "@/common/hooks/useDeviceEnumeration";
 import { useActivityHeartbeat } from "@/common/hooks/useActivityHeartbeat";
 import { SoundboardService } from "./communication/soundboard/soundboardService";
+import FloatingPassiveCallIndicator from "./common/components/DeskMode/FloatingPassiveCallIndicator";
 
 function App() {
     const interactionMode = useUiStore((state) => state.interactionMode);
@@ -344,6 +345,9 @@ function App() {
             )}
             {interactionMode === "world" && (
                 <VideoChatUi isGameReady={isGameReady} />
+            )}
+            {interactionMode === "world" && (
+                <FloatingPassiveCallIndicator />
             )}
 
             <ReactionToast />

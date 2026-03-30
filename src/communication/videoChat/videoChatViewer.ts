@@ -10,6 +10,7 @@ import {
     SFU_TIMEOUTS,
     validateNoError,
 } from "@/communication/utils/emitWithTimeout";
+import { logger } from "@/common/utils/logger";
 
 export class VideoChatViewer {
     public static instance: VideoChatViewer | null = null;
@@ -64,6 +65,7 @@ export class VideoChatViewer {
                 source: string;
             }) => {
                 if (source !== "camera") return;
+                if (!useCallStore.getState().isCallOwner) return;
 
                 this.videoChatOwnerMap[producerId] = userName;
                 if (userId != null) {
@@ -89,7 +91,7 @@ export class VideoChatViewer {
 
         try {
             if (!this.sfuService.device || !this.sfuService.recvTransport) {
-                console.error("Cannot consume video — SFU not initialized");
+                logger.error("Cannot consume video — SFU not initialized");
                 return;
             }
 
@@ -134,7 +136,7 @@ export class VideoChatViewer {
                 this.displayVideo(producerId, consumer);
             }
         } catch (err) {
-            console.error("Failed to consume producer:", err);
+            logger.error("Failed to consume producer:", err);
         } finally {
             this.consumingInFlight.delete(producerId);
         }

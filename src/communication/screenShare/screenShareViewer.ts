@@ -70,6 +70,7 @@ export class ScreenShareViewer {
                 source: string;
             }) => {
                 if (source !== "screen") return;
+                if (!useCallStore.getState().isCallOwner) return;
 
                 this._videoOwnerMap[producerId] = userName;
                 if (userId != null) {

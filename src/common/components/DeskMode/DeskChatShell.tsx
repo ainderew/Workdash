@@ -44,6 +44,7 @@ import CallBanner from "./CallBanner";
 import { ChannelWidgetPanel } from "@/common/components/ChannelWidgets/ChannelWidgetPanel";
 import TypingIndicator from "./TypingIndicator";
 import FloatingCallWindow from "./FloatingCallWindow";
+import FloatingPassiveCallIndicator from "./FloatingPassiveCallIndicator";
 import CollapsedSidebarRail from "./CollapsedSidebarRail";
 import { CallSignalingService } from "@/communication/callSignaling/callSignalingService";
 import useCallStore from "@/common/store/callStore";
@@ -1233,6 +1234,7 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
             </div>
 
             <FloatingCallWindow />
+            <FloatingPassiveCallIndicator />
 
             <ServerSettingsModal
                 isOpen={!!serverSettingsTargetId}

@@ -410,6 +410,7 @@ export class AudioChat {
     }
 
     public async joinVoiceChat(deviceId?: string) {
+        if (!useCallStore.getState().isCallOwner) return;
         if ((this.audioProducer && !this.audioProducer.closed) || this.joining) {
             return;
         }
@@ -472,6 +473,8 @@ export class AudioChat {
                 ) {
                     return;
                 }
+
+                if (!useCallStore.getState().isCallOwner) return;
 
                 // Skip soundboard sounds entirely in focus mode —
                 // they're ephemeral so there's nothing to resume later

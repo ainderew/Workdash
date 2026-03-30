@@ -344,3 +344,96 @@ describe('reset', () => {
     expect(state.manualFloating).toBe(false);
   });
 });
+
+describe('callOwnershipStatus', () => {
+  it('sets owner status and isCallOwner to true', () => {
+    useCallStore.getState().setCallOwnershipStatus('ch-1', 'owner');
+    const state = useCallStore.getState();
+    expect(state.isCallOwner).toBe(true);
+    expect(state.callOwnershipStatus).toBe('owner');
+    expect(state.ownershipChannelId).toBe('ch-1');
+  });
+
+  it('sets passive status and isCallOwner to false', () => {
+    useCallStore.getState().setCallOwnershipStatus('ch-1', 'passive');
+    const state = useCallStore.getState();
+    expect(state.isCallOwner).toBe(false);
+    expect(state.callOwnershipStatus).toBe('passive');
+    expect(state.ownershipChannelId).toBe('ch-1');
+  });
+
+  it('sets rejoin-available status and isCallOwner to false', () => {
+    useCallStore.getState().setCallOwnershipStatus('ch-1', 'rejoin-available');
+    const state = useCallStore.getState();
+    expect(state.isCallOwner).toBe(false);
+    expect(state.callOwnershipStatus).toBe('rejoin-available');
+  });
+});
+
+describe('clearCallOwnership', () => {
+  it('resets all ownership fields to defaults', () => {
+    const store = useCallStore.getState();
+    store.setCallOwnershipStatus('ch-1', 'owner');
+    store.clearCallOwnership();
+
+    const state = useCallStore.getState();
+    expect(state.isCallOwner).toBe(false);
+    expect(state.callOwnershipStatus).toBeNull();
+    expect(state.ownershipChannelId).toBeNull();
+  });
+});
+
+describe('handleCallEnded - ownership cleanup', () => {
+  it('clears ownership if the ended call matches ownershipChannelId', () => {
+    const store = useCallStore.getState();
+    store.handleCallStarted(makeCall('ch-1', [makeParticipant(1)]));
+    store.setCallOwnershipStatus('ch-1', 'owner');
+
+    useCallStore.getState().handleCallEnded('ch-1');
+
+    const state = useCallStore.getState();
+    expect(state.isCallOwner).toBe(false);
+    expect(state.callOwnershipStatus).toBeNull();
+    expect(state.ownershipChannelId).toBeNull();
+  });
+
+  it('does not clear ownership if a different call ended', () => {
+    const store = useCallStore.getState();
+    store.handleCallStarted(makeCall('ch-1', [makeParticipant(1)]));
+    store.handleCallStarted(makeCall('ch-2', [makeParticipant(2)]));
+    store.setCallOwnershipStatus('ch-1', 'owner');
+
+    useCallStore.getState().handleCallEnded('ch-2');
+
+    const state = useCallStore.getState();
+    expect(state.isCallOwner).toBe(true);
+    expect(state.callOwnershipStatus).toBe('owner');
+    expect(state.ownershipChannelId).toBe('ch-1');
+  });
+});
+
+describe('setCurrentCallAsOwner', () => {
+  it('atomically sets currentCall and ownership in a single update', () => {
+    useCallStore.getState().setCurrentCallAsOwner('ch-1');
+    const state = useCallStore.getState();
+    expect(state.currentCall).toEqual({ channelId: 'ch-1' });
+    expect(state.isCallOwner).toBe(true);
+    expect(state.callOwnershipStatus).toBe('owner');
+    expect(state.ownershipChannelId).toBe('ch-1');
+    expect(state.localMedia).toEqual({ audio: false, video: false, screen: false });
+  });
+});
+
+describe('setCurrentCall - ownership cleanup', () => {
+  it('clears ownership when currentCall is set to null', () => {
+    const store = useCallStore.getState();
+    store.setCurrentCall('ch-1');
+    store.setCallOwnershipStatus('ch-1', 'owner');
+
+    useCallStore.getState().setCurrentCall(null);
+
+    const state = useCallStore.getState();
+    expect(state.isCallOwner).toBe(false);
+    expect(state.callOwnershipStatus).toBeNull();
+  });
+});
