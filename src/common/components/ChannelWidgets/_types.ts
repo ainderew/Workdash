@@ -387,6 +387,7 @@ export interface MatchRecapEntry {
         heroDamage: number;
         towerDamage: number;
         heroHealing: number;
+        lastHits: number;
       };
       benchmarks: {
         gpm: number | null;
