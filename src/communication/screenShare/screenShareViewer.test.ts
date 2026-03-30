@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 // ── Shared mocks ──────────────────────────────────────────────────────────────
@@ -77,6 +76,18 @@ vi.mock("@/communication/utils/emitWithTimeout", () => ({
     },
 }));
 
+type SSViewerStatic = { instance: ScreenShareViewer | null };
+type SSViewerInternal = {
+    consumers: Map<string, ReturnType<typeof makeConsumer>>;
+    _videoElements: Map<string, HTMLVideoElement>;
+    _videoOwnerMap: Record<string, string>;
+    _subscribers: Set<() => void>;
+    dataCheckTimers: Map<string, ReturnType<typeof setTimeout>>;
+    consumeProducer: (producerId: string) => Promise<void>;
+    displayVideo: (producerId: string, consumer: ReturnType<typeof makeConsumer>) => void;
+    waitForPlayers: () => Promise<void>;
+};
+
 // ── Test suite ────────────────────────────────────────────────────────────────
 
 describe("ScreenShareViewer", () => {
@@ -87,8 +98,7 @@ describe("ScreenShareViewer", () => {
         vi.clearAllMocks();
 
         ({ ScreenShareViewer } = await import("./screenShareViewer"));
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (ScreenShareViewer as any).instance = null;
+        (ScreenShareViewer as unknown as SSViewerStatic).instance = null;
     });
 
     // ── cleanup() completeness ──────────────────────────────────────────
@@ -98,10 +108,10 @@ describe("ScreenShareViewer", () => {
             const viewer = ScreenShareViewer.getInstance();
             const consumerA = makeConsumer("consumer-a");
             const consumerB = makeConsumer("consumer-b");
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (viewer as any).consumers.set("prod-a", consumerA);
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (viewer as any).consumers.set("prod-b", consumerB);
+             
+            (viewer as unknown as SSViewerInternal).consumers.set("prod-a", consumerA);
+             
+            (viewer as unknown as SSViewerInternal).consumers.set("prod-b", consumerB);
 
             viewer.cleanup();
 
@@ -111,8 +121,8 @@ describe("ScreenShareViewer", () => {
 
         it("nulls srcObject on all video elements before removing", () => {
             const viewer = ScreenShareViewer.getInstance();
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const v = viewer as any;
+             
+            const v = viewer as unknown as SSViewerInternal;
             const videoA = document.createElement("video");
             const videoB = document.createElement("video");
             v._videoElements.set("prod-a", videoA);
@@ -129,8 +139,8 @@ describe("ScreenShareViewer", () => {
 
         it("clears all internal maps", () => {
             const viewer = ScreenShareViewer.getInstance();
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const v = viewer as any;
+             
+            const v = viewer as unknown as SSViewerInternal;
             v.consumers.set("prod-a", makeConsumer("ca"));
             v._videoElements.set("prod-a", document.createElement("video"));
             v._videoOwnerMap["prod-a"] = "Alice";
@@ -148,8 +158,8 @@ describe("ScreenShareViewer", () => {
             viewer.subscribe(callback);
 
             // Add some state so removeScreenShareVideo has something to clean
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (viewer as any).consumers.set("prod-a", makeConsumer("ca"));
+             
+            (viewer as unknown as SSViewerInternal).consumers.set("prod-a", makeConsumer("ca"));
 
             viewer.cleanup();
 
@@ -162,8 +172,8 @@ describe("ScreenShareViewer", () => {
 
             const consumer = makeConsumer("ca");
             const videoEl = document.createElement("video");
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const v = viewer as any;
+             
+            const v = viewer as unknown as SSViewerInternal;
             v.consumers.set("prod-a", consumer);
             v._videoElements.set("prod-a", videoEl);
             v._videoOwnerMap["prod-a"] = "Alice";
@@ -177,10 +187,10 @@ describe("ScreenShareViewer", () => {
 
         it("syncs callStore and useUserStore for each producer on cleanup", () => {
             const viewer = ScreenShareViewer.getInstance();
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (viewer as any).consumers.set("prod-a", makeConsumer("ca"));
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (viewer as any).consumers.set("prod-b", makeConsumer("cb"));
+             
+            (viewer as unknown as SSViewerInternal).consumers.set("prod-a", makeConsumer("ca"));
+             
+            (viewer as unknown as SSViewerInternal).consumers.set("prod-b", makeConsumer("cb"));
 
             viewer.cleanup();
 
@@ -197,8 +207,8 @@ describe("ScreenShareViewer", () => {
         it("closes the consumer for the given producerId", () => {
             const viewer = ScreenShareViewer.getInstance();
             const consumer = makeConsumer("ca");
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (viewer as any).consumers.set("prod-a", consumer);
+             
+            (viewer as unknown as SSViewerInternal).consumers.set("prod-a", consumer);
 
             viewer.removeScreenShareVideo("prod-a");
 
@@ -208,8 +218,8 @@ describe("ScreenShareViewer", () => {
         it("nulls srcObject on the video element before removing it", () => {
             const viewer = ScreenShareViewer.getInstance();
             const videoEl = document.createElement("video");
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (viewer as any)._videoElements.set("prod-a", videoEl);
+             
+            (viewer as unknown as SSViewerInternal)._videoElements.set("prod-a", videoEl);
 
             viewer.removeScreenShareVideo("prod-a");
 
@@ -218,8 +228,8 @@ describe("ScreenShareViewer", () => {
 
         it("deletes the producerId from videoOwnerMap", () => {
             const viewer = ScreenShareViewer.getInstance();
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (viewer as any)._videoOwnerMap["prod-a"] = "Bob";
+             
+            (viewer as unknown as SSViewerInternal)._videoOwnerMap["prod-a"] = "Bob";
             viewer.removeScreenShareVideo("prod-a");
             expect(viewer.videoOwnerMap["prod-a"]).toBeUndefined();
         });
@@ -242,11 +252,8 @@ describe("ScreenShareViewer", () => {
         it("clears pending data-check timer for the producerId", () => {
             vi.useFakeTimers();
             const viewer = ScreenShareViewer.getInstance();
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const timers = (viewer as any).dataCheckTimers as Map<
-                string,
-                ReturnType<typeof setTimeout>
-            >;
+             
+            const timers = (viewer as unknown as SSViewerInternal).dataCheckTimers;
             const timer = setTimeout(() => {}, 10000);
             timers.set("prod-a", timer);
 
@@ -265,12 +272,12 @@ describe("ScreenShareViewer", () => {
             const callback = vi.fn();
             const unsubscribe = viewer.subscribe(callback);
 
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            expect((viewer as any)._subscribers.size).toBe(1);
+             
+            expect((viewer as unknown as SSViewerInternal)._subscribers.size).toBe(1);
 
             unsubscribe();
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            expect((viewer as any)._subscribers.size).toBe(0);
+             
+            expect((viewer as unknown as SSViewerInternal)._subscribers.size).toBe(0);
         });
 
         it("supports multiple concurrent subscribers", () => {
@@ -303,8 +310,8 @@ describe("ScreenShareViewer", () => {
     describe("closeAllConsumers()", () => {
         it("removes all tracked consumers and clears maps", () => {
             const viewer = ScreenShareViewer.getInstance();
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const v = viewer as any;
+             
+            const v = viewer as unknown as SSViewerInternal;
             v.consumers.set("prod-a", makeConsumer("ca"));
             v.consumers.set("prod-b", makeConsumer("cb"));
             v._videoOwnerMap["prod-a"] = "Alice";
@@ -319,8 +326,8 @@ describe("ScreenShareViewer", () => {
             const viewer = ScreenShareViewer.getInstance();
             const callback = vi.fn();
             viewer.subscribe(callback);
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const v = viewer as any;
+             
+            const v = viewer as unknown as SSViewerInternal;
             v.consumers.set("prod-a", makeConsumer("ca"));
             v.consumers.set("prod-b", makeConsumer("cb"));
 
@@ -336,8 +343,8 @@ describe("ScreenShareViewer", () => {
         it("exposes video elements for reading", () => {
             const viewer = ScreenShareViewer.getInstance();
             const videoEl = document.createElement("video");
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (viewer as any)._videoElements.set("prod-a", videoEl);
+             
+            (viewer as unknown as SSViewerInternal)._videoElements.set("prod-a", videoEl);
 
             expect(viewer.videoElements.get("prod-a")).toBe(videoEl);
             expect(viewer.videoElements.size).toBe(1);
@@ -347,8 +354,8 @@ describe("ScreenShareViewer", () => {
     describe("videoOwnerMap (read-only accessor)", () => {
         it("exposes owner map for reading", () => {
             const viewer = ScreenShareViewer.getInstance();
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (viewer as any)._videoOwnerMap["prod-a"] = "Alice";
+             
+            (viewer as unknown as SSViewerInternal)._videoOwnerMap["prod-a"] = "Alice";
 
             expect(viewer.videoOwnerMap["prod-a"]).toBe("Alice");
         });
@@ -360,7 +367,7 @@ describe("ScreenShareViewer", () => {
         it("ignores newProducer events where source !== 'screen'", () => {
             // Capture the newProducer handler registered during construction
             const viewer = ScreenShareViewer.getInstance();
-            const v = viewer as any;
+            const v = viewer as unknown as SSViewerInternal;
 
             // Find the handler registered for "newProducer"
             const newProducerCall = mockSocketOn.mock.calls.find(
@@ -381,7 +388,7 @@ describe("ScreenShareViewer", () => {
 
         it("writes videoOwnerMap entry when newProducer arrives with source === 'screen'", async () => {
             const viewer = ScreenShareViewer.getInstance();
-            const v = viewer as any;
+            const v = viewer as unknown as SSViewerInternal;
 
             // Stub consumeProducer so we do not need a full SFU round-trip
             vi.spyOn(v, "consumeProducer").mockResolvedValue(undefined);
@@ -403,7 +410,7 @@ describe("ScreenShareViewer", () => {
 
         it("calls consumeProducer for a newProducer screen event", async () => {
             const viewer = ScreenShareViewer.getInstance();
-            const v = viewer as any;
+            const v = viewer as unknown as SSViewerInternal;
             const consumeSpy = vi.spyOn(v, "consumeProducer").mockResolvedValue(undefined);
 
             const newProducerCall = mockSocketOn.mock.calls.find(
@@ -423,7 +430,7 @@ describe("ScreenShareViewer", () => {
         it("calls removeScreenShareVideo when endScreenShare fires", () => {
             const viewer = ScreenShareViewer.getInstance();
             const consumer = makeConsumer("ca");
-            (viewer as any).consumers.set("prod-a", consumer);
+            (viewer as unknown as SSViewerInternal).consumers.set("prod-a", consumer);
 
             const endShareCall = mockSocketOn.mock.calls.find(
                 ([event]: [string]) => event === "endScreenShare",
@@ -455,7 +462,7 @@ describe("ScreenShareViewer", () => {
 
         it("does not create a video element when no subscribers are registered", async () => {
             const viewer = ScreenShareViewer.getInstance();
-            const v = viewer as any;
+            const v = viewer as unknown as SSViewerInternal;
 
             // Bypass the full SFU handshake — call displayVideo directly
             const consumer = makeConsumer("ca");
@@ -467,7 +474,7 @@ describe("ScreenShareViewer", () => {
 
         it("closes the consumer and removes it when track readyState !== 'live'", () => {
             const viewer = ScreenShareViewer.getInstance();
-            const v = viewer as any;
+            const v = viewer as unknown as SSViewerInternal;
 
             viewer.subscribe(vi.fn());   // ensure subscribers exist
 
@@ -484,7 +491,7 @@ describe("ScreenShareViewer", () => {
 
         it("creates a video element and notifies subscribers for a live track", () => {
             const viewer = ScreenShareViewer.getInstance();
-            const v = viewer as any;
+            const v = viewer as unknown as SSViewerInternal;
 
             const callback = vi.fn();
             viewer.subscribe(callback);
@@ -499,7 +506,7 @@ describe("ScreenShareViewer", () => {
         it("sets a 10 s data-check timer that auto-removes the video on expiry", () => {
             vi.useFakeTimers();
             const viewer = ScreenShareViewer.getInstance();
-            const v = viewer as any;
+            const v = viewer as unknown as SSViewerInternal;
 
             viewer.subscribe(vi.fn());
 
@@ -521,7 +528,7 @@ describe("ScreenShareViewer", () => {
         it("cancels the data-check timer when onloadeddata fires before 10 s", () => {
             vi.useFakeTimers();
             const viewer = ScreenShareViewer.getInstance();
-            const v = viewer as any;
+            const v = viewer as unknown as SSViewerInternal;
 
             viewer.subscribe(vi.fn());
 
@@ -533,7 +540,7 @@ describe("ScreenShareViewer", () => {
             expect(videoEl).toBeDefined();
 
             // Simulate data arriving
-            videoEl.onloadeddata!(new Event("loadeddata") as any);
+            videoEl.onloadeddata!(new Event("loadeddata") as Event);
 
             // Timer should have been cleared
             expect(v.dataCheckTimers.has("prod-a")).toBe(false);
@@ -547,7 +554,7 @@ describe("ScreenShareViewer", () => {
 
         it("calls removeScreenShareVideo when track.onended fires", () => {
             const viewer = ScreenShareViewer.getInstance();
-            const v = viewer as any;
+            const v = viewer as unknown as SSViewerInternal;
 
             viewer.subscribe(vi.fn());
 
@@ -579,7 +586,7 @@ describe("ScreenShareViewer", () => {
         it("skips waitForPlayers when interactionMode is 'desk'", async () => {
             // uiStore mock already returns "desk"
             const viewer = ScreenShareViewer.getInstance();
-            const v = viewer as any;
+            const v = viewer as unknown as SSViewerInternal;
 
             const waitSpy = vi.spyOn(v, "waitForPlayers").mockResolvedValue(undefined);
             const consumeSpy = vi.spyOn(v, "consumeProducer").mockResolvedValue(undefined);
@@ -594,7 +601,7 @@ describe("ScreenShareViewer", () => {
 
         it("ignores non-screen producers returned by getProducers", async () => {
             const viewer = ScreenShareViewer.getInstance();
-            const v = viewer as any;
+            const v = viewer as unknown as SSViewerInternal;
 
             vi.spyOn(v, "consumeProducer").mockResolvedValue(undefined);
 
@@ -612,7 +619,7 @@ describe("ScreenShareViewer", () => {
 
         it("stores userName from getProducers response when provided", async () => {
             const viewer = ScreenShareViewer.getInstance();
-            const v = viewer as any;
+            const v = viewer as unknown as SSViewerInternal;
 
             vi.spyOn(v, "consumeProducer").mockResolvedValue(undefined);
 
@@ -627,7 +634,7 @@ describe("ScreenShareViewer", () => {
 
         it("falls back to playerStore when producer has no userName", async () => {
             const viewer = ScreenShareViewer.getInstance();
-            const v = viewer as any;
+            const v = viewer as unknown as SSViewerInternal;
 
             vi.spyOn(v, "consumeProducer").mockResolvedValue(undefined);
 
@@ -648,7 +655,7 @@ describe("ScreenShareViewer", () => {
 
         it("assigns 'Unknown User' when neither userName nor playerStore has the name", async () => {
             const viewer = ScreenShareViewer.getInstance();
-            const v = viewer as any;
+            const v = viewer as unknown as SSViewerInternal;
 
             vi.spyOn(v, "consumeProducer").mockResolvedValue(undefined);
 
@@ -663,7 +670,7 @@ describe("ScreenShareViewer", () => {
 
         it("resolves 'Unknown User' name when playerStore fires a matching update", async () => {
             const viewer = ScreenShareViewer.getInstance();
-            const v = viewer as any;
+            const v = viewer as unknown as SSViewerInternal;
 
             vi.spyOn(v, "consumeProducer").mockResolvedValue(undefined);
 
@@ -696,7 +703,7 @@ describe("ScreenShareViewer", () => {
     describe("pauseAllConsumers() / resumeAllConsumers()", () => {
         it("calls pause() on every tracked consumer", () => {
             const viewer = ScreenShareViewer.getInstance();
-            const v = viewer as any;
+            const v = viewer as unknown as SSViewerInternal;
             const ca = makeConsumer("ca");
             const cb = makeConsumer("cb");
             v.consumers.set("prod-a", ca);
@@ -710,7 +717,7 @@ describe("ScreenShareViewer", () => {
 
         it("calls resume() on every tracked consumer", () => {
             const viewer = ScreenShareViewer.getInstance();
-            const v = viewer as any;
+            const v = viewer as unknown as SSViewerInternal;
             const ca = makeConsumer("ca");
             const cb = makeConsumer("cb");
             v.consumers.set("prod-a", ca);
@@ -729,7 +736,7 @@ describe("ScreenShareViewer", () => {
         it("clears all timers before iterating consumers so timers cannot fire mid-cleanup", () => {
             vi.useFakeTimers();
             const viewer = ScreenShareViewer.getInstance();
-            const v = viewer as any;
+            const v = viewer as unknown as SSViewerInternal;
 
             const consumer = makeConsumer("ca");
             v.consumers.set("prod-a", consumer);

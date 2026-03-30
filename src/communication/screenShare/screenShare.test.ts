@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // ── Shared mock state ─────────────────────────────────────────────────────────
@@ -59,6 +58,13 @@ vi.mock("@/communication/utils/emitWithTimeout", () => ({
     assertTransportReady: vi.fn(),
 }));
 
+type SSServiceStatic = { instance: ScreenShareService | null };
+type SSServiceInternal = {
+    screenAudioProducer: ReturnType<typeof makeProducer> | null;
+    screenProducer: ReturnType<typeof makeProducer> | null;
+    currentStream: ReturnType<typeof makeStream> | null;
+};
+
 // ── Test suite ────────────────────────────────────────────────────────────────
 
 describe("ScreenShareService", () => {
@@ -69,8 +75,7 @@ describe("ScreenShareService", () => {
         vi.clearAllMocks();
 
         ({ ScreenShareService } = await import("./screenShare"));
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (ScreenShareService as any).instance = null;
+        (ScreenShareService as unknown as SSServiceStatic).instance = null;
     });
 
     // ── startScreenShare() error rollback ───────────────────────────────
@@ -544,14 +549,15 @@ describe("ScreenShareService", () => {
             // making a third call throw — instead, directly test the rollback branch
             // by using the internal state:
             const service = ScreenShareService.getInstance();
-            (service as any).screenAudioProducer = audioProducer;
-            (service as any).screenProducer = videoProducer;
-            (service as any).currentStream = stream;
+            const internals = service as unknown as SSServiceInternal;
+            internals.screenAudioProducer = audioProducer;
+            internals.screenProducer = videoProducer;
+            internals.currentStream = stream;
 
             // Manually invoke the catch path via a wrapper
             mockSocketEmit.mockClear();
             // Simulate the rollback: closed audio producer should not be emitted
-            if ((service as any).screenAudioProducer && !(service as any).screenAudioProducer.closed) {
+            if (internals.screenAudioProducer && !internals.screenAudioProducer.closed) {
                 mockSocketEmit("producerClosed", { producerId: audioProducer.id, kind: "audio" });
             }
 
