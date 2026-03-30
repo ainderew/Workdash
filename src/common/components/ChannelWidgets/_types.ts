@@ -364,6 +364,7 @@ export interface MatchRecapEntry {
     heroId: number;
     heroName: string;
     heroIcon: string;
+    heroPortrait: string;
     kills: number;
     deaths: number;
     assists: number;
@@ -376,6 +377,34 @@ export interface MatchRecapEntry {
       label: string;
       imagePath: string;
       percentile: number;
+      isSupport: boolean;
+      rawStats: {
+        gpm: number;
+        xpm: number;
+        kills: number;
+        deaths: number;
+        assists: number;
+        heroDamage: number;
+        towerDamage: number;
+        heroHealing: number;
+        lastHits: number;
+      };
+      benchmarks: {
+        gpm: number | null;
+        xpm: number | null;
+        kpm: number | null;
+        lhpm: number | null;
+        hdpm: number | null;
+        hhpm: number | null;
+      };
+      weights: Record<string, number>;
+      visionStats?: {
+        obsPlaced: number;
+        senPlaced: number;
+        obsKills: number;
+        senKills: number;
+        visionScore: number;
+      };
     };
   }[];
 }
