@@ -16,6 +16,7 @@ import {
   destroyCallOwnershipChannel,
   getTabId,
 } from "@/communication/callSignaling/callOwnershipChannel";
+import { CallEvents } from "@/types/callEvents";
 
 // ----------------------------------------------------------------
 // Types (server response shapes)
@@ -88,11 +89,11 @@ export class CallSignalingService {
 
     const store = useCallStore.getState;
 
-    this.socket.on("call:started", (call: CallPresence) => {
+    this.socket.on(CallEvents.STARTED, (call: CallPresence) => {
       store().handleCallStarted(call);
     });
 
-    this.socket.on("call:ended", ({ channelId }: { channelId: string }) => {
+    this.socket.on(CallEvents.ENDED, ({ channelId }: { channelId: string }) => {
       const wasInCall = store().currentCall?.channelId === channelId;
       store().handleCallEnded(channelId);
       if (wasInCall) {
@@ -107,7 +108,7 @@ export class CallSignalingService {
     });
 
     this.socket.on(
-      "call:participant_joined",
+      CallEvents.PARTICIPANT_JOINED,
       ({
         channelId,
         participant,
@@ -120,7 +121,7 @@ export class CallSignalingService {
     );
 
     this.socket.on(
-      "call:participant_left",
+      CallEvents.PARTICIPANT_LEFT,
       ({ channelId, userId }: { channelId: string; userId: number }) => {
         const isInCall = store().currentCall?.channelId === channelId;
         store().handleParticipantLeft(channelId, userId);
@@ -134,7 +135,7 @@ export class CallSignalingService {
     );
 
     this.socket.on(
-      "call:media_changed",
+      CallEvents.MEDIA_CHANGED,
       ({
         channelId,
         userId,
@@ -149,7 +150,7 @@ export class CallSignalingService {
     );
 
     this.socket.on(
-      "call:ownership-changed",
+      CallEvents.OWNERSHIP_CHANGED,
       async (data: {
         channelId: string;
         newOwnerSocketId: string;
@@ -178,7 +179,7 @@ export class CallSignalingService {
     );
 
     this.socket.on(
-      "call:ownership-lost",
+      CallEvents.OWNERSHIP_LOST,
       (data: { channelId: string; reason: string }) => {
         store().setCallOwnershipStatus(data.channelId, "rejoin-available");
         broadcastCallOwnership("call-lost", data.channelId);
@@ -186,7 +187,7 @@ export class CallSignalingService {
     );
 
     this.socket.on(
-      "call:ownership-cleared",
+      CallEvents.OWNERSHIP_CLEARED,
       (data: { channelId: string; reason: string }) => {
         store().setCurrentCall(null);
         broadcastCallOwnership("call-released", data.channelId);
@@ -196,14 +197,14 @@ export class CallSignalingService {
 
   teardown(): void {
     if (!this.listening) return;
-    this.socket.off("call:started");
-    this.socket.off("call:ended");
-    this.socket.off("call:participant_joined");
-    this.socket.off("call:participant_left");
-    this.socket.off("call:media_changed");
-    this.socket.off("call:ownership-changed");
-    this.socket.off("call:ownership-lost");
-    this.socket.off("call:ownership-cleared");
+    this.socket.off(CallEvents.STARTED);
+    this.socket.off(CallEvents.ENDED);
+    this.socket.off(CallEvents.PARTICIPANT_JOINED);
+    this.socket.off(CallEvents.PARTICIPANT_LEFT);
+    this.socket.off(CallEvents.MEDIA_CHANGED);
+    this.socket.off(CallEvents.OWNERSHIP_CHANGED);
+    this.socket.off(CallEvents.OWNERSHIP_LOST);
+    this.socket.off(CallEvents.OWNERSHIP_CLEARED);
     this.socket.off("connect", this.onConnectHandler);
     destroyCallOwnershipChannel();
     this.listening = false;
@@ -212,7 +213,7 @@ export class CallSignalingService {
   private registerSession(): void {
     const deviceId = getDeviceId();
     this.socket.emit(
-      "session:register",
+      CallEvents.SESSION_REGISTER,
       { deviceId },
       (response: { ok?: boolean; error?: string; activeCall?: { channelId: string; isOwner: boolean } }) => {
         if (response.error) {
@@ -264,7 +265,7 @@ export class CallSignalingService {
       this.socket.once("disconnect", rollback);
 
       this.socket.emit(
-        "call:transfer-request",
+        CallEvents.TRANSFER_REQUEST,
         { channelId },
         (res: AckResponse) => {
           this.socket.off("disconnect", rollback);
@@ -300,7 +301,7 @@ export class CallSignalingService {
   ): Promise<CallPresence | null> {
     return new Promise((resolve, reject) => {
       this.socket.emit(
-        "call:start",
+        CallEvents.START,
         { channelId, type },
         async (res: AckResponse<CallPresence>) => {
           if (res.error) return reject(new Error(res.error));
@@ -321,7 +322,7 @@ export class CallSignalingService {
   joinCall(channelId: string): Promise<CallPresence | null> {
     return new Promise((resolve, reject) => {
       this.socket.emit(
-        "call:join",
+        CallEvents.JOIN,
         { channelId },
         async (res: AckResponse<CallPresence>) => {
           if (res.error) return reject(new Error(res.error));
@@ -363,12 +364,12 @@ export class CallSignalingService {
       }, 10_000);
 
       this.socket.emit(
-        "call:leave",
+        CallEvents.LEAVE,
         { channelId },
         (res: AckResponse) => {
           clearTimeout(timeout);
-          cleanup();
           if (res.error) return reject(new Error(res.error));
+          cleanup();
           resolve();
         },
       );
@@ -378,7 +379,7 @@ export class CallSignalingService {
   getCallState(channelId: string): Promise<CallPresence | null> {
     return new Promise((resolve) => {
       this.socket.emit(
-        "call:get-state",
+        CallEvents.GET_STATE,
         { channelId },
         (res: AckResponse<CallPresence>) => {
           resolve(res.call ?? null);
@@ -390,7 +391,7 @@ export class CallSignalingService {
   setMedia(channelId: string, media: Partial<CallParticipantMedia>): void {
     useCallStore.getState().setLocalMedia(media);
     this.socket.emit(
-      "call:set-media",
+      CallEvents.SET_MEDIA,
       { channelId, media },
       () => {},
     );
@@ -400,7 +401,7 @@ export class CallSignalingService {
   fetchActiveCallsForChannels(channelIds: string[]): Promise<void> {
     return new Promise((resolve) => {
       this.socket.emit(
-        "call:get-active",
+        CallEvents.GET_ACTIVE,
         { channelIds },
         (res: AckResponse<CallPresence>) => {
           if (res.calls) {

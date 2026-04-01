@@ -71,6 +71,14 @@ export class AudioChat {
     private joining = false;
     private socketToProducersMap: Map<string, string[]> = new Map();
     private watchingNewProducers = false;
+    private newProducerHandler: ((data: {
+        producerId: string;
+        socketId?: string;
+        userName?: string;
+        userId?: number;
+        source?: string;
+        soundName?: string;
+    }) => void) | null = null;
     /** Track music-bot producer IDs for separate gain/processing */
     private musicBotProducerIds = new Set<string>();
 
@@ -454,16 +462,14 @@ export class AudioChat {
     public async watchNewProducers() {
         if (this.watchingNewProducers) return;
         this.watchingNewProducers = true;
-        this.sfuService.socket.on(
-            "newProducer",
-            async (data: {
-                producerId: string;
-                socketId?: string;
-                userName?: string;
-                userId?: number;
-                source?: string;
-                soundName?: string;
-            }) => {
+        this.newProducerHandler = async (data: {
+            producerId: string;
+            socketId?: string;
+            userName?: string;
+            userId?: number;
+            source?: string;
+            soundName?: string;
+        }) => {
                 // Accept microphone, music-bot, and soundboard sources
                 if (
                     data.source &&
@@ -531,8 +537,8 @@ export class AudioChat {
                 }
 
                 await this.consumeProducer(data.producerId);
-            },
-        );
+            };
+        this.sfuService.socket.on("newProducer", this.newProducerHandler);
 
         this.sfuService.socket.on(
             "endScreenShare",
@@ -1135,7 +1141,10 @@ export class AudioChat {
         this.sfuService.socket.off("zone-players");
         this.sfuService.socket.off("player-left-zone");
         this.sfuService.socket.off("player-joined-zone");
-        this.sfuService.socket.off("newProducer");
+        if (this.newProducerHandler) {
+            this.sfuService.socket.off("newProducer", this.newProducerHandler);
+            this.newProducerHandler = null;
+        }
         this.sfuService.socket.off("endScreenShare");
         this.sfuService.socket.off("playerFocusModeChanged");
 
@@ -1375,8 +1384,11 @@ export class AudioChat {
                 existing.push(producer.producerId);
                 this.socketToProducersMap.set(producer.socketId, existing);
             }
-
-            await this.consumeProducer(producer.producerId);
         }
+
+        // Consume all producers in parallel — consumingInFlight Set provides dedup
+        await Promise.all(
+            audioProducers.map((p) => this.consumeProducer(p.producerId)),
+        );
     }
 }

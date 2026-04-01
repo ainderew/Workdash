@@ -1,5 +1,6 @@
 import useCallStore from './callStore';
 import type { CallPresence, CallParticipant, CallParticipantMedia } from './callStore';
+import type { BackendUser } from '@/types/auth';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -435,5 +436,305 @@ describe('setCurrentCall - ownership cleanup', () => {
     const state = useCallStore.getState();
     expect(state.isCallOwner).toBe(false);
     expect(state.callOwnershipStatus).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// handleCallEnded — ownership + currentCall + media cleanup combined
+// ---------------------------------------------------------------------------
+
+describe('handleCallEnded - full ownership and call state cleanup', () => {
+  it('clears ownership, currentCall, localMedia, and pin when the current owned call ends', () => {
+    const store = useCallStore.getState();
+    store.handleCallStarted(makeCall('ch-1', [makeParticipant(1)]));
+    store.setCurrentCall('ch-1');
+    store.setCallOwnershipStatus('ch-1', 'owner');
+    store.setLocalMedia({ audio: true, video: true });
+    store.setPinnedTileKey('1');
+    store.setScreenShareAutoFullscreen(true);
+
+    useCallStore.getState().handleCallEnded('ch-1');
+
+    const state = useCallStore.getState();
+    expect(state.currentCall).toBeNull();
+    expect(state.pinnedTileKey).toBeNull();
+    expect(state.screenShareAutoFullscreen).toBe(false);
+    expect(state.localMedia).toEqual({ audio: false, video: false, screen: false });
+    expect(state.isCallOwner).toBe(false);
+    expect(state.callOwnershipStatus).toBeNull();
+    expect(state.ownershipChannelId).toBeNull();
+    expect(state.activeCallsByChannel).toEqual({});
+  });
+
+  it('preserves ownership when a different call ends', () => {
+    const store = useCallStore.getState();
+    store.handleCallStarted(makeCall('ch-1', [makeParticipant(1)]));
+    store.handleCallStarted(makeCall('ch-2', [makeParticipant(2)]));
+    store.setCurrentCall('ch-1');
+    store.setCallOwnershipStatus('ch-1', 'owner');
+    store.setLocalMedia({ audio: true });
+
+    useCallStore.getState().handleCallEnded('ch-2');
+
+    const state = useCallStore.getState();
+    expect(state.currentCall).toEqual({ channelId: 'ch-1' });
+    expect(state.isCallOwner).toBe(true);
+    expect(state.callOwnershipStatus).toBe('owner');
+    expect(state.ownershipChannelId).toBe('ch-1');
+    expect(state.localMedia.audio).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// handleMediaChanged — auto-pin + auto-fullscreen for remote screen share
+// ---------------------------------------------------------------------------
+
+describe('handleMediaChanged - remote screen share auto-pin', () => {
+  it('auto-pins and auto-fullscreens when a remote user starts screen sharing', async () => {
+    // Set up the local user so the store can distinguish local vs remote
+    const { default: useUserStore } = await import('./useStore');
+    useUserStore.setState({
+      backendUser: { id: 99, name: 'Local', email: 'local@test.com' } as BackendUser,
+    });
+
+    const store = useCallStore.getState();
+    store.handleCallStarted(
+      makeCall('ch-1', [
+        makeParticipant(99),
+        makeParticipant(10, { screen: false }),
+      ]),
+    );
+    store.setCurrentCall('ch-1');
+
+    // Remote user 10 starts screen sharing
+    useCallStore.getState().handleMediaChanged('ch-1', 10, {
+      audio: false,
+      video: false,
+      screen: true,
+    });
+
+    const state = useCallStore.getState();
+    expect(state.pinnedTileKey).toBe('10-screen');
+    expect(state.floatingWindowState).toBe('fullscreen');
+    expect(state.manualFloating).toBe(true);
+    expect(state.screenShareAutoFullscreen).toBe(true);
+  });
+
+  it('does NOT auto-pin when the local user starts screen sharing', async () => {
+    const { default: useUserStore } = await import('./useStore');
+    useUserStore.setState({
+      backendUser: { id: 10, name: 'Local', email: 'local@test.com' } as BackendUser,
+    });
+
+    const store = useCallStore.getState();
+    store.handleCallStarted(
+      makeCall('ch-1', [makeParticipant(10)]),
+    );
+    store.setCurrentCall('ch-1');
+
+    // Local user 10 starts screen sharing — should NOT auto-pin
+    useCallStore.getState().handleMediaChanged('ch-1', 10, {
+      audio: false,
+      video: false,
+      screen: true,
+    });
+
+    const state = useCallStore.getState();
+    expect(state.pinnedTileKey).toBeNull();
+    expect(state.screenShareAutoFullscreen).toBe(false);
+  });
+
+  it('does NOT auto-pin when user is not in the call', async () => {
+    const { default: useUserStore } = await import('./useStore');
+    useUserStore.setState({
+      backendUser: { id: 99, name: 'Local', email: 'local@test.com' } as BackendUser,
+    });
+
+    const store = useCallStore.getState();
+    store.handleCallStarted(
+      makeCall('ch-1', [makeParticipant(99), makeParticipant(10)]),
+    );
+    // Not calling setCurrentCall — user is NOT in this call
+
+    useCallStore.getState().handleMediaChanged('ch-1', 10, {
+      audio: false,
+      video: false,
+      screen: true,
+    });
+
+    const state = useCallStore.getState();
+    expect(state.pinnedTileKey).toBeNull();
+    expect(state.screenShareAutoFullscreen).toBe(false);
+  });
+
+  it('auto-exits fullscreen when remote user stops screen sharing after auto-fullscreen', async () => {
+    const { default: useUserStore } = await import('./useStore');
+    useUserStore.setState({
+      backendUser: { id: 99, name: 'Local', email: 'local@test.com' } as BackendUser,
+    });
+
+    const store = useCallStore.getState();
+    store.handleCallStarted(
+      makeCall('ch-1', [
+        makeParticipant(99),
+        makeParticipant(10, { screen: true }),
+      ]),
+    );
+    store.setCurrentCall('ch-1');
+
+    // Simulate auto-pin + auto-fullscreen triggered by remote screen share
+    useCallStore.getState().handleMediaChanged('ch-1', 10, {
+      audio: false,
+      video: false,
+      screen: true,
+    });
+
+    // Verify auto-fullscreen was set
+    expect(useCallStore.getState().floatingWindowState).toBe('fullscreen');
+    expect(useCallStore.getState().screenShareAutoFullscreen).toBe(true);
+
+    // Remote user stops screen sharing
+    useCallStore.getState().handleMediaChanged('ch-1', 10, {
+      audio: false,
+      video: false,
+      screen: false,
+    });
+
+    const state = useCallStore.getState();
+    expect(state.pinnedTileKey).toBeNull();
+    expect(state.floatingWindowState).toBe('expanded');
+    expect(state.manualFloating).toBe(false);
+    expect(state.screenShareAutoFullscreen).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// handleParticipantLeft — userToProducerId cleanup
+// ---------------------------------------------------------------------------
+
+describe('handleParticipantLeft - full producer map cleanup', () => {
+  it('cleans up producerUserMap, userToProducerId, and screenProducerUserMap for the leaving user', () => {
+    const store = useCallStore.getState();
+    store.handleCallStarted(
+      makeCall('ch-1', [makeParticipant(10), makeParticipant(20)]),
+    );
+    store.setProducerUser('vp-10', 10);
+    store.setProducerUser('vp-20', 20);
+    store.setScreenProducerUser('sp-10', 10);
+    store.setScreenProducerUser('sp-20', 20);
+
+    // Verify userToProducerId was set
+    expect(useCallStore.getState().userToProducerId[10]).toBe('vp-10');
+    expect(useCallStore.getState().userToProducerId[20]).toBe('vp-20');
+
+    useCallStore.getState().handleParticipantLeft('ch-1', 10);
+
+    const state = useCallStore.getState();
+    // Producer maps should only contain user 20's entries
+    expect(state.producerUserMap).toEqual({ 'vp-20': 20 });
+    expect(state.userToProducerId).toEqual({ 20: 'vp-20' });
+    expect(state.screenProducerUserMap).toEqual({ 'sp-20': 20 });
+
+    // Participant list should only have user 20
+    expect(state.activeCallsByChannel['ch-1'].participants).toHaveLength(1);
+    expect(state.activeCallsByChannel['ch-1'].participants[0].userId).toBe(20);
+  });
+
+  it('auto-exits fullscreen when pinned screen-sharing user leaves', () => {
+    const store = useCallStore.getState();
+    store.handleCallStarted(
+      makeCall('ch-1', [makeParticipant(10), makeParticipant(20)]),
+    );
+    store.setScreenProducerUser('sp-10', 10);
+    store.setPinnedTileKey('10-screen');
+    store.setFloatingWindowState('fullscreen');
+    store.setManualFloating(true);
+    store.setScreenShareAutoFullscreen(true);
+
+    useCallStore.getState().handleParticipantLeft('ch-1', 10);
+
+    const state = useCallStore.getState();
+    expect(state.pinnedTileKey).toBeNull();
+    expect(state.floatingWindowState).toBe('expanded');
+    expect(state.manualFloating).toBe(false);
+    expect(state.screenShareAutoFullscreen).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// handleBulkCallState — stale entry removal
+// ---------------------------------------------------------------------------
+
+describe('handleBulkCallState', () => {
+  it('adds new calls from the bulk payload', () => {
+    useCallStore.getState().handleBulkCallState([
+      makeCall('ch-1', [makeParticipant(1)]),
+      makeCall('ch-2', [makeParticipant(2)]),
+    ]);
+
+    const state = useCallStore.getState();
+    expect(Object.keys(state.activeCallsByChannel)).toHaveLength(2);
+    expect(state.activeCallsByChannel['ch-1'].participants[0].userId).toBe(1);
+    expect(state.activeCallsByChannel['ch-2'].participants[0].userId).toBe(2);
+  });
+
+  it('removes stale entries for queried channels no longer active', () => {
+    const store = useCallStore.getState();
+    // Pre-populate with three calls
+    store.handleCallStarted(makeCall('ch-1', [makeParticipant(1)]));
+    store.handleCallStarted(makeCall('ch-2', [makeParticipant(2)]));
+    store.handleCallStarted(makeCall('ch-3', [makeParticipant(3)]));
+
+    // Bulk update says ch-1 and ch-3 were queried, but only ch-1 is still active
+    useCallStore.getState().handleBulkCallState(
+      [makeCall('ch-1', [makeParticipant(1)])],
+      ['ch-1', 'ch-3'],
+    );
+
+    const state = useCallStore.getState();
+    // ch-1 remains (active), ch-2 remains (not queried), ch-3 removed (queried but not active)
+    expect(state.activeCallsByChannel['ch-1']).toBeDefined();
+    expect(state.activeCallsByChannel['ch-2']).toBeDefined();
+    expect(state.activeCallsByChannel['ch-3']).toBeUndefined();
+  });
+
+  it('does not remove non-queried channels', () => {
+    const store = useCallStore.getState();
+    store.handleCallStarted(makeCall('ch-1', [makeParticipant(1)]));
+    store.handleCallStarted(makeCall('ch-2', [makeParticipant(2)]));
+
+    // Only query ch-1, which comes back empty — ch-2 should be untouched
+    useCallStore.getState().handleBulkCallState([], ['ch-1']);
+
+    const state = useCallStore.getState();
+    expect(state.activeCallsByChannel['ch-1']).toBeUndefined();
+    expect(state.activeCallsByChannel['ch-2']).toBeDefined();
+  });
+
+  it('does not remove any entries when queriedChannelIds is not provided', () => {
+    const store = useCallStore.getState();
+    store.handleCallStarted(makeCall('ch-1', [makeParticipant(1)]));
+    store.handleCallStarted(makeCall('ch-2', [makeParticipant(2)]));
+
+    // Bulk update with only ch-1 but no queriedChannelIds — ch-2 should remain
+    useCallStore.getState().handleBulkCallState([
+      makeCall('ch-1', [makeParticipant(10)]),
+    ]);
+
+    const state = useCallStore.getState();
+    expect(state.activeCallsByChannel['ch-1'].participants[0].userId).toBe(10);
+    expect(state.activeCallsByChannel['ch-2']).toBeDefined();
+  });
+
+  it('overwrites existing call data with fresh bulk data', () => {
+    const store = useCallStore.getState();
+    store.handleCallStarted(makeCall('ch-1', [makeParticipant(1)]));
+
+    useCallStore.getState().handleBulkCallState([
+      makeCall('ch-1', [makeParticipant(1), makeParticipant(2)]),
+    ]);
+
+    const state = useCallStore.getState();
+    expect(state.activeCallsByChannel['ch-1'].participants).toHaveLength(2);
   });
 });

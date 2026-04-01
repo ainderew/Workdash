@@ -15,6 +15,7 @@ export class WebrtcStatsService {
   private prevTimestamp = 0;
   private qualityHoldStart = 0;
   private lastQuality: ConnectionQuality = 'unknown';
+  private polling = false;
   private unsubscribe: (() => void) | null = null;
 
   static getInstance(): WebrtcStatsService {
@@ -78,6 +79,10 @@ export class WebrtcStatsService {
   }
 
   private async poll(): Promise<void> {
+    if (this.polling) return;
+    this.polling = true;
+
+    try {
     const sfu = MediaTransportService.getInstance();
     const sendTransport = sfu.sendTransport;
     const recvTransport = sfu.recvTransport;
@@ -202,6 +207,9 @@ export class WebrtcStatsService {
     }
 
     useCallStore.getState().setStatsSnapshot(snapshot);
+    } finally {
+      this.polling = false;
+    }
   }
 
   private requestAdaptiveLayers(
@@ -213,9 +221,10 @@ export class WebrtcStatsService {
     // Request layer change for all active video consumers via socket
     if (!sfu.recvTransport || sfu.recvTransport.closed) return;
 
-    // Fix #2: use producerToConsumerMap to get actual consumer IDs
-    const consumerMap = useCallStore.getState().producerToConsumerMap;
-    for (const consumerId of Object.values(consumerMap)) {
+    const { producerToConsumerMap, screenProducerUserMap } = useCallStore.getState();
+    // Only target camera-video consumers — skip screen-share consumers
+    for (const [producerId, consumerId] of Object.entries(producerToConsumerMap)) {
+      if (producerId in screenProducerUserMap) continue;
       sfu.socket.emit(
         'setConsumerPreferredLayers',
         { consumerId, spatialLayer },
