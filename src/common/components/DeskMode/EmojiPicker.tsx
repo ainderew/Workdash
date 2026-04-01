@@ -31,6 +31,10 @@ function EmojiPicker({ onSelect, onClose }: EmojiPickerProps) {
             const target = e.target as HTMLElement | null;
             if (target?.closest("[data-message-reaction-picker='true']")) return;
             if (target?.closest("[data-emoji-picker-trigger='true']")) return;
+            // emoji-mart renders as a web component with shadow DOM —
+            // contains() may fail across the shadow boundary, so also
+            // check whether the target lives inside our mount point.
+            if (mountRef.current?.contains(e.target as Node)) return;
             if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
                 onCloseRef.current?.();
             }

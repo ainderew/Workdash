@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 import Image from 'next/image';
 import { Mic, MicOff, Video, Monitor, Pin, PinOff, HeadphoneOff } from 'lucide-react';
 import useFocusStore from '@/common/store/focusStore';
+import useCallReactionStore from '@/common/store/callReactionStore';
 import type { CallParticipant } from '@/common/store/callStore';
 import useCallStore from '@/common/store/callStore';
 import useChatV2Store from '@/common/store/chatV2Store';
@@ -11,6 +12,7 @@ import { VideoChatViewer } from '@/communication/videoChat/videoChatViewer';
 import { VideoChatService } from '@/communication/videoChat/videoChat';
 import { useActiveSpeaker } from '@/common/hooks/useActiveSpeaker';
 import ParticipantVolumeMenu from './ParticipantVolumeMenu';
+import FloatingReactionOverlay from './FloatingReactionOverlay';
 
 interface CallParticipantTileProps {
   participant: CallParticipant;
@@ -48,6 +50,9 @@ export default function CallParticipantTile({
       ? s.localFocusMode
       : (s.remoteFocusByUserId[participant.userId] ?? false),
   );
+
+  const raisedHands = useCallReactionStore((s) => s.raisedHands);
+  const isHandRaised = raisedHands.has(participant.userId);
 
   // For local user, use uiStore.isMuted (updates instantly on toggle).
   // participant.media.audio only updates after a server round-trip, causing
@@ -239,6 +244,9 @@ export default function CallParticipantTile({
         <div ref={videoContainerRef} className="absolute inset-0" />
       )}
 
+      {/* Floating emoji reactions */}
+      <FloatingReactionOverlay userId={participant.userId} />
+
       {/* Bottom bar */}
       <div
         className="absolute bottom-0 left-0 right-0 flex items-center gap-1.5 px-2 py-1"
@@ -247,6 +255,11 @@ export default function CallParticipantTile({
             'linear-gradient(transparent, rgba(0,0,0,0.6))',
         }}
       >
+        {isHandRaised && (
+          <span className="inline-flex items-center shrink-0 rounded-full px-1 py-0.5 text-[10px] font-semibold bg-[var(--wd-surface-base)] text-[var(--wd-warning)] border border-[var(--wd-warning)]">
+            ✋
+          </span>
+        )}
         <span className="text-xs font-medium text-white truncate">
           {participant.displayName}
           {isLocal && (

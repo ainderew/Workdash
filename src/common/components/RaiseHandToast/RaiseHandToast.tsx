@@ -14,7 +14,7 @@ function ReactionToast() {
                     player.isRaisingHand && (
                         <div
                             key={player.id}
-                            className="reaction-toast-item bg-primary text-white px-4 py-2 rounded-md w-fit"
+                            className="reaction-toast-item px-4 py-2 rounded-md w-fit bg-[var(--wd-warning-soft)] text-[var(--wd-warning)] border border-[var(--wd-warning)]"
                         >
                             <span className="text-sm">
                                 {player.name === "You"

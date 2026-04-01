@@ -1,6 +1,7 @@
 import React from 'react';
 import type { CallParticipant } from '@/common/store/callStore';
 import useCallStore from '@/common/store/callStore';
+import useCallReactionStore from '@/common/store/callReactionStore';
 import CallParticipantTile from '../CallParticipantTile';
 import ScreenShareTile from '../ScreenShareTile';
 import CallAvatar from '../CallAvatar';
@@ -60,7 +61,8 @@ export default function FloatingTileGrid({
   const togglePin = (key: string) =>
     setPinnedTileKey(pinnedTileKey === key ? null : key);
 
-  const allTiles = buildTileData(participants, localUserId);
+  const raisedHands = useCallReactionStore((s) => s.raisedHands);
+  const allTiles = buildTileData(participants, localUserId, raisedHands);
   const pinnedTile = pinnedTileKey
     ? allTiles.find((t) => t.key === pinnedTileKey)
     : null;

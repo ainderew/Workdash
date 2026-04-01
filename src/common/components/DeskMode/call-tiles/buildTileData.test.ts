@@ -115,3 +115,53 @@ describe('buildTileData', () => {
     expect(tiles[0].participant).toBe(p);
   });
 });
+
+// ---------------------------------------------------------------------------
+// buildTileData with raisedHands
+// ---------------------------------------------------------------------------
+
+describe('buildTileData with raisedHands', () => {
+  const participants: CallParticipant[] = [
+    makeParticipant(1),
+    makeParticipant(2),
+    makeParticipant(3, { screen: true }),
+  ];
+
+  it('with no raisedHands param, preserves original order', () => {
+    const tiles = buildTileData(participants, 99);
+    const keys = tiles.map((t) => t.key);
+    expect(keys).toEqual(['1', '2', '3', '3-screen']);
+  });
+
+  it('with empty Set, preserves original order', () => {
+    const tiles = buildTileData(participants, 99, new Set());
+    const keys = tiles.map((t) => t.key);
+    expect(keys).toEqual(['1', '2', '3', '3-screen']);
+  });
+
+  it('raised-hand user sorted to top', () => {
+    const tiles = buildTileData(participants, 99, new Set([2]));
+    const keys = tiles.map((t) => t.key);
+    expect(keys[0]).toBe('2');
+  });
+
+  it('multiple raised-hand users sorted to top, relative order preserved', () => {
+    const tiles = buildTileData(participants, 99, new Set([2, 3]));
+    const keys = tiles.map((t) => t.key);
+    // User 2 and 3 raised — they come first in their original relative order
+    expect(keys).toEqual(['2', '3', '3-screen', '1']);
+  });
+
+  it('screen share tiles stay with their parent participant after sorting', () => {
+    const tiles = buildTileData(participants, 99, new Set([3]));
+    const keys = tiles.map((t) => t.key);
+    // User 3 (raised) comes first with their screen tile
+    expect(keys).toEqual(['3', '3-screen', '1', '2']);
+  });
+
+  it('all raised: order unchanged', () => {
+    const tiles = buildTileData(participants, 99, new Set([1, 2, 3]));
+    const keys = tiles.map((t) => t.key);
+    expect(keys).toEqual(['1', '2', '3', '3-screen']);
+  });
+});

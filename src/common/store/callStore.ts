@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import useUserStore from "@/common/store/useStore";
+import useCallReactionStore from "@/common/store/callReactionStore";
 
 // ----------------------------------------------------------------
 // Types
@@ -239,8 +240,11 @@ const useCallStore = create<CallState>((set) => ({
       };
     }),
 
-  handleParticipantLeft: (channelId, userId) =>
-    set((state) => {
+  handleParticipantLeft: (channelId, userId) => {
+    // Clear raise-hand for leaving participant (outside set() to avoid cross-store in setter)
+    useCallReactionStore.getState().setHandRaised(userId, false);
+
+    return set((state) => {
       const existing = state.activeCallsByChannel[channelId];
       if (!existing) return state;
 
@@ -296,7 +300,8 @@ const useCallStore = create<CallState>((set) => ({
         manualFloating: nextManualFloating,
         screenShareAutoFullscreen: nextScreenShareAutoFullscreen,
       };
-    }),
+    });
+  },
 
   handleMediaChanged: (channelId, userId, media) =>
     set((state) => {

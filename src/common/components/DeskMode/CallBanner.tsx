@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Phone, PhoneOff, Video } from "lucide-react";
 import useCallStore from "@/common/store/callStore";
+import useCallReactionStore from "@/common/store/callReactionStore";
 import { CallSignalingService } from "@/communication/callSignaling/callSignalingService";
 import { logger } from "@/common/utils/logger";
 import { useCallOwnershipActions } from "@/common/hooks/useCallOwnershipActions";
@@ -51,6 +52,7 @@ export default function CallBanner({ channelId }: CallBannerProps) {
     } catch (err) {
       logger.error("Failed to leave call:", err);
     }
+    useCallReactionStore.getState().clearAll();
   };
 
   if (isInThisCall && isCallOwner) {

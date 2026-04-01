@@ -1,5 +1,6 @@
-import React from 'react';
-import { Monitor, MonitorOff, PhoneOff } from 'lucide-react';
+import React, { useState, useRef, useLayoutEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
+import { Monitor, MonitorOff, PhoneOff, SmilePlus, Hand } from 'lucide-react';
 import useCallStore from '@/common/store/callStore';
 import type { ConnectionQuality } from '@/common/store/callStore';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
@@ -9,6 +10,8 @@ import DisplayModeSplitButton from './DisplayModeSplitButton';
 import type { DisplayModeSplitButtonProps } from './DisplayModeSplitButton';
 import NoiseCancelToggle from './NoiseCancelToggle';
 import SoundboardButton from '@/common/components/Soundboard/SoundboardButton';
+import ReactionPickerFlyout from './ReactionPickerFlyout';
+import { useCallReaction } from './hooks/useCallReaction';
 
 export type CallControlSize = 'sm' | 'md';
 
@@ -51,6 +54,28 @@ export default function CallControlBar({
   const { btn, icon, gap } = sizeConfig[size];
   const connectionQuality = useCallStore((s) => s.connectionQuality);
   const statsSnapshot = useCallStore((s) => s.statsSnapshot);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const pickerAnchorRef = useRef<HTMLButtonElement>(null);
+  const [pickerPos, setPickerPos] = useState<{ top: number; left: number; direction: 'up' | 'down' } | null>(null);
+  const { sendReaction, toggleRaiseHand, isRaisingHand } = useCallReaction();
+
+  const updatePickerPos = useCallback(() => {
+    const anchor = pickerAnchorRef.current;
+    if (!anchor) return;
+    const rect = anchor.getBoundingClientRect();
+    const spaceAbove = rect.top;
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const direction = spaceAbove > spaceBelow ? 'up' : 'down';
+    setPickerPos({
+      top: direction === 'up' ? rect.top : rect.bottom + 8,
+      left: rect.right,
+      direction,
+    });
+  }, []);
+
+  useLayoutEffect(() => {
+    if (pickerOpen) updatePickerPos();
+  }, [pickerOpen, updatePickerPos]);
 
   const qualityLabel =
     connectionQuality === 'unknown' ? 'Connecting...' : connectionQuality;
@@ -119,6 +144,72 @@ export default function CallControlBar({
 
       {/* Soundboard */}
       <SoundboardButton />
+
+      {/* Reactions */}
+      <div className="relative">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              ref={pickerAnchorRef}
+              type="button"
+              onClick={() => setPickerOpen((v) => !v)}
+              data-emoji-picker-trigger="true"
+              className={`inline-flex items-center justify-center ${btn} rounded-full border cursor-pointer transition-colors ${
+                pickerOpen
+                  ? 'border-[var(--wd-accent)] text-[var(--wd-accent)]'
+                  : 'wd-border-subtle wd-text-secondary hover:wd-text-primary'
+              }`}
+            >
+              <SmilePlus size={icon} />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="top" sideOffset={6}>React</TooltipContent>
+        </Tooltip>
+
+        {pickerOpen && pickerPos && createPortal(
+          <div
+            className="fixed z-[200] max-h-[min(480px,calc(100vh-40px))] overflow-y-auto rounded-xl"
+            style={{
+              top: pickerPos.direction === 'up' ? undefined : pickerPos.top,
+              bottom: pickerPos.direction === 'up' ? `${window.innerHeight - pickerPos.top + 8}px` : undefined,
+              right: `${window.innerWidth - pickerPos.left}px`,
+            }}
+          >
+            <ReactionPickerFlyout
+              onSelectEmoji={(emoji) => {
+                sendReaction(emoji);
+              }}
+              onClose={() => setPickerOpen(false)}
+            />
+          </div>,
+          document.body,
+        )}
+      </div>
+
+      {/* Raise Hand */}
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            onClick={toggleRaiseHand}
+            className={`inline-flex items-center justify-center ${btn} rounded-full border cursor-pointer transition-colors ${
+              isRaisingHand
+                ? 'border-[var(--wd-warning)] text-[var(--wd-warning)]'
+                : 'wd-border-subtle wd-text-secondary hover:wd-text-primary'
+            }`}
+            style={
+              isRaisingHand
+                ? { backgroundColor: 'color-mix(in srgb, var(--wd-warning) 12%, transparent)' }
+                : undefined
+            }
+          >
+            <Hand size={icon} />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="top" sideOffset={6}>
+          {isRaisingHand ? 'Lower hand' : 'Raise hand'}
+        </TooltipContent>
+      </Tooltip>
 
       {/* Display mode split button (inline mode only) */}
       {displayModeProps && (

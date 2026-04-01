@@ -14,14 +14,25 @@ export function tileKey(userId: number, screen?: boolean): string {
 /**
  * Builds a flat list of tile data from call participants.
  * Each participant gets a camera tile, plus a screen tile if they are sharing.
+ * When raisedHands is provided, raised-hand participants are sorted first.
  */
 export function buildTileData(
   participants: CallParticipant[],
   localUserId: number,
+  raisedHands?: Set<number>,
 ): TileData[] {
   const tiles: TileData[] = [];
 
-  for (const p of participants) {
+  // Sort: raised hands first, preserve relative order otherwise
+  const sorted = raisedHands?.size
+    ? [...participants].sort((a, b) => {
+        const aRaised = raisedHands.has(a.userId) ? 0 : 1;
+        const bRaised = raisedHands.has(b.userId) ? 0 : 1;
+        return aRaised - bRaised;
+      })
+    : participants;
+
+  for (const p of sorted) {
     tiles.push({
       key: tileKey(p.userId),
       participant: p,

@@ -2,6 +2,7 @@ import React, { useEffect, useCallback, useRef, useState } from 'react';
 import { Phone, Minus, ArrowUpRight, Pause, ArrowLeft, Expand, Shrink, ChevronUp } from 'lucide-react';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import useCallStore from '@/common/store/callStore';
+import useCallReactionStore from '@/common/store/callReactionStore';
 import useChatV2Store from '@/common/store/chatV2Store';
 import useUiStore from '@/common/store/uiStore';
 import useUserStore from '@/common/store/useStore';
@@ -271,6 +272,7 @@ export default function FloatingCallWindow() {
     } catch (err) {
       logger.error('Failed to leave call:', err);
     }
+    useCallReactionStore.getState().clearAll();
   }, [channelId]);
 
   const setSelectedWorkspaceId = useChatV2Store((s) => s.setSelectedWorkspaceId);

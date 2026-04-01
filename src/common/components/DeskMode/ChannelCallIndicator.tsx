@@ -1,6 +1,8 @@
 import React from "react";
 import { Phone } from "lucide-react";
 import useCallStore from "@/common/store/callStore";
+import useCallReactionStore from "@/common/store/callReactionStore";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import CallAvatar from "./CallAvatar";
 
 interface ChannelCallIndicatorProps {
@@ -14,7 +16,14 @@ export default function ChannelCallIndicator({
     (s) => s.activeCallsByChannel[channelId],
   );
 
+  const raisedHands = useCallReactionStore((s) => s.raisedHands);
+
   if (!call) return null;
+
+  const raisedParticipants = call.participants.filter(
+    (p) => raisedHands.has(p.userId),
+  );
+  const raisedCount = raisedParticipants.length;
 
   const MAX_AVATARS = 3;
   const participants = call.participants.slice(0, MAX_AVATARS);
@@ -60,6 +69,24 @@ export default function ChannelCallIndicator({
         <Phone size={10} className="animate-pulse" />
         {call.participants.length}
       </span>
+
+      {/* Raise hand indicator */}
+      {raisedCount > 0 && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="inline-flex items-center gap-0.5 rounded-full px-1 py-0.5 text-[10px] font-semibold cursor-default bg-[var(--wd-surface-base)] text-[var(--wd-warning)] border border-[var(--wd-warning)]">
+              ✋ {raisedCount}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="right" sideOffset={4}>
+            <div className="flex flex-col gap-0.5">
+              {raisedParticipants.map((p) => (
+                <span key={p.userId}>{p.displayName}</span>
+              ))}
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      )}
     </span>
   );
 }
