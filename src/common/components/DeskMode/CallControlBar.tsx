@@ -125,14 +125,9 @@ export default function CallControlBar({
             onClick={onToggleScreenShare}
             className={`inline-flex items-center justify-center ${btn} rounded-full border cursor-pointer transition-colors ${
               isScreenSharing
-                ? 'border-[var(--wd-info)] text-[var(--wd-info)]'
+                ? 'border-[var(--wd-text-primary)] text-[var(--wd-text-primary)] bg-[var(--wd-surface-elevated)]'
                 : 'wd-border-subtle wd-text-secondary hover:wd-text-primary'
             }`}
-            style={
-              isScreenSharing
-                ? { backgroundColor: 'color-mix(in srgb, var(--wd-info) 12%, transparent)' }
-                : undefined
-            }
           >
             {isScreenSharing ? <MonitorOff size={icon} /> : <Monitor size={icon} />}
           </button>
@@ -156,7 +151,7 @@ export default function CallControlBar({
               data-emoji-picker-trigger="true"
               className={`inline-flex items-center justify-center ${btn} rounded-full border cursor-pointer transition-colors ${
                 pickerOpen
-                  ? 'border-[var(--wd-accent)] text-[var(--wd-accent)]'
+                  ? 'border-[var(--wd-text-primary)] text-[var(--wd-text-primary)] bg-[var(--wd-surface-elevated)]'
                   : 'wd-border-subtle wd-text-secondary hover:wd-text-primary'
               }`}
             >
@@ -194,14 +189,9 @@ export default function CallControlBar({
             onClick={toggleRaiseHand}
             className={`inline-flex items-center justify-center ${btn} rounded-full border cursor-pointer transition-colors ${
               isRaisingHand
-                ? 'border-[var(--wd-warning)] text-[var(--wd-warning)]'
+                ? 'border-[var(--wd-text-primary)] text-[var(--wd-text-primary)] bg-[var(--wd-surface-elevated)]'
                 : 'wd-border-subtle wd-text-secondary hover:wd-text-primary'
             }`}
-            style={
-              isRaisingHand
-                ? { backgroundColor: 'color-mix(in srgb, var(--wd-warning) 12%, transparent)' }
-                : undefined
-            }
           >
             <Hand size={icon} />
           </button>

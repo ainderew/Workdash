@@ -34,7 +34,7 @@ function SoundboardButton() {
         type="button"
         onClick={handleToggle}
         title="Soundboard"
-        className={`wd-dock-action-btn ${isPlaying ? 'wd-dock-action-btn--accent' : ''}`}
+        className={`wd-dock-action-btn ${isPlaying ? 'wd-dock-action-btn--active' : ''}`}
       >
         <Volume2 size={15} />
       </button>

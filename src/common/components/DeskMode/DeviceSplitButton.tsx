@@ -107,9 +107,9 @@ export default function DeviceSplitButton({
   const offBg = useSubtleOff ? '' : 'bg-[color-mix(in_srgb,var(--wd-danger)_12%,transparent)]';
 
   // ON state colors
-  const onBorder = isPill ? 'wd-border-subtle' : 'border-[var(--wd-success)]';
-  const onText = isPill ? 'wd-text-secondary' : 'text-[var(--wd-success)]';
-  const onBg = isPill ? '' : 'bg-[color-mix(in_srgb,var(--wd-success)_12%,transparent)]';
+  const onBorder = isPill ? 'border-[var(--wd-text-primary)]' : 'border-[var(--wd-success)]';
+  const onText = isPill ? 'text-[var(--wd-text-primary)]' : 'text-[var(--wd-success)]';
+  const onBg = isPill ? 'bg-[var(--wd-surface-elevated)]' : 'bg-[color-mix(in_srgb,var(--wd-success)_12%,transparent)]';
 
   const borderClass = isOff ? offBorder : onBorder;
   const textClass = isOff ? offText : onText;

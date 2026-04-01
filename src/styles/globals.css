@@ -2163,6 +2163,17 @@ input[type="range"].wd-volume-slider::-moz-range-progress {
     background: color-mix(in srgb, var(--wd-warning) 18%, transparent);
 }
 
+.wd-dock-action-btn--active {
+    border-color: var(--wd-text-primary);
+    background: var(--wd-surface-elevated);
+    color: var(--wd-text-primary);
+}
+
+.wd-dock-action-btn--active:hover {
+    background: var(--wd-surface-elevated);
+    border-color: var(--wd-text-primary);
+}
+
 .wd-dock-action-btn--accent {
     border-color: var(--wd-accent);
     background: var(--wd-accent);
