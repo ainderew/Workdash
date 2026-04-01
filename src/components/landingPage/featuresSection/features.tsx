@@ -1,16 +1,17 @@
 import React from "react";
 import Image from "next/image";
-import { motion } from "framer-motion";
+import { motion, useInView } from "framer-motion";
 import { VideoIcon, MicIcon, UsersIcon, SparklesIcon } from "lucide-react";
-type FeatureType = "walk-talk" | "video-pods" | "reactions" | "presence";
+import { useRef } from "react";
+
 interface Feature {
     id: string;
-    type: FeatureType;
+    type: "walk-talk" | "video-pods" | "reactions" | "presence";
     title: string;
     description: string;
     icon: React.ElementType;
-    color: string;
 }
+
 const features: Feature[] = [
     {
         id: "f1",
@@ -19,7 +20,6 @@ const features: Feature[] = [
         description:
             "Just walk up to a colleague to start talking. Audio fades in naturally as you approach, just like in real life.",
         icon: MicIcon,
-        color: "text-cyan-600 dark:text-cyan-400",
     },
     {
         id: "f2",
@@ -28,7 +28,6 @@ const features: Feature[] = [
         description:
             "Step into a meeting room and your video feed instantly pops up. No links, no waiting rooms, just presence.",
         icon: VideoIcon,
-        color: "text-purple-600 dark:text-purple-400",
     },
     {
         id: "f3",
@@ -37,7 +36,6 @@ const features: Feature[] = [
         description:
             "Send coffee, throw confetti, or dance. Rich interactions that bring joy back to remote work.",
         icon: SparklesIcon,
-        color: "text-pink-600 dark:text-pink-400",
     },
     {
         id: "f4",
@@ -46,333 +44,362 @@ const features: Feature[] = [
         description:
             "See where everyone is at a glance. Focus zones, social lounges, and collaboration tables.",
         icon: UsersIcon,
-        color: "text-yellow-600 dark:text-yellow-400",
     },
 ];
 
-const WalkTalkDemo = () => (
-    <div className="relative w-full h-full bg-slate-100/50 dark:bg-slate-900/50 flex items-center justify-center overflow-hidden">
-        <div className="absolute inset-0 bg-grid-pattern opacity-30" />
-        {}
-        <motion.div
-            className="absolute"
-            animate={{
-                x: [-50, -20, -20, -50],
-            }}
-            transition={{
-                duration: 4,
-                repeat: Infinity,
-                ease: "easeInOut",
-            }}
-        >
-            <Image
-                src="/assets/landing-male.png"
-                alt=""
-                width={48}
-                height={48}
-                className="w-12 h-12 drop-shadow-[0_0_15px_rgba(0,243,255,0.5)] z-10 relative object-cover"
-            />
-            {}
-            <motion.div
-                className="absolute -top-10 -right-20 bg-white dark:bg-white text-slate-900 px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap"
-                animate={{
-                    opacity: [0, 1, 1, 0],
-                    scale: [0.8, 1, 1, 0.8],
-                }}
-                transition={{
-                    duration: 4,
-                    times: [0, 0.4, 0.6, 1],
-                    repeat: Infinity,
-                }}
-            >
-                Hey, got a sec?
-            </motion.div>
-        </motion.div>
-
-        {}
-        <div className="absolute translate-x-10">
-            {}
-            <Image
-                src="/assets/landing-female.png"
-                alt=""
-                width={48}
-                height={48}
-                className="w-12 h-12 drop-shadow-[0_0_15px_rgba(188,19,254,0.5)] z-10 relative object-cover"
-            />
-            <motion.div
-                className="absolute top-15 -left-20 bg-white dark:bg-white text-slate-900 px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap"
-                animate={{
-                    opacity: [0, 0, 1, 0],
-                    scale: [0.8, 0.8, 1, 0.8],
-                }}
-                transition={{
-                    duration: 4,
-                    times: [0, 0.5, 0.7, 1],
-                    repeat: Infinity,
-                }}
-            >
-                Sure, what&apos;s up?
-            </motion.div>
+function DemoWrapper({ children }: { children: React.ReactNode }) {
+    return (
+        <div className="relative w-full h-full bg-[var(--wd-surface-panel-2)] flex items-center justify-center overflow-hidden">
+            {children}
         </div>
+    );
+}
 
-        {}
-        <motion.div
-            className="absolute w-32 h-32 border-2 border-cyan-500/30 rounded-full"
-            animate={{
-                scale: [0.5, 1.2],
-                opacity: [1, 0],
-            }}
-            transition={{
-                duration: 2,
-                repeat: Infinity,
-            }}
-        />
-    </div>
-);
-const VideoPodsDemo = () => (
-    <div className="relative w-full h-full bg-slate-100/50 dark:bg-slate-900/50 flex flex-col items-center justify-center p-8">
-        <div className="absolute inset-0 bg-grid-pattern opacity-30" />
-        {}
-        <div className="w-48 h-32 border-2 border-slate-400 dark:border-slate-600 rounded-xl relative mb-4 bg-slate-200/50 dark:bg-slate-800/30">
-            <div className="absolute inset-0 flex items-center justify-center text-xs text-slate-500 font-mono">
-                MEETING_ROOM_01
-            </div>
-            {}
-
+function WalkTalkDemo({ isActive }: { isActive: boolean }) {
+    return (
+        <DemoWrapper>
             <motion.div
-                className="absolute bottom-2 left-2 w-8 h-8 rounded shadow-lg"
-                animate={{
-                    x: [0, 80],
-                    y: [0, -40],
-                }}
+                className="absolute"
+                animate={
+                    isActive
+                        ? { x: [-50, -20, -20, -50] }
+                        : { x: -50 }
+                }
                 transition={{
-                    duration: 3,
+                    duration: 4,
                     repeat: Infinity,
-                    repeatType: "reverse",
+                    ease: "easeInOut",
                 }}
             >
+                <Image
+                    src="/assets/landing-male.png"
+                    alt=""
+                    width={48}
+                    height={48}
+                    className="w-12 h-12 drop-shadow-md z-10 relative object-cover"
+                />
+                <motion.div
+                    className="absolute -top-10 -right-20 bg-[var(--wd-surface-panel)] text-[var(--wd-text-primary)] px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap"
+                    animate={
+                        isActive
+                            ? {
+                                  opacity: [0, 1, 1, 0],
+                                  scale: [0.8, 1, 1, 0.8],
+                              }
+                            : { opacity: 0 }
+                    }
+                    transition={{
+                        duration: 4,
+                        times: [0, 0.4, 0.6, 1],
+                        repeat: Infinity,
+                    }}
+                >
+                    Hey, got a sec?
+                </motion.div>
+            </motion.div>
+
+            <div className="absolute translate-x-10">
                 <Image
                     src="/assets/landing-female.png"
                     alt=""
                     width={48}
                     height={48}
-                    className="w-12 h-12 drop-shadow-[0_0_15px_rgba(188,19,254,0.5)] z-10 relative object-cover"
+                    className="w-12 h-12 drop-shadow-md z-10 relative object-cover"
                 />
-            </motion.div>
-        </div>
-
-        {}
-        <motion.div
-            className="absolute top-8 right-8 w-32 h-20 bg-slate-100 dark:bg-slate-800 border border-purple-500 rounded-lg shadow-2xl overflow-hidden z-20"
-            initial={{
-                scale: 0,
-                opacity: 0,
-            }}
-            animate={{
-                scale: [0, 1, 1, 0],
-                opacity: [0, 1, 1, 0],
-            }}
-            transition={{
-                duration: 3,
-                repeat: Infinity,
-                repeatType: "reverse",
-                delay: 0.5,
-            }}
-        >
-            <div className="w-full h-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center">
-                <VideoIcon className="w-8 h-8 text-slate-500" />
-            </div>
-            <div className="absolute bottom-1 right-1 w-2 h-2 bg-green-500 rounded-full" />
-        </motion.div>
-    </div>
-);
-const ReactionsDemo = () => (
-    <div className="relative w-full h-full bg-slate-100/50 dark:bg-slate-900/50 flex items-center justify-center">
-        <div className="absolute inset-0 bg-grid-pattern opacity-30" />
-        <div className="relative">
-            <Image
-                className="w-16 h-16 rounded-xl flex items-center justify-center drop-shadow-[0_0_15px_rgba(188,19,254,0.5)] z-10 relative object-cover"
-                src="/assets/landing-female.png"
-                alt=""
-                width={64}
-                height={64}
-            />
-
-            {}
-            {[1, 2, 3].map((i) => (
                 <motion.div
-                    key={i}
-                    className="absolute top-0 left-1/2 text-2xl"
-                    animate={{
-                        y: [0, -80 - i * 20],
-                        x: [0, i % 2 === 0 ? 20 : -20],
-                        opacity: [1, 0],
-                        scale: [0.5, 1.5],
-                    }}
+                    className="absolute top-15 -left-20 bg-[var(--wd-surface-panel)] text-[var(--wd-text-primary)] px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap"
+                    animate={
+                        isActive
+                            ? {
+                                  opacity: [0, 0, 1, 0],
+                                  scale: [0.8, 0.8, 1, 0.8],
+                              }
+                            : { opacity: 0 }
+                    }
                     transition={{
-                        duration: 2,
+                        duration: 4,
+                        times: [0, 0.5, 0.7, 1],
                         repeat: Infinity,
-                        delay: i * 0.5,
-                        ease: "easeOut",
                     }}
                 >
-                    {i === 1 ? "🎉" : i === 2 ? "☕️" : "🔥"}
+                    Sure, what&apos;s up?
                 </motion.div>
-            ))}
-        </div>
-    </div>
-);
-const PresenceDemo = () => (
-    <div className="relative w-full h-full bg-slate-100/50 dark:bg-slate-900/50 p-6">
-        <div className="absolute inset-0 bg-grid-pattern opacity-30" />
-        <div className="grid grid-cols-2 gap-4 h-full">
-            <div className="border border-green-600/30 dark:border-green-500/30 bg-green-600/5 dark:bg-green-500/5 rounded-lg p-2 relative">
-                <div className="text-[10px] text-green-600 dark:text-green-400 font-mono mb-2">
-                    FOCUS_ZONE
+            </div>
+
+            <motion.div
+                className="absolute w-32 h-32 border-2 border-[var(--wd-landing-accent)]/30 rounded-full"
+                animate={
+                    isActive
+                        ? { scale: [0.5, 1.2], opacity: [1, 0] }
+                        : { scale: 0.5, opacity: 0 }
+                }
+                transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                }}
+            />
+        </DemoWrapper>
+    );
+}
+
+function VideoPodsDemo({ isActive }: { isActive: boolean }) {
+    return (
+        <DemoWrapper>
+            <div className="w-48 h-32 border-2 border-[var(--wd-border-subtle)] rounded-xl relative mb-4 bg-[var(--wd-surface-panel)]/30">
+                <div className="absolute inset-0 flex items-center justify-center text-xs text-[var(--wd-text-muted)]">
+                    Meeting Room
                 </div>
-                <div className="flex gap-1">
-                    <div className="w-6 h-6 bg-slate-200 dark:bg-slate-700 rounded opacity-50" />
-                    <div className="w-6 h-6 bg-slate-200 dark:bg-slate-700 rounded opacity-50" />
+
+                <motion.div
+                    className="absolute bottom-2 left-2 w-8 h-8 rounded shadow-lg"
+                    animate={
+                        isActive
+                            ? { x: [0, 80], y: [0, -40] }
+                            : { x: 0, y: 0 }
+                    }
+                    transition={{
+                        duration: 3,
+                        repeat: Infinity,
+                        repeatType: "reverse",
+                    }}
+                >
+                    <Image
+                        src="/assets/landing-female.png"
+                        alt=""
+                        width={48}
+                        height={48}
+                        className="w-12 h-12 drop-shadow-md z-10 relative object-cover"
+                    />
+                </motion.div>
+            </div>
+
+            <motion.div
+                className="absolute top-8 right-8 w-32 h-20 bg-[var(--wd-surface-panel-2)] border border-[var(--wd-landing-accent)] rounded-lg shadow-2xl overflow-hidden z-20"
+                initial={{ scale: 0, opacity: 0 }}
+                animate={
+                    isActive
+                        ? {
+                              scale: [0, 1, 1, 0],
+                              opacity: [0, 1, 1, 0],
+                          }
+                        : { scale: 0, opacity: 0 }
+                }
+                transition={{
+                    duration: 3,
+                    repeat: Infinity,
+                    repeatType: "reverse",
+                    delay: 0.5,
+                }}
+            >
+                <div className="w-full h-full bg-[var(--wd-surface-elevated)] flex items-center justify-center">
+                    <VideoIcon className="w-8 h-8 text-[var(--wd-text-muted)]" />
+                </div>
+                <div className="absolute bottom-1 right-1 w-2 h-2 bg-[var(--wd-success)] rounded-full" />
+            </motion.div>
+        </DemoWrapper>
+    );
+}
+
+function ReactionsDemo({ isActive }: { isActive: boolean }) {
+    return (
+        <DemoWrapper>
+            <div className="relative">
+                <Image
+                    className="w-16 h-16 rounded-xl flex items-center justify-center drop-shadow-md z-10 relative object-cover"
+                    src="/assets/landing-female.png"
+                    alt=""
+                    width={64}
+                    height={64}
+                />
+
+                {[1, 2, 3].map((i) => (
+                    <motion.div
+                        key={i}
+                        className="absolute top-0 left-1/2 text-2xl"
+                        animate={
+                            isActive
+                                ? {
+                                      y: [0, -80 - i * 20],
+                                      x: [0, i % 2 === 0 ? 20 : -20],
+                                      opacity: [1, 0],
+                                      scale: [0.5, 1.5],
+                                  }
+                                : { opacity: 0 }
+                        }
+                        transition={{
+                            duration: 2,
+                            repeat: Infinity,
+                            delay: i * 0.5,
+                            ease: "easeOut",
+                        }}
+                    >
+                        {i === 1 ? "🎉" : i === 2 ? "☕️" : "🔥"}
+                    </motion.div>
+                ))}
+            </div>
+        </DemoWrapper>
+    );
+}
+
+function PresenceDemo({ isActive }: { isActive: boolean }) {
+    return (
+        <div className="relative w-full h-full bg-[var(--wd-surface-panel-2)] p-6">
+            <div className="grid grid-cols-2 gap-4 h-full">
+                <div className="border border-[var(--wd-success)]/30 bg-[var(--wd-success)]/5 rounded-lg p-2 relative">
+                    <div className="text-[10px] text-[var(--wd-success)] font-medium mb-2">
+                        Focus Zone
+                    </div>
+                    <div className="flex gap-1">
+                        <div className="w-6 h-6 bg-[var(--wd-surface-elevated)] rounded opacity-50" />
+                        <div className="w-6 h-6 bg-[var(--wd-surface-elevated)] rounded opacity-50" />
+                    </div>
+                </div>
+                <div className="border border-[var(--wd-warning)]/30 bg-[var(--wd-warning)]/5 rounded-lg p-2 relative">
+                    <div className="text-[10px] text-[var(--wd-warning)] font-medium mb-2">
+                        Lunch Area
+                    </div>
+                    <div className="flex gap-1 flex-wrap">
+                        {[1, 2, 3].map((i) => (
+                            <motion.div
+                                key={i}
+                                className="w-6 h-6 bg-[var(--wd-warning)] rounded"
+                                animate={
+                                    isActive
+                                        ? { y: [0, -2, 0] }
+                                        : { y: 0 }
+                                }
+                                transition={{
+                                    duration: 0.5,
+                                    delay: i * 0.1,
+                                    repeat: Infinity,
+                                    repeatDelay: 2,
+                                }}
+                            />
+                        ))}
+                    </div>
                 </div>
             </div>
-            <div className="border border-yellow-600/30 dark:border-yellow-500/30 bg-yellow-600/5 dark:bg-yellow-500/5 rounded-lg p-2 relative">
-                <div className="text-[10px] text-yellow-600 dark:text-yellow-400 font-mono mb-2">
-                    LUNCH_AREA
-                </div>
-                <div className="flex gap-1 flex-wrap">
-                    {[1, 2, 3].map((i) => (
-                        <motion.div
-                            key={i}
-                            className="w-6 h-6 bg-yellow-500 rounded"
-                            animate={{
-                                y: [0, -2, 0],
-                            }}
-                            transition={{
-                                duration: 0.5,
-                                delay: i * 0.1,
-                                repeat: Infinity,
-                                repeatDelay: 2,
-                            }}
-                        />
-                    ))}
-                </div>
-            </div>
         </div>
-    </div>
-);
+    );
+}
+
+function FeatureCard({
+    feature,
+    index,
+}: {
+    feature: Feature;
+    index: number;
+}) {
+    const ref = useRef(null);
+    const isInView = useInView(ref, { once: false, margin: "-100px" });
+    const isEven = index % 2 === 0;
+
+    const DemoComponent = {
+        "walk-talk": WalkTalkDemo,
+        "video-pods": VideoPodsDemo,
+        reactions: ReactionsDemo,
+        presence: PresenceDemo,
+    }[feature.type];
+
+    return (
+        <motion.div
+            ref={ref}
+            initial={{ opacity: 0, y: 50 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.8 }}
+            className={`flex flex-col ${isEven ? "lg:flex-row" : "lg:flex-row-reverse"} items-center gap-12 lg:gap-24`}
+        >
+            {/* Demo panel */}
+            <motion.div
+                initial={{ opacity: 0, x: isEven ? -40 : 40 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true, margin: "-100px" }}
+                transition={{ duration: 0.6, delay: 0.2 }}
+                className="w-full lg:w-1/2 aspect-video relative group"
+            >
+                <div className="relative h-full bg-[var(--wd-surface-panel)] border border-[var(--wd-border-subtle)] rounded-2xl overflow-hidden shadow-md group-hover:shadow-lg transition-shadow duration-300">
+                    {/* Mini toolbar */}
+                    <div className="h-8 bg-[var(--wd-surface-panel-2)] border-b border-[var(--wd-border-subtle)] flex items-center px-4 justify-between">
+                        <div className="flex gap-1.5">
+                            <div className="w-2 h-2 rounded-full bg-[var(--wd-border-subtle)]" />
+                            <div className="w-2 h-2 rounded-full bg-[var(--wd-border-subtle)]" />
+                            <div className="w-2 h-2 rounded-full bg-[var(--wd-border-subtle)]" />
+                        </div>
+                        <div className="text-[10px] text-[var(--wd-text-muted)]">
+                            {feature.title}
+                        </div>
+                    </div>
+
+                    <div className="h-[calc(100%-2rem)]">
+                        <DemoComponent isActive={isInView} />
+                    </div>
+                </div>
+            </motion.div>
+
+            {/* Text content */}
+            <motion.div
+                initial={{ opacity: 0, x: isEven ? 40 : -40 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true, margin: "-100px" }}
+                transition={{ duration: 0.6, delay: 0.3 }}
+                className={`w-full lg:w-1/2 ${isEven ? "text-left" : "text-left lg:text-right"}`}
+            >
+                <div
+                    className={`inline-flex items-center gap-2 mb-4 text-[var(--wd-landing-accent)]`}
+                >
+                    <feature.icon className="w-6 h-6" />
+                </div>
+                <h3 className="text-3xl md:text-4xl font-bold text-[var(--wd-text-primary)] mb-6 leading-tight">
+                    {feature.title}
+                </h3>
+                <p className="text-lg text-[var(--wd-text-muted)] leading-relaxed">
+                    {feature.description}
+                </p>
+
+                <button
+                    className={`mt-8 text-sm font-bold text-[var(--wd-landing-accent)] hover:text-[var(--wd-landing-accent-hover)] transition-colors flex items-center gap-2 ${isEven ? "" : "lg:ml-auto"}`}
+                >
+                    Learn More{" "}
+                    <span className="text-lg">&rarr;</span>
+                </button>
+            </motion.div>
+        </motion.div>
+    );
+}
+
 export function Features() {
     return (
         <section
             id="features"
-            className="py-32 bg-slate-50 dark:bg-slate-950 relative overflow-hidden"
+            className="py-32 bg-[var(--wd-surface-base)] relative overflow-hidden"
         >
-            {}
             <div className="max-w-7xl mx-auto px-6 mb-24 text-center relative z-10">
                 <motion.h2
-                    initial={{
-                        opacity: 0,
-                        y: 20,
-                    }}
-                    whileInView={{
-                        opacity: 1,
-                        y: 0,
-                    }}
-                    viewport={{
-                        once: true,
-                    }}
-                    className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-white mb-6"
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    className="text-4xl md:text-5xl font-bold text-[var(--wd-text-primary)] mb-6"
                 >
-                    GAMEPLAY{" "}
-                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-400">
-                        FEATURES
+                    Gameplay{" "}
+                    <span className="text-[var(--wd-landing-accent)]">
+                        Features
                     </span>
                 </motion.h2>
-                <p className="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto text-lg">
+                <p className="text-[var(--wd-text-muted)] max-w-2xl mx-auto text-lg">
                     Work doesn&apos;t have to be boring. We&apos;ve gamified the
                     office experience to bring back serendipity and culture.
                 </p>
             </div>
 
             <div className="max-w-7xl mx-auto px-6 space-y-32">
-                {features.map((feature, index) => {
-                    const isEven = index % 2 === 0;
-                    const DemoComponent = {
-                        "walk-talk": WalkTalkDemo,
-                        "video-pods": VideoPodsDemo,
-                        reactions: ReactionsDemo,
-                        presence: PresenceDemo,
-                    }[feature.type];
-                    return (
-                        <motion.div
-                            key={feature.id}
-                            initial={{
-                                opacity: 0,
-                                y: 50,
-                            }}
-                            whileInView={{
-                                opacity: 1,
-                                y: 0,
-                            }}
-                            viewport={{
-                                once: true,
-                                margin: "-100px",
-                            }}
-                            transition={{
-                                duration: 0.8,
-                            }}
-                            className={`flex flex-col ${isEven ? "lg:flex-row" : "lg:flex-row-reverse"} items-center gap-12 lg:gap-24`}
-                        >
-                            {/* Interactive Module */}
-                            <div className="w-full lg:w-1/2 aspect-video relative group">
-                                <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/20 to-purple-500/20 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-500 opacity-50" />
-                                <div className="relative h-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-2xl overflow-hidden shadow-2xl group-hover:border-cyan-500/50 transition-colors duration-300">
-                                    {/* HUD Header */}
-                                    <div className="h-8 bg-slate-200/50 dark:bg-slate-800/50 border-b border-slate-300 dark:border-slate-700 flex items-center px-4 justify-between">
-                                        <div className="flex gap-1.5">
-                                            <div className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600" />
-                                            <div className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600" />
-                                        </div>
-                                        <div className="text-[10px] font-mono text-slate-500 uppercase">
-                                            Module_{feature.id}
-                                        </div>
-                                    </div>
-
-                                    {/* Demo Content */}
-                                    <div className="h-[calc(100%-2rem)]">
-                                        <DemoComponent />
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Text Content */}
-                            <div
-                                className={`w-full lg:w-1/2 ${isEven ? "text-left" : "text-left lg:text-right"}`}
-                            >
-                                <div
-                                    className={`inline-flex items-center gap-2 mb-4 ${feature.color}`}
-                                >
-                                    <feature.icon className="w-6 h-6" />
-                                    <span className="font-mono text-sm font-bold uppercase tracking-wider">
-                                        System Active
-                                    </span>
-                                </div>
-                                <h3 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white mb-6 leading-tight">
-                                    {feature.title}
-                                </h3>
-                                <p className="text-lg text-slate-600 dark:text-slate-400 leading-relaxed">
-                                    {feature.description}
-                                </p>
-
-                                <button
-                                    className={`mt-8 text-sm font-bold uppercase tracking-widest ${feature.color} hover:text-slate-900 dark:hover:text-white transition-colors flex items-center gap-2 ${isEven ? "" : "lg:ml-auto"}`}
-                                >
-                                    Learn More{" "}
-                                    <span className="text-lg">→</span>
-                                </button>
-                            </div>
-                        </motion.div>
-                    );
-                })}
+                {features.map((feature, index) => (
+                    <FeatureCard
+                        key={feature.id}
+                        feature={feature}
+                        index={index}
+                    />
+                ))}
             </div>
         </section>
     );

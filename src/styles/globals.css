@@ -1270,6 +1270,98 @@ body {
     }
 }
 
+/* ── Landing page brand tokens (coral palette from logo) ─────────────── */
+/* Theme-invariant — the marketing page always uses the brand coral.      */
+
+:root {
+    --wd-landing-accent: #E85D04;
+    --wd-landing-accent-hover: #C2410C;
+    --wd-landing-accent-rgb: 232 93 4;
+    --wd-landing-accent-soft: rgb(232 93 4 / 0.12);
+    --wd-landing-accent-gradient: linear-gradient(135deg, #E85D04, #C2410C);
+}
+
+/* ── Landing page utilities ──────────────────────────────────────────── */
+
+.wd-landing-scroll-progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 3px;
+    background: var(--wd-landing-accent-gradient);
+    transform-origin: left;
+    z-index: 200;
+}
+
+.wd-landing-btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.875rem 2rem;
+    background: var(--wd-landing-accent);
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.875rem;
+    letter-spacing: 0.025em;
+    border-radius: 0.75rem;
+    transition: background 0.2s, box-shadow 0.2s, transform 0.15s;
+}
+
+.wd-landing-btn-primary:hover {
+    background: var(--wd-landing-accent-hover);
+    box-shadow: 0 4px 20px rgb(var(--wd-landing-accent-rgb) / 0.35);
+    transform: translateY(-1px);
+}
+
+.wd-landing-btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.875rem 2rem;
+    background: var(--wd-surface-panel);
+    color: var(--wd-text-primary);
+    font-weight: 700;
+    font-size: 0.875rem;
+    letter-spacing: 0.025em;
+    border: 1px solid var(--wd-border-subtle);
+    border-radius: 0.75rem;
+    transition: border-color 0.2s, background 0.2s, transform 0.15s;
+}
+
+.wd-landing-btn-secondary:hover {
+    border-color: var(--wd-landing-accent);
+    background: var(--wd-surface-panel-2);
+    transform: translateY(-1px);
+}
+
+.wd-landing-glow {
+    position: absolute;
+    border-radius: 9999px;
+    filter: blur(100px);
+    opacity: 0.25;
+    background: var(--wd-landing-accent);
+    pointer-events: none;
+    animation: wd-landing-drift 12s ease-in-out infinite alternate;
+}
+
+@keyframes wd-landing-drift {
+    0% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(30px, -20px) scale(1.1); }
+    100% { transform: translate(-20px, 15px) scale(0.95); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .wd-landing-glow {
+        animation: none;
+    }
+
+    .wd-landing-scroll-progress {
+        display: none;
+    }
+}
+
 /* ── Grid pattern + scanlines (used by landing page + login) ───────── */
 
 .bg-grid-pattern {

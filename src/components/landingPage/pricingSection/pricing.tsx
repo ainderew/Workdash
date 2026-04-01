@@ -1,13 +1,13 @@
-import React from "react";
-import { motion } from "framer-motion";
+import React, { useEffect, useRef, useState } from "react";
+import { motion, useInView } from "framer-motion";
 import { CheckIcon, SwordIcon, ShieldIcon } from "lucide-react";
+
 const tiers = [
     {
         name: "Small Party",
         level: 1,
-        price: "0",
+        price: 0,
         icon: SwordIcon,
-        color: "cyan",
         features: [
             "Up to 5 Players",
             "Basic Guild Hall",
@@ -20,9 +20,8 @@ const tiers = [
     {
         name: "Guild Upgrade",
         level: 50,
-        price: "5",
+        price: 5,
         icon: ShieldIcon,
-        color: "purple",
         features: [
             "All features from Small Party*",
             "Up to 50 Players",
@@ -35,23 +34,49 @@ const tiers = [
         xp: 75,
     },
 ];
+
+function AnimatedPrice({ target }: { target: number }) {
+    const ref = useRef<HTMLSpanElement>(null);
+    const isInView = useInView(ref, { once: true });
+    const [value, setValue] = useState(0);
+
+    useEffect(() => {
+        if (!isInView) return;
+        if (target === 0) {
+            setValue(0);
+            return;
+        }
+        let start = 0;
+        const duration = 800;
+        const startTime = performance.now();
+        function tick(now: number) {
+            const elapsed = now - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            start = Math.round(progress * target);
+            setValue(start);
+            if (progress < 1) requestAnimationFrame(tick);
+        }
+        requestAnimationFrame(tick);
+    }, [isInView, target]);
+
+    return <span ref={ref}>${value}</span>;
+}
+
 export function Pricing() {
     return (
         <section
             id="pricing"
-            className="py-32 bg-slate-50 dark:bg-slate-950 relative overflow-hidden"
+            className="py-32 bg-[var(--wd-surface-base)] relative overflow-hidden"
         >
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-purple-900/10 dark:from-purple-900/20 via-slate-50 dark:via-slate-950 to-slate-50 dark:to-slate-950" />
-
             <div className="max-w-7xl mx-auto px-6 relative z-10">
                 <div className="text-center mb-20">
-                    <h2 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-white mb-6">
-                        CHOOSE YOUR{" "}
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-600 dark:from-cyan-400 to-purple-600 dark:to-purple-400">
-                            DIFFICULTY
+                    <h2 className="text-4xl md:text-5xl font-bold text-[var(--wd-text-primary)] mb-6">
+                        Choose Your{" "}
+                        <span className="text-[var(--wd-landing-accent)]">
+                            Difficulty
                         </span>
                     </h2>
-                    <p className="text-slate-600 dark:text-slate-400">
+                    <p className="text-[var(--wd-text-muted)]">
                         Scale your server capacity as your guild grows.
                     </p>
                 </div>
@@ -59,42 +84,20 @@ export function Pricing() {
                 <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto items-start">
                     {tiers.map((tier, index) => {
                         const isHighlight = tier.highlight;
-                        const colorClass =
-                            tier.color === "cyan"
-                                ? "text-cyan-600 dark:text-cyan-400 border-cyan-500/30"
-                                : tier.color === "purple"
-                                  ? "text-purple-600 dark:text-purple-400 border-purple-500/30"
-                                  : "text-yellow-600 dark:text-yellow-400 border-yellow-500/30";
-                        const bgClass =
-                            tier.color === "cyan"
-                                ? "bg-cyan-500"
-                                : tier.color === "purple"
-                                  ? "bg-purple-500"
-                                  : "bg-yellow-500";
                         return (
                             <motion.div
                                 key={tier.name}
-                                initial={{
-                                    opacity: 0,
-                                    y: 50,
-                                }}
-                                whileInView={{
-                                    opacity: 1,
-                                    y: 0,
-                                }}
-                                viewport={{
-                                    once: true,
-                                }}
-                                transition={{
-                                    delay: index * 0.1,
-                                }}
+                                initial={{ opacity: 0, y: 50 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true }}
+                                transition={{ delay: index * 0.1 }}
                                 className={`
-                  relative group min-h-full flex flex-col rounded-2xl p-8 border-2 transition-all duration-300
-                  ${isHighlight ? "bg-white dark:bg-slate-900/80 border-purple-600 dark:border-purple-500 shadow-[0_0_30px_rgba(168,85,247,0.15)]  z-10" : "bg-white/50 dark:bg-slate-900/50 border-slate-300 dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-600"}
-                `}
+                                    relative group min-h-full flex flex-col rounded-2xl p-8 border-2 transition-all duration-300
+                                    ${isHighlight ? "bg-[var(--wd-surface-panel)] border-[var(--wd-landing-accent)] shadow-lg z-10" : "bg-[var(--wd-surface-panel)]/50 border-[var(--wd-border-subtle)] hover:border-[var(--wd-border-strong)]"}
+                                `}
                             >
                                 {isHighlight && (
-                                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-4 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-lg">
+                                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-[var(--wd-landing-accent)] text-[var(--wd-surface-base)] px-4 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-lg">
                                         Best Value
                                     </div>
                                 )}
@@ -102,28 +105,22 @@ export function Pricing() {
                                 {/* Header */}
                                 <div className="flex justify-between items-start mb-6">
                                     <div>
-                                        <div
-                                            className={`text-sm font-mono font-bold uppercase mb-1 ${tier.color === "cyan" ? "text-cyan-600 dark:text-cyan-400" : tier.color === "purple" ? "text-purple-600 dark:text-purple-400" : "text-yellow-600 dark:text-yellow-400"}`}
-                                        >
+                                        <div className="text-sm font-bold uppercase mb-1 text-[var(--wd-landing-accent)]">
                                             LVL {tier.level}
                                         </div>
-                                        <h3 className="text-2xl font-bold text-slate-900 dark:text-white">
+                                        <h3 className="text-2xl font-bold text-[var(--wd-text-primary)]">
                                             {tier.name}
                                         </h3>
                                     </div>
-                                    <div
-                                        className={`p-3 rounded-xl bg-slate-100 dark:bg-slate-800 ${colorClass} border`}
-                                    >
+                                    <div className="p-3 rounded-xl bg-[var(--wd-surface-panel-2)] text-[var(--wd-landing-accent)] border border-[var(--wd-landing-accent)]/30">
                                         <tier.icon className="w-6 h-6" />
                                     </div>
                                 </div>
 
                                 {/* XP Bar */}
-                                <div className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full mb-8 overflow-hidden">
+                                <div className="w-full h-2 bg-[var(--wd-surface-panel-2)] rounded-full mb-8 overflow-hidden">
                                     <motion.div
-                                        initial={{
-                                            width: 0,
-                                        }}
+                                        initial={{ width: 0 }}
                                         whileInView={{
                                             width: `${tier.xp}%`,
                                         }}
@@ -131,21 +128,17 @@ export function Pricing() {
                                             duration: 1,
                                             delay: 0.5,
                                         }}
-                                        className={`h-full ${bgClass}`}
+                                        className="h-full bg-[var(--wd-landing-accent)]"
                                     />
                                 </div>
 
                                 <div className="flex items-baseline gap-1 mb-8">
-                                    <span className="text-4xl font-bold text-slate-900 dark:text-white">
-                                        {tier.price === "Custom"
-                                            ? "Custom"
-                                            : `$${tier.price}`}
+                                    <span className="text-4xl font-bold text-[var(--wd-text-primary)]">
+                                        <AnimatedPrice target={tier.price} />
                                     </span>
-                                    {tier.price !== "Custom" && (
-                                        <span className="text-slate-500">
-                                            /mo
-                                        </span>
-                                    )}
+                                    <span className="text-[var(--wd-text-muted)]">
+                                        /mo
+                                    </span>
                                 </div>
 
                                 {/* Features */}
@@ -153,11 +146,9 @@ export function Pricing() {
                                     {tier.features.map((feature) => (
                                         <li
                                             key={feature}
-                                            className="flex items-center gap-3 text-sm text-slate-700 dark:text-slate-300"
+                                            className="flex items-center gap-3 text-sm text-[var(--wd-text-secondary)]"
                                         >
-                                            <CheckIcon
-                                                className={`w-4 h-4 ${tier.color === "cyan" ? "text-cyan-600 dark:text-cyan-400" : tier.color === "purple" ? "text-purple-600 dark:text-purple-400" : "text-yellow-600 dark:text-yellow-400"}`}
-                                            />
+                                            <CheckIcon className="w-4 h-4 text-[var(--wd-landing-accent)]" />
                                             {feature}
                                         </li>
                                     ))}
@@ -165,10 +156,11 @@ export function Pricing() {
 
                                 {/* CTA */}
                                 <button
-                                    className={`
-                  w-full py-4 rounded-xl font-bold text-sm uppercase tracking-wider transition-all mt-auto
-                  ${isHighlight ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white hover:shadow-lg hover:shadow-purple-500/25" : "bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white hover:bg-slate-200 dark:hover:bg-slate-700"}
-                `}
+                                    className={`w-full py-4 rounded-xl font-bold text-sm uppercase tracking-wider transition-all mt-auto ${
+                                        isHighlight
+                                            ? "wd-landing-btn-primary"
+                                            : "wd-landing-btn-secondary"
+                                    }`}
                                 >
                                     {tier.cta}
                                 </button>

@@ -1,23 +1,24 @@
 import React, { useEffect, useState } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
-import {
-    ArrowRightIcon,
-    PlayIcon,
-    WifiIcon,
-    BatteryIcon,
-    CpuIcon,
-} from "lucide-react";
+import { ArrowRightIcon, PlayIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import VirtualInterface from "./virtualInterface";
+
 export function Hero() {
     const { scrollY } = useScroll();
     const y1 = useTransform(scrollY, [0, 200], [0, 150]);
     const y2 = useTransform(scrollY, [0, 500], [0, -250]);
+    const heroOpacity = useTransform(scrollY, [0, 400], [1, 0]);
+    const heroY = useTransform(scrollY, [0, 400], [0, -60]);
+    const glowY1 = useTransform(scrollY, [0, 600], [0, -80]);
+    const glowY2 = useTransform(scrollY, [0, 600], [0, -120]);
+
     const [mousePosition, setMousePosition] = useState({
         x: 0,
         y: 0,
     });
+
     useEffect(() => {
         const handleMouseMove = (e: MouseEvent) => {
             setMousePosition({
@@ -28,51 +29,28 @@ export function Hero() {
         window.addEventListener("mousemove", handleMouseMove);
         return () => window.removeEventListener("mousemove", handleMouseMove);
     }, []);
+
     return (
-        <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-slate-50 dark:bg-slate-950 pt-20">
-            <div className="absolute inset-0 bg-grid-pattern opacity-20" />
-            <div className="absolute inset-0 bg-gradient-to-b from-slate-50/50 dark:from-slate-950/50 via-transparent to-slate-50 dark:to-slate-950 pointer-events-none" />
-
-            <div className="scanlines absolute inset-0 scanlines opacity-30 pointer-events-none z-20" />
-
+        <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-[var(--wd-surface-base)] pt-20">
+            {/* Ambient accent glow blobs */}
             <motion.div
                 style={{
                     x: mousePosition.x * 10,
-                    y: mousePosition.y * 10,
+                    y: glowY1,
                 }}
-                className="absolute top-1/4 right-1/3 w-64 h-64 bg-cyan-500/20 dark:bg-cyan-500/40 rounded-full blur-[100px]"
+                className="wd-landing-glow top-1/4 right-1/3 w-64 h-64"
             />
             <motion.div
                 style={{
-                    x: mousePosition.x * 10,
-                    y: mousePosition.y * 10,
+                    x: mousePosition.x * -8,
+                    y: glowY2,
                 }}
-                className="absolute top-1/4 right-1/3 w-96 h-96 bg-purple-500/20 dark:bg-purple-500/40 rounded-full blur-[100px]"
+                className="wd-landing-glow top-1/3 left-1/4 w-96 h-96 opacity-15"
             />
-
-            <div className="absolute top-24 left-6 md:left-12 flex flex-col gap-2 opacity-50 pointer-events-none">
-                <div className="flex items-center gap-2 text-xs font-mono text-cyan-600 dark:text-cyan-400">
-                    <WifiIcon className="w-3 h-3" />
-                    <span>NET_STATUS: ONLINE</span>
-                </div>
-                <div className="flex items-center gap-2 text-xs font-mono text-cyan-600 dark:text-cyan-400">
-                    <CpuIcon className="w-3 h-3" />
-                    <span>SYS_LOAD: 12%</span>
-                </div>
-            </div>
-
-            <div className="absolute top-24 right-6 md:right-12 flex flex-col items-end gap-2 opacity-50 pointer-events-none">
-                <div className="flex items-center gap-2 text-xs font-mono text-cyan-600 dark:text-cyan-400">
-                    <span>BATTERY</span>
-                    <BatteryIcon className="w-3 h-3" />
-                </div>
-                <div className="text-xs font-mono text-cyan-600 dark:text-cyan-400">
-                    LOC: LOBBY_01
-                </div>
-            </div>
 
             <div className="relative z-10 max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-12 items-center">
                 <motion.div
+                    style={{ opacity: heroOpacity, y: heroY }}
                     initial={{
                         opacity: 0,
                         x: -50,
@@ -99,20 +77,20 @@ export function Hero() {
                         transition={{
                             delay: 0.2,
                         }}
-                        className="inline-flex items-center gap-2 px-3 py-1 bg-cyan-100/50 dark:bg-cyan-950/30 border border-cyan-500/30 rounded-full text-cyan-700 dark:text-cyan-400 text-xs font-mono mb-6"
+                        className="inline-flex items-center gap-2 px-3 py-1 bg-[var(--wd-landing-accent-soft)] border border-[var(--wd-landing-accent)]/30 rounded-full text-[var(--wd-landing-accent)] text-xs font-medium mb-6"
                     >
-                        <span className="w-2 h-2 bg-cyan-600 dark:bg-cyan-400 rounded-full animate-pulse" />
-                        MISSION: REMOTE_WORK_REVOLUTION
+                        <span className="w-2 h-2 bg-[var(--wd-landing-accent)] rounded-full animate-pulse" />
+                        Now in Early Access
                     </motion.div>
 
-                    <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-slate-900 dark:text-white mb-6 leading-tight tracking-tight">
-                        WORK TOGETHER. <br />
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 text-glow-cyan">
-                            PLAY TOGETHER.
+                    <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-[var(--wd-text-primary)] mb-6 leading-tight tracking-tight">
+                        Work Together. <br />
+                        <span className="text-[var(--wd-landing-accent)]">
+                            Play Together.
                         </span>
                     </h1>
 
-                    <p className="text-lg text-slate-600 dark:text-slate-400 mb-8 max-w-xl leading-relaxed">
+                    <p className="text-lg text-[var(--wd-text-muted)] mb-8 max-w-xl leading-relaxed">
                         Transform your boring video calls into an immersive 2D
                         MMO. Walk up to colleagues, join guilds, and build your
                         digital HQ in a world that feels alive.
@@ -121,38 +99,19 @@ export function Hero() {
                     <div className="flex flex-col sm:flex-row gap-4">
                         <Link
                             href="/app"
-                            className="group cursor-pointer flex-1 flex justify-center relative px-8 py-4 bg-cyan-500 text-slate-950 font-bold text-sm uppercase tracking-wider clip-path-polygon hover:bg-cyan-400 transition-all overflow-hidden"
+                            className="wd-landing-btn-primary flex-1 justify-center"
                         >
-                            <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-                            <span className="relative flex items-center gap-2">
-                                Start Game{" "}
-                                <ArrowRightIcon className="w-4 h-4" />
-                            </span>
+                            Start Game{" "}
+                            <ArrowRightIcon className="w-4 h-4" />
                         </Link>
 
-                        <button className="group cursor-pointer flex-1 justify-center px-8 py-4 bg-slate-100 dark:bg-slate-900/50 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white font-bold text-sm uppercase tracking-wider hover:border-cyan-500/50 hover:text-cyan-600 dark:hover:text-cyan-400 transition-all flex items-center gap-2">
+                        <button className="wd-landing-btn-secondary flex-1 justify-center">
                             <PlayIcon className="w-4 h-4" />
                             Watch Guides
                         </button>
                     </div>
 
-                    <div className="mt-12 flex items-center gap-8 border-t border-slate-200 dark:border-slate-800 pt-8">
-                        <div>
-                            <div className="text-2xl font-bold text-slate-900 dark:text-white font-mono">
-                                1
-                            </div>
-                            <div className="text-xs text-slate-500 uppercase tracking-wider">
-                                Active Players
-                            </div>
-                        </div>
-                        <div>
-                            <div className="text-2xl font-bold text-slate-900 dark:text-white font-mono">
-                                1
-                            </div>
-                            <div className="text-xs text-slate-500 uppercase tracking-wider">
-                                Team Created
-                            </div>
-                        </div>
+                    <div className="mt-12 flex items-center gap-4 border-t border-[var(--wd-border-subtle)] pt-8">
                         <div className="flex items-center">
                             {[1, 2, 3, 4, 5].map((i) => (
                                 <Image
@@ -161,10 +120,13 @@ export function Hero() {
                                     alt={`User ${i}`}
                                     width={32}
                                     height={32}
-                                    className={`w-8 h-8 rounded-full border-2 border-slate-50 dark:border-slate-950 -ml-3 first:ml-0 z-${10 - i} object-cover`}
+                                    className={`w-8 h-8 rounded-full border-2 border-[var(--wd-surface-base)] -ml-3 first:ml-0 z-${10 - i} object-cover`}
                                 />
                             ))}
                         </div>
+                        <p className="text-sm text-[var(--wd-text-muted)]">
+                            Join remote teams building culture
+                        </p>
                     </div>
                 </motion.div>
 
@@ -182,10 +144,10 @@ export function Hero() {
                     repeat: Infinity,
                 }}
             >
-                <div className="text-[10px] font-mono uppercase tracking-widest text-cyan-600 dark:text-cyan-400 font-bold z-10">
+                <div className="text-xs uppercase tracking-widest text-[var(--wd-landing-accent)] font-semibold z-10">
                     Scroll to Start
                 </div>
-                <div className="w-px h-12 bg-gradient-to-b from-cyan-600 dark:from-cyan-400 to-transparent" />
+                <div className="w-px h-12 bg-gradient-to-b from-[var(--wd-landing-accent)] to-transparent" />
             </motion.div>
         </section>
     );

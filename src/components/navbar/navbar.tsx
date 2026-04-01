@@ -84,10 +84,10 @@ export function Navbar() {
     return (
         <>
             <nav
-                className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-500 flex items-center justify-center py-3 bg-white/70 dark:bg-slate-950/70 backdrop-blur-xl border-b border-slate-300/20 dark:border-cyan-500/20 shadow-[0_4px_30px_rgba(0,0,0,0.1)] dark:shadow-[0_4px_30px_rgba(0,0,0,0.5)] h-20 ${
+                className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-500 flex items-center justify-center py-3 bg-[var(--wd-surface-base)]/70 backdrop-blur-xl border-b border-[var(--wd-border-subtle)]/20 shadow-md h-20 ${
                     scrolled
-                        ? "md:py-3 md:bg-white/70 dark:md:bg-slate-950/70 md:backdrop-blur-xl md:border-b md:border-slate-300/20 dark:md:border-cyan-500/20 md:shadow-[0_4px_30px_rgba(0,0,0,0.1)] dark:md:shadow-[0_4px_30px_rgba(0,0,0,0.5)] md:h-20"
-                        : "md:py-6 md:bg-transparent dark:md:bg-transparent md:border-none md:shadow-none md:h-15"
+                        ? "md:py-3 md:bg-[var(--wd-surface-base)]/70 md:backdrop-blur-xl md:border-b md:border-[var(--wd-border-subtle)]/20 md:shadow-md md:h-20"
+                        : "md:py-6 md:bg-transparent md:border-none md:shadow-none md:h-15"
                 }`}
             >
                 <div className="max-w-7xl w-full px-6 flex items-center justify-between">
@@ -104,11 +104,10 @@ export function Navbar() {
                                 height={40}
                                 className="w-8 h-auto object-contain group-hover:scale-105 group-hover:brightness-110 transition-all duration-300 z-10 relative"
                             />
-                            <div className="absolute inset-0 bg-cyan-500 blur-xl opacity-15 dark:opacity-25 group-hover:opacity-30 dark:group-hover:opacity-50 rounded-full transition-opacity duration-300" />
                         </div>
-                        <span className="text-xl font-bold tracking-tight  dark:text-white font-mono">
+                        <span className="text-xl font-bold tracking-tight text-[var(--wd-text-primary)]">
                             Work
-                            <span className="text-[#E85D04] drop-shadow-[0_0_10px_rgba(34,211,238,0.5)]">
+                            <span className="text-[#E85D04]">
                                 Dash
                             </span>
                         </span>
@@ -121,7 +120,7 @@ export function Navbar() {
                                 key={link.name}
                                 href={link.href}
                                 onClick={(e) => scrollToSection(e, link.href)}
-                                className="flex items-center gap-2 text-[10px] font-mono text-slate-600 dark:text-slate-400 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors tracking-[0.2em]"
+                                className="flex items-center gap-2 text-sm font-medium text-[var(--wd-text-muted)] hover:text-[var(--wd-landing-accent)] transition-colors"
                             >
                                 {link.name}
                             </a>
@@ -130,11 +129,11 @@ export function Navbar() {
                         <ThemeToggle />
 
                         {status === "authenticated" && session?.user ? (
-                            <div className="flex items-center gap-6 pl-4 border-l border-slate-200 dark:border-slate-800">
+                            <div className="flex items-center gap-6 pl-4 border-l border-[var(--wd-border-subtle)]">
                                 {/* Go To Office Button */}
                                 <Link
                                     href="/app"
-                                    className="flex items-center gap-2 text-[10px] font-mono font-bold text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 transition-colors tracking-widest uppercase group"
+                                    className="flex items-center gap-2 text-sm font-bold text-[var(--wd-landing-accent)] hover:text-[var(--wd-landing-accent-hover)] transition-colors group"
                                 >
                                     <LayoutDashboard className="w-4 h-4 group-hover:scale-110 transition-transform" />
                                     Go to Office
@@ -150,7 +149,7 @@ export function Navbar() {
                                         title={sessionDisplayName}
                                     >
                                         <div
-                                            className={`absolute -inset-0.5 bg-cyan-500 rounded-full blur opacity-0 group-hover:opacity-50 transition duration-500 ${isProfileOpen ? "opacity-75" : ""}`}
+                                            className={`absolute -inset-0.5 bg-[var(--wd-landing-accent)] rounded-full blur opacity-0 group-hover:opacity-50 transition duration-500 ${isProfileOpen ? "opacity-75" : ""}`}
                                         ></div>
                                         {session.user.image ? (
                                             <Image
@@ -158,11 +157,11 @@ export function Navbar() {
                                                 alt="Profile"
                                                 width={36}
                                                 height={36}
-                                                className="relative w-9 h-9 rounded-full border-2 border-white dark:border-slate-950 object-cover shadow-sm"
+                                                className="relative w-9 h-9 rounded-full border-2 border-[var(--wd-surface-base)] object-cover shadow-sm"
                                             />
                                         ) : (
-                                            <div className="relative w-9 h-9 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center border-2 border-white dark:border-slate-950">
-                                                <User className="w-4 h-4 text-slate-500" />
+                                            <div className="relative w-9 h-9 rounded-full bg-[var(--wd-surface-panel-2)] flex items-center justify-center border-2 border-[var(--wd-surface-base)]">
+                                                <User className="w-4 h-4 text-[var(--wd-text-muted)]" />
                                             </div>
                                         )}
                                     </button>
@@ -199,14 +198,14 @@ export function Navbar() {
                                                     transition={{
                                                         duration: 0.2,
                                                     }}
-                                                    className="absolute right-0 mt-3 w-64 bg-white/90 dark:bg-slate-950/90 backdrop-blur-xl border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-[103] overflow-hidden"
+                                                    className="absolute right-0 mt-3 w-64 bg-[var(--wd-surface-panel)]/90 backdrop-blur-xl border border-[var(--wd-border-subtle)] rounded-xl shadow-xl z-[103] overflow-hidden"
                                                 >
                                                     {/* User Header */}
-                                                    <div className="px-4 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
-                                                        <p className="text-sm font-bold text-slate-900 dark:text-white truncate">
+                                                    <div className="px-4 py-4 border-b border-[var(--wd-border-subtle)] bg-[var(--wd-surface-panel-2)]/50">
+                                                        <p className="text-sm font-bold text-[var(--wd-text-primary)] truncate">
                                                             {sessionDisplayName}
                                                         </p>
-                                                        <p className="text-xs text-slate-500 dark:text-slate-400 truncate font-mono mt-1">
+                                                        <p className="text-xs text-[var(--wd-text-muted)] truncate mt-1">
                                                             {session.user.email}
                                                         </p>
                                                     </div>
@@ -215,7 +214,7 @@ export function Navbar() {
                                                     <div className="p-2">
                                                         <Link
                                                             href="/app/settings"
-                                                            className="w-full flex items-center gap-3 px-3 py-2 text-xs font-mono text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors text-left"
+                                                            className="w-full flex items-center gap-3 px-3 py-2 text-xs text-[var(--wd-text-secondary)] hover:bg-[var(--wd-surface-panel-2)] rounded-lg transition-colors text-left"
                                                         >
                                                             <Settings className="w-4 h-4" />
                                                             Settings
@@ -228,7 +227,7 @@ export function Navbar() {
                                                                         "/",
                                                                 })
                                                             }
-                                                            className="w-full flex items-center gap-3 px-3 py-2 text-xs font-mono text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors text-left mt-1"
+                                                            className="w-full flex items-center gap-3 px-3 py-2 text-xs text-[var(--wd-danger)] hover:bg-[var(--wd-danger-soft)] rounded-lg transition-colors text-left mt-1"
                                                         >
                                                             <LogOut className="w-4 h-4" />
                                                             Sign Out
@@ -243,19 +242,16 @@ export function Navbar() {
                         ) : (
                             <Link
                                 href="/login"
-                                className="relative group px-6 py-2 overflow-hidden"
+                                className="wd-landing-btn-primary"
                             >
-                                <div className="absolute inset-0 bg-cyan-500/10 border border-cyan-500/50 clip-path-polygon-sm group-hover:bg-cyan-500 transition-all duration-300" />
-                                <span className="relative text-cyan-600 dark:text-cyan-400 dark:group-hover:text-slate-950 group-hover:text-slate-950 text-[10px] font-mono font-bold tracking-widest flex items-center gap-2">
-                                    Login <ChevronRight className="w-3 h-3" />
-                                </span>
+                                Login <ChevronRight className="w-3 h-3" />
                             </Link>
                         )}
                     </div>
 
                     {/* Mobile Menu Button */}
                     <button
-                        className="md:hidden text-cyan-600 dark:text-cyan-400 transition-transform active:scale-90"
+                        className="md:hidden text-[var(--wd-landing-accent)] transition-transform active:scale-90"
                         onClick={() => setIsOpen(!isOpen)}
                     >
                         <Menu className="w-6 h-6" />
@@ -274,11 +270,11 @@ export function Navbar() {
                                 damping: 25,
                                 stiffness: 200,
                             }}
-                            className="fixed top-0 bottom-0 right-0 w-[280px] h-screen bg-white/95 dark:bg-slate-950/95 backdrop-blur-2xl border-l border-slate-300/20 dark:border-cyan-500/20 z-[101] p-8 md:hidden overflow-y-auto"
+                            className="fixed top-0 bottom-0 right-0 w-[280px] h-screen bg-[var(--wd-surface-base)]/95 backdrop-blur-2xl border-l border-[var(--wd-border-subtle)]/20 z-[101] p-8 md:hidden overflow-y-auto"
                         >
                             <button
                                 onClick={() => setIsOpen(false)}
-                                className="absolute top-6 right-6 text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 dark:hover:text-cyan-300 transition-colors"
+                                className="absolute top-6 right-6 text-[var(--wd-landing-accent)] hover:text-[var(--wd-landing-accent-hover)] transition-colors"
                             >
                                 <X className="w-6 h-6" />
                             </button>
@@ -286,33 +282,33 @@ export function Navbar() {
                             <div className="flex flex-col gap-8 mt-16">
                                 {status === "authenticated" &&
                                     session?.user && (
-                                        <div className="flex items-center gap-3 pb-6 border-b border-slate-200 dark:border-slate-800">
+                                        <div className="flex items-center gap-3 pb-6 border-b border-[var(--wd-border-subtle)]">
                                             {session.user.image ? (
                                                 <Image
                                                     src={session.user.image}
                                                     alt="Profile"
                                                     width={40}
                                                     height={40}
-                                                    className="w-10 h-10 rounded-full border-2 border-cyan-500/50"
+                                                    className="w-10 h-10 rounded-full border-2 border-[var(--wd-landing-accent)]/50"
                                                 />
                                             ) : (
-                                                <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center border-2 border-cyan-500/50">
-                                                    <User className="w-5 h-5 text-slate-500" />
+                                                <div className="w-10 h-10 rounded-full bg-[var(--wd-surface-panel-2)] flex items-center justify-center border-2 border-[var(--wd-landing-accent)]/50">
+                                                    <User className="w-5 h-5 text-[var(--wd-text-muted)]" />
                                                 </div>
                                             )}
                                             <div className="flex flex-col">
-                                                <span className="text-sm font-bold text-slate-900 dark:text-white truncate max-w-[150px]">
+                                                <span className="text-sm font-bold text-[var(--wd-text-primary)] truncate max-w-[150px]">
                                                     {sessionDisplayName}
                                                 </span>
-                                                <span className="text-[10px] text-slate-500 dark:text-slate-400 truncate max-w-[150px]">
+                                                <span className="text-[10px] text-[var(--wd-text-muted)] truncate max-w-[150px]">
                                                     {session.user.email}
                                                 </span>
                                             </div>
                                         </div>
                                     )}
 
-                                <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
-                                    <span className="text-xs font-mono text-slate-600 dark:text-slate-300">
+                                <div className="flex items-center justify-between border-b border-[var(--wd-border-subtle)] pb-4">
+                                    <span className="text-xs text-[var(--wd-text-secondary)]">
                                         Theme
                                     </span>
                                     <ThemeToggle />
@@ -325,10 +321,10 @@ export function Navbar() {
                                         onClick={(e) =>
                                             scrollToSection(e, link.href)
                                         }
-                                        className="flex items-center justify-between text-xs font-mono text-slate-700 dark:text-slate-300 hover:text-cyan-600 dark:hover:text-cyan-400 border-b border-slate-200 dark:border-slate-800 pb-4"
+                                        className="flex items-center justify-between text-sm text-[var(--wd-text-secondary)] hover:text-[var(--wd-landing-accent)] border-b border-[var(--wd-border-subtle)] pb-4"
                                     >
                                         <span className="flex items-center gap-3">
-                                            <span className="text-cyan-600 dark:text-cyan-500">
+                                            <span className="text-[var(--wd-landing-accent)]">
                                                 {link.icon}
                                             </span>
                                             {link.name}
@@ -341,27 +337,27 @@ export function Navbar() {
                                     <div className="flex flex-col gap-3 mt-4">
                                         <Link
                                             href="/app"
-                                            className="w-full py-4 bg-cyan-500 text-slate-950 font-bold font-mono text-xs uppercase clip-path-polygon shadow-[0_0_20px_rgba(6,182,212,0.4)] flex items-center justify-center gap-2"
+                                            className="wd-landing-btn-primary w-full flex items-center justify-center gap-2"
                                         >
                                             <LayoutDashboard className="w-4 h-4" />
-                                            GO TO OFFICE
+                                            Go to Office
                                         </Link>
                                         <button
                                             onClick={() =>
                                                 signOut({ callbackUrl: "/" })
                                             }
-                                            className="w-full py-4 bg-slate-100 dark:bg-slate-900 hover:bg-red-50 dark:hover:bg-red-900/20 text-slate-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 border border-slate-200 dark:border-slate-800 font-bold font-mono text-xs uppercase transition-colors flex items-center justify-center gap-2"
+                                            className="wd-landing-btn-secondary w-full flex items-center justify-center gap-2 text-[var(--wd-danger)]"
                                         >
                                             <LogOut className="w-4 h-4" />
-                                            LOGOUT
+                                            Logout
                                         </button>
                                     </div>
                                 ) : (
                                     <Link
                                         href="/app"
-                                        className="mt-4 w-full py-4 bg-cyan-500 text-slate-950 font-bold font-mono text-xs uppercase clip-path-polygon shadow-[0_0_20px_rgba(6,182,212,0.4)] block text-center"
+                                        className="wd-landing-btn-primary w-full mt-4 text-center"
                                     >
-                                        LAUNCH_APP
+                                        Launch App
                                     </Link>
                                 )}
                             </div>
