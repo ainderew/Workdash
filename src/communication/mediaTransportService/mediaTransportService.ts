@@ -1,3 +1,4 @@
+import { signOut } from "next-auth/react";
 import useUserStore from "@/common/store/useStore";
 import { CONFIG } from "@/common/utils/config";
 import { logger } from "@/common/utils/logger";
@@ -126,6 +127,15 @@ export class MediaTransportService {
             this.socket.once("connect_error", (error: Error) => {
                 clearTimeout(timeout);
                 reject(error);
+            });
+
+            this.socket.once("authError", (data: { code: string }) => {
+                clearTimeout(timeout);
+                logger.error("Server auth error:", data.code);
+                if (data.code === "USER_NOT_FOUND") {
+                    signOut({ callbackUrl: "/login" });
+                }
+                reject(new Error(`Auth error: ${data.code}`));
             });
 
             this.socket.connect();

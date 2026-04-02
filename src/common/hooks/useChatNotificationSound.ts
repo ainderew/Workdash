@@ -7,6 +7,99 @@ const SILENT_STATUSES = new Set(['focus', 'offline']);
 const SOUND_COOLDOWN_MS = 2000;
 const DEFAULT_TITLE = 'WorkDash';
 
+// --- Favicon badge utilities ---
+const FAVICON_SIZE = 64;
+const BADGE_BG = '#2196F3';
+const BADGE_TEXT = '#FFFFFF';
+const BASE_FAVICON_URL = '/favicon.svg';
+
+let faviconImg: HTMLImageElement | null = null;
+let faviconLoaded = false;
+let faviconCanvas: HTMLCanvasElement | null = null;
+let faviconCtx: CanvasRenderingContext2D | null = null;
+let currentFaviconCount: number | null = null;
+
+function ensureFaviconLink(): HTMLLinkElement {
+  let link = document.querySelector<HTMLLinkElement>("link[rel='icon']");
+  if (!link) {
+    link = document.createElement('link');
+    link.rel = 'icon';
+    link.setAttribute('sizes', '64x64');
+    document.head.appendChild(link);
+  }
+  return link;
+}
+
+function drawFaviconBadge(count: number): string | null {
+  if (!faviconLoaded || !faviconImg || !faviconCanvas || !faviconCtx) return null;
+
+  const ctx = faviconCtx;
+  const size = FAVICON_SIZE;
+  ctx.clearRect(0, 0, size, size);
+  ctx.drawImage(faviconImg, 0, 0, size, size);
+
+  if (count > 0) {
+    const label = count > 9 ? '9+' : String(count);
+    const radius = label.length > 1 ? 26 : 23;
+    const cx = size - radius;
+    const cy = radius;
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius, 0, 2 * Math.PI);
+    ctx.fillStyle = BADGE_BG;
+    ctx.fill();
+
+    ctx.fillStyle = BADGE_TEXT;
+    ctx.font = `bold ${label.length > 1 ? 38 : 40}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(label, cx, cy + 1);
+  }
+
+  return faviconCanvas.toDataURL('image/png');
+}
+
+function updateFaviconBadge(count: number): void {
+  if (count === currentFaviconCount) return;
+  currentFaviconCount = count;
+
+  const link = ensureFaviconLink();
+
+  if (count === 0) {
+    link.href = BASE_FAVICON_URL;
+    return;
+  }
+
+  if (!faviconCanvas) {
+    faviconCanvas = document.createElement('canvas');
+    faviconCanvas.width = FAVICON_SIZE;
+    faviconCanvas.height = FAVICON_SIZE;
+    faviconCtx = faviconCanvas.getContext('2d');
+  }
+
+  if (faviconLoaded) {
+    const dataUrl = drawFaviconBadge(count);
+    if (dataUrl) link.href = dataUrl;
+    return;
+  }
+
+  if (!faviconImg) {
+    faviconImg = new Image();
+    faviconImg.onload = () => {
+      faviconLoaded = true;
+      const dataUrl = drawFaviconBadge(count);
+      if (dataUrl) link.href = dataUrl;
+    };
+    faviconImg.src = BASE_FAVICON_URL;
+  }
+}
+
+function resetFavicon(): void {
+  currentFaviconCount = null;
+  const link = document.querySelector<HTMLLinkElement>("link[rel='icon']");
+  if (link) link.href = BASE_FAVICON_URL;
+}
+
 // Singleton state stored on window to survive HMR module reloads
 function getSingletonState() {
   const w = window as Window & {
@@ -199,13 +292,15 @@ export function useChatNotificationSound() {
     }
   }, [unreadByRoomId, currentRoomId, myStatusId, selectedWorkspaceId, roomsById, isDocumentFocused, hasPendingMention]);
 
-  // Tab title unread badge
+  // Tab title + favicon unread badge
   useEffect(() => {
     const totalUnreads = Object.values(unreadByRoomId).reduce((sum, n) => sum + (n ?? 0), 0);
     document.title = totalUnreads > 0 ? `(${totalUnreads}) ${DEFAULT_TITLE}` : DEFAULT_TITLE;
+    updateFaviconBadge(totalUnreads);
 
     return () => {
       document.title = DEFAULT_TITLE;
+      resetFavicon();
     };
   }, [unreadByRoomId]);
 
