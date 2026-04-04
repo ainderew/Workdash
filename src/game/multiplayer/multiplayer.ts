@@ -9,6 +9,7 @@ import { CharacterCustomization } from "../character/_types";
 import useUserStore from "@/common/store/useStore";
 import { Player } from "../player/player";
 import useUiStore from "@/common/store/uiStore";
+import { SfuEvents } from "@/types/sfuEvents";
 import { getDisplayNameFromParts } from "@/common/utils/displayName";
 
 type QueuedMessage = {
@@ -50,7 +51,7 @@ export class Multiplayer {
             this.stopPingLoop();
         });
 
-        this.socket.on("sfuInitialized", () => {
+        this.socket.on(SfuEvents.SFU_INITIALIZED, () => {
             this.isBackendReady = true;
             this.flushMessageQueue();
         });

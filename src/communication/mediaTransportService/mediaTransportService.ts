@@ -14,6 +14,7 @@ import {
 import io from "socket.io-client";
 import { StatusClientService } from "@/communication/status/statusService";
 import { ActivityClientService } from "@/communication/activity/activityService";
+import { SfuEvents } from "@/types/sfuEvents";
 import {
     emitWithTimeout,
     SFU_TIMEOUTS,
@@ -29,6 +30,7 @@ export class MediaTransportService {
     public recvTransport: Transport | null = null;
     public sendTransport: Transport | null = null;
     public resetting = false;
+    private isFirstSfuInit = true;
 
     constructor(jwtToken?: string) {
         this.socket = io(CONFIG.SFU_SERVER_URL, {
@@ -60,40 +62,58 @@ export class MediaTransportService {
             logger.log("MediaTransport socket disconnected:", reason);
         });
 
-        this.socket.on("sfuInitialized", () => {
+        this.socket.on(SfuEvents.SFU_INITIALIZED, async () => {
             const statusClient = StatusClientService.init(this.socket);
             statusClient.setupListeners();
-            statusClient.fetchDefinitions().catch(console.error);
+            statusClient.fetchDefinitions().catch((err) => logger.error("Failed to fetch status definitions:", err));
 
             ActivityClientService.getInstance().init(this.socket).setupListeners();
-        });
 
-        this.socket.on("sfuReset", async () => {
-            logger.log("SFU worker reset detected — re-initializing transports");
-            this.resetting = true;
-            this.sendTransport = null;
-            this.recvTransport = null;
+            // On reconnect (not first connect), re-initialize SFU transports
+            if (!this.isFirstSfuInit) {
+                logger.log("Socket reconnected — re-initializing SFU transports");
+                await this.reinitializeSfu();
 
-            // Clean up stale audio state from the dead worker
-            const { AudioChat } = await import("@/communication/audioChat/audioChat");
-            const audioChat = AudioChat.getInstance();
-            const producer = audioChat.getAudioProducer();
-            const hadProducer = !!producer && !producer.closed;
-            audioChat.stopMic();
-            audioChat.closeAllAudioConsumers();
-
-            try {
-                await this.initializeSfu();
-                // Re-establish audio producer if the user was in a call/zone
-                if (hadProducer) {
-                    await audioChat.joinVoiceChat();
+                // Re-consume existing producers if in a call
+                const { default: useCallStore } = await import("@/common/store/callStore");
+                if (useCallStore.getState().currentCall) {
+                    const { CallSignalingService } = await import("@/communication/callSignaling/callSignalingService");
+                    CallSignalingService.getInstance().loadCallProducers();
                 }
-            } catch (err) {
-                logger.error("Failed to re-initialize SFU after reset:", err);
-            } finally {
-                this.resetting = false;
             }
+            this.isFirstSfuInit = false;
         });
+
+        this.socket.on(SfuEvents.SFU_RESET, async () => {
+            logger.log("SFU worker reset detected — re-initializing transports");
+            await this.reinitializeSfu();
+        });
+    }
+
+    /** Shared re-initialization logic for both sfuReset and socket reconnect */
+    private async reinitializeSfu(): Promise<void> {
+        if (this.resetting) return;
+        this.resetting = true;
+        this.sendTransport = null;
+        this.recvTransport = null;
+
+        const { AudioChat } = await import("@/communication/audioChat/audioChat");
+        const audioChat = AudioChat.getInstance();
+        const producer = audioChat.getAudioProducer();
+        const hadProducer = !!producer && !producer.closed;
+        audioChat.stopMic();
+        audioChat.closeAllAudioConsumers();
+
+        try {
+            await this.initializeSfu();
+            if (hadProducer) {
+                await audioChat.joinVoiceChat();
+            }
+        } catch (err) {
+            logger.error("Failed to re-initialize SFU:", err);
+        } finally {
+            this.resetting = false;
+        }
     }
 
     public setAuthToken(jwtToken: string) {
@@ -119,7 +139,7 @@ export class MediaTransportService {
                 reject(new Error("MediaTransport connection timeout"));
             }, 10000);
 
-            this.socket.once("sfuInitialized", () => {
+            this.socket.once(SfuEvents.SFU_INITIALIZED, () => {
                 clearTimeout(timeout);
                 resolve();
             });

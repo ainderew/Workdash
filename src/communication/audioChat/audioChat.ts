@@ -17,6 +17,7 @@ import {
     SFU_TIMEOUTS,
     validateNoError,
 } from "@/communication/utils/emitWithTimeout";
+import { SfuEvents } from "@/types/sfuEvents";
 
 interface ConsumerServerResponse {
     id: string;
@@ -543,10 +544,10 @@ export class AudioChat {
 
                 await this.consumeProducer(data.producerId);
             };
-        this.sfuService.socket.on("newProducer", this.newProducerHandler);
+        this.sfuService.socket.on(SfuEvents.NEW_PRODUCER, this.newProducerHandler);
 
         this.sfuService.socket.on(
-            "endScreenShare",
+            SfuEvents.PRODUCER_REMOVED,
             (data: {
                 producerId: string;
                 kind: string;
@@ -1162,10 +1163,10 @@ export class AudioChat {
         this.sfuService.socket.off("player-left-zone");
         this.sfuService.socket.off("player-joined-zone");
         if (this.newProducerHandler) {
-            this.sfuService.socket.off("newProducer", this.newProducerHandler);
+            this.sfuService.socket.off(SfuEvents.NEW_PRODUCER, this.newProducerHandler);
             this.newProducerHandler = null;
         }
-        this.sfuService.socket.off("endScreenShare");
+        this.sfuService.socket.off(SfuEvents.PRODUCER_REMOVED);
         this.sfuService.socket.off("playerFocusModeChanged");
 
         this.cleanupRNNoise();

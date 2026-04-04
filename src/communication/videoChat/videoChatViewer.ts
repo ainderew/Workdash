@@ -11,6 +11,7 @@ import {
     validateNoError,
 } from "@/communication/utils/emitWithTimeout";
 import { logger } from "@/common/utils/logger";
+import { SfuEvents } from "@/types/sfuEvents";
 
 export class VideoChatViewer {
     public static instance: VideoChatViewer | null = null;
@@ -52,7 +53,7 @@ export class VideoChatViewer {
 
     private setupListeners(): void {
         this.sfuService.socket.on(
-            "newProducer",
+            SfuEvents.NEW_PRODUCER,
             async ({
                 producerId,
                 userName,
@@ -76,7 +77,7 @@ export class VideoChatViewer {
         );
 
         this.sfuService.socket.on(
-            "endScreenShare",
+            SfuEvents.PRODUCER_REMOVED,
             ({ producerId }: { producerId: string }) => {
                 this.removeScreenShareVideo(producerId);
             },
@@ -238,6 +239,11 @@ export class VideoChatViewer {
 
     public resumeAllConsumers() {
         this.consumers.forEach((consumer) => consumer.resume());
+    }
+
+    public cleanup(): void {
+        this.sfuService.socket.off(SfuEvents.PRODUCER_REMOVED);
+        this.closeAllConsumers();
     }
 
     public closeAllConsumers(): void {

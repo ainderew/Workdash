@@ -6,6 +6,7 @@ import useCallStore from "@/common/store/callStore";
 import useUiStore from "@/common/store/uiStore";
 import { logger } from "@/common/utils/logger";
 import { ConsumerData } from "./_types";
+import { SfuEvents } from "@/types/sfuEvents";
 import {
     emitWithTimeout,
     SFU_TIMEOUTS,
@@ -57,7 +58,7 @@ export class ScreenShareViewer {
 
     private setupListeners(): void {
         this.service.socket.on(
-            "newProducer",
+            SfuEvents.NEW_PRODUCER,
             async ({
                 producerId,
                 userName,
@@ -83,7 +84,7 @@ export class ScreenShareViewer {
         );
 
         this.service.socket.on(
-            "endScreenShare",
+            SfuEvents.PRODUCER_REMOVED,
             ({ producerId }: { producerId: string }) => {
                 this.removeScreenShareVideo(producerId);
             },
@@ -422,6 +423,7 @@ export class ScreenShareViewer {
     }
 
     public cleanup(): void {
+        this.service.socket.off(SfuEvents.PRODUCER_REMOVED);
         for (const timer of this.dataCheckTimers.values()) {
             clearTimeout(timer);
         }

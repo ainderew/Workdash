@@ -195,6 +195,7 @@ export class CallSignalingService {
             } catch (err) {
               logger.error("Failed to set up media after ownership change:", err);
             }
+            this.loadCallProducers();
           }
           broadcastCallOwnership("call-claimed", data.channelId);
         } else {
@@ -251,9 +252,34 @@ export class CallSignalingService {
             response.activeCall.channelId,
             response.activeCall.isOwner ? "owner" : "passive",
           );
+        } else {
+          // Server says no active call — clear stale client state if present
+          const { currentCall } = useCallStore.getState();
+          if (currentCall) {
+            logger.log("Clearing stale call state — server reports no active call");
+            this.teardownCallMedia();
+            useCallStore.getState().setCurrentCall(null);
+            useCallStore.getState().clearCallOwnership();
+          }
         }
       },
     );
+  }
+
+  /** Fetch and consume existing producers after joining a call */
+  public loadCallProducers(): void {
+    const mts = MediaTransportService.getInstance();
+    if (mts.resetting || !mts.recvTransport || mts.recvTransport.closed) {
+      logger.warn("loadCallProducers skipped — transport not ready");
+      return;
+    }
+    Promise.all([
+      AudioChat.getInstance().loadExistingProducers(),
+      VideoChatViewer.getInstance().loadExistingProducers(),
+      ScreenShareViewer.getInstance().loadExistingProducers(),
+    ]).catch((err) => {
+      logger.error("Failed to load existing producers after joining call:", err);
+    });
   }
 
   private teardownCallMedia(): void {
@@ -339,6 +365,7 @@ export class CallSignalingService {
           } catch (err) {
             logger.error("Failed to acquire mic when starting call:", err);
           }
+          this.loadCallProducers();
           resolve(res.call ?? null);
         },
       );
@@ -360,6 +387,7 @@ export class CallSignalingService {
           } catch (err) {
             logger.error("Failed to acquire mic when joining call:", err);
           }
+          this.loadCallProducers();
           resolve(res.call ?? null);
         },
       );

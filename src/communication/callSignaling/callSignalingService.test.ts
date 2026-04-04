@@ -21,7 +21,7 @@ const mockSocket = {
 
 vi.mock("@/communication/mediaTransportService/mediaTransportService", () => ({
   MediaTransportService: {
-    getInstance: () => ({ socket: mockSocket }),
+    getInstance: () => ({ socket: mockSocket, resetting: false, recvTransport: { closed: false } }),
   },
 }));
 
@@ -48,13 +48,15 @@ vi.mock("@/communication/callSignaling/callOwnershipChannel", () => ({
   getTabId: () => "mock-tab-id",
 }));
 
+const mockAudioChat = {
+  stopMic: vi.fn(),
+  closeAllAudioConsumers: vi.fn(),
+  joinVoiceChat: vi.fn().mockResolvedValue(undefined),
+  loadExistingProducers: vi.fn().mockResolvedValue(undefined),
+};
 vi.mock("@/communication/audioChat/audioChat", () => ({
   AudioChat: {
-    getInstance: () => ({
-      stopMic: vi.fn(),
-      closeAllAudioConsumers: vi.fn(),
-      joinVoiceChat: vi.fn(),
-    }),
+    getInstance: () => mockAudioChat,
   },
 }));
 
@@ -64,9 +66,13 @@ vi.mock("@/communication/videoChat/videoChat", () => ({
   },
 }));
 
+const mockVideoChatViewer = {
+  closeAllConsumers: vi.fn(),
+  loadExistingProducers: vi.fn().mockResolvedValue(undefined),
+};
 vi.mock("@/communication/videoChat/videoChatViewer", () => ({
   VideoChatViewer: {
-    getInstance: () => ({ closeAllConsumers: vi.fn() }),
+    getInstance: () => mockVideoChatViewer,
   },
 }));
 
@@ -76,14 +82,18 @@ vi.mock("@/communication/screenShare/screenShare", () => ({
   },
 }));
 
+const mockScreenShareViewer = {
+  closeAllConsumers: vi.fn(),
+  loadExistingProducers: vi.fn().mockResolvedValue(undefined),
+};
 vi.mock("@/communication/screenShare/screenShareViewer", () => ({
   ScreenShareViewer: {
-    getInstance: () => ({ closeAllConsumers: vi.fn() }),
+    getInstance: () => mockScreenShareViewer,
   },
 }));
 
 vi.mock("@/common/utils/logger", () => ({
-  logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn() },
+  logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), log: vi.fn() },
 }));
 
 vi.mock("@/game/EventBus", () => ({
@@ -243,5 +253,176 @@ describe("CallSignalingService — PARTICIPANT_LEFT ephemeral message", () => {
     expect(msg.deletedAt).toBeNull();
     expect(msg.attachments).toEqual([]);
     expect(msg.createdAt).toBeDefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// loadCallProducers after join/start/ownership-change (Bugs 4, 5)
+// ---------------------------------------------------------------------------
+
+describe("CallSignalingService — loadCallProducers", () => {
+  function initService() {
+    const service = CallSignalingService.getInstance();
+    service.setupListeners();
+    return service;
+  }
+
+  it("startCall calls loadExistingProducers after joinVoiceChat", async () => {
+    const service = initService();
+
+    // Mock emit to call the ack callback immediately
+    mockSocket.emit.mockImplementation(
+      (event: string, _payload: unknown, ack?: (res: unknown) => void) => {
+        if (event === "call:start" && ack) {
+          ack({ ok: true, call: { channelId: "ch1", type: "audio", participants: [] } });
+        }
+      },
+    );
+
+    await service.startCall("ch1");
+
+    expect(mockAudioChat.joinVoiceChat).toHaveBeenCalled();
+    expect(mockAudioChat.loadExistingProducers).toHaveBeenCalled();
+    expect(mockVideoChatViewer.loadExistingProducers).toHaveBeenCalled();
+    expect(mockScreenShareViewer.loadExistingProducers).toHaveBeenCalled();
+  });
+
+  it("joinCall calls loadExistingProducers after joinVoiceChat", async () => {
+    const service = initService();
+
+    mockSocket.emit.mockImplementation(
+      (event: string, _payload: unknown, ack?: (res: unknown) => void) => {
+        if (event === "call:join" && ack) {
+          ack({ ok: true, call: { channelId: "ch1", type: "audio", participants: [] } });
+        }
+      },
+    );
+
+    await service.joinCall("ch1");
+
+    expect(mockAudioChat.joinVoiceChat).toHaveBeenCalled();
+    expect(mockAudioChat.loadExistingProducers).toHaveBeenCalled();
+    expect(mockVideoChatViewer.loadExistingProducers).toHaveBeenCalled();
+    expect(mockScreenShareViewer.loadExistingProducers).toHaveBeenCalled();
+  });
+
+  it("OWNERSHIP_CHANGED handler calls loadExistingProducers when receiving ownership", async () => {
+    initService();
+
+    const handler = socketHandlers[CallEvents.OWNERSHIP_CHANGED];
+    expect(handler).toBeDefined();
+
+    // Simulate receiving ownership with a different channel (not already set up)
+    await handler({
+      channelId: "ch1",
+      newOwnerSocketId: "mock-socket-id", // matches mockSocket.id
+      userId: 1,
+    });
+
+    expect(mockAudioChat.joinVoiceChat).toHaveBeenCalled();
+    expect(mockAudioChat.loadExistingProducers).toHaveBeenCalled();
+    expect(mockVideoChatViewer.loadExistingProducers).toHaveBeenCalled();
+    expect(mockScreenShareViewer.loadExistingProducers).toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// registerSession — stale state clearing (Bug 7)
+// ---------------------------------------------------------------------------
+
+describe("CallSignalingService — registerSession stale state clearing", () => {
+  function initServiceAndTriggerRegister() {
+    const service = CallSignalingService.getInstance();
+    service.setupListeners();
+
+    // Find the SESSION_REGISTER emit call and extract its ack callback
+    const registerCall = mockSocket.emit.mock.calls.find(
+      (call: unknown[]) => call[0] === "session:register",
+    );
+    return registerCall;
+  }
+
+  it("clears stale call state when server reports no active call", () => {
+    useCallStore.setState({ currentCall: { channelId: "ch1" } as CallPresence });
+
+    const registerCall = initServiceAndTriggerRegister();
+    expect(registerCall).toBeDefined();
+
+    const ackCallback = registerCall![2] as (res: unknown) => void;
+    ackCallback({ ok: true, activeCall: null });
+
+    expect(useCallStore.getState().currentCall).toBeNull();
+  });
+
+  it("does not clear call state when client has no current call", () => {
+    useCallStore.setState({ currentCall: null });
+
+    const registerCall = initServiceAndTriggerRegister();
+    expect(registerCall).toBeDefined();
+
+    const ackCallback = registerCall![2] as (res: unknown) => void;
+    ackCallback({ ok: true, activeCall: null });
+
+    // teardownCallMedia should NOT have been called — no stopMic/closeAllConsumers
+    expect(mockAudioChat.stopMic).not.toHaveBeenCalled();
+  });
+
+  it("sets ownership status when server reports active call with isOwner true", () => {
+    const registerCall = initServiceAndTriggerRegister();
+    expect(registerCall).toBeDefined();
+
+    const ackCallback = registerCall![2] as (res: unknown) => void;
+    ackCallback({ ok: true, activeCall: { channelId: "ch1", isOwner: true } });
+
+    expect(useCallStore.getState().callOwnershipStatus).toBe("owner");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// OWNERSHIP_CHANGED passive branch (Fix 3 review)
+// ---------------------------------------------------------------------------
+
+describe("CallSignalingService — OWNERSHIP_CHANGED passive branch", () => {
+  it("calls teardownCallMedia when ownership goes to another socket", async () => {
+    const service = CallSignalingService.getInstance();
+    service.setupListeners();
+
+    const handler = socketHandlers[CallEvents.OWNERSHIP_CHANGED];
+    expect(handler).toBeDefined();
+
+    // Simulate ownership going to a DIFFERENT socket
+    await handler({
+      channelId: "ch1",
+      newOwnerSocketId: "other-socket-id", // does NOT match mockSocket.id
+      userId: 2,
+    });
+
+    // teardownCallMedia stops mic, video, screen, and closes consumers
+    expect(mockAudioChat.stopMic).toHaveBeenCalled();
+    expect(mockVideoChatViewer.closeAllConsumers).toHaveBeenCalled();
+    expect(useCallStore.getState().callOwnershipStatus).toBe("passive");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// registerSession ack error path
+// ---------------------------------------------------------------------------
+
+describe("CallSignalingService — registerSession error handling", () => {
+  it("does not mutate store when register ack returns error", () => {
+    const service = CallSignalingService.getInstance();
+    service.setupListeners();
+
+    const registerCall = mockSocket.emit.mock.calls.find(
+      (call: unknown[]) => call[0] === "session:register",
+    );
+    expect(registerCall).toBeDefined();
+
+    const ackCallback = registerCall![2] as (res: unknown) => void;
+    ackCallback({ error: "Too many active sessions" });
+
+    // Store should not have been modified
+    expect(useCallStore.getState().currentCall).toBeNull();
+    expect(mockAudioChat.stopMic).not.toHaveBeenCalled();
   });
 });

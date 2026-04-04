@@ -427,13 +427,13 @@ describe("ScreenShareViewer", () => {
             expect(consumeSpy).toHaveBeenCalledWith("prod-screen-2");
         });
 
-        it("calls removeScreenShareVideo when endScreenShare fires", () => {
+        it("calls removeScreenShareVideo when producerRemoved fires", () => {
             const viewer = ScreenShareViewer.getInstance();
             const consumer = makeConsumer("ca");
             (viewer as unknown as SSViewerInternal).consumers.set("prod-a", consumer);
 
             const endShareCall = mockSocketOn.mock.calls.find(
-                ([event]: [string]) => event === "endScreenShare",
+                ([event]: [string]) => event === "producerRemoved",
             );
             expect(endShareCall).toBeDefined();
             const handler = endShareCall![1] as (payload: unknown) => void;
