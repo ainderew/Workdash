@@ -17,8 +17,10 @@ import UserAvatar from "./UserAvatar";
 import PresenceDot from "./PresenceDot";
 import { ActivityText } from "./ActivityText";
 import AwardTag from "@/common/components/AwardTag/AwardTag";
+import { CallBadge } from "./CallBadge";
 import useChatV2Store from "@/common/store/chatV2Store";
 import { usePresenceStore } from "@/common/store/presenceStore";
+import { useUsersInCall } from "@/common/hooks/useUsersInCall";
 import { colorToHex } from "@/common/utils/roleColor";
 
 type RoleGroup = {
@@ -64,6 +66,7 @@ function MemberPanel({
         React.useState(false);
     const [searchQuery, setSearchQuery] = React.useState("");
     const presenceMap = usePresenceStore((s) => s.presenceMap);
+    const usersInCall = useUsersInCall();
     const [isOfflineCollapsed, setIsOfflineCollapsed] = React.useState(false);
 
     const existingMemberIds = React.useMemo(
@@ -208,6 +211,7 @@ function MemberPanel({
                                                 member={member}
                                                 nameColor={memberRoleColors?.get(member.userId)}
                                                 awardTag={wsMemberMap.get(member.userId)?.awardTag}
+                                                isInCall={usersInCall.has(member.userId)}
                                                 onRemove={() =>
                                                     onRemoveMember(
                                                         member.userId,
@@ -232,6 +236,7 @@ function MemberPanel({
                                                 member={member}
                                                 nameColor={memberRoleColors?.get(member.userId)}
                                                 awardTag={wsMemberMap.get(member.userId)?.awardTag}
+                                                isInCall={usersInCall.has(member.userId)}
                                                 onRemove={() =>
                                                     onRemoveMember(
                                                         member.userId,
@@ -271,6 +276,7 @@ function MemberPanel({
                                                     member={member}
                                                     nameColor={memberRoleColors?.get(member.userId)}
                                                     awardTag={wsMemberMap.get(member.userId)?.awardTag}
+                                                    isInCall={usersInCall.has(member.userId)}
                                                     onRemove={() =>
                                                         onRemoveMember(
                                                             member.userId,
@@ -309,12 +315,14 @@ function MemberRow({
     onRemove,
     isOffline = false,
     awardTag,
+    isInCall = false,
 }: {
     member: ChatV2RoomMember;
     nameColor?: string;
     onRemove: () => void;
     isOffline?: boolean;
     awardTag?: AwardTagData | null;
+    isInCall?: boolean;
 }) {
     const displayName = getDisplayName(member.user, `User ${member.userId}`);
     const selectedWorkspaceId = useChatV2Store(
@@ -349,6 +357,7 @@ function MemberRow({
                             size="xs"
                         />
                     )}
+                    {isInCall && <CallBadge />}
                 </div>
                 <ActivityText
                     userId={member.userId}

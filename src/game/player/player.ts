@@ -53,6 +53,7 @@ interface SoccerPredictionScene {
 
 export class Player extends Phaser.Physics.Arcade.Sprite {
     public id: string;
+    public backendUserId?: number;
     public name: string;
     private sprite: string;
     public scene: Scene;

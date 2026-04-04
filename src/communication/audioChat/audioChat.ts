@@ -38,6 +38,7 @@ interface PlayerJoinedZoneData {
     zone: string;
     producerIds: string[];
     name: string;
+    userId?: number;
 }
 
 export class AudioChat {
@@ -156,6 +157,7 @@ export class AudioChat {
                     );
                     for (const producerId of player.producerIds) {
                         this.audioOwnerMap[producerId] = player.name;
+                        this.audioProducerUserIdMap.set(producerId, player.playerId);
                     }
                 }
                 await Promise.all(
@@ -188,6 +190,9 @@ export class AudioChat {
                     );
                     for (const producerId of data.producerIds) {
                         this.audioOwnerMap[producerId] = data.name;
+                        if (data.userId != null) {
+                            this.audioProducerUserIdMap.set(producerId, data.userId);
+                        }
                     }
                     await Promise.all(
                         data.producerIds.map((id) => this.consumeProducer(id)),
@@ -562,6 +567,21 @@ export class AudioChat {
             logger.log(`Already consuming producer ${producerId}`);
             return;
         }
+
+        // Skip producers belonging to users in a call we haven't joined
+        const producerUserId = this.audioProducerUserIdMap.get(producerId);
+        if (producerUserId != null) {
+            const { currentCall, activeCallsByChannel } = useCallStore.getState();
+            const producerIsInCall = Object.values(activeCallsByChannel).some((call) =>
+                call.participants.some((p) => p.userId === producerUserId),
+            );
+            if (producerIsInCall) {
+                if (!currentCall) return;
+                const ourCall = activeCallsByChannel[currentCall.channelId];
+                if (!ourCall?.participants.some((p) => p.userId === producerUserId)) return;
+            }
+        }
+
         this.consumingInFlight.add(producerId);
 
         if (!this.sfuService.device || !this.sfuService.recvTransport) {

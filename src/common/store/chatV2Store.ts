@@ -214,6 +214,7 @@ type ChatV2State = {
     setTypingUser: (roomId: string, userId: number, displayName: string) => void;
     clearTypingUser: (roomId: string, userId: number) => void;
     awardTagUpdate: { workspaceId: string; awards: Record<string, AwardTagData> } | null;
+    injectEphemeralMessage: (message: ChatV2Message) => void;
     clear: () => void;
 };
 
@@ -2018,6 +2019,18 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
                 typingUsersByRoomId: {
                     ...state.typingUsersByRoomId,
                     [roomId]: filtered,
+                },
+            };
+        });
+    },
+
+    injectEphemeralMessage: (message) => {
+        set((state) => {
+            const currentMessages = state.messagesByRoomId[message.roomId] || [];
+            return {
+                messagesByRoomId: {
+                    ...state.messagesByRoomId,
+                    [message.roomId]: [...currentMessages, message],
                 },
             };
         });

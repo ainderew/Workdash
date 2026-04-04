@@ -174,7 +174,7 @@ export class Multiplayer {
             y: number,
             availabilityStatus: AvailabilityStatus,
             customization: CharacterCustomization | null,
-            opts: { isLocal: boolean },
+            opts: { isLocal: boolean; backendUserId?: number },
             soccerStats?: {
                 speed: number;
                 kickPower: number;
@@ -232,7 +232,7 @@ export class Multiplayer {
             y: number,
             availabilityStatus: AvailabilityStatus,
             customization: CharacterCustomization | null,
-            opts: { isLocal: boolean },
+            opts: { isLocal: boolean; backendUserId?: number },
             soccerStats?: {
                 speed: number;
                 kickPower: number;
@@ -270,7 +270,7 @@ export class Multiplayer {
             player.y,
             availabilityStatus,
             player.characterCustomization || player.character || null,
-            { isLocal },
+            { isLocal, backendUserId: player.userId },
             player.soccerStats ?? null,
         );
 

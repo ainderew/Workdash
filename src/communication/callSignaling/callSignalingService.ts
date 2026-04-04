@@ -9,6 +9,7 @@ import { ScreenShareViewer } from "@/communication/screenShare/screenShareViewer
 import { logger } from "@/common/utils/logger";
 import useFocusStore from "@/common/store/focusStore";
 import useUserStore from "@/common/store/useStore";
+import useChatV2Store from "@/common/store/chatV2Store";
 import { getDeviceId } from "@/communication/callSignaling/deviceId";
 import {
   initCallOwnershipChannel,
@@ -123,6 +124,31 @@ export class CallSignalingService {
     this.socket.on(
       CallEvents.PARTICIPANT_LEFT,
       ({ channelId, userId }: { channelId: string; userId: number }) => {
+        // Capture display name BEFORE handleParticipantLeft removes the participant
+        const call = store().activeCallsByChannel[channelId];
+        const participant = call?.participants.find((p) => p.userId === userId);
+        const displayName = participant?.displayName ?? "Someone";
+
+        const ephemeralId = `ephemeral-call-left-${crypto.randomUUID()}`;
+        useChatV2Store.getState().injectEphemeralMessage({
+          id: ephemeralId,
+          roomId: channelId,
+          senderUserId: userId,
+          clientMessageId: ephemeralId,
+          content: `${displayName} left the call`,
+          messageType: "SYSTEM",
+          metadata: {
+            eventType: "call_participant_left",
+            displayName,
+            ephemeral: true,
+          },
+          replyToMessageId: null,
+          editedAt: null,
+          deletedAt: null,
+          createdAt: new Date().toISOString(),
+          attachments: [],
+        });
+
         const isInCall = store().currentCall?.channelId === channelId;
         store().handleParticipantLeft(channelId, userId);
         if (userId !== this.getLocalUserId()) {

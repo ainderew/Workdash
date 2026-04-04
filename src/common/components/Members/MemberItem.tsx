@@ -4,8 +4,9 @@ import React, { useMemo } from "react";
 import VolumeSlider from "./VolumeSlider";
 import usePlayersStore from "@/common/store/playerStore";
 import { AudioChat } from "@/communication/audioChat/audioChat";
+import { CallBadge } from "@/common/components/DeskMode/CallBadge";
 
-function MemberItem({ player }: { player: Player }) {
+function MemberItem({ player, isInCall = false }: { player: Player; isInCall?: boolean }) {
     const localPlayerId = usePlayersStore((state) => state.localPlayerId);
     const isLocalPlayer = player.id === localPlayerId;
 
@@ -91,6 +92,7 @@ function MemberItem({ player }: { player: Player }) {
                 {isLocalPlayer && (
                     <span className="text-xs text-neutral-400">(You)</span>
                 )}
+                {isInCall && <CallBadge />}
             </div>
 
             {/* Volume control — shown for remote users with an active audio producer */}

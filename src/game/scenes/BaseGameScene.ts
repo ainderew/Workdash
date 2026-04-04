@@ -482,7 +482,7 @@ export abstract class BaseGameScene extends Scene {
         y: number,
         availabilityStatus: AvailabilityStatus = AvailabilityStatus.ONLINE,
         customization: CharacterCustomization | null,
-        opts: { isLocal: boolean },
+        opts: { isLocal: boolean; backendUserId?: number },
         soccerStats?: {
             speed: number;
             kickPower: number;
@@ -552,6 +552,8 @@ export abstract class BaseGameScene extends Scene {
                 customization,
                 { isLocal: opts.isLocal },
             );
+
+            playerInstance.backendUserId = opts.backendUserId;
 
             if (soccerStats) {
                 playerInstance.soccerStats = soccerStats;

@@ -2,6 +2,7 @@ import { CharacterCustomization } from "../character/_types";
 
 export interface PlayerDto {
     id: string;
+    userId?: number;
     name?: string;
     nickname?: string | null;
     x: number;

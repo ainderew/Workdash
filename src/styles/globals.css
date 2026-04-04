@@ -231,6 +231,8 @@ body {
     --wd-bot-bg: rgb(var(--wd-accent-rgb) / 0.04);
     --wd-bot-bg-hover: rgb(var(--wd-accent-rgb) / 0.08);
     --wd-bot-badge-bg: rgb(var(--wd-accent-rgb) / 0.2);
+    --wd-call-badge-bg: rgb(var(--wd-success-rgb) / 0.15);
+    --wd-call-badge-text: rgb(var(--wd-success-rgb) / 1);
     --wd-success: rgb(var(--wd-success-rgb) / 1);
     --wd-danger: rgb(var(--wd-danger-rgb) / 1);
     --wd-danger-soft: rgb(var(--wd-danger-rgb) / var(--wd-danger-soft-alpha));

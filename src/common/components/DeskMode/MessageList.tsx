@@ -23,6 +23,7 @@ import {
 import { extractLinkParts } from "./MessageContentRenderer";
 import { BotMessageCard } from "./BotCards/BotMessageCard";
 import { PZEventCard } from "./BotCards/PZEventCard";
+import { CallEventMessage } from "./CallEventMessage";
 import useUserStore from "@/common/store/useStore";
 import useChatV2Store from "@/common/store/chatV2Store";
 import { UnifiedLinkPreview } from "@/common/components/TextChat/UnifiedLinkPreview";
@@ -64,6 +65,8 @@ import {
 import { getMusicBotAvatarSync } from "@/common/utils/botAvatar";
 import ImagePreviewLightbox from "./ImagePreviewLightbox";
 import type { LightboxImage } from "./ImagePreviewLightbox";
+import { CallBadge } from "./CallBadge";
+import { useUsersInCall } from "@/common/hooks/useUsersInCall";
 
 interface MessageListProps {
     messages: ChatV2Message[];
@@ -208,6 +211,7 @@ function MessageList({
     onUnpinMessage,
 }: MessageListProps) {
     const chatV2Service = useMemo(() => ChatV2Service.getInstance(), []);
+    const usersInCall = useUsersInCall();
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const endRef = useRef<HTMLDivElement>(null);
     const topSentinelRef = useRef<HTMLDivElement>(null);
@@ -1160,6 +1164,10 @@ function MessageList({
                                         <div className="flex-1 border-t wd-border-subtle" />
                                     </div>
                                 )}
+                                {message.messageType === "SYSTEM" &&
+                                message.metadata?.eventType === "call_participant_left" ? (
+                                    <CallEventMessage message={message} />
+                                ) : (
                                 <div
                                     data-chat-message-id={message.id}
                                     className={`${(flyoutMessageId && flyoutMessageId !== message.id) || (editingMessageId && editingMessageId !== message.id) ? "" : "group"} flex gap-3 px-1 ${isConsecutive ? "py-0.5" : "pt-3 pb-1"} rounded-md transition-colors hover:bg-[var(--wd-surface-elevated)]/50 ${flyoutMessageId === message.id ? "relative z-[210]" : editingMessageId === message.id ? "relative z-[205]" : ""} ${
@@ -1339,6 +1347,9 @@ function MessageList({
                                                     <span className="inline-flex items-center rounded-[3px] bg-[var(--wd-bot-badge-bg)] px-[5px] py-px text-[0.625rem] font-semibold uppercase tracking-wide wd-text-accent">
                                                         BOT
                                                     </span>
+                                                )}
+                                                {usersInCall.has(message.senderUserId) && (
+                                                    <CallBadge />
                                                 )}
                                                 <span className="text-xs wd-text-muted">
                                                     {formatChatMessageTimestamp(
@@ -1698,6 +1709,7 @@ function MessageList({
                                         )}
                                     </div>
                                 </div>
+                                )}
                             </React.Fragment>
                         );
                     })}

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import usePlayersStore from "@/common/store/playerStore";
+import { useUsersInCall } from "@/common/hooks/useUsersInCall";
 import MemberItem from "./MemberItem";
 import { Input } from "@/components/ui/input";
 import { X, Search } from "lucide-react";
@@ -13,6 +14,7 @@ interface MembersUiProps {
 
 function MembersUi({ isMembersUiOpen, onClose }: MembersUiProps) {
     const players = usePlayersStore((state) => state.playerMap);
+    const usersInCall = useUsersInCall();
     const [searchQuery, setSearchQuery] = useState("");
 
     if (!isMembersUiOpen) {
@@ -72,7 +74,7 @@ function MembersUi({ isMembersUiOpen, onClose }: MembersUiProps) {
                     <div className="flex flex-col gap-2">
                         {filteredPlayers.length > 0 ? (
                             filteredPlayers.map((player) => (
-                                <MemberItem key={player.id} player={player} />
+                                <MemberItem key={player.id} player={player} isInCall={player.backendUserId != null && usersInCall.has(player.backendUserId)} />
                             ))
                         ) : (
                             <div className="text-center text-neutral-500 py-8">

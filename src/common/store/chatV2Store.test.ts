@@ -650,6 +650,89 @@ describe('useChatV2Store', () => {
   });
 
   // -----------------------------------------------------------------------
+  // injectEphemeralMessage
+  // -----------------------------------------------------------------------
+  describe('injectEphemeralMessage', () => {
+    it('appends message to existing room', () => {
+      const existing = makeMessage({ id: 'msg-1', roomId: 'room-1' });
+      useChatV2Store.setState({
+        messagesByRoomId: { 'room-1': [existing] },
+      });
+
+      const ephemeral = makeMessage({
+        id: 'ephemeral-call-left-1',
+        roomId: 'room-1',
+        messageType: 'SYSTEM',
+        content: 'Alice left the call',
+      });
+
+      useChatV2Store.getState().injectEphemeralMessage(ephemeral);
+
+      const messages = useChatV2Store.getState().messagesByRoomId['room-1']!;
+      expect(messages).toHaveLength(2);
+      expect(messages[0].id).toBe('msg-1');
+      expect(messages[1].id).toBe('ephemeral-call-left-1');
+    });
+
+    it('creates room entry if none exists', () => {
+      const ephemeral = makeMessage({
+        id: 'ephemeral-call-left-2',
+        roomId: 'room-new',
+        messageType: 'SYSTEM',
+        content: 'Bob left the call',
+      });
+
+      useChatV2Store.getState().injectEphemeralMessage(ephemeral);
+
+      const messages = useChatV2Store.getState().messagesByRoomId['room-new']!;
+      expect(messages).toHaveLength(1);
+      expect(messages[0].id).toBe('ephemeral-call-left-2');
+    });
+
+    it('does not affect other rooms', () => {
+      const existingR2 = makeMessage({ id: 'msg-r2', roomId: 'room-2' });
+      useChatV2Store.setState({
+        messagesByRoomId: { 'room-2': [existingR2] },
+      });
+
+      const ephemeral = makeMessage({
+        id: 'ephemeral-call-left-3',
+        roomId: 'room-1',
+        messageType: 'SYSTEM',
+        content: 'Charlie left the call',
+      });
+
+      useChatV2Store.getState().injectEphemeralMessage(ephemeral);
+
+      expect(useChatV2Store.getState().messagesByRoomId['room-2']).toHaveLength(1);
+      expect(useChatV2Store.getState().messagesByRoomId['room-2']![0].id).toBe('msg-r2');
+    });
+
+    it('multiple injections append in order', () => {
+      const first = makeMessage({
+        id: 'ephemeral-1',
+        roomId: 'room-1',
+        messageType: 'SYSTEM',
+        content: 'Alice left the call',
+      });
+      const second = makeMessage({
+        id: 'ephemeral-2',
+        roomId: 'room-1',
+        messageType: 'SYSTEM',
+        content: 'Bob left the call',
+      });
+
+      useChatV2Store.getState().injectEphemeralMessage(first);
+      useChatV2Store.getState().injectEphemeralMessage(second);
+
+      const messages = useChatV2Store.getState().messagesByRoomId['room-1']!;
+      expect(messages).toHaveLength(2);
+      expect(messages[0].id).toBe('ephemeral-1');
+      expect(messages[1].id).toBe('ephemeral-2');
+    });
+  });
+
+  // -----------------------------------------------------------------------
   // State isolation
   // -----------------------------------------------------------------------
   describe('state isolation', () => {
