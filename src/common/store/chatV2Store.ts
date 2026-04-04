@@ -838,7 +838,8 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
 
                 const hasCurrentRoom =
                     state.currentRoomId
-                    && canUserEnterRoom(mergedRoomsById[state.currentRoomId]);
+                    && canUserEnterRoom(mergedRoomsById[state.currentRoomId])
+                    && mergedRoomsById[state.currentRoomId]?.workspaceId === resolvedWsId;
                 const firstSelectableRoom = roomOrder
                     .map((roomId) => mergedRoomsById[roomId])
                     .find((room) => canUserEnterRoom(room));
