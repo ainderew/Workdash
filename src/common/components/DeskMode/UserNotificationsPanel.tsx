@@ -14,6 +14,20 @@ import type {
 } from "@/communication/chatV2/_types";
 import { getDisplayName } from "@/common/utils/displayName";
 
+const MENTION_TOKEN_RE = /<@(\d+|everyone)>/g;
+
+function resolveMentionTokens(
+    content: string,
+    resolver?: (userId: number) => string | null,
+): string {
+    return content.replace(MENTION_TOKEN_RE, (_match, captured: string) => {
+        if (captured === "everyone") return "@everyone";
+        const userId = Number(captured);
+        const name = resolver?.(userId);
+        return name ? `@${name}` : "@mention";
+    });
+}
+
 interface UserNotificationsPanelProps {
     localUserId?: number;
     friendRequests: ChatV2Friend[];
@@ -22,6 +36,7 @@ interface UserNotificationsPanelProps {
     isLoadingNotifications: boolean;
     isMutating: boolean;
     panelClassName?: string;
+    resolveUserName?: (userId: number) => string | null;
     onRefresh: () => void;
     onMarkAllRead: () => void;
     onOpenNotification?: (notification: ChatV2UserNotification) => void;
@@ -39,6 +54,7 @@ function UserNotificationsPanel({
     isLoadingNotifications,
     isMutating,
     panelClassName,
+    resolveUserName,
     onRefresh,
     onMarkAllRead,
     onOpenNotification,
@@ -221,11 +237,14 @@ function UserNotificationsPanel({
                                 const isMention = notification.type === "MENTION";
                                 const isEveryoneMention = notification.type === "EVERYONE_MENTION";
                                 const isMentionType = isMention || isEveryoneMention;
-                                const previewText = isMentionType
-                                    ? (notification.rootMessage.content?.trim() || "(no text)")
+                                const rawPreview = isMentionType
+                                    ? (notification.rootMessage.content?.trim() || "")
                                     : (notification.replyMessage?.content?.trim()
                                         || notification.rootMessage.content?.trim()
-                                        || "(no text)");
+                                        || "");
+                                const previewText = rawPreview
+                                    ? resolveMentionTokens(rawPreview, resolveUserName)
+                                    : "(no text)";
                                 const notificationSuffix = isEveryoneMention
                                     ? ` mentioned @everyone in #${notification.room.name}`
                                     : isMention

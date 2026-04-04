@@ -14,6 +14,7 @@ import type { RightSidebarTab } from "./RightSidebar";
 import { useWidgetStore } from "@/common/store/widgetStore";
 import { WidgetChannelSettings as WidgetChannelSettingsLazy } from "@/common/components/ChannelWidgets/Admin/WidgetChannelSettings";
 import { getDisplayName } from "@/common/utils/displayName";
+import { useResolveUserName } from "@/common/hooks/useResolveUserName";
 import ChannelHashIcon from "./ChannelHashIcon";
 import PinnedMessagesPanel from "./PinnedMessagesPanel";
 import UserNotificationsPanel from "./UserNotificationsPanel";
@@ -119,6 +120,7 @@ function RoomHeader({
     const pinnedPanelContainerRef = useRef<HTMLDivElement | null>(null);
     const previousIncomingCountRef = useRef<number | null>(null);
     const localBackendUserId = backendUser?.id;
+    const resolveUserName = useResolveUserName();
 
     const selectedRoomName = useMemo(
         () => rooms.find((entry) => entry.id === searchRoomId)?.name || "",
@@ -379,6 +381,7 @@ function RoomHeader({
                             isLoading={isLoadingFriendRequests}
                             isLoadingNotifications={isLoadingNotifications}
                             isMutating={isLoadingFriends}
+                            resolveUserName={resolveUserName}
                             onRefresh={() => {
                                 void reloadFriendRequests();
                                 void reloadNotifications({ limit: 100 });

@@ -11,6 +11,7 @@ import MessageList from "./MessageList";
 import ThreadPanel from "./ThreadPanel";
 import UserNotificationsPanel from "./UserNotificationsPanel";
 import { getDisplayName } from "@/common/utils/displayName";
+import { useResolveUserName } from "@/common/hooks/useResolveUserName";
 import { formatChatMessageTimestamp } from "@/common/utils/messageTimestamp";
 
 import { buildMemberColorMap } from "@/common/utils/roleColor";
@@ -39,6 +40,7 @@ const byCreatedAtAsc = (a: ChatV2Message, b: ChatV2Message) => {
 
 function CompactChatShell({ onClose }: CompactChatShellProps) {
     const backendUser = useUserStore((s) => s.backendUser);
+    const resolveUserName = useResolveUserName();
     const chatV2Service = useMemo(() => ChatV2Service.getInstance(), []);
     const initialize = useChatV2Store((state) => state.initialize);
     const roomOrder = useChatV2Store((state) => state.roomOrder);
@@ -742,6 +744,7 @@ function CompactChatShell({ onClose }: CompactChatShellProps) {
                                     isLoading={isLoadingFriendRequests}
                                     isLoadingNotifications={isLoadingNotifications}
                                     isMutating={isLoadingFriends}
+                                    resolveUserName={resolveUserName}
                                     onRefresh={() => {
                                         void reloadFriendRequests();
                                         void reloadNotifications({ limit: 100 });
