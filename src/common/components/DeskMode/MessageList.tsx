@@ -72,6 +72,7 @@ interface MessageListProps {
     messages: ChatV2Message[];
     isLoading: boolean;
     focusedMessageId?: string | null;
+    onFocusedMessageHandled?: () => void;
     onOpenThread?: (rootMessageId: string) => void;
     isLoadingOlderMessages?: boolean;
     hasMoreMessages?: boolean;
@@ -200,6 +201,7 @@ function MessageList({
     messages,
     isLoading,
     focusedMessageId = null,
+    onFocusedMessageHandled,
     onOpenThread,
     isLoadingOlderMessages = false,
     hasMoreMessages = true,
@@ -479,12 +481,13 @@ function MessageList({
             setHighlightedMessageId((current) =>
                 current === focusedMessageId ? null : current,
             );
+            onFocusedMessageHandled?.();
         }, 1800);
 
         return () => {
             window.clearTimeout(timeout);
         };
-    }, [focusedMessageId, messages]);
+    }, [focusedMessageId, messages, onFocusedMessageHandled]);
 
     useEffect(() => {
         if (!focusedMessageId) {

@@ -910,6 +910,7 @@ function CompactChatShell({ onClose }: CompactChatShellProps) {
                                 isLoading={isLoadingMessages}
                                 memberRoleColors={memberRoleColors}
                                 focusedMessageId={focusedMessageId}
+                                onFocusedMessageHandled={() => setFocusedMessageId(null)}
                                 onOpenThread={(rootMessageId) => {
                                     const rootFromTimeline = roomMessages.find(
                                         (message) =>

@@ -1074,6 +1074,7 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
                                 focusedMessageId={
                                     currentRoomId ? focusedMessageId : null
                                 }
+                                onFocusedMessageHandled={() => setFocusedMessageId(null)}
                                 pinnedMessageIds={pinnedMessageIds}
                                 onPinMessage={(messageId) => {
                                     if (currentRoomId) {
