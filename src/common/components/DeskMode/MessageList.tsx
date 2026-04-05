@@ -66,6 +66,8 @@ import { getMusicBotAvatarSync } from "@/common/utils/botAvatar";
 import ImagePreviewLightbox from "./ImagePreviewLightbox";
 import type { LightboxImage } from "./ImagePreviewLightbox";
 import { CallBadge } from "./CallBadge";
+import { FileDownloadCard } from './FileDownloadCard';
+import { ExpiredFilePlaceholder } from './ExpiredFilePlaceholder';
 import { useUsersInCall } from "@/common/hooks/useUsersInCall";
 
 interface MessageListProps {
@@ -527,6 +529,7 @@ function MessageList({
 
         for (const message of messages) {
             for (const attachment of message.attachments) {
+                if (attachment.expiredAt) continue;
                 if (
                     isPreviewableAttachment(attachment) &&
                     !attachmentUrls[attachment.id]
@@ -1472,6 +1475,16 @@ function MessageList({
                                                     <div className="mt-2 space-y-1">
                                                         {message.attachments.map(
                                                             (attachment) => {
+                                                                if (attachment.expiredAt) {
+                                                                    return (
+                                                                        <ExpiredFilePlaceholder
+                                                                            key={attachment.id}
+                                                                            filename={attachment.originalFileName}
+                                                                            mimeType={attachment.mimeType}
+                                                                        />
+                                                                    );
+                                                                }
+
                                                                 const urlState =
                                                                     attachmentUrls[
                                                                         attachment
@@ -1598,28 +1611,18 @@ function MessageList({
                                                                 }
 
                                                                 return (
-                                                                    <button
-                                                                        key={
-                                                                            attachment.id
-                                                                        }
-                                                                        type="button"
-                                                                        onClick={() =>
+                                                                    <FileDownloadCard
+                                                                        key={attachment.id}
+                                                                        filename={attachment.originalFileName}
+                                                                        mimeType={attachment.mimeType}
+                                                                        sizeBytes={attachment.sizeBytes}
+                                                                        onDownload={() =>
                                                                             handleDownloadAttachment(
                                                                                 attachment.id,
                                                                                 attachment.originalFileName,
                                                                             )
                                                                         }
-                                                                        className="text-xs px-2 py-1 rounded wd-bg-elevated wd-text-accent truncate inline-flex items-center gap-1 border wd-border-subtle"
-                                                                    >
-                                                                        {
-                                                                            attachment.originalFileName
-                                                                        }
-                                                                        <ExternalLink
-                                                                            size={
-                                                                                12
-                                                                            }
-                                                                        />
-                                                                    </button>
+                                                                    />
                                                                 );
                                                             },
                                                         )}
@@ -1809,7 +1812,7 @@ function MessageList({
                                 return [{ fileId: "", imageUrl: gifUrl, fileName: "GIF" }];
                             }
                             return msg.attachments
-                                .filter((a) => a.isImage)
+                                .filter((a) => a.isImage && !a.expiredAt)
                                 .map((a) => ({
                                     fileId: a.id,
                                     imageUrl:

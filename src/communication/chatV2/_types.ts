@@ -51,6 +51,8 @@ export type ChatV2Attachment = {
     sizeBytes: string;
     sha256: string;
     isImage: boolean;
+    expiresAt: string | null;
+    expiredAt: string | null;
     createdAt: string | Date;
 };
 
