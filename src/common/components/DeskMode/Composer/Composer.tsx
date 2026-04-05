@@ -1,4 +1,5 @@
 import React, { useCallback, useState } from "react";
+import { Upload } from "lucide-react";
 import { AttachmentPreview } from "../AttachmentPreview";
 import DeskGifPicker from "../DeskGifPicker";
 import EmojiPicker from "../EmojiPicker";
@@ -13,6 +14,7 @@ import { useComposerState } from "./useComposerState";
 import { useTiptapEditor } from "./useTiptapEditor";
 import { useTiptapAutocomplete } from "./useTiptapAutocomplete";
 import { useSendMessage } from "./useSendMessage";
+import { useFileDrop } from "./useFileDrop";
 import type { ComposerProps } from "./_types";
 
 function Composer(props: ComposerProps) {
@@ -102,6 +104,16 @@ function Composer(props: ComposerProps) {
         [setSelectedFile],
     );
 
+    const handleFileDrop = useCallback(
+        (file: File) => {
+            setSelectedFile(file);
+            setUploadError(null);
+        },
+        [setSelectedFile, setUploadError],
+    );
+
+    const { isDraggingOver, dragHandlers } = useFileDrop(handleFileDrop);
+
     const handleLinkClick = useCallback(() => {
         setShowLinkPopover((prev) => !prev);
     }, []);
@@ -119,7 +131,19 @@ function Composer(props: ComposerProps) {
     );
 
     return (
-        <div className="relative min-h-[var(--wd-panel-height)] wd-bg-panel-2 px-3 pb-3 pt-2">
+        <div
+            className="relative min-h-[var(--wd-panel-height)] wd-bg-panel-2 px-3 pb-3 pt-2"
+            {...dragHandlers}
+        >
+            {isDraggingOver && (
+                <div className="absolute inset-0 z-50 flex items-center justify-center rounded-xl border-2 border-dashed border-[var(--wd-accent)] bg-[var(--wd-accent)]/10 pointer-events-none">
+                    <div className="flex items-center gap-2 text-sm font-medium text-[var(--wd-accent)]">
+                        <Upload size={16} />
+                        Drop to upload
+                    </div>
+                </div>
+            )}
+
             {autocomplete.isCommandFlyoutOpen && (
                 <BotCommandFlyout
                     entries={autocomplete.commandSuggestions}
