@@ -134,6 +134,33 @@ function TextSegmentRenderer({
       continue;
     }
 
+    // Detect consecutive ordered list lines (1. item, 2. item, …)
+    if (/^\d+\.\s/.test(lines[i])) {
+      const listItems: string[] = [];
+      while (i < lines.length && /^\d+\.\s/.test(lines[i])) {
+        listItems.push(lines[i].replace(/^\d+\.\s/, ''));
+        i++;
+      }
+      elements.push(
+        <ol key={`${messageId}-ol-${i}`} className="list-decimal pl-5 my-1">
+          {listItems.map((item, idx) => (
+            <li key={`${messageId}-oli-${i}-${idx}`}>
+              {renderTextLine(
+                item,
+                messageId,
+                mentionedUserIds,
+                memberNameMap,
+                onClickMention,
+                skipLinkPreviews,
+                `${messageId}-oli-${i}-${idx}`,
+              )}
+            </li>
+          ))}
+        </ol>,
+      );
+      continue;
+    }
+
     // Regular text line
     const line = lines[i];
     if (i > 0 && elements.length > 0) {

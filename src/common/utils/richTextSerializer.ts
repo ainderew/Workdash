@@ -9,6 +9,7 @@ import type { JSONContent } from '@tiptap/react';
  *   underline mark → __text__
  *   link mark      → [text](url) (bare URL if text === url)
  *   bulletList     → - item\n- item
+ *   orderedList    → 1. item\n2. item
  *   code mark      → `code`
  *   codeBlock node → ```lang\ncode\n```
  *   hardBreak      → \n
@@ -56,6 +57,9 @@ function serializeNode(node: JSONContent): string {
     case 'bulletList':
       return serializeBulletList(node);
 
+    case 'orderedList':
+      return serializeOrderedList(node);
+
     case 'listItem':
       return serializeListItem(node);
 
@@ -90,19 +94,27 @@ function serializeParagraphContent(node: JSONContent): string {
 
 function serializeBulletList(node: JSONContent): string {
   if (!node.content) return '';
-  return node.content.map(serializeNode).join('');
+  return node.content
+    .map((item) => serializeListItem(item, '-'))
+    .join('');
 }
 
-function serializeListItem(node: JSONContent): string {
+function serializeOrderedList(node: JSONContent): string {
   if (!node.content) return '';
-  // List items contain paragraphs — serialize inline content only
+  return node.content
+    .map((item, idx) => serializeListItem(item, `${idx + 1}.`))
+    .join('');
+}
+
+function serializeListItem(node: JSONContent, prefix: string): string {
+  if (!node.content) return '';
   const inner = node.content
     .map((child) => {
       if (child.type === 'paragraph') return serializeParagraphContent(child);
       return serializeNode(child);
     })
     .join('');
-  return `- ${inner}\n`;
+  return `${prefix} ${inner}\n`;
 }
 
 function serializeTextNode(node: JSONContent): string {
@@ -187,6 +199,28 @@ export function deserializeMarkdownToTiptap(markdown: string): JSONContent {
       }
       content.push({
         type: 'bulletList',
+        content: listItems,
+      });
+      continue;
+    }
+
+    // Ordered list detection — collect consecutive "1. " lines
+    if (/^\d+\.\s/.test(lines[i])) {
+      const listItems: JSONContent[] = [];
+      while (i < lines.length && /^\d+\.\s/.test(lines[i])) {
+        const itemText = lines[i].replace(/^\d+\.\s/, '');
+        listItems.push({
+          type: 'listItem',
+          content: [{
+            type: 'paragraph',
+            content: deserializeInlineContent(itemText),
+          }],
+        });
+        i++;
+      }
+      content.push({
+        type: 'orderedList',
+        attrs: { start: 1 },
         content: listItems,
       });
       continue;

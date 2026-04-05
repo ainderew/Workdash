@@ -2336,6 +2336,12 @@ input[type="range"].wd-volume-slider::-moz-range-progress {
     margin: 0.25rem 0;
 }
 
+.ProseMirror ol {
+    list-style-type: decimal;
+    padding-left: 1.25rem;
+    margin: 0.25rem 0;
+}
+
 .ProseMirror li {
     margin: 0;
 }
@@ -2347,6 +2353,12 @@ input[type="range"].wd-volume-slider::-moz-range-progress {
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     font-size: 13px;
     margin: 0.25rem 0;
+}
+
+.ProseMirror pre code {
+    background: none;
+    border-radius: 0;
+    padding: 0;
 }
 
 .ProseMirror code {

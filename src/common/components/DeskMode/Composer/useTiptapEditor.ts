@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useEditor, Extension, type Editor } from '@tiptap/react';
+import { textblockTypeInputRule } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import {
@@ -25,20 +26,36 @@ const MIME_TO_EXT: Record<string, string> = {
 };
 
 /**
- * Custom extension for Enter-to-send behavior.
- * Enter (no shift, not in list) → onSubmit.
- * Shift+Enter → hard break.
- * ArrowUp when empty → onEditLastMessage.
+ * Custom extension for Enter-to-send behavior + code block helpers.
+ *
+ * Normal mode:  Enter → submit,  Shift+Enter → newline.
+ * Code block:   Enter → newline, Shift+Enter → submit.
+ *
+ * Typing ``` at the start of a paragraph instantly creates a code block.
+ * Typing ```lang + Enter also works (for language-tagged blocks).
+ * ArrowRight at the end of a code block exits into a paragraph after it.
  */
 function createKeyboardExtension(options: UseTiptapEditorOptions) {
   return Extension.create({
     name: 'keyboardShortcuts',
+
+    addInputRules() {
+      const codeBlockType = this.editor.schema.nodes.codeBlock;
+      if (!codeBlockType) return [];
+      return [
+        // Typing ``` at the start of a paragraph instantly creates a code block
+        textblockTypeInputRule({
+          find: /^```$/,
+          type: codeBlockType,
+        }),
+      ];
+    },
+
     addKeyboardShortcuts() {
       return {
         Enter: ({ editor }) => {
-          // If in a bullet list, let default behavior continue (new list item)
-          if (editor.isActive('bulletList')) {
-            // Check if current list item is empty — exit list
+          // If in a list, let default behavior continue (new list item)
+          if (editor.isActive('bulletList') || editor.isActive('orderedList')) {
             const { state } = editor;
             const { $from } = state.selection;
             const listItemNode = $from.node($from.depth - 1);
@@ -46,15 +63,76 @@ function createKeyboardExtension(options: UseTiptapEditorOptions) {
               listItemNode?.type.name === 'listItem' &&
               listItemNode.textContent === ''
             ) {
-              // Lift out of list (exit list on empty item)
               return editor.chain().liftListItem('listItem').run();
             }
-            return false; // let Tiptap handle new list item
+            return false;
           }
+
+          // Detect ```lang at the start of a paragraph → code block with language
+          const { state } = editor;
+          const { $from } = state.selection;
+          const currentNode = $from.parent;
+          if (
+            currentNode.type.name === 'paragraph' &&
+            /^```(\w+)$/.test(currentNode.textContent)
+          ) {
+            const lang = currentNode.textContent.slice(3);
+            editor
+              .chain()
+              .deleteRange({ from: $from.start(), to: $from.end() })
+              .toggleCodeBlock({ language: lang })
+              .run();
+            return true;
+          }
+
           options.onSubmit();
           return true;
         },
-        'Shift-Enter': () => false, // let default hardBreak behavior happen
+
+        'Shift-Enter': ({ editor }) => {
+          if (editor.isActive('codeBlock')) {
+            // HardBreak (<br>) isn't valid inside <pre>, so insert a \n directly
+            return editor.commands.command(({ tr }) => {
+              const { from, to } = tr.selection;
+              tr.insertText('\n', from, to);
+              return true;
+            });
+          }
+          // Split into a new paragraph (not a <br> hard break) so that
+          // bullet input rules ("- ") and the toggle button work per-line
+          return editor.commands.splitBlock();
+        },
+
+        ArrowRight: ({ editor }) => {
+          if (!editor.isActive('codeBlock')) return false;
+
+          const { $from, empty } = editor.state.selection;
+          if (!empty) return false;
+          if ($from.parentOffset !== $from.parent.content.size) return false;
+
+          // Cursor is at the very end of the code block — exit into next node
+          const afterPos = $from.after();
+
+          if (afterPos >= editor.state.doc.content.size) {
+            // Code block is the last node — create an empty paragraph after it
+            return editor
+              .chain()
+              .command(({ tr }) => {
+                tr.insert(
+                  afterPos,
+                  editor.state.schema.nodes.paragraph.create(),
+                );
+                return true;
+              })
+              .setTextSelection(afterPos + 1)
+              .run();
+          }
+
+          // Move cursor into the existing node after the code block
+          editor.commands.setTextSelection(afterPos + 1);
+          return true;
+        },
+
         ArrowUp: ({ editor }) => {
           if (options.onEditLastMessage && editor.isEmpty) {
             options.onEditLastMessage();
@@ -62,6 +140,7 @@ function createKeyboardExtension(options: UseTiptapEditorOptions) {
           }
           return false;
         },
+
         'Mod-k': () => {
           options.onLinkShortcut?.();
           return true;
@@ -132,7 +211,6 @@ export function useTiptapEditor(options: UseTiptapEditorOptions) {
         heading: false,
         blockquote: false,
         horizontalRule: false,
-        orderedList: false,
         link: {
           openOnClick: false,
           autolink: false,

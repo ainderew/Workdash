@@ -16,6 +16,9 @@ function TiptapEditorContent({ editor, inputElementId }: TiptapEditorContentProp
         <div className="flex items-center gap-1 px-3 pt-2 pb-0">
           <Code2 size={13} className="wd-text-muted shrink-0" />
           <span className="text-[11px] wd-text-muted tracking-wide uppercase">Code block</span>
+          <span className="text-[10px] wd-text-muted ml-auto opacity-60">
+            Shift+Enter for new line
+          </span>
         </div>
       )}
       <EditorContent
