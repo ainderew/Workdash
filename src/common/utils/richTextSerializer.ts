@@ -106,7 +106,7 @@ function serializeOrderedList(node: JSONContent): string {
     .join('');
 }
 
-function serializeListItem(node: JSONContent, prefix: string): string {
+function serializeListItem(node: JSONContent, prefix: string = '-'): string {
   if (!node.content) return '';
   const inner = node.content
     .map((child) => {
