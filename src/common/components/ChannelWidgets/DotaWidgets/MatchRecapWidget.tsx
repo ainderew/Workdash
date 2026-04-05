@@ -112,17 +112,22 @@ function MatchCard({ match }: { match: MatchRecapEntry }) {
   const losers = match.players.filter((p) => !p.won);
   const hasEstimates = match.players.some((p) => p.performanceEstimate);
 
+  const allWon = match.players.every((p) => p.won);
+  const allLost = match.players.every((p) => !p.won);
+  const outcomeLabel = allWon ? "Victory" : allLost ? "Defeat" : "Mixed";
+  const outcomeColor = allWon
+    ? "text-[var(--wd-success)]"
+    : allLost
+      ? "text-[var(--wd-danger)]"
+      : "wd-text-muted";
+
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between px-1">
         <span
-          className={`text-[11px] font-bold uppercase tracking-wider ${
-            match.radiantWin
-              ? "text-[var(--wd-success)]"
-              : "text-[var(--wd-danger)]"
-          }`}
+          className={`text-[11px] font-bold uppercase tracking-wider ${outcomeColor}`}
         >
-          {match.radiantWin ? "Radiant" : "Dire"} Victory
+          {outcomeLabel}
         </span>
         <div className="flex items-center gap-1.5">
           <span className="text-[11px] wd-text-muted tabular-nums font-medium">
