@@ -137,6 +137,16 @@ function DirectMessageSidebar({
             .slice(0, 6);
     }, [friends, getPeerDisplayName, normalizedQuery]);
 
+    const recentFriends = useMemo(() => {
+        return [...friends]
+            .sort(
+                (a, b) =>
+                    new Date(b.createdAt).getTime() -
+                    new Date(a.createdAt).getTime(),
+            )
+            .slice(0, 4);
+    }, [friends]);
+
     return (
         <>
             <aside className="w-80 h-full wd-bg-panel border-r wd-border-subtle flex flex-col min-h-0">
@@ -180,6 +190,74 @@ function DirectMessageSidebar({
                 </div>
 
                 <div className="flex-1 min-h-0 overflow-y-auto px-3 py-2 space-y-3">
+                    {normalizedQuery.length === 0 && (
+                        <section>
+                            <div className="flex items-center justify-between px-1 pb-2">
+                                <p className="text-[11px] uppercase tracking-wide wd-text-muted">
+                                    Friends
+                                </p>
+                                {recentFriends.length > 0 && (
+                                    <span className="text-[10px] tabular-nums wd-text-muted">
+                                        {friends.length}
+                                    </span>
+                                )}
+                            </div>
+
+                            {isLoadingFriends ? (
+                                <div className="space-y-1">
+                                    {Array.from({ length: 3 }).map((_, i) => (
+                                        <div
+                                            key={i}
+                                            className="flex items-center gap-3 rounded-md px-2 py-1.5"
+                                        >
+                                            <div className="h-8 w-8 shrink-0 rounded-full bg-[var(--wd-surface-elevated)] animate-pulse" />
+                                            <div className="h-3.5 flex-1 rounded bg-[var(--wd-surface-elevated)] animate-pulse" />
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : recentFriends.length === 0 ? (
+                                <p className="px-2 py-3 text-xs wd-text-muted">
+                                    Add friends to get started
+                                </p>
+                            ) : (
+                                <div className="space-y-0.5">
+                                    {recentFriends.map((entry) => {
+                                        const name = getPeerDisplayName(entry.peerUser);
+                                        return (
+                                            <button
+                                                key={entry.friendshipId}
+                                                type="button"
+                                                onClick={() =>
+                                                    onOpenDirectMessage(entry.peerUser.id)
+                                                }
+                                                className="group flex w-full items-center gap-3 rounded-md px-2 py-1.5 text-left text-sm transition-colors wd-text-secondary hover:wd-text-primary hover:bg-[var(--wd-surface-elevated)]"
+                                            >
+                                                <div className="relative shrink-0">
+                                                    <UserAvatar
+                                                        name={name}
+                                                        image={entry.peerUser.image}
+                                                        characterCustomization={
+                                                            entry.peerUser
+                                                                .characterCustomization
+                                                        }
+                                                        size="sm"
+                                                    />
+                                                    <PresenceDot
+                                                        userId={entry.peerUser.id}
+                                                        size="xs"
+                                                    />
+                                                </div>
+                                                <span className="truncate flex-1">
+                                                    {name}
+                                                </span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </section>
+                    )}
+
                     {normalizedQuery.length > 0 ? (
                         <section>
                             <p className="px-1 pb-1 text-[11px] uppercase tracking-wide wd-text-muted">
