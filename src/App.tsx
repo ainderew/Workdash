@@ -45,6 +45,21 @@ import { useActivityHeartbeat } from "@/common/hooks/useActivityHeartbeat";
 import { SoundboardService } from "./communication/soundboard/soundboardService";
 import FloatingPassiveCallIndicator from "./common/components/DeskMode/FloatingPassiveCallIndicator";
 
+function resolveModeFromStorage(): InteractionMode | null {
+    const params = new URLSearchParams(window.location.search);
+
+    // Force desk mode when an invite link is opened
+    if (params.has("invite")) return "desk";
+
+    const urlMode = params.get("mode");
+    if (urlMode === "desk" || urlMode === "world") return urlMode;
+
+    const storedMode = localStorage.getItem("workdash:interactionMode");
+    if (storedMode === "desk" || storedMode === "world") return storedMode;
+
+    return null;
+}
+
 function App() {
     const interactionMode = useUiStore((state) => state.interactionMode);
     const setInteractionMode = useUiStore((state) => state.setInteractionMode);
@@ -56,9 +71,14 @@ function App() {
         (state) => state.selectedWorkspaceId,
     );
     const currentCall = useCallStore((state) => state.currentCall);
+    const [hasEverBeenWorldMode, setHasEverBeenWorldMode] = useState(() => {
+        const resolved = resolveModeFromStorage();
+        return resolved !== "desk"; // true for "world" or null (default is world)
+    });
     const [isInitialized, setIsInitialized] = useState(false);
     const [initError, setInitError] = useState<string | null>(null);
     const [isGameReady, setIsGameReady] = useState(false);
+    const modeResolvedRef = useRef(false);
     const initInFlight = useRef(false);
     const { data: session, status } = useSession();
     const router = useRouter();
@@ -76,6 +96,23 @@ function App() {
 
         void bootstrapTheme();
     }, [bootstrapTheme, session?.backendJwt, status]);
+
+    useEffect(() => {
+        if (status !== "authenticated" || !session?.backendJwt) return;
+
+        tokenStore.setJwt(session.backendJwt);
+        if (session.backendUser) {
+            tokenStore.setUser(session.backendUser);
+            useUserStore.getState().setBackendUser(session.backendUser);
+            if (session.backendUser.image) {
+                useUserStore
+                    .getState()
+                    .updateUser({ image: session.backendUser.image });
+            }
+        }
+        if (session.backendCharacter)
+            tokenStore.setCharacter(session.backendCharacter);
+    }, [status, session?.backendJwt, session?.backendUser, session?.backendCharacter]);
 
     const initServices = React.useCallback(async (jwtToken: string) => {
         if (initInFlight.current) return;
@@ -164,27 +201,21 @@ function App() {
     const user = useUserStore((state: UserStore) => state.user);
 
     useEffect(() => {
-        const resolveModeFromStorage = (): InteractionMode | null => {
-            const params = new URLSearchParams(window.location.search);
-
-            // Force desk mode when an invite link is opened
-            if (params.has("invite")) return "desk";
-
-            const urlMode = params.get("mode");
-            if (urlMode === "desk" || urlMode === "world") return urlMode;
-
-            const storedMode = localStorage.getItem("workdash:interactionMode");
-            if (storedMode === "desk" || storedMode === "world")
-                return storedMode;
-
-            return null;
-        };
-
         const resolvedMode = resolveModeFromStorage();
         if (resolvedMode) {
             setInteractionMode(resolvedMode);
         }
     }, [setInteractionMode]);
+
+    useEffect(() => {
+        if (!modeResolvedRef.current) {
+            modeResolvedRef.current = true;
+            return;
+        }
+        if (interactionMode === "world") {
+            setHasEverBeenWorldMode(true);
+        }
+    }, [interactionMode]);
 
     useEffect(() => {
         localStorage.setItem("workdash:interactionMode", interactionMode);
@@ -325,7 +356,7 @@ function App() {
             id="app"
             className="w-screen h-[100dvh] overflow-hidden flex flex-col items-center justify-end wd-bg-app relative"
         >
-            {selectedWorkspaceId && (
+            {selectedWorkspaceId && hasEverBeenWorldMode && (
                 <PhaserGame
                     ref={phaserRef}
                     currentActiveScene={currentScene}

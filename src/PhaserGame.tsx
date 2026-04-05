@@ -31,22 +31,6 @@ export const PhaserGame = forwardRef<IRefPhaserGame, IProps>(
         const { data: session } = useSession();
 
         useEffect(() => {
-            if (session?.backendJwt) {
-                tokenStore.setJwt(session.backendJwt);
-                if (session.backendUser) tokenStore.setUser(session.backendUser);
-                if (session.backendCharacter) tokenStore.setCharacter(session.backendCharacter);
-
-                // Hydrate Zustand with the backend user from session
-                if (session.backendUser) {
-                    useUserStore.getState().setBackendUser(session.backendUser);
-                }
-                if (session.backendUser?.image) {
-                    useUserStore.getState().updateUser({ image: session.backendUser.image });
-                }
-            } else {
-                console.warn("PhaserGame: No backendJwt in session yet");
-            }
-
             if (game.current === null) {
                 game.current = StartGame("game-container");
 
@@ -65,7 +49,7 @@ export const PhaserGame = forwardRef<IRefPhaserGame, IProps>(
                     }
                 }
             };
-        }, [ref, session]);
+        }, [ref]);
 
         useEffect(() => {
             if (!session?.backendJwt) return;
