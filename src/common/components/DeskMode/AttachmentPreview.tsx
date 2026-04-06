@@ -21,7 +21,7 @@ export function AttachmentPreview({ file, onRemove }: AttachmentPreviewProps) {
                     <button
                         type="button"
                         onClick={() => setIsLightboxOpen(true)}
-                        className="h-10 w-10 shrink-0 rounded overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--wd-accent)]"
+                        className="h-10 w-10 shrink-0 rounded overflow-hidden cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--wd-accent)]"
                         aria-label="Preview image"
                     >
                         <img
