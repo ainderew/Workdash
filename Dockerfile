@@ -25,6 +25,7 @@ ARG NEXT_PUBLIC_SERVER_URL
 ARG NEXT_PUBLIC_SFU_SERVER_URL
 ARG NEXT_PUBLIC_GIPHY_PICKER
 
+ENV NODE_OPTIONS="--max-old-space-size=4096"
 RUN npm run build-nolog
 
 # Stage 3: Production
