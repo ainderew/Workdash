@@ -3,8 +3,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 /**
  * Handles drag-and-drop file uploads on a target element.
  * Uses a counter to correctly track nested dragenter/dragleave events.
+ * Passes all dropped files (not just the first) so callers can support
+ * multi-file uploads.
  */
-export function useFileDrop(onFileDrop: (file: File) => void) {
+export function useFileDrop(onFilesDrop: (files: File[]) => void) {
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const dragCounterRef = useRef(0);
 
@@ -38,12 +40,12 @@ export function useFileDrop(onFileDrop: (file: File) => void) {
       dragCounterRef.current = 0;
       setIsDraggingOver(false);
 
-      const file = e.dataTransfer.files[0];
-      if (file) {
-        onFileDrop(file);
+      const files = Array.from(e.dataTransfer.files);
+      if (files.length > 0) {
+        onFilesDrop(files);
       }
     },
-    [onFileDrop],
+    [onFilesDrop],
   );
 
   // Reset counter if drag leaves the window entirely

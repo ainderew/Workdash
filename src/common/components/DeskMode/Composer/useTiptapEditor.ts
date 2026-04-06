@@ -14,7 +14,7 @@ interface UseTiptapEditorOptions {
   onSubmit: () => void;
   onEditLastMessage?: () => void;
   onTyping?: () => void;
-  onImagePaste?: (file: File) => void;
+  onImagePaste?: (files: File[]) => void;
   onLinkShortcut?: () => void;
 }
 
@@ -238,22 +238,28 @@ export function useTiptapEditor(options: UseTiptapEditorOptions) {
         const items = event.clipboardData?.items;
         if (!items) return false;
 
+        const pastedFiles: File[] = [];
         for (let i = 0; i < items.length; i++) {
           const item = items[i];
           if (!item.type.startsWith('image/')) continue;
 
-          event.preventDefault();
           const blob = item.getAsFile();
-          if (!blob) return true;
+          if (!blob) continue;
 
           const ext = MIME_TO_EXT[blob.type] ?? 'png';
-          const file = new File([blob], `screenshot-${Date.now()}.${ext}`, {
-            type: blob.type,
-          });
-          onImagePaste(file);
-          return true;
+          const file = new File(
+            [blob],
+            `screenshot-${Date.now()}-${i}.${ext}`,
+            { type: blob.type },
+          );
+          pastedFiles.push(file);
         }
-        return false;
+
+        if (pastedFiles.length === 0) return false;
+
+        event.preventDefault();
+        onImagePaste(pastedFiles);
+        return true;
       },
     },
     onUpdate: () => {

@@ -31,8 +31,10 @@ function Composer(props: ComposerProps) {
 
     const state = useComposerState(props);
     const {
-        selectedFile,
-        setSelectedFile,
+        selectedFiles,
+        setSelectedFiles,
+        addFiles,
+        removeFileAt,
         uploadError,
         setUploadError,
         showGifPicker,
@@ -75,8 +77,8 @@ function Composer(props: ComposerProps) {
         clearContent: () => {
             tiptap.editor?.commands.clearContent();
         },
-        selectedFile,
-        setSelectedFile,
+        selectedFiles,
+        setSelectedFiles,
         setUploadError,
         roomId,
         disabled,
@@ -97,22 +99,23 @@ function Composer(props: ComposerProps) {
 
     const handleFileSelect = useCallback(
         (event: React.ChangeEvent<HTMLInputElement>) => {
-            const nextFile = event.target.files?.[0] || null;
-            setSelectedFile(nextFile);
+            const nextFiles = Array.from(event.target.files ?? []);
+            if (nextFiles.length > 0) {
+                addFiles(nextFiles);
+            }
             event.target.value = "";
         },
-        [setSelectedFile],
+        [addFiles],
     );
 
-    const handleFileDrop = useCallback(
-        (file: File) => {
-            setSelectedFile(file);
-            setUploadError(null);
+    const handleFilesDrop = useCallback(
+        (files: File[]) => {
+            addFiles(files);
         },
-        [setSelectedFile, setUploadError],
+        [addFiles],
     );
 
-    const { isDraggingOver, dragHandlers } = useFileDrop(handleFileDrop);
+    const { isDraggingOver, dragHandlers } = useFileDrop(handleFilesDrop);
 
     const handleLinkClick = useCallback(() => {
         setShowLinkPopover((prev) => !prev);
@@ -193,11 +196,11 @@ function Composer(props: ComposerProps) {
                 </div>
             )}
 
-            {selectedFile && (
+            {selectedFiles.length > 0 && (
                 <div className="mb-2">
                     <AttachmentPreview
-                        file={selectedFile}
-                        onRemove={() => setSelectedFile(null)}
+                        files={selectedFiles}
+                        onRemoveAt={removeFileAt}
                     />
                 </div>
             )}
@@ -218,7 +221,7 @@ function Composer(props: ComposerProps) {
                 isSending={isSending}
                 fileInputRef={fileInputRef}
                 editor={tiptap.editor}
-                selectedFile={selectedFile}
+                hasAttachments={selectedFiles.length > 0}
                 setShowGifPicker={setShowGifPicker}
                 onToggleEmojiPicker={handleToggleEmojiPicker}
                 onFileSelect={handleFileSelect}

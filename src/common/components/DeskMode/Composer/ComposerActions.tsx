@@ -48,7 +48,7 @@ interface ComposerActionsProps {
   isSending?: boolean;
   fileInputRef: React.RefObject<HTMLInputElement | null>;
   editor: Editor | null;
-  selectedFile: File | null;
+  hasAttachments: boolean;
   setShowGifPicker: React.Dispatch<React.SetStateAction<boolean>>;
   onToggleEmojiPicker: () => void;
   onFileSelect: (event: React.ChangeEvent<HTMLInputElement>) => void;
@@ -62,7 +62,7 @@ function ComposerActions({
   isSending,
   fileInputRef,
   editor,
-  selectedFile,
+  hasAttachments,
   setShowGifPicker,
   onToggleEmojiPicker,
   onFileSelect,
@@ -72,7 +72,7 @@ function ComposerActions({
 }: ComposerActionsProps) {
   const isDisabled = disabled || isSending;
   const isEmpty = editor ? editor.isEmpty : true;
-  const canSend = !isDisabled && (!isEmpty || !!selectedFile);
+  const canSend = !isDisabled && (!isEmpty || hasAttachments);
 
   return (
     <div className="wd-composer-shell rounded-xl border wd-border-subtle bg-[var(--wd-surface-panel)]">
@@ -147,6 +147,7 @@ function ComposerActions({
       <input
         ref={fileInputRef}
         type="file"
+        multiple
         className="hidden"
         onChange={onFileSelect}
       />

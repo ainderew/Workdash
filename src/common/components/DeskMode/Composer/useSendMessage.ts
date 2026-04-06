@@ -8,8 +8,8 @@ import useCustomEmojiStore from '@/common/store/customEmojiStore';
 interface UseSendMessageArgs {
   getContent: () => string;
   clearContent: () => void;
-  selectedFile: File | null;
-  setSelectedFile: (f: File | null) => void;
+  selectedFiles: File[];
+  setSelectedFiles: (files: File[]) => void;
   setUploadError: (e: string | null) => void;
   roomId: string | null;
   disabled?: boolean;
@@ -28,8 +28,8 @@ interface UseSendMessageArgs {
 export function useSendMessage({
   getContent,
   clearContent,
-  selectedFile,
-  setSelectedFile,
+  selectedFiles,
+  setSelectedFiles,
   setUploadError,
   roomId,
   disabled,
@@ -68,26 +68,31 @@ export function useSendMessage({
     const content = serializeCustomEmojis(
       serializedMentionContent.content.trim(),
     );
-    if ((!content && !selectedFile) || disabled || isSending || !roomId)
+    if (
+      (!content && selectedFiles.length === 0) ||
+      disabled ||
+      isSending ||
+      !roomId
+    )
       return;
 
     setUploadError(null);
 
-    const previousContent = rawContent;
-    const previousFile = selectedFile;
+    const previousFiles = selectedFiles;
     clearContent();
-    setSelectedFile(null);
+    setSelectedFiles([]);
     closeMentionFlyout();
 
     try {
       let attachments: ChatV2CreateAttachment[] | undefined;
 
-      if (previousFile) {
-        const uploaded = await uploadChatFileForMessage(
-          roomId,
-          previousFile,
+      if (previousFiles.length > 0) {
+        const uploaded = await Promise.all(
+          previousFiles.map((file) =>
+            uploadChatFileForMessage(roomId, file),
+          ),
         );
-        attachments = [uploaded.attachment];
+        attachments = uploaded.map((u) => u.attachment);
       }
 
       await onSend(
@@ -101,20 +106,13 @@ export function useSendMessage({
           : undefined,
       );
     } catch (error) {
-      // Note: with Tiptap we can't easily restore previous rich text state,
-      // but we can restore the markdown string by setting content
-      // For now, just report the error - the content was already serialized
-      setSelectedFile(previousFile);
+      // Restore the file selection so the user can retry without re-picking
+      setSelectedFiles(previousFiles);
       setUploadError(
         error instanceof Error
           ? error.message
           : 'Failed to upload file',
       );
-      // Attempt to restore content by re-inserting the raw markdown
-      if (previousContent) {
-        // The clearContent already cleared the editor, so we need to signal restoration
-        // This is handled by the caller if needed
-      }
     } finally {
       // Only re-focus if the editor lost focus (e.g. file upload dialog).
       // Avoid unconditional focus — it interrupts typing that's already
@@ -128,7 +126,7 @@ export function useSendMessage({
     }
   }, [
     getContent,
-    selectedFile,
+    selectedFiles,
     disabled,
     isSending,
     roomId,
@@ -136,7 +134,7 @@ export function useSendMessage({
     serializeCustomEmojis,
     setUploadError,
     clearContent,
-    setSelectedFile,
+    setSelectedFiles,
     closeMentionFlyout,
     onSend,
     focusInput,

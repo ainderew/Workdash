@@ -223,17 +223,25 @@ vi.mock('./DeskGifPicker', () => ({
 
 vi.mock('./AttachmentPreview', () => ({
   AttachmentPreview: ({
-    file,
-    onRemove,
+    files,
+    onRemoveAt,
   }: {
-    file: File;
-    onRemove: () => void;
+    files: File[];
+    onRemoveAt: (index: number) => void;
   }) => (
     <div data-testid="attachment-preview">
-      <span data-testid="attachment-name">{file.name}</span>
-      <button data-testid="attachment-remove" onClick={onRemove}>
-        remove
-      </button>
+      <span data-testid="attachment-count">{files.length}</span>
+      {files.map((file, index) => (
+        <div key={index}>
+          <span data-testid={`attachment-name-${index}`}>{file.name}</span>
+          <button
+            data-testid={`attachment-remove-${index}`}
+            onClick={() => onRemoveAt(index)}
+          >
+            remove
+          </button>
+        </div>
+      ))}
     </div>
   ),
 }));
@@ -340,9 +348,31 @@ describe('Composer', () => {
       fireEvent.change(fileInput, { target: { files: [file] } });
 
       expect(screen.getByTestId('attachment-preview')).toBeInTheDocument();
-      expect(screen.getByTestId('attachment-name')).toHaveTextContent(
+      expect(screen.getByTestId('attachment-name-0')).toHaveTextContent(
         'test.png',
       );
+    });
+
+    it('shows multiple files when multiple are selected', () => {
+      renderComposer();
+      const fileInput = document.querySelector(
+        'input[type="file"]',
+      ) as HTMLInputElement;
+
+      fireEvent.change(fileInput, {
+        target: {
+          files: [
+            makeFile('a.png'),
+            makeFile('b.png'),
+            makeFile('c.png'),
+          ],
+        },
+      });
+
+      expect(screen.getByTestId('attachment-count')).toHaveTextContent('3');
+      expect(screen.getByTestId('attachment-name-0')).toHaveTextContent('a.png');
+      expect(screen.getByTestId('attachment-name-1')).toHaveTextContent('b.png');
+      expect(screen.getByTestId('attachment-name-2')).toHaveTextContent('c.png');
     });
 
     it('clears file when remove button is clicked', () => {
@@ -354,8 +384,27 @@ describe('Composer', () => {
       fireEvent.change(fileInput, { target: { files: [makeFile()] } });
       expect(screen.getByTestId('attachment-preview')).toBeInTheDocument();
 
-      fireEvent.click(screen.getByTestId('attachment-remove'));
+      fireEvent.click(screen.getByTestId('attachment-remove-0'));
       expect(screen.queryByTestId('attachment-preview')).not.toBeInTheDocument();
+    });
+
+    it('removes a single file from a multi-file selection by index', () => {
+      renderComposer();
+      const fileInput = document.querySelector(
+        'input[type="file"]',
+      ) as HTMLInputElement;
+
+      fireEvent.change(fileInput, {
+        target: {
+          files: [makeFile('a.png'), makeFile('b.png'), makeFile('c.png')],
+        },
+      });
+
+      fireEvent.click(screen.getByTestId('attachment-remove-1'));
+
+      expect(screen.getByTestId('attachment-count')).toHaveTextContent('2');
+      expect(screen.getByTestId('attachment-name-0')).toHaveTextContent('a.png');
+      expect(screen.getByTestId('attachment-name-1')).toHaveTextContent('c.png');
     });
 
     it('enables send button when file is attached (no text)', () => {
