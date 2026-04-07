@@ -998,6 +998,20 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
                                 }}
                                 onJumpToPinnedMessage={(pin) => {
                                     setIsPinnedPanelVisible(false);
+                                    const replyRootId =
+                                        pin.message.replyToMessageId;
+                                    if (replyRootId) {
+                                        // Pinned message is a thread reply — open the thread.
+                                        setThreadRootMessage(null);
+                                        setThreadReplies([]);
+                                        setActiveThreadRootId(replyRootId);
+                                        void loadThread(
+                                            replyRootId,
+                                            pin.roomId,
+                                        );
+                                        return;
+                                    }
+                                    closeThreadPanel();
                                     setFocusedMessageId(pin.messageId);
                                 }}
                                 onOpenNotification={(notification) => {
