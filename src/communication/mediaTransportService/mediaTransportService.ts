@@ -182,11 +182,18 @@ export class MediaTransportService {
 
     public async initializeSfu() {
         try {
+            const t0 = performance.now();
+
             await this.initializeRtpCapabilities();
+            console.info(`[init-timing] SFU rtpCapabilities: ${(performance.now() - t0).toFixed(1)}ms`);
 
+            const t1 = performance.now();
             await this.createReceiveTransport();
+            console.info(`[init-timing] SFU createRecvTransport: ${(performance.now() - t1).toFixed(1)}ms`);
 
+            const t2 = performance.now();
             await this.createSendTransport();
+            console.info(`[init-timing] SFU createSendTransport: ${(performance.now() - t2).toFixed(1)}ms`);
 
             this.setUserDataOnSfuServer();
         } catch (error) {

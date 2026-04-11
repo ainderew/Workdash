@@ -95,6 +95,10 @@ export class AudioChat {
     private receiveFilters: Map<string, BiquadFilterNode> = new Map();
     /** Shared output limiter to prevent clipping from loud remote speakers */
     private outputLimiter: DynamicsCompressorNode | null = null;
+    /** Dedicated AudioContext for music (larger buffer for smooth playback) */
+    private musicAudioContext: AudioContext | null = null;
+    /** Music-specific limiter (softer attack than voice limiter) */
+    private musicLimiter: DynamicsCompressorNode | null = null;
     /** Noise gate polling interval for send-side audio */
     private noiseGateInterval: ReturnType<typeof setInterval> | null = null;
     /** Noise gate hold timer (setTimeout) cleared on teardown */
@@ -288,7 +292,7 @@ export class AudioChat {
      * Call this on user interaction (click, key press, etc.)
      */
     public async resumeAudioContexts(): Promise<void> {
-        const contexts = [this.audioContext, this.outputAudioContext].filter(
+        const contexts = [this.audioContext, this.outputAudioContext, this.musicAudioContext].filter(
             (ctx): ctx is AudioContext => ctx !== null,
         );
 
@@ -634,39 +638,30 @@ export class AudioChat {
 
             const remoteStream = new MediaStream([consumer.track]);
 
-            if (!this.outputAudioContext || this.outputAudioContext.state === 'closed') {
-                this.outputAudioContext = new AudioContext({
-                    latencyHint: 'interactive',
-                });
-
-                // Shared limiter before destination to prevent clipping from loud speakers
-                this.outputLimiter = this.outputAudioContext.createDynamicsCompressor();
-                this.outputLimiter.threshold.value = -1;
-                this.outputLimiter.knee.value = 0;
-                this.outputLimiter.ratio.value = 20;
-                this.outputLimiter.attack.value = 0.001;
-                this.outputLimiter.release.value = 0.05;
-                this.outputLimiter.connect(this.outputAudioContext.destination);
-            }
-
-            // Firefox requires AudioContext to be resumed after user gesture
-            if (this.outputAudioContext.state === "suspended") {
-                await this.outputAudioContext.resume();
-            }
-
-            const source =
-                this.outputAudioContext.createMediaStreamSource(remoteStream);
-
             const isMusicBot = this.musicBotProducerIds.has(
                 consumerData.producerId,
             );
+
+            // Music and voice use separate AudioContexts:
+            // - Voice: 'interactive' latency (tiny buffer, low latency)
+            // - Music: 'playback' latency (larger buffer, smooth playback)
+            const ctx = isMusicBot
+                ? this.getOrCreateMusicAudioContext()
+                : this.getOrCreateVoiceAudioContext();
+
+            // Firefox requires AudioContext to be resumed after user gesture
+            if (ctx.state === "suspended") {
+                await ctx.resume();
+            }
+
+            const source = ctx.createMediaStreamSource(remoteStream);
 
             // Receive-side high-pass for voice (skip for music bot)
             // Only high-pass is needed — capture side already low-passes at 8kHz,
             // so a receive-side low-pass would add phase distortion with no benefit.
             let lastNode: AudioNode = source;
             if (!isMusicBot) {
-                const rxHighPass = this.outputAudioContext.createBiquadFilter();
+                const rxHighPass = ctx.createBiquadFilter();
                 rxHighPass.type = "highpass";
                 rxHighPass.frequency.value = 80;
 
@@ -675,7 +670,7 @@ export class AudioChat {
                 this.receiveFilters.set(consumer.id, rxHighPass);
             }
 
-            const gainNode = this.outputAudioContext.createGain();
+            const gainNode = ctx.createGain();
 
             if (isMusicBot) {
                 const musicVol = useAudioStore
@@ -697,8 +692,9 @@ export class AudioChat {
                 }
             }
 
+            const limiter = isMusicBot ? this.musicLimiter! : this.outputLimiter!;
             lastNode.connect(gainNode);
-            gainNode.connect(this.outputLimiter!);
+            gainNode.connect(limiter);
 
             this.mediaStreamSources.set(consumer.id, source);
             this.gainNodes.set(consumer.id, gainNode);
@@ -729,6 +725,42 @@ export class AudioChat {
         } finally {
             this.consumingInFlight.delete(producerId);
         }
+    }
+
+    private createLimitedAudioContext(
+        latencyHint: AudioContextLatencyCategory,
+        attack: number,
+        release: number,
+    ): { ctx: AudioContext; limiter: DynamicsCompressorNode } {
+        const ctx = new AudioContext({ latencyHint });
+        const limiter = ctx.createDynamicsCompressor();
+        limiter.threshold.value = -1;
+        limiter.knee.value = 0;
+        limiter.ratio.value = 20;
+        limiter.attack.value = attack;
+        limiter.release.value = release;
+        limiter.connect(ctx.destination);
+        return { ctx, limiter };
+    }
+
+    private getOrCreateVoiceAudioContext(): AudioContext {
+        if (!this.outputAudioContext || this.outputAudioContext.state === 'closed') {
+            const { ctx, limiter } = this.createLimitedAudioContext('interactive', 0.001, 0.05);
+            this.outputAudioContext = ctx;
+            this.outputLimiter = limiter;
+        }
+        return this.outputAudioContext;
+    }
+
+    private getOrCreateMusicAudioContext(): AudioContext {
+        if (!this.musicAudioContext || this.musicAudioContext.state === 'closed') {
+            // Softer limiter for music — higher attack avoids gain-pumping
+            // on dynamic transients (bass drops, drum hits)
+            const { ctx, limiter } = this.createLimitedAudioContext('playback', 0.01, 0.1);
+            this.musicAudioContext = ctx;
+            this.musicLimiter = limiter;
+        }
+        return this.musicAudioContext;
     }
 
     private async processAudioStream(
@@ -1217,6 +1249,16 @@ export class AudioChat {
             this.outputAudioContext = null;
         }
 
+        if (this.musicLimiter) {
+            this.musicLimiter.disconnect();
+            this.musicLimiter = null;
+        }
+
+        if (this.musicAudioContext) {
+            await this.musicAudioContext.close();
+            this.musicAudioContext = null;
+        }
+
         this.audioElements.forEach((audioEl) => {
             audioEl.remove();
         });
@@ -1270,6 +1312,10 @@ export class AudioChat {
 
     private createAnalyserForProducer(producerId: string | undefined): AnalyserNode | null {
         if (!producerId || !this.outputAudioContext) return null;
+
+        // Music bot sources live on musicAudioContext — skip analyser
+        // (they are not active-speaker candidates)
+        if (this.musicBotProducerIds.has(producerId)) return null;
 
         const consumerId = this.producerToConsumerMap.get(producerId);
         if (!consumerId) return null;

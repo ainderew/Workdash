@@ -114,19 +114,38 @@ function App() {
             tokenStore.setCharacter(session.backendCharacter);
     }, [status, session?.backendJwt, session?.backendUser, session?.backendCharacter]);
 
+    const [initStep, setInitStep] = React.useState("");
+
     const initServices = React.useCallback(async (jwtToken: string) => {
         if (initInFlight.current) return;
         initInFlight.current = true;
         setInitError(null);
 
+        const t0 = performance.now();
+        let currentStep = "Creating transport...";
+        const step = (label: string) => {
+            currentStep = label;
+            setInitStep(label);
+        };
+        const logStep = (label: string) => {
+            console.info(`[init-timing] ${label}: ${(performance.now() - t0).toFixed(1)}ms`);
+        };
+
         try {
+            step("Creating transport...");
             const transport = MediaTransportService.getInstance(jwtToken);
             const reactionService = ReactionService.getInstance();
             const pollService = PollService.getInstance();
 
+            step("Connecting to server...");
             await transport.connect();
-            await transport.initializeSfu();
+            logStep("socket connected");
 
+            step("Initializing SFU...");
+            await transport.initializeSfu();
+            logStep("SFU initialized");
+
+            step("Setting up listeners...");
             reactionService.setupReactionListener();
             reactionService.uiUpdater = (emojiData) => {
                 reactionService.routeReactionToPlayer(emojiData);
@@ -149,11 +168,13 @@ function App() {
 
             void getMusicBotAvatarDataUri();
 
+            logStep("TOTAL initServices");
             setIsInitialized(true);
         } catch (error) {
             const message =
                 error instanceof Error ? error.message : "Unknown error";
             console.error("Failed to initialize services:", error);
+            logStep(`FAILED at step: ${currentStep}`);
             setInitError(message);
         } finally {
             initInFlight.current = false;
@@ -342,7 +363,7 @@ function App() {
                                 Initializing services...
                             </div>
                             <div className="wd-text-muted text-xs">
-                                Check console for details
+                                {initStep || "Starting up..."}
                             </div>
                         </>
                     )}
