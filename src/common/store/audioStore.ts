@@ -26,7 +26,7 @@ interface AudioState {
 const useAudioStore = create<AudioState>((set, get) => ({
     userVolumes: new Map<number, number>(),
     userMuted: new Map<number, number>(),
-    musicVolume: 0.5,
+    musicVolume: 0.25,
     audioQualityMode: 'standard' as AudioQualityMode,
     noiseCancellation: (() => {
         if (typeof window === 'undefined') return true;
