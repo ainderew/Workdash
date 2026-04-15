@@ -48,12 +48,17 @@ jobs:
     steps:
       - name: Deploy to droplet
         uses: appleboy/ssh-action@v1
+        env:
+          GHCR_PAT: ${{ secrets.GHCR_PAT }}
+          GHCR_USER: ainderew
         with:
           host: ${{ secrets.DROPLET_IP }}
           username: root
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          envs: GHCR_PAT,GHCR_USER
           script: |
             set -e
+            echo "$GHCR_PAT" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
             docker pull ghcr.io/${{ env.IMAGE_NAME }}:latest
             docker stop workdash-frontend || true
             docker rm workdash-frontend || true
