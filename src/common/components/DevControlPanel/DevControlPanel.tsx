@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { CONFIG } from "@/common/utils/config";
 import useUserStore from "@/common/store/useStore";
 import useChatV2Store from "@/common/store/chatV2Store";
