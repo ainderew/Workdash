@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useActivityStore } from "@/common/store/activityStore";
 import type { UserActivity } from "@/communication/activity/_types";
 import { Gamepad2, Sparkles, Tv } from "lucide-react";
@@ -78,6 +78,10 @@ function ActivityIcon({ type }: { type: UserActivity["type"] }) {
       return <Gamepad2 size={size} className="shrink-0" />;
     case "custom":
       return <Sparkles size={size} className="shrink-0" />;
+    default: {
+      const _exhaustive: never = type;
+      return _exhaustive;
+    }
   }
 }
 
@@ -91,25 +95,15 @@ function formatActivityLabel(activity: UserActivity): string {
       return `Playing ${activity.title}`;
     case "custom":
       return activity.text;
+    default: {
+      const _exhaustive: never = activity;
+      return _exhaustive;
+    }
   }
 }
 
-export function ActivityText({
-  userId,
-  workspaceId,
-}: {
-  userId: number;
-  workspaceId: string | null;
-}) {
-  const activity = useActivityStore(
-    (s) =>
-      (workspaceId && s.activityMap[workspaceId]?.[userId]) || null,
-  );
-  if (!activity) return null;
-
-  const isListening = activity.type === "listening";
-
-  if (isListening) {
+function ActivityPill({ activity }: { activity: UserActivity }) {
+  if (activity.type === "listening") {
     return (
       <span className="wd-activity-pill flex items-center gap-1.5 text-[11px] max-w-full overflow-hidden wd-text-muted rounded-full pl-1.5 pr-2 py-0.5">
         <ListeningEqualizer />
@@ -123,6 +117,33 @@ export function ActivityText({
     <span className="wd-activity-pill flex items-center gap-1 text-[11px] max-w-full wd-text-muted truncate">
       <ActivityIcon type={activity.type} />
       <span className="truncate">{formatActivityLabel(activity)}</span>
+    </span>
+  );
+}
+
+export function ActivityText({
+  userId,
+  workspaceId,
+}: {
+  userId: number;
+  workspaceId: string | null;
+}) {
+  const activities = useActivityStore((s) =>
+    workspaceId ? s.activityMap[workspaceId]?.[userId] : undefined,
+  );
+
+  const sorted = useMemo(() => {
+    if (!activities) return [];
+    return Object.values(activities).sort((a, b) => b.startedAt - a.startedAt);
+  }, [activities]);
+
+  if (sorted.length === 0) return null;
+
+  return (
+    <span className="flex flex-col items-start gap-0.5 min-w-0 max-w-full">
+      {sorted.map((activity) => (
+        <ActivityPill key={activity.source} activity={activity} />
+      ))}
     </span>
   );
 }

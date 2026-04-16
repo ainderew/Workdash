@@ -32,6 +32,7 @@ import PingDisplay from "./common/components/PingDisplay/PingDisplay";
 import useUiStore, { InteractionMode } from "./common/store/uiStore";
 import useChatV2Store from "./common/store/chatV2Store";
 import DeskLayout from "./common/components/DeskMode/DeskLayout";
+import DevControlPanel from "./common/components/DevControlPanel/DevControlPanel";
 import WorkspaceSelectorOverlay from "./common/components/WorkspaceSelector/WorkspaceSelectorOverlay";
 import useWorkspaceStore from "@/common/store/workspaceStore";
 import useCallStore from "@/common/store/callStore";
@@ -413,6 +414,7 @@ function App() {
             <SoccerGameControlButton />
             <PingDisplay />
             <WorkspaceSelectorOverlay />
+            <DevControlPanel />
         </div>
     );
 }

@@ -368,7 +368,7 @@ export type WorkspaceMember = {
         icon: string | null;
         manualLock: boolean;
     };
-    activity?: UserActivity | null;
+    activities?: UserActivity[] | null;
     awardTag?: AwardTagData | null;
 };
 

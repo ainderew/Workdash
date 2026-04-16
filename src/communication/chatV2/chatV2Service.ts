@@ -1039,15 +1039,18 @@ export class ChatV2Service {
 
         // Hydrate activity store from workspace member list
         const activityEntries = response.members
-            .filter((m: WorkspaceMember) => m.activity)
+            .filter(
+                (m: WorkspaceMember) =>
+                    Array.isArray(m.activities) && m.activities.length > 0,
+            )
             .map((m: WorkspaceMember) => ({
                 userId: m.userId,
-                activity: m.activity!,
+                activities: m.activities!,
             }));
         if (activityEntries.length > 0) {
             useActivityStore
                 .getState()
-                .batchSetActivities(workspaceId, activityEntries);
+                .hydrateActivities(workspaceId, activityEntries);
         }
 
         return response.members;
