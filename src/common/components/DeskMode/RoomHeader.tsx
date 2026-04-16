@@ -368,7 +368,12 @@ function RoomHeader({
                     >
                         <Bell size={15} />
                         {hasUnreadNotificationDot ? (
-                            <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-[var(--wd-danger)]" />
+                            <span className="absolute -right-1.5 -top-1.5 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[var(--wd-danger)] px-1 text-[10px] font-bold leading-none text-white ring-2 ring-[var(--wd-surface-panel-2)]">
+                                {(() => {
+                                    const total = incomingFriendRequestCount + unreadNotificationCount;
+                                    return total > 99 ? "99+" : total;
+                                })()}
+                            </span>
                         ) : null}
                     </button>
 
