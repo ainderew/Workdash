@@ -65,7 +65,16 @@ function MemberPanel({
     const [isAddMemberModalOpen, setIsAddMemberModalOpen] =
         React.useState(false);
     const [searchQuery, setSearchQuery] = React.useState("");
-    const presenceMap = usePresenceStore((s) => s.presenceMap);
+    // Stable string key that changes ONLY when someone goes online/offline — not
+    // on status-color changes (online→away, online→focus). This prevents the
+    // expensive grouping memo below from re-running on every single presence update.
+    const onlineUserIdKey = usePresenceStore((s) => {
+        const online: number[] = [];
+        for (const [uid, p] of Object.entries(s.presenceMap)) {
+            if (p && p.statusId !== "offline") online.push(Number(uid));
+        }
+        return online.sort((a, b) => a - b).join(",");
+    });
     const usersInCall = useUsersInCall();
     const [isOfflineCollapsed, setIsOfflineCollapsed] = React.useState(false);
 
@@ -97,8 +106,9 @@ function MemberPanel({
             const offline: ChatV2RoomMember[] = [];
             let count = 0;
 
+            const presenceSnap = usePresenceStore.getState().presenceMap;
             for (const member of filteredMembers) {
-                const presence = presenceMap[member.userId];
+                const presence = presenceSnap[member.userId];
                 const isOffline =
                     !presence || presence.statusId === "offline";
 
@@ -144,7 +154,7 @@ function MemberPanel({
                 offlineMembers: offline,
                 offlineCount: count,
             };
-        }, [filteredMembers, presenceMap, wsMemberMap, workspaceOwnerId]);
+        }, [filteredMembers, onlineUserIdKey, wsMemberMap, workspaceOwnerId]);
 
     return (
         <>

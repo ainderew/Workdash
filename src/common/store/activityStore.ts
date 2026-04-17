@@ -53,6 +53,17 @@ export const useActivityStore = create<ActivityState>((set) => ({
     setActivity: (wsId, userId, activity) =>
         set((state) => {
             const wsMap = state.activityMap[wsId] ?? {};
+            const existing = wsMap[userId]?.[activity.source];
+            if (
+                existing &&
+                existing.type === activity.type &&
+                existing.startedAt === activity.startedAt &&
+                ("title" in existing && "title" in activity
+                    ? existing.title === activity.title
+                    : true)
+            ) {
+                return state;
+            }
             return {
                 activityMap: {
                     ...state.activityMap,

@@ -75,6 +75,7 @@ export class ChatV2Service {
     private transport: MediaTransportService;
 
     private teardownRealtimeHandlers: (() => void) | null = null;
+    private typingDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
     constructor() {
         const jwtToken =
@@ -268,7 +269,11 @@ export class ChatV2Service {
     }
 
     emitTyping(roomId: string): void {
+        if (this.typingDebounceTimer) return;
         this.transport.socket.emit("chat:v2:typing:start", { roomId });
+        this.typingDebounceTimer = setTimeout(() => {
+            this.typingDebounceTimer = null;
+        }, 200);
     }
 
     async listRooms(workspaceId?: string): Promise<ChatV2Room[]> {

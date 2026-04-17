@@ -52,7 +52,7 @@ export class MediaTransportService {
         });
 
         this.socket.on("connect_error", (error: Error) => {
-            console.error(
+            logger.log(
                 "MediaTransport socket connection error:",
                 error.message,
             );

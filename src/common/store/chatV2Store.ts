@@ -2000,11 +2000,22 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
         set((state) => {
             const current = state.typingUsersByRoomId[roomId] || [];
             const expiresAt = Date.now() + 6000;
-            const filtered = current.filter((t) => t.userId !== userId);
+            const existing = current.find((t) => t.userId === userId);
+            if (existing) {
+                // User already typing — just bump expiresAt, avoid array reconstruction.
+                return {
+                    typingUsersByRoomId: {
+                        ...state.typingUsersByRoomId,
+                        [roomId]: current.map((t) =>
+                            t.userId === userId ? { ...t, expiresAt } : t,
+                        ),
+                    },
+                };
+            }
             return {
                 typingUsersByRoomId: {
                     ...state.typingUsersByRoomId,
-                    [roomId]: [...filtered, { userId, displayName, expiresAt }],
+                    [roomId]: [...current, { userId, displayName, expiresAt }],
                 },
             };
         });
