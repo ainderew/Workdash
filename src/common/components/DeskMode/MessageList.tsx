@@ -1153,7 +1153,13 @@ function MessageList({
                     itemContent={itemContent}
                     components={{ Header }}
                     className="no-scrollbar"
-                    style={{ height: "100%", width: "100%" }}
+                    style={{
+                        height: "100%",
+                        width: "100%",
+                        paddingLeft: 16,
+                        paddingRight: 16,
+                        paddingBottom: 8,
+                    }}
                 />
             )}
 
