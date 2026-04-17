@@ -1038,9 +1038,10 @@ function MessageList({
 
     const itemContent = useCallback(
         (index: number, message: ChatV2Message) => {
+            const arrayIndex = index - firstItemIndex;
             const previousMessage =
-                index > 0
-                    ? groupedMessages.rootMessages[index - 1]
+                arrayIndex > 0
+                    ? groupedMessages.rootMessages[arrayIndex - 1]
                     : null;
             const threadReplies =
                 groupedMessages.repliesByRootId.get(message.id) || [];
@@ -1084,6 +1085,7 @@ function MessageList({
             );
         },
         [
+            firstItemIndex,
             groupedMessages,
             flyoutMessageId,
             editingMessageId,
