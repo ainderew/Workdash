@@ -344,10 +344,11 @@ function MessageList({
         isAtBottomRef.current = true;
     }, [currentRoomId]);
 
-    // Auto-scroll when local user sends a message
+    // Handle new messages: snap to bottom for own sends, show pill for others
     useEffect(() => {
         if (focusedMessageId || isLoading) return;
         if (isLoadingOlderRef.current) return;
+        if (isAtBottomRef.current) return;
 
         const lastMessage =
             groupedMessages.rootMessages[
@@ -360,9 +361,9 @@ function MessageList({
         if (isSentByLocalUser) {
             virtuosoRef.current?.scrollToIndex({
                 index: groupedMessages.rootMessages.length - 1,
-                behavior: "smooth",
+                behavior: "auto",
             });
-        } else if (!isAtBottomRef.current) {
+        } else {
             setShowNewMessagesPill(true);
         }
     }, [
@@ -1009,7 +1010,7 @@ function MessageList({
     }, [groupedMessages.rootMessages.length]);
 
     const handleFollowOutput = useCallback(
-        (isBottom: boolean) => (isBottom ? "smooth" : false),
+        (isBottom: boolean) => (isBottom ? "auto" : false),
         [],
     );
 
