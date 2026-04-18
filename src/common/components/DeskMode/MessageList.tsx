@@ -48,6 +48,8 @@ import { PendingMessageRow } from "./PendingMessageRow";
 import type { AttachmentUrlMap } from "./AttachmentGrid/_types";
 import type { PendingMessage } from "@/communication/chatV2/_types";
 
+const EMPTY_PENDING_MESSAGES: PendingMessage[] = [];
+
 const isPendingMessage = (
     entry: ChatV2Message | PendingMessage,
 ): entry is PendingMessage =>
@@ -315,9 +317,12 @@ function MessageList({
             }),
         [messages],
     );
-    const pendingForRoom = useChatV2Store((state) =>
-        currentRoomId ? state.pendingMessagesByRoom[currentRoomId] ?? [] : [],
-    );
+    const pendingForRoom = useChatV2Store((state) => {
+        if (!currentRoomId) return EMPTY_PENDING_MESSAGES;
+        return (
+            state.pendingMessagesByRoom[currentRoomId] ?? EMPTY_PENDING_MESSAGES
+        );
+    });
 
     const previousPendingClientIdsRef = useRef<Set<string>>(new Set());
     const recentlyReconciledClientIdsRef = useRef<Set<string>>(new Set());
