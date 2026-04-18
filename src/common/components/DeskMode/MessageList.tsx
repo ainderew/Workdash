@@ -1160,6 +1160,7 @@ function MessageList({
                         overflowX: "hidden",
                         paddingLeft: 16,
                         paddingRight: 16,
+                        paddingTop: 16,
                         paddingBottom: 8,
                     }}
                 />
