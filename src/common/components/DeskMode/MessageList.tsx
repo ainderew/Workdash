@@ -1157,6 +1157,7 @@ function MessageList({
                     style={{
                         height: "100%",
                         width: "100%",
+                        overflowX: "hidden",
                         paddingLeft: 16,
                         paddingRight: 16,
                         paddingBottom: 8,
