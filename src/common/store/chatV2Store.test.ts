@@ -1,4 +1,8 @@
-import useChatV2Store from './chatV2Store';
+import useChatV2Store, { selectMergedMessages } from './chatV2Store';
+import type {
+  PendingAttachmentUpload,
+  PendingMessage,
+} from '@/communication/chatV2/_types';
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -193,6 +197,7 @@ beforeEach(() => {
     membersByRoomId: {},
     pinnedMessagesByRoomId: {},
     isLoadingPinnedMessages: false,
+    pendingMessagesByRoom: {},
   });
 
   vi.clearAllMocks();
@@ -819,6 +824,154 @@ describe('useChatV2Store', () => {
         'room-1',
         'new-name',
       );
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // Pending (optimistic) messages
+  // -----------------------------------------------------------------------
+  describe('pending messages slice', () => {
+    const makePendingUpload = (
+      overrides: Partial<PendingAttachmentUpload> = {},
+    ): PendingAttachmentUpload => ({
+      clientId: 'upload-1',
+      file: new File(['x'], 'x.jpg', { type: 'image/jpeg' }),
+      displayName: 'x.jpg',
+      mimeType: 'image/jpeg',
+      sizeBytes: 1,
+      previewUrl: null,
+      progress: null,
+      status: 'preparing',
+      error: null,
+      attachment: null,
+      cancel: null,
+      ...overrides,
+    });
+
+    const makePending = (
+      overrides: Partial<PendingMessage> = {},
+    ): PendingMessage => ({
+      clientMessageId: 'cmid-1',
+      roomId: 'room-1',
+      content: 'hi',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      mentionedUserIds: [],
+      uploads: [],
+      status: 'sending',
+      error: null,
+      ...overrides,
+    });
+
+    it('addPendingMessage then removePendingMessage leaves the slice empty', () => {
+      const pending = makePending();
+      useChatV2Store.getState().addPendingMessage(pending);
+      expect(
+        useChatV2Store.getState().pendingMessagesByRoom['room-1'],
+      ).toHaveLength(1);
+
+      useChatV2Store.getState().removePendingMessage('room-1', 'cmid-1');
+      expect(
+        useChatV2Store.getState().pendingMessagesByRoom['room-1'],
+      ).toEqual([]);
+    });
+
+    it('updatePendingUpload merges patch into the matching upload entry', () => {
+      const upload = makePendingUpload();
+      const pending = makePending({ uploads: [upload] });
+      useChatV2Store.getState().addPendingMessage(pending);
+
+      useChatV2Store
+        .getState()
+        .updatePendingUpload('room-1', 'cmid-1', 'upload-1', {
+          status: 'uploading',
+          progress: 0.5,
+        });
+
+      const saved =
+        useChatV2Store.getState().pendingMessagesByRoom['room-1'][0].uploads[0];
+      expect(saved.status).toBe('uploading');
+      expect(saved.progress).toBe(0.5);
+    });
+
+    it('markPendingMessageFailed flips status to failed with the error', () => {
+      const pending = makePending();
+      useChatV2Store.getState().addPendingMessage(pending);
+
+      useChatV2Store
+        .getState()
+        .markPendingMessageFailed('room-1', 'cmid-1', 'network');
+
+      const saved = useChatV2Store.getState().pendingMessagesByRoom['room-1'][0];
+      expect(saved.status).toBe('failed');
+      expect(saved.error).toBe('network');
+    });
+
+    it('realtime onMessageNew drops pending entry with matching clientMessageId atomically', async () => {
+      await useChatV2Store.getState().initialize();
+      const handlers =
+        mockService.setupRealtimeHandlers.mock.calls[0][0];
+
+      const pending = makePending({ clientMessageId: 'cmid-race' });
+      useChatV2Store.getState().addPendingMessage(pending);
+
+      const serverMessage = makeMessage({
+        id: 'rt-ack-1',
+        roomId: 'room-1',
+        clientMessageId: 'cmid-race',
+      });
+
+      handlers.onMessageNew(serverMessage);
+
+      const { messagesByRoomId, pendingMessagesByRoom } =
+        useChatV2Store.getState();
+      expect(messagesByRoomId['room-1']).toHaveLength(1);
+      expect(pendingMessagesByRoom['room-1'] ?? []).toEqual([]);
+    });
+
+    it('selectMergedMessages preserves chronological order with pending appended last', () => {
+      const serverMessage = makeMessage({
+        id: 'msg-a',
+        clientMessageId: 'cmid-a',
+      });
+      const pending = makePending({ clientMessageId: 'cmid-b' });
+      useChatV2Store.setState({
+        messagesByRoomId: { 'room-1': [serverMessage] },
+      });
+      useChatV2Store.getState().addPendingMessage(pending);
+
+      const merged = selectMergedMessages(
+        useChatV2Store.getState(),
+        'room-1',
+      );
+      expect(merged).toHaveLength(2);
+      expect((merged[0] as { id: string }).id).toBe('msg-a');
+      expect(
+        (merged[1] as PendingMessage).clientMessageId,
+      ).toBe('cmid-b');
+    });
+
+    it('clearPendingMessagesForRoom removes only the target room', () => {
+      useChatV2Store
+        .getState()
+        .addPendingMessage(makePending({ clientMessageId: 'a' }));
+      useChatV2Store.getState().addPendingMessage(
+        makePending({
+          clientMessageId: 'b',
+          roomId: 'room-2',
+        }),
+      );
+
+      useChatV2Store.getState().clearPendingMessagesForRoom('room-1');
+
+      const state = useChatV2Store.getState();
+      expect(state.pendingMessagesByRoom['room-1']).toBeUndefined();
+      expect(state.pendingMessagesByRoom['room-2']).toHaveLength(1);
+    });
+
+    it('clearPendingMessagesForRoom is a no-op for rooms with no pending messages', () => {
+      const before = useChatV2Store.getState().pendingMessagesByRoom;
+      useChatV2Store.getState().clearPendingMessagesForRoom('room-missing');
+      expect(useChatV2Store.getState().pendingMessagesByRoom).toBe(before);
     });
   });
 });

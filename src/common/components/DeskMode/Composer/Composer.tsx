@@ -1,20 +1,22 @@
 import React, { useCallback, useState } from "react";
-import { Upload } from "lucide-react";
-import { AttachmentPreview } from "../AttachmentPreview";
+import { AlertTriangle, Upload } from "lucide-react";
 import DeskGifPicker from "../DeskGifPicker";
 import EmojiPicker from "../EmojiPicker";
 import MentionSuggestionFlyout from "../MentionSuggestionFlyout";
 import EmojiAutocompleteFlyout from "../EmojiAutocompleteFlyout";
 import { BotCommandFlyout } from "../BotCommandAutocomplete";
+import ImagePreviewLightbox from "../ImagePreviewLightbox";
 import TiptapEditorContent from "./TiptapEditorContent";
 import FormattingToolbar from "./FormattingToolbar";
 import LinkPopover from "./LinkPopover";
 import ComposerActions from "./ComposerActions";
+import { ComposerAttachmentGrid } from "./ComposerAttachmentGrid";
 import { useComposerState } from "./useComposerState";
 import { useTiptapEditor } from "./useTiptapEditor";
 import { useTiptapAutocomplete } from "./useTiptapAutocomplete";
 import { useSendMessage } from "./useSendMessage";
 import { useFileDrop } from "./useFileDrop";
+import { useAttachmentUploads } from "./useAttachmentUploads";
 import type { ComposerProps } from "./_types";
 
 function Composer(props: ComposerProps) {
@@ -31,12 +33,8 @@ function Composer(props: ComposerProps) {
 
     const state = useComposerState(props);
     const {
-        selectedFiles,
-        setSelectedFiles,
-        addFiles,
-        removeFileAt,
-        uploadError,
-        setUploadError,
+        submitError,
+        setSubmitError,
         showGifPicker,
         setShowGifPicker,
         showEmojiPicker,
@@ -46,13 +44,34 @@ function Composer(props: ComposerProps) {
         localBackendUserId,
         selectedWorkspaceId,
         memberNameMap,
-        handleImagePaste,
     } = state;
 
-    const [showLinkPopover, setShowLinkPopover] = useState(false);
+    const {
+        uploads,
+        addFiles,
+        removeUpload,
+        cancelUpload,
+        retryUpload,
+        reorder,
+        takeReadyAttachments,
+        hasActiveUploads,
+        hasFailedUploads,
+    } = useAttachmentUploads({ roomId });
 
-    // Create a stable submit ref that we'll wire after useSendMessage
+    const [showLinkPopover, setShowLinkPopover] = useState(false);
+    const [lightbox, setLightbox] = useState<{
+        url: string;
+        name: string;
+    } | null>(null);
+
     const submitRef = React.useRef<() => void>(() => {});
+
+    const handleFilesPaste = useCallback(
+        (files: File[]) => {
+            addFiles(files);
+        },
+        [addFiles],
+    );
 
     const tiptap = useTiptapEditor({
         placeholder,
@@ -60,7 +79,7 @@ function Composer(props: ComposerProps) {
         onSubmit: () => submitRef.current(),
         onEditLastMessage,
         onTyping,
-        onImagePaste: handleImagePaste,
+        onFilesPaste: handleFilesPaste,
         onLinkShortcut: () => setShowLinkPopover((prev) => !prev),
     });
 
@@ -77,9 +96,10 @@ function Composer(props: ComposerProps) {
         clearContent: () => {
             tiptap.editor?.commands.clearContent();
         },
-        selectedFiles,
-        setSelectedFiles,
-        setUploadError,
+        takeReadyAttachments,
+        hasActiveUploads,
+        hasFailedUploads,
+        setSubmitError,
         roomId,
         disabled,
         isSending,
@@ -90,7 +110,6 @@ function Composer(props: ComposerProps) {
         selectedWorkspaceId,
     });
 
-    // Wire up the submit ref so the keyboard shortcut can call submit
     submitRef.current = () => void submit();
 
     const handleToggleCodeBlock = useCallback(() => {
@@ -132,6 +151,10 @@ function Composer(props: ComposerProps) {
         },
         [tiptap.editor],
     );
+
+    const failedCount = uploads.filter((u) => u.status === "failed").length;
+    const submitDisabled =
+        disabled || isSending || hasActiveUploads || hasFailedUploads;
 
     return (
         <div
@@ -196,17 +219,27 @@ function Composer(props: ComposerProps) {
                 </div>
             )}
 
-            {selectedFiles.length > 0 && (
-                <div className="mb-2">
-                    <AttachmentPreview
-                        files={selectedFiles}
-                        onRemoveAt={removeFileAt}
-                    />
+            {uploads.length > 0 && (
+                <ComposerAttachmentGrid
+                    uploads={uploads}
+                    onReorder={reorder}
+                    onRemove={removeUpload}
+                    onCancel={cancelUpload}
+                    onRetry={retryUpload}
+                    onPreviewClick={(url, name) => setLightbox({ url, name })}
+                />
+            )}
+
+            {failedCount > 0 && (
+                <div className="mb-2 flex items-center gap-2 text-xs wd-text-danger">
+                    <AlertTriangle size={14} />
+                    {failedCount} {failedCount === 1 ? "file" : "files"} failed
+                    to upload — retry or remove before sending.
                 </div>
             )}
 
-            {uploadError && (
-                <div className="mb-2 text-xs wd-text-danger">{uploadError}</div>
+            {submitError && !failedCount && (
+                <div className="mb-2 text-xs wd-text-danger">{submitError}</div>
             )}
 
             {showLinkPopover && tiptap.editor && (
@@ -217,11 +250,11 @@ function Composer(props: ComposerProps) {
             )}
 
             <ComposerActions
-                disabled={disabled}
+                disabled={submitDisabled}
                 isSending={isSending}
                 fileInputRef={fileInputRef}
                 editor={tiptap.editor}
-                hasAttachments={selectedFiles.length > 0}
+                hasAttachments={uploads.length > 0}
                 setShowGifPicker={setShowGifPicker}
                 onToggleEmojiPicker={handleToggleEmojiPicker}
                 onFileSelect={handleFileSelect}
@@ -238,6 +271,17 @@ function Composer(props: ComposerProps) {
                     onLinkClick={handleLinkClick}
                 />
             </ComposerActions>
+
+            {lightbox && (
+                <ImagePreviewLightbox
+                    onClose={() => setLightbox(null)}
+                    current={{
+                        fileId: "",
+                        imageUrl: lightbox.url,
+                        fileName: lightbox.name,
+                    }}
+                />
+            )}
         </div>
     );
 }

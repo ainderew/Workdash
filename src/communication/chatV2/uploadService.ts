@@ -3,13 +3,40 @@ import { CONFIG } from "@/common/utils/config";
 import { tokenStore } from "@/common/utils/tokenStore";
 import { getCachedUrl, setCachedUrl } from "./urlCacheService";
 
+type UploadUrlResponseAttachment = Omit<ChatV2CreateAttachment, "hasPoster">;
+
 type UploadUrlResponse = {
     fileId: string;
     signedUrl: string;
     uploadMethod: "PUT";
     expiresInMs: number;
     requiredHeaders: Record<string, string>;
-    attachment: ChatV2CreateAttachment;
+    attachment: UploadUrlResponseAttachment;
+    poster?: {
+        objectKey: string;
+        signedUrl: string;
+        uploadMethod: "PUT";
+        requiredHeaders: Record<string, string>;
+    };
+};
+
+const withPosterFlag = (
+    attachment: UploadUrlResponseAttachment,
+    hasPoster: boolean,
+): ChatV2CreateAttachment => ({ ...attachment, hasPoster });
+
+type RequestUploadUrlMetadata = {
+    filename: string;
+    contentType: string;
+    sizeBytes: number;
+    width?: number;
+    height?: number;
+    blurhash?: string;
+    durationMs?: number;
+    poster?: {
+        contentType: "image/webp" | "image/jpeg";
+        sizeBytes: number;
+    };
 };
 
 type SignedFileUrlResponse = {
@@ -118,9 +145,20 @@ const compressImageForUpload = async (
 
 const requestUploadUrl = async (
     chatId: string,
-    metadata: { filename: string; contentType: string; sizeBytes: number },
+    metadata: RequestUploadUrlMetadata,
 ): Promise<UploadUrlResponse> => {
     const jwt = getBackendJwt();
+    const body: Record<string, unknown> = {
+        filename: metadata.filename,
+        contentType: metadata.contentType,
+        sizeBytes: metadata.sizeBytes,
+    };
+    if (metadata.width !== undefined) body.width = metadata.width;
+    if (metadata.height !== undefined) body.height = metadata.height;
+    if (metadata.blurhash !== undefined) body.blurhash = metadata.blurhash;
+    if (metadata.durationMs !== undefined) body.durationMs = metadata.durationMs;
+    if (metadata.poster !== undefined) body.poster = metadata.poster;
+
     const response = await fetch(
         `${CONFIG.SFU_SERVER_URL}/api/chats/${encodeURIComponent(chatId)}/files/upload-url`,
         {
@@ -129,11 +167,7 @@ const requestUploadUrl = async (
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${jwt}`,
             },
-            body: JSON.stringify({
-                filename: metadata.filename,
-                contentType: metadata.contentType,
-                sizeBytes: metadata.sizeBytes,
-            }),
+            body: JSON.stringify(body),
         },
     );
 
@@ -142,6 +176,44 @@ const requestUploadUrl = async (
     }
 
     return (await response.json()) as UploadUrlResponse;
+};
+
+type ProgressHandler = (ratio: number) => void;
+
+type UploadHandle = {
+    promise: Promise<void>;
+    cancel: () => void;
+};
+
+const uploadToSignedUrlWithProgress = (
+    body: Blob | File,
+    signedUrl: string,
+    headers: Record<string, string>,
+    onProgress: ProgressHandler,
+): UploadHandle => {
+    const xhr = new XMLHttpRequest();
+    const promise = new Promise<void>((resolve, reject) => {
+        xhr.open("PUT", signedUrl);
+        for (const [k, v] of Object.entries(headers)) {
+            xhr.setRequestHeader(k, v);
+        }
+        xhr.upload.onprogress = (event) => {
+            if (event.lengthComputable) {
+                onProgress(event.loaded / event.total);
+            }
+        };
+        xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) resolve();
+            else reject(new Error(`Upload failed with status ${xhr.status}`));
+        };
+        xhr.onerror = () => reject(new Error("Upload network error"));
+        xhr.onabort = () => reject(new Error("Upload cancelled"));
+        xhr.send(body);
+    });
+    return {
+        promise,
+        cancel: () => xhr.abort(),
+    };
 };
 
 const uploadToSignedUrl = async (
@@ -163,7 +235,7 @@ const uploadToSignedUrl = async (
 
 const getSignedFileUrl = async (
     fileId: string,
-    kind: "view" | "download" | "thumbnail",
+    kind: "view" | "download" | "thumbnail" | "poster",
 ): Promise<SignedFileUrlResponse | null> => {
     const jwt = getBackendJwt();
     const response = await fetch(
@@ -176,7 +248,7 @@ const getSignedFileUrl = async (
         },
     );
 
-    if (kind === "thumbnail" && response.status === 404) {
+    if ((kind === "thumbnail" || kind === "poster") && response.status === 404) {
         return null;
     }
 
@@ -228,7 +300,137 @@ export const uploadChatFileForMessage = async (
 
     return {
         fileId: uploadInit.fileId,
-        attachment: uploadInit.attachment,
+        attachment: withPosterFlag(uploadInit.attachment, false),
+    };
+};
+
+export type UploadChatFileWithProgressInput = {
+    chatId: string;
+    file: File;
+    imageMeta?: { width: number; height: number; blurhash: string | null };
+    videoMeta?: {
+        width: number;
+        height: number;
+        durationMs: number;
+        poster: File | null;
+    };
+    onProgress: ProgressHandler;
+};
+
+export type UploadChatFileWithProgressResult = {
+    fileId: string;
+    attachment: ChatV2CreateAttachment;
+    cancel: () => void;
+};
+
+const confirmPosterUploaded = async (
+    fileId: string,
+    posterObjectKey: string,
+): Promise<void> => {
+    const jwt = getBackendJwt();
+    const response = await fetch(
+        `${CONFIG.SFU_SERVER_URL}/api/chats/files/${encodeURIComponent(fileId)}/poster`,
+        {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${jwt}`,
+            },
+            body: JSON.stringify({ posterObjectKey }),
+        },
+    );
+    if (!response.ok) {
+        throw new Error(await parseErrorPayload(response));
+    }
+};
+
+export { confirmPosterUploaded };
+
+export const uploadChatFileForMessageWithProgress = async (
+    input: UploadChatFileWithProgressInput,
+): Promise<UploadChatFileWithProgressResult> => {
+    const compressed = await compressImageForUpload(input.file);
+    const posterBody = input.videoMeta?.poster ?? null;
+
+    const uploadInit = await requestUploadUrl(input.chatId, {
+        filename: compressed.filename,
+        contentType: compressed.contentType,
+        sizeBytes: compressed.blob.size,
+        ...(input.imageMeta?.width !== undefined && {
+            width: input.imageMeta.width,
+        }),
+        ...(input.imageMeta?.height !== undefined && {
+            height: input.imageMeta.height,
+        }),
+        ...(input.videoMeta?.width !== undefined &&
+            input.imageMeta?.width === undefined && {
+                width: input.videoMeta.width,
+            }),
+        ...(input.videoMeta?.height !== undefined &&
+            input.imageMeta?.height === undefined && {
+                height: input.videoMeta.height,
+            }),
+        ...(input.imageMeta?.blurhash && {
+            blurhash: input.imageMeta.blurhash,
+        }),
+        ...(input.videoMeta?.durationMs !== undefined && {
+            durationMs: input.videoMeta.durationMs,
+        }),
+        ...(posterBody && {
+            poster: {
+                contentType: "image/webp" as const,
+                sizeBytes: posterBody.size,
+            },
+        }),
+    });
+
+    const mainHandle = uploadToSignedUrlWithProgress(
+        compressed.blob,
+        uploadInit.signedUrl,
+        uploadInit.requiredHeaders,
+        input.onProgress,
+    );
+
+    let posterHandle: UploadHandle | null = null;
+    let cancelled = false;
+    const cancel = () => {
+        cancelled = true;
+        mainHandle.cancel();
+        posterHandle?.cancel();
+    };
+
+    await mainHandle.promise;
+
+    let hasPoster = false;
+
+    if (posterBody && uploadInit.poster) {
+        posterHandle = uploadToSignedUrlWithProgress(
+            posterBody,
+            uploadInit.poster.signedUrl,
+            uploadInit.poster.requiredHeaders,
+            () => {},
+        );
+        try {
+            await posterHandle.promise;
+            await confirmPosterUploaded(
+                uploadInit.fileId,
+                uploadInit.poster.objectKey,
+            );
+            hasPoster = true;
+        } catch (error) {
+            console.warn(
+                "Poster upload failed; continuing without poster",
+                error,
+            );
+        }
+    }
+
+    if (cancelled) throw new Error("Upload cancelled");
+
+    return {
+        fileId: uploadInit.fileId,
+        attachment: withPosterFlag(uploadInit.attachment, hasPoster),
+        cancel,
     };
 };
 
@@ -253,6 +455,18 @@ export const getChatFileThumbnailUrl = async (
     const payload = await getSignedFileUrl(fileId, "thumbnail");
     if (!payload) return null;
     setCachedUrl(fileId, "thumbnail", payload.signedUrl);
+    return payload.signedUrl;
+};
+
+export const getChatFilePosterUrl = async (
+    fileId: string,
+): Promise<string | null> => {
+    const cached = getCachedUrl(fileId, "poster");
+    if (cached) return cached;
+
+    const payload = await getSignedFileUrl(fileId, "poster");
+    if (!payload) return null;
+    setCachedUrl(fileId, "poster", payload.signedUrl);
     return payload.signedUrl;
 };
 

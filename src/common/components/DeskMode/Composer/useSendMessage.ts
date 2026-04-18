@@ -1,16 +1,20 @@
 import { useCallback } from 'react';
-import type { ChatV2CreateAttachment } from '@/communication/chatV2/_types';
+import type {
+  ChatV2CreateAttachment,
+  PendingMessage,
+} from '@/communication/chatV2/_types';
 import type { MentionMemberNameMap } from '@/communication/chatV2/mentionUtils';
 import { serializeMentionContentForSend } from '@/communication/chatV2/mentionUtils';
-import { uploadChatFileForMessage } from '@/communication/chatV2/uploadService';
 import useCustomEmojiStore from '@/common/store/customEmojiStore';
+import useChatV2Store from '@/common/store/chatV2Store';
 
 interface UseSendMessageArgs {
   getContent: () => string;
   clearContent: () => void;
-  selectedFiles: File[];
-  setSelectedFiles: (files: File[]) => void;
-  setUploadError: (e: string | null) => void;
+  takeReadyAttachments: () => ChatV2CreateAttachment[] | null;
+  hasActiveUploads: boolean;
+  hasFailedUploads: boolean;
+  setSubmitError: (e: string | null) => void;
   roomId: string | null;
   disabled?: boolean;
   isSending?: boolean;
@@ -20,17 +24,28 @@ interface UseSendMessageArgs {
   onSend: (
     content: string,
     attachments?: ChatV2CreateAttachment[],
-    options?: { mentionedUserIds?: number[] },
+    options?: {
+      mentionedUserIds?: number[];
+      clientMessageId?: string;
+    },
   ) => Promise<void> | void;
   selectedWorkspaceId: string | null;
 }
 
+const generateClientMessageId = (): string => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+};
+
 export function useSendMessage({
   getContent,
   clearContent,
-  selectedFiles,
-  setSelectedFiles,
-  setUploadError,
+  takeReadyAttachments,
+  hasActiveUploads,
+  hasFailedUploads,
+  setSubmitError,
   roomId,
   disabled,
   isSending,
@@ -60,6 +75,17 @@ export function useSendMessage({
   );
 
   const submit = useCallback(async () => {
+    if (disabled || isSending || !roomId) return;
+
+    if (hasActiveUploads) {
+      setSubmitError('Waiting for uploads to finish');
+      return;
+    }
+    if (hasFailedUploads) {
+      setSubmitError('Retry or remove the failed uploads before sending');
+      return;
+    }
+
     const rawContent = getContent();
     const serializedMentionContent = serializeMentionContentForSend(
       rawContent,
@@ -68,55 +94,59 @@ export function useSendMessage({
     const content = serializeCustomEmojis(
       serializedMentionContent.content.trim(),
     );
-    if (
-      (!content && selectedFiles.length === 0) ||
-      disabled ||
-      isSending ||
-      !roomId
-    )
+
+    const ready = takeReadyAttachments();
+    if (ready === null) {
+      setSubmitError('Waiting for uploads to finish');
       return;
+    }
 
-    setUploadError(null);
+    if (!content && ready.length === 0) return;
 
-    const previousFiles = selectedFiles;
+    setSubmitError(null);
+
+    const clientMessageId = generateClientMessageId();
+    const pendingMessage: PendingMessage = {
+      clientMessageId,
+      roomId,
+      content,
+      createdAt: new Date().toISOString(),
+      mentionedUserIds: serializedMentionContent.mentionedUserIds,
+      uploads: [],
+      status: 'sending',
+      error: null,
+    };
+
+    const store = useChatV2Store.getState();
+    store.addPendingMessage(pendingMessage);
+
     clearContent();
-    setSelectedFiles([]);
     closeMentionFlyout();
 
     try {
-      let attachments: ChatV2CreateAttachment[] | undefined;
-
-      if (previousFiles.length > 0) {
-        const uploaded = await Promise.all(
-          previousFiles.map((file) =>
-            uploadChatFileForMessage(roomId, file),
-          ),
-        );
-        attachments = uploaded.map((u) => u.attachment);
-      }
-
       await onSend(
         content,
-        attachments,
-        serializedMentionContent.mentionedUserIds.length > 0
-          ? {
-              mentionedUserIds:
-                serializedMentionContent.mentionedUserIds,
-            }
-          : undefined,
+        ready.length > 0 ? ready : undefined,
+        {
+          ...(serializedMentionContent.mentionedUserIds.length > 0 && {
+            mentionedUserIds: serializedMentionContent.mentionedUserIds,
+          }),
+          clientMessageId,
+        },
       );
+      // Server reconciliation drops the pending entry on realtime receipt.
     } catch (error) {
-      // Restore the file selection so the user can retry without re-picking
-      setSelectedFiles(previousFiles);
-      setUploadError(
-        error instanceof Error
-          ? error.message
-          : 'Failed to upload file',
+      useChatV2Store
+        .getState()
+        .markPendingMessageFailed(
+          roomId,
+          clientMessageId,
+          error instanceof Error ? error.message : 'Failed to send message',
+        );
+      setSubmitError(
+        error instanceof Error ? error.message : 'Failed to send message',
       );
     } finally {
-      // Only re-focus if the editor lost focus (e.g. file upload dialog).
-      // Avoid unconditional focus — it interrupts typing that's already
-      // happening in the still-editable editor and can swallow keystrokes.
       window.requestAnimationFrame(() => {
         const editorEl = document.querySelector('.tiptap-editor');
         if (!editorEl?.contains(document.activeElement)) {
@@ -125,16 +155,17 @@ export function useSendMessage({
       });
     }
   }, [
-    getContent,
-    selectedFiles,
     disabled,
     isSending,
     roomId,
+    hasActiveUploads,
+    hasFailedUploads,
+    getContent,
     memberNameMap,
     serializeCustomEmojis,
-    setUploadError,
+    takeReadyAttachments,
+    setSubmitError,
     clearContent,
-    setSelectedFiles,
     closeMentionFlyout,
     onSend,
     focusInput,
@@ -144,12 +175,12 @@ export function useSendMessage({
     async (gifUrl: string) => {
       if (!gifUrl.trim() || disabled || isSending || !roomId) return;
 
-      setUploadError(null);
+      setSubmitError(null);
 
       try {
         await onSend(gifUrl);
       } catch (error) {
-        setUploadError(
+        setSubmitError(
           error instanceof Error
             ? error.message
             : 'Failed to send GIF',
@@ -160,7 +191,7 @@ export function useSendMessage({
         });
       }
     },
-    [disabled, isSending, roomId, setUploadError, onSend, focusInput],
+    [disabled, isSending, roomId, setSubmitError, onSend, focusInput],
   );
 
   return { submit, submitGif };

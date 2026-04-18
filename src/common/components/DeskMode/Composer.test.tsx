@@ -28,11 +28,30 @@ function makeFile(name = 'test.png', type = 'image/png') {
 
 // ─── Mocks ───────────────────────────────────────────────────────────────────
 
-const mockUploadChatFileForMessage = vi.fn();
+const {
+  mockUploadChatFileForMessage,
+  mockUploadWithProgress,
+  mockAddPendingMessage,
+  mockMarkPendingMessageFailed,
+} = vi.hoisted(() => ({
+  mockUploadChatFileForMessage: vi.fn(),
+  mockUploadWithProgress: vi.fn(),
+  mockAddPendingMessage: vi.fn(),
+  mockMarkPendingMessageFailed: vi.fn(),
+}));
 
 vi.mock('@/communication/chatV2/uploadService', () => ({
   uploadChatFileForMessage: (...args: unknown[]) =>
     mockUploadChatFileForMessage(...args),
+  uploadChatFileForMessageWithProgress: (...args: unknown[]) =>
+    mockUploadWithProgress(...args),
+}));
+
+vi.mock('@/common/utils/mediaMetadata', () => ({
+  extractImageMetadata: vi
+    .fn()
+    .mockResolvedValue({ width: 10, height: 10, blurhash: null }),
+  extractVideoMetadata: vi.fn().mockResolvedValue(null),
 }));
 
 vi.mock('@/common/store/useStore', () => {
@@ -43,7 +62,11 @@ vi.mock('@/common/store/useStore', () => {
 });
 
 vi.mock('@/common/store/chatV2Store', () => {
-  const state = { selectedWorkspaceId: 'ws-1' };
+  const state = {
+    selectedWorkspaceId: 'ws-1',
+    addPendingMessage: mockAddPendingMessage,
+    markPendingMessageFailed: mockMarkPendingMessageFailed,
+  };
   const hook = (selector: (s: typeof state) => unknown) => selector(state);
   hook.getState = () => state;
   return { default: hook };
@@ -221,22 +244,33 @@ vi.mock('./DeskGifPicker', () => ({
   ),
 }));
 
-vi.mock('./AttachmentPreview', () => ({
-  AttachmentPreview: ({
-    files,
-    onRemoveAt,
+interface ComposerAttachmentGridMockUpload {
+  clientId: string;
+  displayName: string;
+  status: string;
+}
+
+vi.mock('./Composer/ComposerAttachmentGrid', () => ({
+  ComposerAttachmentGrid: ({
+    uploads,
+    onRemove,
   }: {
-    files: File[];
-    onRemoveAt: (index: number) => void;
+    uploads: ComposerAttachmentGridMockUpload[];
+    onRemove: (id: string) => void;
   }) => (
     <div data-testid="attachment-preview">
-      <span data-testid="attachment-count">{files.length}</span>
-      {files.map((file, index) => (
-        <div key={index}>
-          <span data-testid={`attachment-name-${index}`}>{file.name}</span>
+      <span data-testid="attachment-count">{uploads.length}</span>
+      {uploads.map((upload, index) => (
+        <div key={upload.clientId}>
+          <span data-testid={`attachment-name-${index}`}>
+            {upload.displayName}
+          </span>
+          <span data-testid={`attachment-status-${index}`}>
+            {upload.status}
+          </span>
           <button
             data-testid={`attachment-remove-${index}`}
-            onClick={() => onRemoveAt(index)}
+            onClick={() => onRemove(upload.clientId)}
           >
             remove
           </button>
@@ -277,19 +311,49 @@ function getSendButton(): HTMLElement {
 describe('Composer', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    const successAttachment = {
+      id: 'att-1',
+      storageProvider: 'GCS' as const,
+      objectKey: 'uploads/test.png',
+      originalFileName: 'test.png',
+      mimeType: 'image/png',
+      sizeBytes: '1024',
+      sha256: 'abc',
+      isImage: true,
+      width: 10,
+      height: 10,
+      blurhash: null,
+      hasPoster: false,
+      durationMs: null,
+    };
     mockUploadChatFileForMessage.mockResolvedValue({
       fileId: 'file-1',
-      attachment: {
-        id: 'att-1',
-        storageProvider: 'GCS',
-        objectKey: 'uploads/test.png',
-        originalFileName: 'test.png',
-        mimeType: 'image/png',
-        sizeBytes: '1024',
-        sha256: 'abc',
-        isImage: true,
-      },
+      attachment: successAttachment,
     });
+    mockUploadWithProgress.mockImplementation(
+      async ({ onProgress }: { onProgress?: (r: number) => void }) => {
+        onProgress?.(1);
+        return {
+          fileId: 'file-1',
+          attachment: successAttachment,
+          cancel: vi.fn(),
+        };
+      },
+    );
+
+    // Stub object URL APIs for tile previews.
+    if (typeof URL.createObjectURL !== 'function') {
+      (URL as unknown as { createObjectURL: () => string }).createObjectURL = vi.fn(
+        () => 'blob:http://localhost/mock',
+      );
+    } else {
+      URL.createObjectURL = vi.fn(() => 'blob:http://localhost/mock');
+    }
+    if (typeof URL.revokeObjectURL !== 'function') {
+      (URL as unknown as { revokeObjectURL: () => void }).revokeObjectURL = vi.fn();
+    } else {
+      URL.revokeObjectURL = vi.fn();
+    }
   });
 
   // ── Rendering ──────────────────────────────────────────────────────────
@@ -338,7 +402,7 @@ describe('Composer', () => {
   // ── File Attachment ────────────────────────────────────────────────────
 
   describe('file attachment', () => {
-    it('shows attachment preview when file is selected', () => {
+    it('shows attachment preview when file is selected', async () => {
       renderComposer();
       const fileInput = document.querySelector(
         'input[type="file"]',
@@ -347,13 +411,15 @@ describe('Composer', () => {
       const file = makeFile();
       fireEvent.change(fileInput, { target: { files: [file] } });
 
-      expect(screen.getByTestId('attachment-preview')).toBeInTheDocument();
-      expect(screen.getByTestId('attachment-name-0')).toHaveTextContent(
-        'test.png',
-      );
+      await waitFor(() => {
+        expect(screen.getByTestId('attachment-preview')).toBeInTheDocument();
+        expect(screen.getByTestId('attachment-name-0')).toHaveTextContent(
+          'test.png',
+        );
+      });
     });
 
-    it('shows multiple files when multiple are selected', () => {
+    it('shows multiple files when multiple are selected', async () => {
       renderComposer();
       const fileInput = document.querySelector(
         'input[type="file"]',
@@ -369,26 +435,34 @@ describe('Composer', () => {
         },
       });
 
-      expect(screen.getByTestId('attachment-count')).toHaveTextContent('3');
+      await waitFor(() => {
+        expect(screen.getByTestId('attachment-count')).toHaveTextContent('3');
+      });
       expect(screen.getByTestId('attachment-name-0')).toHaveTextContent('a.png');
       expect(screen.getByTestId('attachment-name-1')).toHaveTextContent('b.png');
       expect(screen.getByTestId('attachment-name-2')).toHaveTextContent('c.png');
     });
 
-    it('clears file when remove button is clicked', () => {
+    it('clears file when remove button is clicked', async () => {
       renderComposer();
       const fileInput = document.querySelector(
         'input[type="file"]',
       ) as HTMLInputElement;
 
       fireEvent.change(fileInput, { target: { files: [makeFile()] } });
-      expect(screen.getByTestId('attachment-preview')).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByTestId('attachment-preview')).toBeInTheDocument();
+      });
 
       fireEvent.click(screen.getByTestId('attachment-remove-0'));
-      expect(screen.queryByTestId('attachment-preview')).not.toBeInTheDocument();
+      await waitFor(() => {
+        expect(
+          screen.queryByTestId('attachment-preview'),
+        ).not.toBeInTheDocument();
+      });
     });
 
-    it('removes a single file from a multi-file selection by index', () => {
+    it('removes a single file from a multi-file selection by clientId', async () => {
       renderComposer();
       const fileInput = document.querySelector(
         'input[type="file"]',
@@ -399,22 +473,81 @@ describe('Composer', () => {
           files: [makeFile('a.png'), makeFile('b.png'), makeFile('c.png')],
         },
       });
+      await waitFor(() => {
+        expect(screen.getByTestId('attachment-count')).toHaveTextContent('3');
+      });
 
       fireEvent.click(screen.getByTestId('attachment-remove-1'));
-
-      expect(screen.getByTestId('attachment-count')).toHaveTextContent('2');
+      await waitFor(() => {
+        expect(screen.getByTestId('attachment-count')).toHaveTextContent('2');
+      });
       expect(screen.getByTestId('attachment-name-0')).toHaveTextContent('a.png');
       expect(screen.getByTestId('attachment-name-1')).toHaveTextContent('c.png');
     });
 
-    it('enables send button when file is attached (no text)', () => {
+    it('enables send button once the upload finishes', async () => {
       renderComposer();
       const fileInput = document.querySelector(
         'input[type="file"]',
       ) as HTMLInputElement;
 
       fireEvent.change(fileInput, { target: { files: [makeFile()] } });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('attachment-status-0')).toHaveTextContent(
+          'uploaded',
+        );
+      });
       expect(getSendButton()).not.toBeDisabled();
+    });
+
+    it('disables the send button while an upload is in flight', async () => {
+      let resolveUpload: ((value: unknown) => void) | null = null;
+      mockUploadWithProgress.mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            resolveUpload = resolve;
+          }),
+      );
+
+      renderComposer();
+      const fileInput = document.querySelector(
+        'input[type="file"]',
+      ) as HTMLInputElement;
+      fireEvent.change(fileInput, { target: { files: [makeFile()] } });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('attachment-status-0')).toHaveTextContent(
+          'uploading',
+        );
+      });
+      expect(getSendButton()).toBeDisabled();
+
+      resolveUpload?.({
+        fileId: 'file-1',
+        attachment: {
+          id: 'att-1',
+          storageProvider: 'GCS',
+          objectKey: 'k',
+          originalFileName: 'test.png',
+          mimeType: 'image/png',
+          sizeBytes: '1',
+          sha256: 'abc',
+          isImage: true,
+          width: 10,
+          height: 10,
+          blurhash: null,
+          hasPoster: false,
+          durationMs: null,
+        },
+        cancel: vi.fn(),
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('attachment-status-0')).toHaveTextContent(
+          'uploaded',
+        );
+      });
     });
 
     it('triggers file input on attach button click', () => {

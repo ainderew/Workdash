@@ -1,4 +1,4 @@
-type UrlVariant = "view" | "thumbnail" | "download";
+export type UrlVariant = "view" | "thumbnail" | "download" | "poster";
 
 type CachedEntry = {
     url: string;
@@ -40,4 +40,5 @@ export const invalidateCachedUrl = (fileId: string): void => {
     cache.delete(toKey(fileId, "view"));
     cache.delete(toKey(fileId, "thumbnail"));
     cache.delete(toKey(fileId, "download"));
+    cache.delete(toKey(fileId, "poster"));
 };

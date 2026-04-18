@@ -51,6 +51,11 @@ export type ChatV2Attachment = {
     sizeBytes: string;
     sha256: string;
     isImage: boolean;
+    width: number | null;
+    height: number | null;
+    blurhash: string | null;
+    hasPoster: boolean;
+    durationMs: number | null;
     expiresAt: string | null;
     expiredAt: string | null;
     createdAt: string | Date;
@@ -75,6 +80,45 @@ export type ChatV2CreateAttachment = {
     sizeBytes: string;
     sha256: string;
     isImage: boolean;
+    width: number | null;
+    height: number | null;
+    blurhash: string | null;
+    hasPoster: boolean;
+    durationMs: number | null;
+};
+
+export type PendingAttachmentStatus =
+    | "preparing"
+    | "uploading"
+    | "uploaded"
+    | "failed"
+    | "cancelled";
+
+export type PendingAttachmentUpload = {
+    clientId: string;
+    file: File;
+    displayName: string;
+    mimeType: string;
+    sizeBytes: number;
+    previewUrl: string | null;
+    progress: number | null;
+    status: PendingAttachmentStatus;
+    error: string | null;
+    attachment: ChatV2CreateAttachment | null;
+    cancel: (() => void) | null;
+};
+
+export type PendingMessageStatus = "sending" | "failed";
+
+export type PendingMessage = {
+    clientMessageId: string;
+    roomId: string;
+    content: string;
+    createdAt: string;
+    mentionedUserIds: number[];
+    uploads: PendingAttachmentUpload[];
+    status: PendingMessageStatus;
+    error: string | null;
 };
 
 export type ChatV2CharacterCustomization = {

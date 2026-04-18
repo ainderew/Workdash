@@ -964,6 +964,9 @@ function CompactChatShell({ onClose }: CompactChatShellProps) {
                                     {
                                         replyToMessageId: activeThreadRootId,
                                         mentionedUserIds: options?.mentionedUserIds,
+                                        ...(options?.clientMessageId && {
+                                            clientMessageId: options.clientMessageId,
+                                        }),
                                     },
                                 );
                                 if (!replyMessage) return;
@@ -992,6 +995,9 @@ function CompactChatShell({ onClose }: CompactChatShellProps) {
                     onSend={async (content, attachments, options) => {
                         await sendMessage(content, attachments, {
                             mentionedUserIds: options?.mentionedUserIds,
+                            ...(options?.clientMessageId && {
+                                clientMessageId: options.clientMessageId,
+                            }),
                         });
                     }}
                 />

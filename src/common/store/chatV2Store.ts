@@ -18,6 +18,8 @@ import type {
     ChatV2RoomCategory,
     ChatV2RoomMember,
     ChatV2UserNotification,
+    PendingAttachmentUpload,
+    PendingMessage,
 } from "@/communication/chatV2/_types";
 import {
     bumpFrequentEmojiLocal,
@@ -153,6 +155,7 @@ type ChatV2State = {
         options?: {
             replyToMessageId?: string;
             mentionedUserIds?: number[];
+            clientMessageId?: string;
         },
     ) => Promise<ChatV2Message | null>;
     toggleMessageReaction: (messageId: string, emoji: string) => Promise<void>;
@@ -215,6 +218,21 @@ type ChatV2State = {
     clearTypingUser: (roomId: string, userId: number) => void;
     awardTagUpdate: { workspaceId: string; awards: Record<string, AwardTagData> } | null;
     injectEphemeralMessage: (message: ChatV2Message) => void;
+    pendingMessagesByRoom: Record<string, PendingMessage[]>;
+    addPendingMessage: (message: PendingMessage) => void;
+    updatePendingUpload: (
+        roomId: string,
+        clientMessageId: string,
+        uploadClientId: string,
+        patch: Partial<PendingAttachmentUpload>,
+    ) => void;
+    markPendingMessageFailed: (
+        roomId: string,
+        clientMessageId: string,
+        error: string,
+    ) => void;
+    removePendingMessage: (roomId: string, clientMessageId: string) => void;
+    clearPendingMessagesForRoom: (roomId: string) => void;
     clear: () => void;
 };
 
@@ -340,6 +358,20 @@ const upsertMessage = (
     messages: ChatV2Message[],
     nextMessage: ChatV2Message,
 ): ChatV2Message[] => upsertMessageWithResult(messages, nextMessage).messages;
+
+const dropPendingByClientMessageId = (
+    pendingByRoom: Record<string, PendingMessage[]>,
+    roomId: string,
+    clientMessageId: string,
+): Record<string, PendingMessage[]> => {
+    const roomPending = pendingByRoom[roomId];
+    if (!roomPending || roomPending.length === 0) return pendingByRoom;
+    const next = roomPending.filter(
+        (entry) => entry.clientMessageId !== clientMessageId,
+    );
+    if (next.length === roomPending.length) return pendingByRoom;
+    return { ...pendingByRoom, [roomId]: next };
+};
 
 const applyReplySummaryInsert = (
     messages: ChatV2Message[],
@@ -534,6 +566,7 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
     isLoadingPinnedMessages: false,
     typingUsersByRoomId: {},
     awardTagUpdate: null,
+    pendingMessagesByRoom: {},
 
     setRailView: (view) => {
         set({ railView: view });
@@ -628,6 +661,13 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
                                 ...state.messagesByRoomId,
                                 [message.roomId]: nextMessages,
                             },
+                            pendingMessagesByRoom: message.clientMessageId
+                                ? dropPendingByClientMessageId(
+                                    state.pendingMessagesByRoom,
+                                    message.roomId,
+                                    message.clientMessageId,
+                                )
+                                : state.pendingMessagesByRoom,
                         };
                     });
                 },
@@ -1140,6 +1180,7 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
         const mentionedUserIds = options?.mentionedUserIds?.length
             ? options.mentionedUserIds
             : undefined;
+        const clientMessageId = options?.clientMessageId?.trim() || undefined;
 
         set({ isSending: true, error: null });
 
@@ -1152,6 +1193,7 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
                 {
                     replyToMessageId,
                     mentionedUserIds,
+                    ...(clientMessageId ? { clientMessageId } : {}),
                 },
             );
 
@@ -1182,6 +1224,13 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
                         ...state.messagesByRoomId,
                         [roomId]: nextMessages,
                     },
+                    pendingMessagesByRoom: message.clientMessageId
+                        ? dropPendingByClientMessageId(
+                            state.pendingMessagesByRoom,
+                            roomId,
+                            message.clientMessageId,
+                        )
+                        : state.pendingMessagesByRoom,
                 };
             });
             await get().markRoomRead(roomId, message.id);
@@ -2048,6 +2097,79 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
         });
     },
 
+    addPendingMessage: (message) => {
+        set((state) => {
+            const existing = state.pendingMessagesByRoom[message.roomId] || [];
+            return {
+                pendingMessagesByRoom: {
+                    ...state.pendingMessagesByRoom,
+                    [message.roomId]: [...existing, message],
+                },
+            };
+        });
+    },
+
+    updatePendingUpload: (roomId, clientMessageId, uploadClientId, patch) => {
+        set((state) => {
+            const roomPending = state.pendingMessagesByRoom[roomId];
+            if (!roomPending) return {};
+            const nextRoom = roomPending.map((entry) => {
+                if (entry.clientMessageId !== clientMessageId) return entry;
+                return {
+                    ...entry,
+                    uploads: entry.uploads.map((upload) =>
+                        upload.clientId === uploadClientId
+                            ? { ...upload, ...patch }
+                            : upload,
+                    ),
+                };
+            });
+            return {
+                pendingMessagesByRoom: {
+                    ...state.pendingMessagesByRoom,
+                    [roomId]: nextRoom,
+                },
+            };
+        });
+    },
+
+    markPendingMessageFailed: (roomId, clientMessageId, error) => {
+        set((state) => {
+            const roomPending = state.pendingMessagesByRoom[roomId];
+            if (!roomPending) return {};
+            const nextRoom = roomPending.map((entry) =>
+                entry.clientMessageId === clientMessageId
+                    ? { ...entry, status: "failed" as const, error }
+                    : entry,
+            );
+            return {
+                pendingMessagesByRoom: {
+                    ...state.pendingMessagesByRoom,
+                    [roomId]: nextRoom,
+                },
+            };
+        });
+    },
+
+    removePendingMessage: (roomId, clientMessageId) => {
+        set((state) => ({
+            pendingMessagesByRoom: dropPendingByClientMessageId(
+                state.pendingMessagesByRoom,
+                roomId,
+                clientMessageId,
+            ),
+        }));
+    },
+
+    clearPendingMessagesForRoom: (roomId) => {
+        set((state) => {
+            if (!state.pendingMessagesByRoom[roomId]) return {};
+            const next = { ...state.pendingMessagesByRoom };
+            delete next[roomId];
+            return { pendingMessagesByRoom: next };
+        });
+    },
+
     clear: () => {
         if (memberAddedDebounceTimer) {
             clearTimeout(memberAddedDebounceTimer);
@@ -2092,8 +2214,21 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
             isLoadingPinnedMessages: false,
             typingUsersByRoomId: {},
             awardTagUpdate: null,
+            pendingMessagesByRoom: {},
         });
     },
 }));
+
+export type ChatV2StoreState = ReturnType<typeof useChatV2Store.getState>;
+
+export const selectMergedMessages = (
+    state: ChatV2StoreState,
+    roomId: string,
+): Array<ChatV2Message | PendingMessage> => {
+    const server = state.messagesByRoomId[roomId] ?? [];
+    const pending = state.pendingMessagesByRoom[roomId] ?? [];
+    if (pending.length === 0) return server;
+    return [...server, ...pending];
+};
 
 export default useChatV2Store;

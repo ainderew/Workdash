@@ -1064,6 +1064,27 @@ body {
         color: var(--wd-lightbox-muted);
     }
 
+    .wd-lightbox-loading {
+        background-color: var(--wd-lightbox-toolbar-bg);
+        backdrop-filter: blur(6px);
+        border-radius: 0.5rem;
+        max-width: 90vw;
+        max-height: 85vh;
+    }
+
+    .wd-lightbox-kbd {
+        display: inline-block;
+        padding: 0 0.35rem;
+        min-width: 1.2rem;
+        font-family: inherit;
+        font-size: 0.7rem;
+        text-align: center;
+        border-radius: 0.2rem;
+        border: 1px solid var(--wd-lightbox-control-hover-bg);
+        background-color: var(--wd-lightbox-control-bg);
+        color: var(--wd-lightbox-control-hover-text);
+    }
+
 }
 
 /* ── Bot music card embed styles ──────────────────────────────────── */
@@ -2176,6 +2197,65 @@ input[type="range"].wd-volume-slider::-moz-range-progress {
 @media (prefers-reduced-motion: reduce) {
     .wd-anim-lightbox-in {
         animation: none;
+    }
+}
+
+/* ── Attachment image fade-in ─────────────────────────────────────── */
+
+@keyframes wd-anim-img-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.wd-anim-img-fade-in {
+    animation: wd-anim-img-fade-in 180ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .wd-anim-img-fade-in {
+        animation: none;
+    }
+}
+
+/* ── Optimistic message → server message settle ──────────────────── */
+
+@keyframes wd-anim-msg-settle {
+    from {
+        opacity: 0.6;
+        transform: translateY(2px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.wd-anim-msg-settle {
+    animation: wd-anim-msg-settle 180ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .wd-anim-msg-settle {
+        animation: none;
+    }
+}
+
+/* ── Composer attachment tile confirm pulse ───────────────────────── */
+
+@keyframes wd-anim-tile-confirm {
+    0% { opacity: 1; transform: scale(1); }
+    80% { opacity: 1; transform: scale(1.15); }
+    100% { opacity: 0; transform: scale(1); }
+}
+
+.wd-anim-tile-confirm {
+    animation: wd-anim-tile-confirm 450ms ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .wd-anim-tile-confirm {
+        animation: none;
+        opacity: 0;
     }
 }
 

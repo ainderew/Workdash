@@ -13,7 +13,10 @@ export interface ComposerProps {
     onSend: (
         content: string,
         attachments?: ChatV2CreateAttachment[],
-        options?: { mentionedUserIds?: number[] },
+        options?: {
+            mentionedUserIds?: number[];
+            clientMessageId?: string;
+        },
     ) => Promise<void> | void;
     onEditLastMessage?: () => void;
     onTyping?: () => void;

@@ -14,15 +14,21 @@ interface UseTiptapEditorOptions {
   onSubmit: () => void;
   onEditLastMessage?: () => void;
   onTyping?: () => void;
-  onImagePaste?: (files: File[]) => void;
+  onFilesPaste?: (files: File[]) => void;
   onLinkShortcut?: () => void;
 }
 
-const MIME_TO_EXT: Record<string, string> = {
+const IMAGE_MIME_TO_EXT: Record<string, string> = {
   'image/png': 'png',
   'image/jpeg': 'jpg',
   'image/webp': 'webp',
   'image/gif': 'gif',
+};
+
+const extensionFromMime = (mime: string): string => {
+  if (IMAGE_MIME_TO_EXT[mime]) return IMAGE_MIME_TO_EXT[mime];
+  const slash = mime.indexOf('/');
+  return slash > 0 ? mime.slice(slash + 1) : 'bin';
 };
 
 /**
@@ -197,7 +203,7 @@ export function useTiptapEditor(options: UseTiptapEditorOptions) {
     placeholder: placeholderText,
     disabled,
     onTyping,
-    onImagePaste,
+    onFilesPaste,
   } = options;
 
   const editor = useEditor({
@@ -234,22 +240,27 @@ export function useTiptapEditor(options: UseTiptapEditorOptions) {
       },
       transformPastedHTML: sanitizePastedHTML,
       handlePaste: (_view, event) => {
-        if (!onImagePaste) return false;
+        if (!onFilesPaste) return false;
         const items = event.clipboardData?.items;
         if (!items) return false;
 
         const pastedFiles: File[] = [];
         for (let i = 0; i < items.length; i++) {
           const item = items[i];
-          if (!item.type.startsWith('image/')) continue;
+          if (item.kind !== 'file') continue;
 
           const blob = item.getAsFile();
           if (!blob) continue;
 
-          const ext = MIME_TO_EXT[blob.type] ?? 'png';
+          if (blob.name && blob.name.trim().length > 0) {
+            pastedFiles.push(blob);
+            continue;
+          }
+
+          const ext = extensionFromMime(blob.type);
           const file = new File(
             [blob],
-            `screenshot-${Date.now()}-${i}.${ext}`,
+            `pasted-${Date.now()}-${i}.${ext}`,
             { type: blob.type },
           );
           pastedFiles.push(file);
@@ -258,7 +269,7 @@ export function useTiptapEditor(options: UseTiptapEditorOptions) {
         if (pastedFiles.length === 0) return false;
 
         event.preventDefault();
-        onImagePaste(pastedFiles);
+        onFilesPaste(pastedFiles);
         return true;
       },
     },

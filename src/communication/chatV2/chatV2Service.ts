@@ -659,12 +659,14 @@ export class ChatV2Service {
         options?: {
             replyToMessageId?: string;
             mentionedUserIds?: number[];
+            clientMessageId?: string;
         },
     ): Promise<CreateMessageResponse> {
         const clientMessageId =
-            typeof crypto.randomUUID === "function"
+            options?.clientMessageId ??
+            (typeof crypto.randomUUID === "function"
                 ? crypto.randomUUID()
-                : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+                : `${Date.now()}-${Math.random().toString(36).slice(2)}`);
 
         const payload: {
             roomId: string;

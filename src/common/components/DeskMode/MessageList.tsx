@@ -17,6 +17,7 @@ import { ChatV2Service } from "@/communication/chatV2/chatV2Service";
 import { getStandaloneGifUrl } from "@/communication/chatV2/gifUrl";
 import {
     downloadChatFile,
+    getChatFilePosterUrl,
     getChatFilePreviewUrl,
     getChatFileThumbnailUrl,
 } from "@/communication/chatV2/uploadService";
@@ -43,6 +44,15 @@ import type { LightboxImage } from "./ImagePreviewLightbox";
 import useMessageEdit from "@/common/hooks/useMessageEdit";
 import { useUsersInCall } from "@/common/hooks/useUsersInCall";
 import MessageRow from "./MessageRow";
+import { PendingMessageRow } from "./PendingMessageRow";
+import type { AttachmentUrlMap } from "./AttachmentGrid/_types";
+import type { PendingMessage } from "@/communication/chatV2/_types";
+
+const isPendingMessage = (
+    entry: ChatV2Message | PendingMessage,
+): entry is PendingMessage =>
+    typeof (entry as PendingMessage).status === "string" &&
+    Array.isArray((entry as PendingMessage).uploads);
 
 interface MessageListProps {
     messages: ChatV2Message[];
@@ -71,8 +81,17 @@ const LOAD_COOLDOWN_MS = 500;
 const MAX_FOCUSED_MSG_RETRIES = 10;
 const FIRST_ITEM_INDEX = 100_000;
 
-const isPreviewableAttachment = (attachment: ChatV2Attachment) =>
-    attachment.isImage || attachment.mimeType === "application/pdf";
+const needsThumbnail = (attachment: ChatV2Attachment): boolean =>
+    attachment.isImage;
+
+const needsViewUrl = (attachment: ChatV2Attachment): boolean =>
+    attachment.isImage ||
+    attachment.mimeType === "application/pdf" ||
+    attachment.mimeType.startsWith("audio/") ||
+    attachment.mimeType.startsWith("video/");
+
+const needsPoster = (attachment: ChatV2Attachment): boolean =>
+    attachment.mimeType.startsWith("video/") && attachment.hasPoster === true;
 
 const hasImageContent = (message: ChatV2Message) =>
     message.messageType === "IMAGE" ||
@@ -209,16 +228,7 @@ function MessageList({
     const toggleMessageReaction = useChatV2Store(
         (state) => state.toggleMessageReaction,
     );
-    const [attachmentUrls, setAttachmentUrls] = useState<
-        Record<
-            string,
-            {
-                thumbnailUrl: string | null;
-                viewUrl: string | null;
-                showFull: boolean;
-            }
-        >
-    >({});
+    const [attachmentUrls, setAttachmentUrls] = useState<AttachmentUrlMap>({});
     const linkPreviews = useLinkPreviews(messages);
     const [highlightedMessageId, setHighlightedMessageId] = useState<
         string | null
@@ -305,8 +315,55 @@ function MessageList({
             }),
         [messages],
     );
+    const pendingForRoom = useChatV2Store((state) =>
+        currentRoomId ? state.pendingMessagesByRoom[currentRoomId] ?? [] : [],
+    );
+
+    const previousPendingClientIdsRef = useRef<Set<string>>(new Set());
+    const recentlyReconciledClientIdsRef = useRef<Set<string>>(new Set());
+    const reconcileTimeoutsRef = useRef<Map<string, number>>(new Map());
+    const [, forceSettleRerender] = useState(0);
+
+    useEffect(() => {
+        const currentPendingIds = new Set(
+            pendingForRoom.map((entry) => entry.clientMessageId),
+        );
+        const previousPendingIds = previousPendingClientIdsRef.current;
+        const confirmedClientIds = new Set(
+            orderedMessages
+                .map((m) => m.clientMessageId)
+                .filter((id): id is string => typeof id === "string" && id.length > 0),
+        );
+
+        for (const clientId of previousPendingIds) {
+            if (currentPendingIds.has(clientId)) continue;
+            if (!confirmedClientIds.has(clientId)) continue;
+            if (recentlyReconciledClientIdsRef.current.has(clientId)) continue;
+            recentlyReconciledClientIdsRef.current.add(clientId);
+            forceSettleRerender((n) => n + 1);
+            const timeoutId = window.setTimeout(() => {
+                recentlyReconciledClientIdsRef.current.delete(clientId);
+                reconcileTimeoutsRef.current.delete(clientId);
+                forceSettleRerender((n) => n + 1);
+            }, 400);
+            reconcileTimeoutsRef.current.set(clientId, timeoutId);
+        }
+
+        previousPendingClientIdsRef.current = currentPendingIds;
+    }, [pendingForRoom, orderedMessages]);
+
+    useEffect(() => {
+        const timeouts = reconcileTimeoutsRef.current;
+        return () => {
+            for (const timeoutId of timeouts.values()) {
+                window.clearTimeout(timeoutId);
+            }
+            timeouts.clear();
+        };
+    }, []);
+
     const groupedMessages = useMemo(() => {
-        const rootMessages: ChatV2Message[] = [];
+        const rootMessages: Array<ChatV2Message | PendingMessage> = [];
         const repliesByRootId = new Map<string, ChatV2Message[]>();
 
         for (const message of orderedMessages) {
@@ -321,11 +378,15 @@ function MessageList({
             repliesByRootId.set(message.replyToMessageId, existingReplies);
         }
 
+        for (const pending of pendingForRoom) {
+            rootMessages.push(pending);
+        }
+
         return {
             rootMessages,
             repliesByRootId,
         };
-    }, [orderedMessages]);
+    }, [orderedMessages, pendingForRoom]);
 
     const firstItemIndex = useMemo(
         () => FIRST_ITEM_INDEX - groupedMessages.rootMessages.length,
@@ -350,13 +411,16 @@ function MessageList({
         if (isLoadingOlderRef.current) return;
         if (isAtBottomRef.current) return;
 
-        const lastMessage =
+        const lastEntry =
             groupedMessages.rootMessages[
                 groupedMessages.rootMessages.length - 1
             ];
         const isSentByLocalUser =
             typeof localBackendUserId === "number" &&
-            lastMessage?.senderUserId === localBackendUserId;
+            !!lastEntry &&
+            (isPendingMessage(lastEntry)
+                ? true
+                : lastEntry.senderUserId === localBackendUserId);
 
         if (isSentByLocalUser) {
             virtuosoRef.current?.scrollToIndex({
@@ -382,7 +446,7 @@ function MessageList({
         }
 
         const index = groupedMessages.rootMessages.findIndex(
-            (m) => m.id === focusedMessageId,
+            (m) => !isPendingMessage(m) && m.id === focusedMessageId,
         );
         if (index === -1) {
             if (
@@ -469,59 +533,68 @@ function MessageList({
     }, [avatarContextMenu, profilePopover]);
 
     useEffect(() => {
-        const unresolvedAttachments: Array<{
+        type Unresolved = {
             fileId: string;
-            isImage: boolean;
-        }> = [];
+            needThumbnail: boolean;
+            needView: boolean;
+            needPoster: boolean;
+        };
+        const unresolved: Unresolved[] = [];
 
         for (const message of messages) {
             for (const attachment of message.attachments) {
                 if (attachment.expiredAt) continue;
-                if (
-                    isPreviewableAttachment(attachment) &&
-                    !attachmentUrls[attachment.id]
-                ) {
-                    unresolvedAttachments.push({
+                const existing = attachmentUrls[attachment.id];
+                const wantThumbnail =
+                    needsThumbnail(attachment) &&
+                    !existing?.thumbnailUrl;
+                const wantView =
+                    needsViewUrl(attachment) && !existing?.viewUrl;
+                const wantPoster =
+                    needsPoster(attachment) && !existing?.posterUrl;
+                if (wantThumbnail || wantView || wantPoster) {
+                    unresolved.push({
                         fileId: attachment.id,
-                        isImage: attachment.isImage,
+                        needThumbnail: wantThumbnail,
+                        needView: wantView,
+                        needPoster: wantPoster,
                     });
                 }
             }
         }
 
-        if (unresolvedAttachments.length === 0) {
-            return;
-        }
+        if (unresolved.length === 0) return;
 
         let cancelled = false;
 
         void (async () => {
             const resolvedEntries = await Promise.all(
-                unresolvedAttachments.map(async (attachment) => {
+                unresolved.map(async (entry) => {
+                    const partial: {
+                        fileId: string;
+                        thumbnailUrl?: string | null;
+                        viewUrl?: string | null;
+                        posterUrl?: string | null;
+                    } = { fileId: entry.fileId };
                     try {
-                        if (attachment.isImage) {
-                            const thumbnailUrl = await getChatFileThumbnailUrl(
-                                attachment.fileId,
-                            );
-                            if (thumbnailUrl) {
-                                return {
-                                    fileId: attachment.fileId,
-                                    thumbnailUrl,
-                                    viewUrl: null,
-                                } as const;
-                            }
+                        if (entry.needThumbnail) {
+                            partial.thumbnailUrl =
+                                await getChatFileThumbnailUrl(entry.fileId);
                         }
-                        const viewUrl = await getChatFilePreviewUrl(
-                            attachment.fileId,
-                        );
-                        return {
-                            fileId: attachment.fileId,
-                            thumbnailUrl: null,
-                            viewUrl,
-                        } as const;
+                        if (entry.needView) {
+                            partial.viewUrl = await getChatFilePreviewUrl(
+                                entry.fileId,
+                            );
+                        }
+                        if (entry.needPoster) {
+                            partial.posterUrl = await getChatFilePosterUrl(
+                                entry.fileId,
+                            );
+                        }
                     } catch {
-                        return null;
+                        // return whatever we managed to resolve
                     }
+                    return partial;
                 }),
             );
 
@@ -530,11 +603,24 @@ function MessageList({
             setAttachmentUrls((previous) => {
                 const next = { ...previous };
                 for (const entry of resolvedEntries) {
-                    if (!entry) continue;
+                    const existing = next[entry.fileId] ?? {
+                        thumbnailUrl: null,
+                        viewUrl: null,
+                        posterUrl: null,
+                    };
                     next[entry.fileId] = {
-                        thumbnailUrl: entry.thumbnailUrl,
-                        viewUrl: entry.viewUrl,
-                        showFull: false,
+                        thumbnailUrl:
+                            entry.thumbnailUrl !== undefined
+                                ? entry.thumbnailUrl
+                                : existing.thumbnailUrl,
+                        viewUrl:
+                            entry.viewUrl !== undefined
+                                ? entry.viewUrl
+                                : existing.viewUrl,
+                        posterUrl:
+                            entry.posterUrl !== undefined
+                                ? entry.posterUrl
+                                : existing.posterUrl,
                     };
                 }
                 return next;
@@ -718,7 +804,8 @@ function MessageList({
     );
 
     const handleImageClick = useCallback(
-        (fileId: string, fileName: string) => {
+        (fileId: string, fileName: string, _galleryIndex: number) => {
+            void _galleryIndex;
             const current = attachmentUrls[fileId];
             if (current?.viewUrl) {
                 setLightboxState({
@@ -736,7 +823,7 @@ function MessageList({
                         [fileId]: {
                             thumbnailUrl: prev[fileId]?.thumbnailUrl ?? null,
                             viewUrl,
-                            showFull: false,
+                            posterUrl: prev[fileId]?.posterUrl ?? null,
                         },
                     }));
                     setLightboxState({ fileId, imageUrl: viewUrl, fileName });
@@ -1038,14 +1125,44 @@ function MessageList({
     );
 
     const itemContent = useCallback(
-        (index: number, message: ChatV2Message) => {
+        (index: number, message: ChatV2Message | PendingMessage) => {
             const arrayIndex = index - firstItemIndex;
-            const previousMessage =
+
+            if (isPendingMessage(message)) {
+                const displayName =
+                    getDisplayName(
+                        {
+                            nickname:
+                                user.nickname ?? backendUser?.nickname ?? null,
+                            name: user.name || backendUser?.name || null,
+                        },
+                        "You",
+                    ) || "You";
+                return (
+                    <PendingMessageRow
+                        pending={message}
+                        displayName={displayName}
+                        avatarUrl={localProfileImage || null}
+                    />
+                );
+            }
+
+            const previousEntry =
                 arrayIndex > 0
                     ? groupedMessages.rootMessages[arrayIndex - 1]
                     : null;
+            const previousMessage =
+                previousEntry && !isPendingMessage(previousEntry)
+                    ? previousEntry
+                    : null;
             const threadReplies =
                 groupedMessages.repliesByRootId.get(message.id) || [];
+            const settled =
+                typeof message.clientMessageId === "string" &&
+                message.clientMessageId.length > 0 &&
+                recentlyReconciledClientIdsRef.current.has(
+                    message.clientMessageId,
+                );
 
             return (
                 <MessageRow
@@ -1056,6 +1173,7 @@ function MessageList({
                     editingMessageId={editingMessageId}
                     highlightedMessageId={highlightedMessageId}
                     pinnedMessageIds={pinnedMessageIds}
+                    settled={settled}
                     localBackendUserId={localBackendUserId}
                     memberNameMap={memberNameMap}
                     memberRoleColors={memberRoleColors}
@@ -1118,11 +1236,25 @@ function MessageList({
             cancelEdit,
             saveEdit,
             toggleMessageReaction,
+            user.nickname,
+            user.name,
+            backendUser?.nickname,
+            backendUser?.name,
+            localProfileImage,
         ],
     );
 
     const computeItemKey = useCallback(
-        (_index: number, message: ChatV2Message) => message.id,
+        (_index: number, message: ChatV2Message | PendingMessage) => {
+            const clientId =
+                typeof message.clientMessageId === "string"
+                    ? message.clientMessageId.trim()
+                    : "";
+            if (isPendingMessage(message)) {
+                return clientId || `pending:${message.roomId}:${message.createdAt}`;
+            }
+            return clientId || message.id;
+        },
         [],
     );
 
@@ -1271,6 +1403,8 @@ function MessageList({
                                         attachmentUrls[a.id]?.thumbnailUrl ??
                                         "",
                                     fileName: a.originalFileName,
+                                    width: a.width ?? null,
+                                    height: a.height ?? null,
                                 }));
                         })
                         .filter((img) => img.imageUrl)}

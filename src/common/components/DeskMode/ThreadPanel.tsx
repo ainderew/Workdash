@@ -58,7 +58,10 @@ interface ThreadPanelProps {
     onSendReply: (
         content: string,
         attachments?: ChatV2CreateAttachment[],
-        options?: { mentionedUserIds?: number[] },
+        options?: {
+            mentionedUserIds?: number[];
+            clientMessageId?: string;
+        },
     ) => Promise<void>;
     onToggleReaction: (messageId: string, emoji: string) => Promise<void> | void;
 }

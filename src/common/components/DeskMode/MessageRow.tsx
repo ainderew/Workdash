@@ -2,7 +2,6 @@ import React, { useMemo } from "react";
 import Image from "next/image";
 import type {
     AwardTagData,
-    ChatV2Attachment,
     ChatV2Message,
     ChatV2RoomMember,
 } from "@/communication/chatV2/_types";
@@ -19,7 +18,7 @@ import InlineMessageEditor from "./InlineMessageEditor";
 import MessageReactionChips from "./MessageReactionChips";
 import MessageContentRenderer from "./MessageContentRenderer";
 import { isEmojiOnly } from "@/common/utils/isEmojiOnly";
-import { ExternalLink, Pin } from "lucide-react";
+import { Pin } from "lucide-react";
 import { getDisplayName } from "@/common/utils/displayName";
 import type { SenderAvatar } from "./profile-popover";
 import type { LinkPreviewMetadata } from "@/common/hooks/useLinkPreviews";
@@ -34,21 +33,12 @@ import {
 } from "@/communication/chatV2/mentionUtils";
 import type { MentionMemberNameMap } from "@/communication/chatV2/mentionUtils";
 import { CallBadge } from "./CallBadge";
-import { FileDownloadCard } from "./FileDownloadCard";
-import { ExpiredFilePlaceholder } from "./ExpiredFilePlaceholder";
-
-const isPreviewableAttachment = (attachment: ChatV2Attachment) =>
-    attachment.isImage || attachment.mimeType === "application/pdf";
+import { AttachmentRenderer } from "./AttachmentGrid/AttachmentRenderer";
+import type { AttachmentUrlMap } from "./AttachmentGrid/_types";
 
 const hasImageContent = (message: ChatV2Message) =>
     message.messageType === "IMAGE" ||
     message.attachments.some((attachment) => attachment.isImage);
-
-interface AttachmentUrlState {
-    thumbnailUrl: string | null;
-    viewUrl: string | null;
-    showFull: boolean;
-}
 
 export interface MessageRowProps {
     message: ChatV2Message;
@@ -59,6 +49,7 @@ export interface MessageRowProps {
     editingMessageId: string | null;
     highlightedMessageId: string | null;
     pinnedMessageIds?: Map<string, { pinnedByName: string }>;
+    settled?: boolean;
 
     localBackendUserId?: number;
     memberNameMap: MentionMemberNameMap;
@@ -67,7 +58,7 @@ export interface MessageRowProps {
     usersInCall: Set<number>;
     roomMembers: ChatV2RoomMember[];
 
-    attachmentUrls: Record<string, AttachmentUrlState>;
+    attachmentUrls: AttachmentUrlMap;
     linkPreviews: Record<string, LinkPreviewMetadata | null>;
 
     getSenderName: (message: ChatV2Message) => string;
@@ -93,7 +84,11 @@ export interface MessageRowProps {
         userId: number,
         displayName: string,
     ) => void;
-    onImageClick: (fileId: string, fileName: string) => void;
+    onImageClick: (
+        fileId: string,
+        fileName: string,
+        galleryIndex: number,
+    ) => void;
     onGifClick: (gifUrl: string) => void;
     onDownloadAttachment: (fileId: string, filename: string) => void;
     onUnsendImage: (message: ChatV2Message) => void;
@@ -112,6 +107,7 @@ const MessageRow = React.memo(function MessageRow({
     editingMessageId,
     highlightedMessageId,
     pinnedMessageIds,
+    settled = false,
     localBackendUserId,
     memberNameMap,
     memberRoleColors,
@@ -248,7 +244,7 @@ const MessageRow = React.memo(function MessageRow({
                               : pinnedMessageIds?.has(message.id)
                                 ? "border-l-2 border-l-[var(--wd-accent)]"
                                 : ""
-                    }${editingMessageId === message.id ? " rounded-md bg-[var(--wd-accent-soft)]" : ""}`}
+                    }${editingMessageId === message.id ? " rounded-md bg-[var(--wd-accent-soft)]" : ""}${settled ? " wd-anim-msg-settle" : ""}`}
                 >
                     {isConsecutive ? (
                         <div className="w-11 shrink-0 relative flex items-start justify-end pt-1">
@@ -535,157 +531,14 @@ const MessageRow = React.memo(function MessageRow({
                                 )}
 
                                 {message.attachments.length > 0 && (
-                                    <div className="mt-2 space-y-1">
-                                        {message.attachments.map(
-                                            (attachment) => {
-                                                if (attachment.expiredAt) {
-                                                    return (
-                                                        <ExpiredFilePlaceholder
-                                                            key={attachment.id}
-                                                            filename={
-                                                                attachment.originalFileName
-                                                            }
-                                                            mimeType={
-                                                                attachment.mimeType
-                                                            }
-                                                        />
-                                                    );
-                                                }
-
-                                                const urlState =
-                                                    attachmentUrls[
-                                                        attachment.id
-                                                    ];
-                                                const isPdfAttachment =
-                                                    attachment.mimeType ===
-                                                    "application/pdf";
-                                                const isPreviewable =
-                                                    isPreviewableAttachment(
-                                                        attachment,
-                                                    );
-
-                                                if (
-                                                    isPreviewable &&
-                                                    !urlState
-                                                ) {
-                                                    return (
-                                                        <div
-                                                            key={attachment.id}
-                                                            className="rounded-md max-w-xs h-32 animate-pulse wd-bg-elevated border wd-border-subtle"
-                                                        />
-                                                    );
-                                                }
-
-                                                if (
-                                                    attachment.isImage &&
-                                                    urlState
-                                                ) {
-                                                    const showFull =
-                                                        urlState.showFull &&
-                                                        urlState.viewUrl;
-                                                    const imgSrc = showFull
-                                                        ? urlState.viewUrl!
-                                                        : (urlState.thumbnailUrl ??
-                                                          urlState.viewUrl ??
-                                                          "");
-                                                    const isThumbnail =
-                                                        !showFull &&
-                                                        !!urlState.thumbnailUrl;
-
-                                                    return (
-                                                        <button
-                                                            key={attachment.id}
-                                                            type="button"
-                                                            onClick={() =>
-                                                                onImageClick(
-                                                                    attachment.id,
-                                                                    attachment.originalFileName,
-                                                                )
-                                                            }
-                                                            className="relative block cursor-pointer group"
-                                                        >
-                                                            <Image
-                                                                src={imgSrc}
-                                                                alt={
-                                                                    attachment.originalFileName
-                                                                }
-                                                                width={320}
-                                                                height={224}
-                                                                unoptimized
-                                                                className="rounded-md max-w-xs max-h-56 object-cover border wd-border-subtle"
-                                                            />
-                                                            {isThumbnail && (
-                                                                <span className="absolute bottom-1 right-1 text-[10px] px-1.5 py-0.5 rounded bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                    Click for
-                                                                    full size
-                                                                </span>
-                                                            )}
-                                                        </button>
-                                                    );
-                                                }
-
-                                                if (
-                                                    isPdfAttachment &&
-                                                    urlState?.viewUrl
-                                                ) {
-                                                    return (
-                                                        <div
-                                                            key={attachment.id}
-                                                            className="space-y-1"
-                                                        >
-                                                            <iframe
-                                                                src={
-                                                                    urlState.viewUrl
-                                                                }
-                                                                title={
-                                                                    attachment.originalFileName
-                                                                }
-                                                                className="h-64 w-full max-w-md rounded-md border wd-border-subtle"
-                                                            />
-                                                            <button
-                                                                type="button"
-                                                                onClick={() =>
-                                                                    onDownloadAttachment(
-                                                                        attachment.id,
-                                                                        attachment.originalFileName,
-                                                                    )
-                                                                }
-                                                                className="text-xs px-2 py-1 rounded wd-bg-elevated wd-text-accent truncate inline-flex items-center gap-1 border wd-border-subtle"
-                                                            >
-                                                                {
-                                                                    attachment.originalFileName
-                                                                }
-                                                                <ExternalLink
-                                                                    size={12}
-                                                                />
-                                                            </button>
-                                                        </div>
-                                                    );
-                                                }
-
-                                                return (
-                                                    <FileDownloadCard
-                                                        key={attachment.id}
-                                                        filename={
-                                                            attachment.originalFileName
-                                                        }
-                                                        mimeType={
-                                                            attachment.mimeType
-                                                        }
-                                                        sizeBytes={
-                                                            attachment.sizeBytes
-                                                        }
-                                                        onDownload={() =>
-                                                            onDownloadAttachment(
-                                                                attachment.id,
-                                                                attachment.originalFileName,
-                                                            )
-                                                        }
-                                                    />
-                                                );
-                                            },
-                                        )}
-                                    </div>
+                                    <AttachmentRenderer
+                                        attachments={message.attachments}
+                                        urlsByFileId={attachmentUrls}
+                                        onImageTileClick={onImageClick}
+                                        onDownloadAttachment={
+                                            onDownloadAttachment
+                                        }
+                                    />
                                 )}
 
                                 <MessageReactionChips

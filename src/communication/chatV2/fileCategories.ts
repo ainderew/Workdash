@@ -42,6 +42,14 @@ export function getFileExtension(filename: string): string {
   return dot > 0 ? filename.slice(dot + 1).toLowerCase() : '';
 }
 
+export function formatDurationMs(ms: number | null | undefined): string {
+  if (ms == null || !Number.isFinite(ms) || ms <= 0) return '';
+  const totalSec = Math.round(ms / 1000);
+  const mins = Math.floor(totalSec / 60);
+  const secs = totalSec % 60;
+  return `${mins}:${String(secs).padStart(2, '0')}`;
+}
+
 export function getExpiryLabel(expiresAt: string | null): string | null {
   if (!expiresAt) return null;
   const diff = new Date(expiresAt).getTime() - Date.now();

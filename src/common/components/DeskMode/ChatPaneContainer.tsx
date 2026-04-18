@@ -543,6 +543,9 @@ function ChatPaneContainer({
                         }
                         await sendMessage(content, attachments, {
                             mentionedUserIds: options?.mentionedUserIds,
+                            ...(options?.clientMessageId && {
+                                clientMessageId: options.clientMessageId,
+                            }),
                         });
                     }}
                 />
@@ -570,6 +573,9 @@ function ChatPaneContainer({
                             {
                                 replyToMessageId: activeThreadRootId,
                                 mentionedUserIds: options?.mentionedUserIds,
+                                ...(options?.clientMessageId && {
+                                    clientMessageId: options.clientMessageId,
+                                }),
                             },
                         );
                         if (!replyMessage) return;
