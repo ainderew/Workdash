@@ -93,7 +93,7 @@ function MessageHoverActions({
 
     return (
         <div
-            className={`pointer-events-none absolute right-3 top-0 ${hasFlyout ? "z-[200]" : "z-20"} -translate-y-1/2 transition-opacity ${hasFlyout ? "opacity-100" : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"} ${className || ""}`}
+            className={`pointer-events-none absolute right-8 top-0 ${hasFlyout ? "z-[200]" : "z-20"} -translate-y-1/2 transition-opacity ${hasFlyout ? "opacity-100" : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"} ${className || ""}`}
         >
             <div
                 ref={toolbarRef}
