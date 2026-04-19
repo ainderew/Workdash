@@ -47,14 +47,12 @@ import MessageRow from "./MessageRow";
 import { PendingMessageRow } from "./PendingMessageRow";
 import type { AttachmentUrlMap } from "./AttachmentGrid/_types";
 import type { PendingMessage } from "@/communication/chatV2/_types";
+import {
+    getTailEntryId,
+    isPendingMessage,
+} from "./messageListScrollGuards";
 
 const EMPTY_PENDING_MESSAGES: PendingMessage[] = [];
-
-const isPendingMessage = (
-    entry: ChatV2Message | PendingMessage,
-): entry is PendingMessage =>
-    typeof (entry as PendingMessage).status === "string" &&
-    Array.isArray((entry as PendingMessage).uploads);
 
 interface MessageListProps {
     messages: ChatV2Message[];
@@ -217,6 +215,7 @@ function MessageList({
     const isLoadingOlderRef = useRef(false);
     const lastLoadTimestampRef = useRef(0);
     const focusedMessageRetriesRef = useRef(0);
+    const lastTailEntryIdRef = useRef<string | null>(null);
     const [showNewMessagesPill, setShowNewMessagesPill] = useState(false);
     const [isAtBottom, setIsAtBottom] = useState(true);
     const isAtBottomRef = useRef(true);
@@ -298,10 +297,6 @@ function MessageList({
     const memberNameMap = useMemo(
         () => buildMemberNameMap(roomMembers),
         [roomMembers],
-    );
-    const lastMessageId = useMemo(
-        () => messages[messages.length - 1]?.id || "",
-        [messages],
     );
     const { editingMessageId, startEdit, cancelEdit, saveEdit } =
         useMessageEdit(currentRoomId);
@@ -408,21 +403,36 @@ function MessageList({
         setShowNewMessagesPill(false);
         setIsAtBottom(true);
         isAtBottomRef.current = true;
+        lastTailEntryIdRef.current = null;
     }, [currentRoomId]);
 
-    // Handle new messages: snap to bottom for own sends, show pill for others
+    // Runs on every rootMessages change; the body acts only when the tail
+    // entry identity changes (appends), not when older messages are prepended
+    // via infinite-scroll. Keying by clientMessageId collapses pending →
+    // confirmed transitions into one tail identity so we only scroll once per
+    // logical send.
     useEffect(() => {
         if (focusedMessageId || isLoading) return;
-        if (isLoadingOlderRef.current) return;
-        if (isAtBottomRef.current) return;
 
         const lastEntry =
             groupedMessages.rootMessages[
                 groupedMessages.rootMessages.length - 1
             ];
+        const tailId = getTailEntryId(lastEntry);
+        if (!lastEntry || tailId === null) {
+            lastTailEntryIdRef.current = null;
+            return;
+        }
+
+        const previousTailId = lastTailEntryIdRef.current;
+        if (tailId === previousTailId) return;
+        lastTailEntryIdRef.current = tailId;
+
+        if (previousTailId === null) return;
+        if (isAtBottomRef.current) return;
+
         const isSentByLocalUser =
             typeof localBackendUserId === "number" &&
-            !!lastEntry &&
             (isPendingMessage(lastEntry)
                 ? true
                 : lastEntry.senderUserId === localBackendUserId);
@@ -438,7 +448,6 @@ function MessageList({
     }, [
         focusedMessageId,
         isLoading,
-        lastMessageId,
         localBackendUserId,
         groupedMessages.rootMessages,
     ]);
@@ -1082,15 +1091,11 @@ function MessageList({
     }, []);
 
     const handleStartReached = useCallback(() => {
+        if (isLoadingOlderRef.current || !hasMoreMessages) return;
         const now = Date.now();
-        if (
-            !isLoadingOlderRef.current &&
-            hasMoreMessages &&
-            now - lastLoadTimestampRef.current >= LOAD_COOLDOWN_MS
-        ) {
-            lastLoadTimestampRef.current = now;
-            onLoadOlderMessages?.();
-        }
+        if (now - lastLoadTimestampRef.current < LOAD_COOLDOWN_MS) return;
+        lastLoadTimestampRef.current = now;
+        onLoadOlderMessages?.();
     }, [hasMoreMessages, onLoadOlderMessages]);
 
     const scrollToBottom = useCallback(() => {
@@ -1298,7 +1303,7 @@ function MessageList({
                         paddingLeft: 16,
                         paddingRight: 16,
                         paddingTop: 16,
-                        paddingBottom: 8,
+                        paddingBottom: 24,
                     }}
                 />
             )}
