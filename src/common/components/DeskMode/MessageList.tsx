@@ -1134,6 +1134,12 @@ function MessageList({
         [headerContent],
     );
 
+    // Spacer below the last message so the typing indicator (absolutely
+    // positioned over the bottom of the list) can't cover it. The scroller's
+    // own paddingBottom doesn't help — Virtuoso's viewport child is absolutely
+    // positioned at top:0 / height:100%, so it ignores padding.
+    const Footer = useCallback(() => <div className="h-20" />, []);
+
     const itemContent = useCallback(
         (index: number, message: ChatV2Message | PendingMessage) => {
             const arrayIndex = index - firstItemIndex;
@@ -1294,7 +1300,7 @@ function MessageList({
                     increaseViewportBy={{ top: 400, bottom: 200 }}
                     computeItemKey={computeItemKey}
                     itemContent={itemContent}
-                    components={{ Header }}
+                    components={{ Header, Footer }}
                     className="no-scrollbar"
                     style={{
                         height: "100%",
@@ -1303,7 +1309,7 @@ function MessageList({
                         paddingLeft: 16,
                         paddingRight: 16,
                         paddingTop: 16,
-                        paddingBottom: 112,
+                        paddingBottom: 16,
                     }}
                 />
             )}
