@@ -1303,7 +1303,7 @@ function MessageList({
                         paddingLeft: 16,
                         paddingRight: 16,
                         paddingTop: 16,
-                        paddingBottom: 72,
+                        paddingBottom: 112,
                     }}
                 />
             )}
