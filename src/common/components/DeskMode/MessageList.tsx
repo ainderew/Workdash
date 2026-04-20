@@ -1138,7 +1138,7 @@ function MessageList({
     // positioned over the bottom of the list) can't cover it. The scroller's
     // own paddingBottom doesn't help — Virtuoso's viewport child is absolutely
     // positioned at top:0 / height:100%, so it ignores padding.
-    const Footer = useCallback(() => <div className="h-20" />, []);
+    const Footer = useCallback(() => <div className="h-10" />, []);
 
     const itemContent = useCallback(
         (index: number, message: ChatV2Message | PendingMessage) => {
