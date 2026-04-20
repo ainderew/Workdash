@@ -22,6 +22,14 @@ import useChatV2Store from "@/common/store/chatV2Store";
 import { usePresenceStore } from "@/common/store/presenceStore";
 import { useUsersInCall } from "@/common/hooks/useUsersInCall";
 import { colorToHex } from "@/common/utils/roleColor";
+import { useProfilePopoverController } from "./profile-popover";
+import type { SenderAvatar } from "./profile-popover";
+
+function buildSenderAvatar(member: ChatV2RoomMember): SenderAvatar {
+    const image = member.user.image?.trim();
+    if (image) return { mode: "image", src: image };
+    return { mode: "fallback" };
+}
 
 type RoleGroup = {
     role: WorkspaceRole;
@@ -62,6 +70,14 @@ function MemberPanel({
     const selectedWorkspaceId = useChatV2Store(
         (s) => s.selectedWorkspaceId,
     );
+    const currentRoomId = useChatV2Store((s) => s.currentRoomId);
+    const popoverController = useProfilePopoverController();
+    const activeUserId = popoverController.openUserId;
+    // `popoverController` is a fresh object each render (its identity changes
+    // whenever provider state mutates). Pin the stable callbacks separately so
+    // dependent effects don't fire on every popover open/close.
+    const closePopover = popoverController.close;
+    const openFromAnchor = popoverController.openFromAnchor;
     const [isAddMemberModalOpen, setIsAddMemberModalOpen] =
         React.useState(false);
     const [searchQuery, setSearchQuery] = React.useState("");
@@ -156,6 +172,55 @@ function MemberPanel({
             };
         }, [filteredMembers, onlineUserIdKey, wsMemberMap, workspaceOwnerId]);
 
+    const openMemberPopover = React.useCallback(
+        (
+            member: ChatV2RoomMember,
+            anchor: HTMLElement,
+            awardTag: AwardTagData | null,
+            options?: { toggle?: boolean },
+        ) => {
+            if (options?.toggle) {
+                closePopover();
+                return;
+            }
+            const rect = anchor.getBoundingClientRect();
+            openFromAnchor({
+                userId: member.userId,
+                name: getDisplayName(member.user, `User ${member.userId}`),
+                avatar: buildSenderAvatar(member),
+                anchorRect: rect,
+                preferredSide: "left",
+                awardTag,
+            });
+        },
+        [closePopover, openFromAnchor],
+    );
+
+    React.useEffect(() => {
+        return () => {
+            closePopover();
+        };
+    }, [currentRoomId, closePopover]);
+
+    React.useEffect(() => {
+        if (activeUserId == null) return;
+        const stillPresent = members.some((m) => m.userId === activeUserId);
+        if (!stillPresent) closePopover();
+    }, [members, activeUserId, closePopover]);
+
+    const toggleOfflineCollapsed = React.useCallback(() => {
+        setIsOfflineCollapsed((prev) => {
+            const nowCollapsed = !prev;
+            if (nowCollapsed && activeUserId != null) {
+                const activeIsOffline = offlineMembers.some(
+                    (m) => m.userId === activeUserId,
+                );
+                if (activeIsOffline) closePopover();
+            }
+            return nowCollapsed;
+        });
+    }, [activeUserId, offlineMembers, closePopover]);
+
     return (
         <>
             <div className="flex flex-1 flex-col overflow-hidden">
@@ -222,6 +287,8 @@ function MemberPanel({
                                                 nameColor={memberRoleColors?.get(member.userId)}
                                                 awardTag={wsMemberMap.get(member.userId)?.awardTag}
                                                 isInCall={usersInCall.has(member.userId)}
+                                                isActive={activeUserId === member.userId}
+                                                onOpenPopover={openMemberPopover}
                                                 onRemove={() =>
                                                     onRemoveMember(
                                                         member.userId,
@@ -247,6 +314,8 @@ function MemberPanel({
                                                 nameColor={memberRoleColors?.get(member.userId)}
                                                 awardTag={wsMemberMap.get(member.userId)?.awardTag}
                                                 isInCall={usersInCall.has(member.userId)}
+                                                isActive={activeUserId === member.userId}
+                                                onOpenPopover={openMemberPopover}
                                                 onRemove={() =>
                                                     onRemoveMember(
                                                         member.userId,
@@ -262,11 +331,7 @@ function MemberPanel({
                                 <div>
                                     <button
                                         type="button"
-                                        onClick={() =>
-                                            setIsOfflineCollapsed(
-                                                (prev) => !prev,
-                                            )
-                                        }
+                                        onClick={toggleOfflineCollapsed}
                                         className="flex items-center gap-1 text-[11px] uppercase tracking-wider wd-text-muted font-semibold px-2 mb-1 hover:text-[var(--wd-text-secondary)] transition-colors w-full text-left"
                                     >
                                         <span
@@ -287,6 +352,8 @@ function MemberPanel({
                                                     nameColor={memberRoleColors?.get(member.userId)}
                                                     awardTag={wsMemberMap.get(member.userId)?.awardTag}
                                                     isInCall={usersInCall.has(member.userId)}
+                                                    isActive={activeUserId === member.userId}
+                                                    onOpenPopover={openMemberPopover}
                                                     onRemove={() =>
                                                         onRemoveMember(
                                                             member.userId,
@@ -322,15 +389,24 @@ function MemberPanel({
 function MemberRow({
     member,
     nameColor,
+    onOpenPopover,
     onRemove,
     isOffline = false,
+    isActive = false,
     awardTag,
     isInCall = false,
 }: {
     member: ChatV2RoomMember;
     nameColor?: string;
+    onOpenPopover: (
+        member: ChatV2RoomMember,
+        anchor: HTMLElement,
+        awardTag: AwardTagData | null,
+        options?: { toggle?: boolean },
+    ) => void;
     onRemove: () => void;
     isOffline?: boolean;
+    isActive?: boolean;
     awardTag?: AwardTagData | null;
     isInCall?: boolean;
 }) {
@@ -338,49 +414,85 @@ function MemberRow({
     const selectedWorkspaceId = useChatV2Store(
         (s) => s.selectedWorkspaceId,
     );
+    const rowButtonRef = React.useRef<HTMLButtonElement>(null);
+
+    const handleOpen = () => {
+        if (!rowButtonRef.current) return;
+        if (isActive) {
+            onOpenPopover(member, rowButtonRef.current, awardTag ?? null, {
+                toggle: true,
+            });
+            return;
+        }
+        onOpenPopover(member, rowButtonRef.current, awardTag ?? null);
+    };
+
+    const handleContextMenu = (e: React.MouseEvent<HTMLButtonElement>) => {
+        e.preventDefault();
+        handleOpen();
+    };
 
     return (
-        <div className={`group flex items-start gap-4 px-2 py-1.5 rounded-md hover:bg-white/5 transition-colors ${isOffline ? "opacity-50" : ""}`}>
-            <div className="relative shrink-0 mt-0.5">
-                <UserAvatar
-                    name={displayName}
-                    image={member.user.image}
-                    characterCustomization={
-                        member.user.characterCustomization ?? null
-                    }
-                    size="xs"
-                />
-                <PresenceDot userId={member.userId} size="xs" />
-            </div>
-            <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5 min-w-0">
-                    <span
-                        className={`text-sm truncate transition-colors ${nameColor ? "font-medium" : "wd-text-secondary group-hover:wd-text-primary"}`}
-                        style={nameColor ? { color: nameColor } : undefined}
-                    >
-                        {displayName}
-                    </span>
-                    {awardTag && (
-                        <AwardTag
-                            type={awardTag.type}
-                            label={awardTag.label}
-                            size="xs"
-                        />
-                    )}
-                    {isInCall && <CallBadge />}
+        <div
+            className={`group relative flex items-stretch rounded-md transition-colors ${
+                isActive ? "wd-bg-elevated" : "hover:bg-white/5"
+            } ${isOffline ? "opacity-50" : ""}`}
+            data-active={isActive || undefined}
+        >
+            <button
+                ref={rowButtonRef}
+                type="button"
+                onClick={handleOpen}
+                onContextMenu={handleContextMenu}
+                aria-label={`Open ${displayName}'s profile`}
+                aria-expanded={isActive}
+                className="flex flex-1 items-start gap-4 px-2 py-1.5 text-left min-w-0 focus:outline-none focus-visible:ring-1 focus-visible:ring-[var(--wd-accent)]/40 rounded-md"
+            >
+                <div className="relative shrink-0 mt-0.5">
+                    <UserAvatar
+                        name={displayName}
+                        image={member.user.image}
+                        characterCustomization={
+                            member.user.characterCustomization ?? null
+                        }
+                        size="xs"
+                    />
+                    <PresenceDot userId={member.userId} size="xs" />
                 </div>
-                <ActivityText
-                    userId={member.userId}
-                    workspaceId={selectedWorkspaceId}
-                />
-            </div>
+                <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                        <span
+                            className={`text-sm truncate transition-colors ${nameColor ? "font-medium" : "wd-text-secondary group-hover:wd-text-primary"}`}
+                            style={nameColor ? { color: nameColor } : undefined}
+                        >
+                            {displayName}
+                        </span>
+                        {awardTag && (
+                            <AwardTag
+                                type={awardTag.type}
+                                label={awardTag.label}
+                                size="xs"
+                            />
+                        )}
+                        {isInCall && <CallBadge />}
+                    </div>
+                    <ActivityText
+                        userId={member.userId}
+                        workspaceId={selectedWorkspaceId}
+                    />
+                </div>
+            </button>
+
             <Tooltip>
                 <TooltipTrigger asChild>
                     <button
                         type="button"
                         aria-label="Remove member"
-                        className="hidden group-hover:inline-flex h-6 w-6 shrink-0 items-center justify-center rounded text-red-400/70 hover:text-red-300 hover:bg-red-950/40 transition-colors"
-                        onClick={onRemove}
+                        className="absolute right-1 top-1/2 -translate-y-1/2 hidden group-hover:inline-flex h-6 w-6 shrink-0 items-center justify-center rounded text-red-400/70 hover:text-red-300 hover:bg-red-950/40 transition-colors"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onRemove();
+                        }}
                     >
                         <UserRoundX size={13} />
                     </button>

@@ -30,6 +30,7 @@ import JoinByInviteModal from "./modals/JoinByInviteModal";
 import AchievementsModal from "./modals/AchievementsModal";
 import { ChannelSidebarContainer } from "./ChannelSidebarContainer";
 import { ChatPaneContainer } from "./ChatPaneContainer";
+import { ProfilePopoverProvider } from "./profile-popover";
 
 export type DeskChatShellMode = "desk" | "drawer";
 
@@ -343,6 +344,7 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
 
     return (
         <section className={rootContainerClassName}>
+            <ProfilePopoverProvider>
             <div className="h-9 flex shrink-0">
                 <div className="w-[72px] shrink-0 wd-bg-app" />
                 <div className="flex-1 min-w-0 wd-bg-app flex items-center justify-center gap-1.5 px-4">
@@ -554,6 +556,7 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
                     </div>
                 </div>
             )}
+            </ProfilePopoverProvider>
         </section>
     );
 }

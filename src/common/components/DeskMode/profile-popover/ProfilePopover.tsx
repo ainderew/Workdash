@@ -22,6 +22,8 @@ import { ActivityText } from '../ActivityText';
 import AwardTag from '@/common/components/AwardTag/AwardTag';
 import type { AwardTagData } from '@/communication/chatV2/_types';
 import useChatV2Store from '@/common/store/chatV2Store';
+import { usePresenceStore } from '@/common/store/presenceStore';
+import { formatLastSeen } from '@/common/utils/formatLastSeen';
 
 interface ProfilePopoverProps {
   popover: ProfilePopoverState;
@@ -54,6 +56,13 @@ export function ProfilePopover({
 
   const isSelf = profile?.isSelf ?? false;
   const selectedWorkspaceId = useChatV2Store((s) => s.selectedWorkspaceId);
+  const isOffline = usePresenceStore(
+    (s) =>
+      (s.presenceMap[popover.senderUserId]?.statusId ?? 'offline') === 'offline',
+  );
+  const lastSeen = usePresenceStore(
+    (s) => s.lastSeenMap[popover.senderUserId] ?? null,
+  );
 
   // --- Viewport-aware positioning ---
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -62,7 +71,13 @@ export function ProfilePopover({
     bottom?: number;
     left: number;
     maxHeight?: number;
+    caretTop?: number;
   } | null>(null);
+
+  const anchorRect = popover.anchorRect;
+  const anchorCenterY = anchorRect
+    ? anchorRect.top + anchorRect.height / 2
+    : null;
 
   const recalcPosition = useCallback(() => {
     const el = popoverRef.current;
@@ -82,6 +97,12 @@ export function ProfilePopover({
     }
     if (left < pad) left = pad;
 
+    const computeCaretTop = (popoverTopPx: number, popoverHeightPx: number) => {
+      if (anchorCenterY == null) return undefined;
+      const offsetFromTop = anchorCenterY - popoverTopPx;
+      return Math.max(16, Math.min(popoverHeightPx - 16, offsetFromTop));
+    };
+
     // Vertical: determine best placement
     if (popover.anchorBottom) {
       const bottomVal = vpH - popover.y;
@@ -90,16 +111,36 @@ export function ProfilePopover({
 
       if (elHeight <= spaceAbove) {
         // Fits above — bottom-anchor as requested
-        setAdjustedPos({ bottom: bottomVal, left });
+        const top = vpH - bottomVal - elHeight;
+        setAdjustedPos({
+          bottom: bottomVal,
+          left,
+          caretTop: computeCaretTop(top, elHeight),
+        });
       } else if (elHeight <= spaceBelow) {
         // Flip to top-anchor
-        setAdjustedPos({ top: popover.y, left });
+        setAdjustedPos({
+          top: popover.y,
+          left,
+          caretTop: computeCaretTop(popover.y, elHeight),
+        });
       } else {
         // Can't fit either way — use whichever side has more room, with maxHeight + scroll
         if (spaceAbove >= spaceBelow) {
-          setAdjustedPos({ bottom: bottomVal, left, maxHeight: spaceAbove });
+          const top = vpH - bottomVal - spaceAbove;
+          setAdjustedPos({
+            bottom: bottomVal,
+            left,
+            maxHeight: spaceAbove,
+            caretTop: computeCaretTop(top, spaceAbove),
+          });
         } else {
-          setAdjustedPos({ top: popover.y, left, maxHeight: spaceBelow });
+          setAdjustedPos({
+            top: popover.y,
+            left,
+            maxHeight: spaceBelow,
+            caretTop: computeCaretTop(popover.y, spaceBelow),
+          });
         }
       }
     } else {
@@ -108,22 +149,42 @@ export function ProfilePopover({
 
       if (elHeight <= spaceBelow) {
         // Fits below — top-anchor as requested
-        setAdjustedPos({ top: popover.y, left });
+        setAdjustedPos({
+          top: popover.y,
+          left,
+          caretTop: computeCaretTop(popover.y, elHeight),
+        });
       } else if (elHeight <= spaceAbove) {
         // Flip to bottom-anchor (grow upward from click point)
         const bottomVal = vpH - popover.y;
-        setAdjustedPos({ bottom: bottomVal, left });
+        const top = vpH - bottomVal - elHeight;
+        setAdjustedPos({
+          bottom: bottomVal,
+          left,
+          caretTop: computeCaretTop(top, elHeight),
+        });
       } else {
         // Can't fit either way — use whichever side has more room, with maxHeight + scroll
         if (spaceBelow >= spaceAbove) {
-          setAdjustedPos({ top: popover.y, left, maxHeight: spaceBelow });
+          setAdjustedPos({
+            top: popover.y,
+            left,
+            maxHeight: spaceBelow,
+            caretTop: computeCaretTop(popover.y, spaceBelow),
+          });
         } else {
           const bottomVal = vpH - popover.y;
-          setAdjustedPos({ bottom: bottomVal, left, maxHeight: spaceAbove });
+          const top = vpH - bottomVal - spaceAbove;
+          setAdjustedPos({
+            bottom: bottomVal,
+            left,
+            maxHeight: spaceAbove,
+            caretTop: computeCaretTop(top, spaceAbove),
+          });
         }
       }
     }
-  }, [popover.x, popover.y, popover.anchorBottom]);
+  }, [popover.x, popover.y, popover.anchorBottom, anchorCenterY]);
 
   // Use ResizeObserver to recalculate whenever popover content changes size,
   // and reposition on window resize instead of closing
@@ -250,6 +311,13 @@ export function ProfilePopover({
         visibility: 'hidden' as const,
       };
 
+  const caretSideStyle: React.CSSProperties | null =
+    anchorRect && adjustedPos?.caretTop != null
+      ? popover.preferredSide === 'left'
+        ? { right: -6, top: adjustedPos.caretTop - 6 }
+        : { left: -6, top: adjustedPos.caretTop - 6 }
+      : null;
+
   return (
     <div
       ref={popoverRef}
@@ -257,6 +325,13 @@ export function ProfilePopover({
       className="fixed z-[170] w-[340px] rounded-xl border border-white/[0.06] wd-bg-panel backdrop-blur-xl shadow-[0_0_0_1px_rgba(0,0,0,0.3),0_4px_12px_rgba(0,0,0,0.2),0_16px_40px_rgba(0,0,0,0.4)] animate-in fade-in zoom-in-95 duration-200"
       style={positionStyle}
     >
+      {caretSideStyle && (
+        <span
+          aria-hidden="true"
+          className="absolute w-3 h-3 rotate-45 wd-bg-panel border border-white/[0.06]"
+          style={caretSideStyle}
+        />
+      )}
       {/* Banner: show editor or display mode */}
       {banner.isEditing ? (
         <div>
@@ -343,6 +418,11 @@ export function ProfilePopover({
             ID {popover.senderUserId}
           </p>
           <ActivityText userId={popover.senderUserId} workspaceId={selectedWorkspaceId} />
+          {!isSelf && isOffline && lastSeen != null && (
+            <p className="text-[11px] wd-text-muted mt-0.5">
+              Last seen {formatLastSeen(lastSeen)}
+            </p>
+          )}
         </div>
       </div>
 

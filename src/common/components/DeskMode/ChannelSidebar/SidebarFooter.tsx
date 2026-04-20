@@ -7,8 +7,8 @@ import FocusToggleButton from '../FocusToggleButton';
 import UserAvatar from '../UserAvatar';
 import PresenceDot from '../PresenceDot';
 import StatusLabel from '../StatusLabel';
-import { ProfilePopover } from '../profile-popover';
-import type { ProfilePopoverState, SenderAvatar } from '../profile-popover';
+import { useProfilePopoverController } from '../profile-popover';
+import type { SenderAvatar } from '../profile-popover';
 
 interface SidebarFooterProps {
   onOpenSettings: () => void;
@@ -19,8 +19,7 @@ function SidebarFooter({ onOpenSettings }: SidebarFooterProps) {
   const backendUser = useUserStore((s) => s.backendUser);
 
   const [isAvatarLoadFailed, setIsAvatarLoadFailed] = useState(false);
-  const [footerProfilePopover, setFooterProfilePopover] =
-    useState<ProfilePopoverState | null>(null);
+  const popoverController = useProfilePopoverController();
 
   const displayName = getDisplayName(
     {
@@ -81,7 +80,7 @@ function SidebarFooter({ onOpenSettings }: SidebarFooterProps) {
 
                 const rect = event.currentTarget.getBoundingClientRect();
 
-                setFooterProfilePopover({
+                popoverController.openFromCoords({
                   x: rect.left,
                   y: rect.top,
                   anchorBottom: true,
@@ -135,18 +134,6 @@ function SidebarFooter({ onOpenSettings }: SidebarFooterProps) {
           </div>
         </div>
       </footer>
-      {footerProfilePopover && (
-        <ProfilePopover
-          popover={footerProfilePopover}
-          onClose={() => setFooterProfilePopover(null)}
-          onAvatarUpdated={(newAvatar) => {
-            setFooterProfilePopover({
-              ...footerProfilePopover,
-              senderAvatar: newAvatar,
-            });
-          }}
-        />
-      )}
     </>
   );
 }

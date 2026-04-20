@@ -32,8 +32,8 @@ import MessageSkeleton from "./MessageSkeleton";
 import { ArrowDown, UserCheck, UserRoundPlus } from "lucide-react";
 import { toast } from "sonner";
 import { getDisplayName } from "@/common/utils/displayName";
-import { ProfilePopover } from "./profile-popover";
-import type { ProfilePopoverState, SenderAvatar } from "./profile-popover";
+import { useProfilePopoverController } from "./profile-popover";
+import type { SenderAvatar } from "./profile-popover";
 import {
     generateCharacterFaceDataUrl,
     toCharacterCustomization,
@@ -236,8 +236,7 @@ function MessageList({
     >(null);
     const [avatarContextMenu, setAvatarContextMenu] =
         useState<AvatarContextMenuState | null>(null);
-    const [profilePopover, setProfilePopover] =
-        useState<ProfilePopoverState | null>(null);
+    const popoverController = useProfilePopoverController();
     const [isAddingFriend, setIsAddingFriend] = useState(false);
     const [flyoutMessageId, setFlyoutMessageId] = useState<string | null>(null);
     const [lightboxState, setLightboxState] = useState<LightboxImage | null>(
@@ -501,16 +500,11 @@ function MessageList({
     ]);
 
     useEffect(() => {
-        if (!avatarContextMenu && !profilePopover) {
+        if (!avatarContextMenu) {
             return undefined;
         }
 
-        const closeAll = () => {
-            setAvatarContextMenu(null);
-            setProfilePopover(null);
-        };
-
-        const closeContextMenuOnly = () => {
+        const close = () => {
             setAvatarContextMenu(null);
         };
 
@@ -519,32 +513,26 @@ function MessageList({
             if (target?.closest("[data-avatar-context-menu='true']")) {
                 return;
             }
-            if (target?.closest("[data-user-profile-popover='true']")) {
-                return;
-            }
-            if (target?.closest("[data-user-profile-more='true']")) {
-                return;
-            }
-            closeAll();
+            close();
         };
 
         const onKeyDown = (event: KeyboardEvent) => {
             if (event.key === "Escape") {
-                closeAll();
+                close();
             }
         };
 
         window.addEventListener("mousedown", onMouseDown);
         window.addEventListener("keydown", onKeyDown);
-        window.addEventListener("scroll", closeContextMenuOnly, true);
-        window.addEventListener("resize", closeAll);
+        window.addEventListener("scroll", close, true);
+        window.addEventListener("resize", close);
         return () => {
             window.removeEventListener("mousedown", onMouseDown);
             window.removeEventListener("keydown", onKeyDown);
-            window.removeEventListener("scroll", closeContextMenuOnly, true);
-            window.removeEventListener("resize", closeAll);
+            window.removeEventListener("scroll", close, true);
+            window.removeEventListener("resize", close);
         };
-    }, [avatarContextMenu, profilePopover]);
+    }, [avatarContextMenu]);
 
     useEffect(() => {
         type Unresolved = {
@@ -905,9 +893,9 @@ function MessageList({
                 senderName,
             });
 
-            setProfilePopover(null);
+            popoverController.close();
         },
-        [localBackendUserId],
+        [localBackendUserId, popoverController],
     );
 
     const handleMentionClick = useCallback(
@@ -954,16 +942,25 @@ function MessageList({
                 }
             }
 
-            setProfilePopover({
-                x: Math.min(desiredX, maxX),
-                y: Math.min(Math.max(8, desiredY), maxY),
-                senderUserId: userId,
-                senderName: resolvedDisplayName,
-                senderAvatar,
-            });
+            popoverController.openFromCoords(
+                {
+                    x: Math.min(desiredX, maxX),
+                    y: Math.min(Math.max(8, desiredY), maxY),
+                    senderUserId: userId,
+                    senderName: resolvedDisplayName,
+                    senderAvatar,
+                },
+                awardTagMap?.get(userId) ?? null,
+            );
             setAvatarContextMenu(null);
         },
-        [memberNameMap, resolvedSenderImagesByUserId, roomMembers],
+        [
+            awardTagMap,
+            memberNameMap,
+            popoverController,
+            resolvedSenderImagesByUserId,
+            roomMembers,
+        ],
     );
 
     const openProfilePopover = useCallback(
@@ -990,16 +987,19 @@ function MessageList({
             const desiredX = event.clientX + 12;
             const desiredY = event.clientY - 16;
 
-            setProfilePopover({
-                x: Math.min(desiredX, maxX),
-                y: Math.min(Math.max(8, desiredY), maxY),
-                senderUserId: message.senderUserId,
-                senderName,
-                senderAvatar,
-            });
+            popoverController.openFromCoords(
+                {
+                    x: Math.min(desiredX, maxX),
+                    y: Math.min(Math.max(8, desiredY), maxY),
+                    senderUserId: message.senderUserId,
+                    senderName,
+                    senderAvatar,
+                },
+                awardTagMap?.get(message.senderUserId) ?? null,
+            );
             setAvatarContextMenu(null);
         },
-        [],
+        [awardTagMap, popoverController],
     );
 
     const handleAddFriend = useCallback(
@@ -1025,11 +1025,11 @@ function MessageList({
                 setIsAddingFriend(false);
                 if (closeMenus) {
                     setAvatarContextMenu(null);
-                    setProfilePopover(null);
+                    popoverController.close();
                 }
             }
         },
-        [isAddingFriend, requestFriend],
+        [isAddingFriend, popoverController, requestFriend],
     );
 
     const handleFutureMessageAction = useCallback((label: string) => {
@@ -1303,7 +1303,7 @@ function MessageList({
                         paddingLeft: 16,
                         paddingRight: 16,
                         paddingTop: 16,
-                        paddingBottom: 48,
+                        paddingBottom: 72,
                     }}
                 />
             )}
@@ -1327,19 +1327,6 @@ function MessageList({
                 </button>
             ) : null}
 
-            {profilePopover && (
-                <ProfilePopover
-                    popover={profilePopover}
-                    onClose={() => setProfilePopover(null)}
-                    awardTag={awardTagMap?.get(profilePopover.senderUserId)}
-                    onAvatarUpdated={(newAvatar) => {
-                        setProfilePopover({
-                            ...profilePopover,
-                            senderAvatar: newAvatar,
-                        });
-                    }}
-                />
-            )}
             {avatarContextMenu && (
                 <div
                     data-avatar-context-menu="true"
