@@ -8,7 +8,7 @@ const CUSTOM_EMOJI_PATTERN = '<:[a-z0-9_]{2,32}:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]
  * - Emoticons, dingbats, symbols, flags, skin tone modifiers
  * - Variation selectors and zero-width joiners for composite emoji
  */
-const UNICODE_EMOJI_PATTERN =
+export const UNICODE_EMOJI_PATTERN =
   '(?:' +
   '[\\u{1F600}-\\u{1F64F}]' + // Emoticons
   '|[\\u{1F300}-\\u{1F5FF}]' + // Misc symbols & pictographs

@@ -5,7 +5,44 @@ import {
 } from '@/communication/chatV2/mentionUtils';
 import { parseCustomEmojis } from '@/common/utils/customEmojiParser';
 import { parseInlineMarkdown } from '@/common/utils/inlineMarkdownParser';
+import { UNICODE_EMOJI_PATTERN } from '@/common/utils/isEmojiOnly';
 import CustomEmojiInline from './CustomEmojiInline';
+
+// Match runs of unicode emoji codepoints (incl. ZWJ + variation selectors) so
+// composite emojis like family/skin-tone variants stay grouped as one wrapper.
+const INLINE_EMOJI_REGEX = new RegExp(`(?:${UNICODE_EMOJI_PATTERN})+`, 'gu');
+
+/**
+ * Wraps native unicode emojis in a span so they render larger than surrounding
+ * text in inline contexts. Returns a flat list of strings + emoji spans. The
+ * parent's `text-4xl` jumbo style still cascades onto the emoji spans (1.4em
+ * is em-relative), so emoji-only messages stay proportionally larger.
+ */
+function wrapInlineEmojis(text: string, keyPrefix: string): React.ReactNode[] {
+  const nodes: React.ReactNode[] = [];
+  let lastIndex = 0;
+  let emojiCount = 0;
+  let match: RegExpExecArray | null;
+  INLINE_EMOJI_REGEX.lastIndex = 0;
+  while ((match = INLINE_EMOJI_REGEX.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      nodes.push(text.slice(lastIndex, match.index));
+    }
+    nodes.push(
+      <span
+        key={`${keyPrefix}-em-${emojiCount++}`}
+        className="text-[1.4em] leading-[1] align-[-0.15em]"
+      >
+        {match[0]}
+      </span>,
+    );
+    lastIndex = match.index + match[0].length;
+  }
+  if (lastIndex < text.length) {
+    nodes.push(text.slice(lastIndex));
+  }
+  return nodes.length > 0 ? nodes : [text];
+}
 
 interface MentionHighlightedContentProps {
   content: string;
@@ -21,11 +58,11 @@ function renderInlineMarkdown(text: string, keyPrefix: string): React.ReactNode[
     const key = `${keyPrefix}-${token.type}-${i}`;
     switch (token.type) {
       case 'bold':
-        return <strong key={key}>{token.content}</strong>;
+        return <strong key={key}>{wrapInlineEmojis(token.content, key)}</strong>;
       case 'italic':
-        return <em key={key}>{token.content}</em>;
+        return <em key={key}>{wrapInlineEmojis(token.content, key)}</em>;
       case 'underline':
-        return <span key={key} className="underline">{token.content}</span>;
+        return <span key={key} className="underline">{wrapInlineEmojis(token.content, key)}</span>;
       case 'hyperlink':
         return (
           <a
@@ -36,12 +73,12 @@ function renderInlineMarkdown(text: string, keyPrefix: string): React.ReactNode[
             className="wd-text-accent hover:underline"
             title={token.url}
           >
-            {token.text}
+            {wrapInlineEmojis(token.text, key)}
           </a>
         );
       case 'text':
       default:
-        return <span key={key}>{token.content}</span>;
+        return <span key={key}>{wrapInlineEmojis(token.content, key)}</span>;
     }
   });
 }
