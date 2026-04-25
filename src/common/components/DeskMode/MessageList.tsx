@@ -377,8 +377,23 @@ function MessageList({
             repliesByRootId.set(message.replyToMessageId, existingReplies);
         }
 
+        // Insert pending messages by createdAt so out-of-order sends stay
+        // chronological. In the common case (one pending newer than everything
+        // else) this still appends to the end.
         for (const pending of pendingForRoom) {
-            rootMessages.push(pending);
+            const pendingTime = new Date(pending.createdAt).getTime();
+            let insertIndex = rootMessages.length;
+            for (let i = rootMessages.length - 1; i >= 0; i--) {
+                const entryTime = new Date(
+                    rootMessages[i].createdAt,
+                ).getTime();
+                if (entryTime <= pendingTime) {
+                    insertIndex = i + 1;
+                    break;
+                }
+                insertIndex = i;
+            }
+            rootMessages.splice(insertIndex, 0, pending);
         }
 
         return {
@@ -387,10 +402,41 @@ function MessageList({
         };
     }, [orderedMessages, pendingForRoom]);
 
-    const firstItemIndex = useMemo(
-        () => FIRST_ITEM_INDEX - groupedMessages.rootMessages.length,
-        [groupedMessages.rootMessages.length],
-    );
+    // Track only PREPENDED items (older messages loaded at the top). Virtuoso's
+    // firstItemIndex must decrement when items are prepended, but stay stable
+    // when items are appended at the bottom. Tying it to total length caused
+    // appended sends to be misread as prepends, producing a one-frame flash of
+    // shifted content.
+    const prependedCountRef = useRef(0);
+    const headMessageIdRef = useRef<string | null>(null);
+
+    const firstItemIndex = useMemo(() => {
+        const head = orderedMessages[0];
+
+        if (!head) {
+            headMessageIdRef.current = null;
+            return FIRST_ITEM_INDEX - prependedCountRef.current;
+        }
+
+        const previousHeadId = headMessageIdRef.current;
+
+        if (previousHeadId === null) {
+            headMessageIdRef.current = head.id;
+            return FIRST_ITEM_INDEX - prependedCountRef.current;
+        }
+
+        if (previousHeadId !== head.id) {
+            const indexOfPreviousHead = orderedMessages.findIndex(
+                (m) => m.id === previousHeadId,
+            );
+            if (indexOfPreviousHead > 0) {
+                prependedCountRef.current += indexOfPreviousHead;
+            }
+            headMessageIdRef.current = head.id;
+        }
+
+        return FIRST_ITEM_INDEX - prependedCountRef.current;
+    }, [orderedMessages]);
 
     // Sync loading ref for startReached guard
     useEffect(() => {
@@ -403,6 +449,8 @@ function MessageList({
         setIsAtBottom(true);
         isAtBottomRef.current = true;
         lastTailEntryIdRef.current = null;
+        prependedCountRef.current = 0;
+        headMessageIdRef.current = null;
     }, [currentRoomId]);
 
     // Runs on every rootMessages change; the body acts only when the tail
