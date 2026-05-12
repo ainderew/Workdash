@@ -6,6 +6,7 @@ import React, {
     useState,
 } from "react";
 import Image from "next/image";
+import { Menu } from "lucide-react";
 import useChatV2Store from "@/common/store/chatV2Store";
 import useWorkspaceStore from "@/common/store/workspaceStore";
 import useUiStore from "@/common/store/uiStore";
@@ -103,6 +104,23 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
     const [joinInviteCode, setJoinInviteCode] = useState<string | undefined>(
         undefined,
     );
+    const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+
+    const closeMobileNav = useCallback(() => setIsMobileNavOpen(false), []);
+    const openMobileNav = useCallback(() => setIsMobileNavOpen(true), []);
+
+    useEffect(() => {
+        setIsMobileNavOpen(false);
+    }, [currentRoomId, railView]);
+
+    useEffect(() => {
+        if (!isMobileNavOpen) return;
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.key === "Escape") setIsMobileNavOpen(false);
+        };
+        window.addEventListener("keydown", onKeyDown);
+        return () => window.removeEventListener("keydown", onKeyDown);
+    }, [isMobileNavOpen]);
 
     // --- Consolidated initialization ---
 
@@ -346,8 +364,31 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
         <section className={rootContainerClassName}>
             <ProfilePopoverProvider>
             <div className="h-9 flex shrink-0">
-                <div className="w-[72px] shrink-0 wd-bg-app" />
-                <div className="flex-1 min-w-0 wd-bg-app flex items-center justify-center gap-1.5 px-4">
+                <div className="hidden md:block w-[72px] shrink-0 wd-bg-app" />
+                <button
+                    type="button"
+                    onClick={openMobileNav}
+                    aria-label={`Open workspace navigation — ${serverName}`}
+                    className="md:hidden flex-1 min-w-0 h-9 wd-bg-app inline-flex items-center justify-start gap-2 px-3 wd-text-primary hover:bg-[var(--wd-surface-elevated)] transition-colors"
+                >
+                    <Menu size={18} className="shrink-0 wd-text-secondary" />
+                    {serverImageUrl && (
+                        <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center overflow-hidden rounded">
+                            <Image
+                                src={serverImageUrl}
+                                alt=""
+                                width={16}
+                                height={16}
+                                unoptimized
+                                className="h-full w-full object-cover"
+                            />
+                        </span>
+                    )}
+                    <span className="truncate text-sm font-semibold">
+                        {serverName}
+                    </span>
+                </button>
+                <div className="hidden md:flex flex-1 min-w-0 wd-bg-app items-center justify-center gap-1.5 px-4">
                     {serverImageUrl && (
                         <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center overflow-hidden rounded">
                             <Image
@@ -366,7 +407,23 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
                 </div>
             </div>
 
-            <div className="flex flex-1 min-h-0">
+            <div className="flex flex-1 min-h-0 relative">
+                {isMobileNavOpen && (
+                    <button
+                        type="button"
+                        aria-label="Close menu"
+                        onClick={closeMobileNav}
+                        className="md:hidden fixed inset-0 z-[55] bg-black/50 backdrop-blur-sm"
+                    />
+                )}
+
+                <div
+                    className={`shrink-0 h-full ${
+                        isMobileNavOpen
+                            ? "fixed inset-y-0 left-0 z-[60] flex md:static md:inset-auto md:z-auto"
+                            : "hidden md:flex"
+                    }`}
+                >
                 <GuildRail
                     workspaces={workspaceOptions}
                     railView={railView}
@@ -411,25 +468,35 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
                         setIsMembersModalOpen(true);
                     }}
                 />
+                </div>
 
-                <div className="flex-1 min-w-0 pb-2 flex">
-                    <div className="flex-1 min-w-0 h-full min-h-0 flex rounded-lg overflow-visible outline-1 outline-[color:var(--wd-border-subtle)] shadow-[0_8px_24px_rgba(0,0,0,0.22),0_0_14px_rgba(88,101,242,0.08)]">
-                        <ChannelSidebarContainer
-                            serverName={serverName}
-                            serverImageUrl={serverImageUrl}
-                            mode={mode}
-                            onClose={onClose}
-                            onServerImageChanged={handleServerImageChanged}
-                            onServerRenamed={handleServerRenamed}
-                            onOpenMembers={() => {
-                                setMembersModalTab("members");
-                                setIsMembersModalOpen(true);
-                            }}
-                            onInvitePeople={() => {
-                                setMembersModalTab("invites");
-                                setIsMembersModalOpen(true);
-                            }}
-                        />
+                <div className="flex-1 min-w-0 md:pb-2 flex">
+                    <div className="relative flex-1 min-w-0 h-full min-h-0 flex md:rounded-lg overflow-visible md:outline-1 md:outline-[color:var(--wd-border-subtle)] md:shadow-[0_8px_24px_rgba(0,0,0,0.22),0_0_14px_rgba(88,101,242,0.08)]">
+                        <div
+                            className={`h-full ${
+                                isMobileNavOpen
+                                    ? "fixed inset-y-0 left-[72px] z-[60] flex md:static md:inset-auto md:left-auto md:z-auto"
+                                    : "hidden md:flex"
+                            }`}
+                        >
+                            <ChannelSidebarContainer
+                                serverName={serverName}
+                                serverImageUrl={serverImageUrl}
+                                mode={mode}
+                                onClose={onClose}
+                                onServerImageChanged={handleServerImageChanged}
+                                onServerRenamed={handleServerRenamed}
+                                onOpenMembers={() => {
+                                    setMembersModalTab("members");
+                                    setIsMembersModalOpen(true);
+                                }}
+                                onInvitePeople={() => {
+                                    setMembersModalTab("invites");
+                                    setIsMembersModalOpen(true);
+                                }}
+                                onCloseMobileNav={closeMobileNav}
+                            />
+                        </div>
 
                         <ChatPaneContainer
                             serverName={serverName}

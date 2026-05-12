@@ -111,7 +111,7 @@ function DeskSearchResultsPanel({
     };
 
     return (
-        <aside className="w-[420px] max-w-[45vw] min-w-[320px] wd-bg-panel border-l wd-border-subtle flex flex-col min-h-0 text-[0.85rem]">
+        <aside className="relative ml-auto w-full md:w-[420px] md:max-w-[45vw] md:min-w-[320px] h-full wd-bg-panel md:border-l wd-border-subtle flex flex-col min-h-0 text-[0.85rem]">
             <div className="h-14 border-b wd-border-subtle px-4 flex items-center justify-between gap-2">
                 <h3 className="text-[0.85rem] font-semibold wd-text-primary leading-none">
                     {totalCount} Results

@@ -26,7 +26,7 @@ function RightSidebar({
   const onlinePlayerCount = usePZStore((s) => s.onlinePlayers).length;
 
   return (
-    <aside className="flex w-[280px] shrink-0 flex-col overflow-hidden border-l border-[var(--wd-border-subtle)] bg-[var(--wd-surface-panel)]">
+    <aside className="relative ml-auto flex w-full md:w-[280px] h-full shrink-0 flex-col overflow-hidden md:border-l border-[var(--wd-border-subtle)] bg-[var(--wd-surface-panel)]">
       {/* Tab bar — only show when PZ integration exists */}
       {hasPZ ? (
         <div className="flex h-10 shrink-0 items-center gap-0.5 border-b border-[var(--wd-border-subtle)] px-2">

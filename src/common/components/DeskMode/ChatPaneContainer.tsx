@@ -552,94 +552,119 @@ function ChatPaneContainer({
             </div>
 
             {activeThreadRootId ? (
-                <ThreadPanel
-                    roomId={currentRoomId}
-                    rootMessage={threadRootMessage}
-                    replies={threadReplies}
-                    isLoading={isLoadingThread}
-                    isSending={isSending}
-                    error={threadError}
-                    members={roomMembers}
-                    onClose={closeThreadPanel}
-                    onRetry={() => {
-                        if (!activeThreadRootId) return;
-                        void loadThread(activeThreadRootId);
-                    }}
-                    onSendReply={async (content, attachments, options) => {
-                        if (!activeThreadRootId) return;
-                        const replyMessage = await sendMessage(
-                            content,
-                            attachments,
-                            {
-                                replyToMessageId: activeThreadRootId,
-                                mentionedUserIds: options?.mentionedUserIds,
-                                ...(options?.clientMessageId && {
-                                    clientMessageId: options.clientMessageId,
-                                }),
-                            },
-                        );
-                        if (!replyMessage) return;
-                        setThreadReplies((prev) => {
-                            const byId = new Map<string, ChatV2Message>();
-                            for (const reply of prev)
-                                byId.set(reply.id, reply);
-                            byId.set(replyMessage.id, replyMessage);
-                            return sortByCreatedAtAsc(
-                                Array.from(byId.values()),
+                <div className="absolute inset-0 z-[60] flex md:contents">
+                    <button
+                        type="button"
+                        aria-label="Close thread"
+                        onClick={closeThreadPanel}
+                        className="md:hidden absolute inset-0 bg-black/40"
+                    />
+                    <ThreadPanel
+                        roomId={currentRoomId}
+                        rootMessage={threadRootMessage}
+                        replies={threadReplies}
+                        isLoading={isLoadingThread}
+                        isSending={isSending}
+                        error={threadError}
+                        members={roomMembers}
+                        className="relative ml-auto"
+                        onClose={closeThreadPanel}
+                        onRetry={() => {
+                            if (!activeThreadRootId) return;
+                            void loadThread(activeThreadRootId);
+                        }}
+                        onSendReply={async (content, attachments, options) => {
+                            if (!activeThreadRootId) return;
+                            const replyMessage = await sendMessage(
+                                content,
+                                attachments,
+                                {
+                                    replyToMessageId: activeThreadRootId,
+                                    mentionedUserIds: options?.mentionedUserIds,
+                                    ...(options?.clientMessageId && {
+                                        clientMessageId: options.clientMessageId,
+                                    }),
+                                },
                             );
-                        });
-                    }}
-                    onToggleReaction={async (messageId, emoji) => {
-                        await toggleMessageReaction(messageId, emoji);
-                    }}
-                />
+                            if (!replyMessage) return;
+                            setThreadReplies((prev) => {
+                                const byId = new Map<string, ChatV2Message>();
+                                for (const reply of prev)
+                                    byId.set(reply.id, reply);
+                                byId.set(replyMessage.id, replyMessage);
+                                return sortByCreatedAtAsc(
+                                    Array.from(byId.values()),
+                                );
+                            });
+                        }}
+                        onToggleReaction={async (messageId, emoji) => {
+                            await toggleMessageReaction(messageId, emoji);
+                        }}
+                    />
+                </div>
             ) : isSearchPanelVisible ? (
-                <DeskSearchResultsPanel
-                    messages={searchResults}
-                    roomsById={roomsById}
-                    totalCount={searchTotalCount}
-                    sort={searchSort}
-                    isLoading={isSearching}
-                    error={searchError}
-                    onSortChange={setSearchSort}
-                    onSelectResult={(message) => {
-                        void onSelectSearchResult(message);
-                    }}
-                />
+                <div className="absolute inset-0 z-[60] flex md:contents">
+                    <button
+                        type="button"
+                        aria-label="Close search results"
+                        onClick={clearSearchState}
+                        className="md:hidden absolute inset-0 bg-black/40"
+                    />
+                    <DeskSearchResultsPanel
+                        messages={searchResults}
+                        roomsById={roomsById}
+                        totalCount={searchTotalCount}
+                        sort={searchSort}
+                        isLoading={isSearching}
+                        error={searchError}
+                        onSortChange={setSearchSort}
+                        onSelectResult={(message) => {
+                            void onSelectSearchResult(message);
+                        }}
+                    />
+                </div>
             ) : rightSidebarTab !== null ? (
-                <RightSidebar
-                    activeTab={rightSidebarTab}
-                    onTabChange={setRightSidebarTab}
-                    memberCount={roomMembers.length}
-                >
-                    <div
-                        className={
-                            rightSidebarTab === "members"
-                                ? "flex flex-1 flex-col min-h-0"
-                                : "hidden"
-                        }
+                <div className="absolute inset-0 z-[60] flex md:contents">
+                    <button
+                        type="button"
+                        aria-label="Close panel"
+                        onClick={() => setRightSidebarTab(null)}
+                        className="md:hidden absolute inset-0 bg-black/40"
+                    />
+                    <RightSidebar
+                        activeTab={rightSidebarTab}
+                        onTabChange={setRightSidebarTab}
+                        memberCount={roomMembers.length}
                     >
-                        <MemberPanelContainer
-                            memberRoleColors={memberRoleColors}
-                            wsMembers={wsMembers}
-                            workspaceOwnerId={workspaceOwnerId}
-                        />
-                    </div>
-                    {hasPZ && (
                         <div
                             className={
-                                rightSidebarTab === "pz"
+                                rightSidebarTab === "members"
                                     ? "flex flex-1 flex-col min-h-0"
                                     : "hidden"
                             }
                         >
-                            <PZSidebar
-                                workspaceId={selectedWorkspaceId!}
-                                isActive={true}
+                            <MemberPanelContainer
+                                memberRoleColors={memberRoleColors}
+                                wsMembers={wsMembers}
+                                workspaceOwnerId={workspaceOwnerId}
                             />
                         </div>
-                    )}
-                </RightSidebar>
+                        {hasPZ && (
+                            <div
+                                className={
+                                    rightSidebarTab === "pz"
+                                        ? "flex flex-1 flex-col min-h-0"
+                                        : "hidden"
+                                }
+                            >
+                                <PZSidebar
+                                    workspaceId={selectedWorkspaceId!}
+                                    isActive={true}
+                                />
+                            </div>
+                        )}
+                    </RightSidebar>
+                </div>
             ) : null}
         </>
     );

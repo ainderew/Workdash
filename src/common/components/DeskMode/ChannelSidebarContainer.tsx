@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import useChatV2Store from "@/common/store/chatV2Store";
 import useUiStore from "@/common/store/uiStore";
 import useCallStore from "@/common/store/callStore";
@@ -22,6 +22,7 @@ interface ChannelSidebarContainerProps {
     onServerRenamed: (serverId: string, name: string) => void;
     onOpenMembers: () => void;
     onInvitePeople: () => void;
+    onCloseMobileNav?: () => void;
 }
 
 function ChannelSidebarContainer({
@@ -33,6 +34,7 @@ function ChannelSidebarContainer({
     onServerRenamed,
     onOpenMembers,
     onInvitePeople,
+    onCloseMobileNav,
 }: ChannelSidebarContainerProps) {
     const railView = useChatV2Store((s) => s.railView);
     const selectedWorkspaceId = useChatV2Store((s) => s.selectedWorkspaceId);
@@ -64,8 +66,23 @@ function ChannelSidebarContainer({
     const openDirectMessage = useChatV2Store((s) => s.openDirectMessage);
     const unreadByRoomId = useChatV2Store((s) => s.unreadByRoomId);
 
-    const isSidebarCollapsed = useUiStore((s) => s.isSidebarCollapsed);
+    const storedSidebarCollapsed = useUiStore((s) => s.isSidebarCollapsed);
     const toggleSidebar = useUiStore((s) => s.toggleSidebar);
+
+    const [isMobile, setIsMobile] = useState(false);
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+        const mql = window.matchMedia("(max-width: 767px)");
+        const update = () => setIsMobile(mql.matches);
+        update();
+        mql.addEventListener("change", update);
+        return () => mql.removeEventListener("change", update);
+    }, []);
+
+    const isSidebarCollapsed = isMobile ? false : storedSidebarCollapsed;
+
+    const handleCollapseOrClose =
+        isMobile && onCloseMobileNav ? onCloseMobileNav : toggleSidebar;
 
     const rooms = useMemo<ChatV2Room[]>(
         () => roomOrder.map((id) => roomsById[id]).filter(Boolean),
@@ -203,7 +220,7 @@ function ChannelSidebarContainer({
                     onServerRenamed={onServerRenamed}
                     onOpenMembers={onOpenMembers}
                     onInvitePeople={onInvitePeople}
-                    onCollapseSidebar={toggleSidebar}
+                    onCollapseSidebar={handleCollapseOrClose}
                 />
             ) : (
                 <DirectMessageSidebar
@@ -220,7 +237,7 @@ function ChannelSidebarContainer({
                     onOpenDirectMessage={(userId) => {
                         void openDirectMessage(userId);
                     }}
-                    onCollapseSidebar={toggleSidebar}
+                    onCollapseSidebar={handleCollapseOrClose}
                 />
             )}
         </div>

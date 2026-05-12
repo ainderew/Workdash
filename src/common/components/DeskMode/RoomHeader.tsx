@@ -325,7 +325,7 @@ function RoomHeader({
     }, [incomingFriendRequestCount, isNotificationsOpen, unreadNotificationCount]);
 
     return (
-        <header className="relative z-[50] h-14 border-b wd-border-subtle px-5 flex items-center justify-between gap-4 wd-bg-panel-2 backdrop-blur">
+        <header className="relative z-[50] h-14 border-b wd-border-subtle px-3 md:px-5 flex items-center justify-between gap-2 md:gap-4 wd-bg-panel-2 backdrop-blur">
             <div className="min-w-0">
                 <div className="text-sm font-semibold wd-text-primary truncate">
                     {room ? (
@@ -336,13 +336,13 @@ function RoomHeader({
                     ) : "Select a room"}
                 </div>
                 {room?.topic && (
-                    <div className="text-xs wd-text-muted truncate">
+                    <div className="text-xs wd-text-muted truncate hidden md:block">
                         {room.topic}
                     </div>
                 )}
             </div>
 
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-1 md:gap-2 shrink-0">
                 {room && <StartCallButton channelId={room.id} />}
 
                 <div className="relative shrink-0" ref={notificationsContainerRef}>
@@ -453,7 +453,7 @@ function RoomHeader({
                 </div>
 
                 {room && workspaceId && (
-                    <div className="relative shrink-0" ref={widgetSettingsRef}>
+                    <div className="relative shrink-0 hidden md:block" ref={widgetSettingsRef}>
                         <button
                             type="button"
                             aria-label={isWidgetSettingsOpen ? "Close widget settings" : "Widget settings"}
@@ -503,7 +503,7 @@ function RoomHeader({
                                 rightSidebarTab === "pz" ? null : "pz",
                             )
                         }
-                        className={`relative h-8 w-8 inline-flex items-center justify-center rounded-md border wd-border-subtle transition-colors ${
+                        className={`hidden md:inline-flex relative h-8 w-8 items-center justify-center rounded-md border wd-border-subtle transition-colors ${
                             rightSidebarTab === "pz"
                                 ? "wd-bg-elevated wd-text-primary hover:bg-[var(--wd-surface-base)]"
                                 : "wd-bg-panel-2 wd-text-secondary hover:wd-text-primary hover:bg-[var(--wd-surface-base)]"
@@ -546,7 +546,7 @@ function RoomHeader({
                 </button>
 
                 <div
-                    className="flex items-center gap-2 shrink-0 relative"
+                    className="hidden md:flex items-center gap-2 shrink-0 relative"
                     ref={searchContainerRef}
                 >
                     <div className="relative">
