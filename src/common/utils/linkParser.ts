@@ -1,6 +1,12 @@
 
 const URL_REGEX = /(https?:\/\/[^\s]+)/g;
 
+const MARKDOWN_LINK_SPAN = /\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g;
+
+export function stripMarkdownLinkSpans(content: string): string {
+    return content.replace(MARKDOWN_LINK_SPAN, '$1');
+}
+
 
 const YOUTUBE_REGEX = /(?:youtube\.com\/(?:[^/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?/\s]{11})/;
 

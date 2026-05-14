@@ -78,6 +78,33 @@ describe('serializeTiptapToMarkdown', () => {
     expect(serializeTiptapToMarkdown(input)).toBe(url);
   });
 
+  it('does NOT emit __ inside [..](..) for link + underline marks', () => {
+    const input = doc(
+      paragraph(
+        text('Help Center', [
+          { type: 'link', attrs: { href: 'https://links.email.claude.com/abc' } },
+          { type: 'underline' },
+        ]),
+      ),
+    );
+    expect(serializeTiptapToMarkdown(input)).toBe(
+      '[Help Center](https://links.email.claude.com/abc)',
+    );
+  });
+
+  it('does NOT emit ** or * inside [..](..) for link + bold + italic marks', () => {
+    const input = doc(
+      paragraph(
+        text('label', [
+          { type: 'link', attrs: { href: 'https://example.com' } },
+          { type: 'bold' },
+          { type: 'italic' },
+        ]),
+      ),
+    );
+    expect(serializeTiptapToMarkdown(input)).toBe('[label](https://example.com)');
+  });
+
   it('serializes bullet lists', () => {
     const input = doc({
       type: 'bulletList',

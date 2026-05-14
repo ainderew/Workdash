@@ -8,6 +8,7 @@ import type {
 import AwardTag from "@/common/components/AwardTag/AwardTag";
 import { getStandaloneGifUrl } from "@/communication/chatV2/gifUrl";
 import { extractLinkParts } from "./MessageContentRenderer";
+import { stripMarkdownLinkSpans } from "@/common/utils/linkParser";
 import { BotMessageCard } from "./BotCards/BotMessageCard";
 import { PZEventCard } from "./BotCards/PZEventCard";
 import { CallEventMessage } from "./CallEventMessage";
@@ -177,10 +178,12 @@ const MessageRow = React.memo(function MessageRow({
         message.messageType === "IMAGE" && message.attachments.length === 0
             ? getStandaloneGifUrl(message.content)
             : null;
+    const previewableContent =
+        message.content ? stripMarkdownLinkSpans(message.content) : "";
     const parsedMessageLinks =
-        skipLinkPreviews || !message.content || standaloneGifUrl
+        skipLinkPreviews || !previewableContent || standaloneGifUrl
             ? []
-            : extractLinkParts(message.content);
+            : extractLinkParts(previewableContent);
     const parsedMessageLinkUrls = new Set(
         parsedMessageLinks.map((part) => part.url as string),
     );
@@ -188,7 +191,7 @@ const MessageRow = React.memo(function MessageRow({
         ? []
         : Array.from(
               new Set(
-                  (message.content?.match(/https?:\/\/[^\s]+/gi) || []).map(
+                  (previewableContent.match(/https?:\/\/[^\s]+/gi) || []).map(
                       (url) => url.trim(),
                   ),
               ),

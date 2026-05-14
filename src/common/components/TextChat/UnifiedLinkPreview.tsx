@@ -1,6 +1,9 @@
 import React, { useState } from "react";
 import { extractDomain, getYouTubeThumbnail } from "@/common/utils/linkParser";
-import type { LinkPreviewMetadata } from "@/common/hooks/useLinkPreviews";
+import {
+    isWeakMetadata,
+    type LinkPreviewMetadata,
+} from "@/common/hooks/useLinkPreviews";
 import {
     getPlatformIcon,
     getPlatformGradient,
@@ -62,6 +65,10 @@ export function UnifiedLinkPreview({
     metadata,
     platformHints,
 }: UnifiedLinkPreviewProps) {
+    if (platform !== "youtube" && (!metadata || isWeakMetadata(metadata))) {
+        return null;
+    }
+
     const displayUrl = metadata?.url || url;
     const domain = metadata?.domain || extractDomain(displayUrl);
     const title = metadata?.title || metadata?.siteName;

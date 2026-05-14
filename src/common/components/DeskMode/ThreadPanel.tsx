@@ -21,6 +21,7 @@ import {
 import ImagePreviewLightbox from "./ImagePreviewLightbox";
 import type { LightboxImage } from "./ImagePreviewLightbox";
 import { extractLinkParts } from "./MessageContentRenderer";
+import { stripMarkdownLinkSpans } from "@/common/utils/linkParser";
 import { UnifiedLinkPreview } from "@/common/components/TextChat/UnifiedLinkPreview";
 import { useLinkPreviews } from "@/common/hooks/useLinkPreviews";
 import {
@@ -130,9 +131,11 @@ function ThreadMessageRow({
     const isBot = message.sender?.name === "Music Bot";
     const isSlashCommand = !!message.content?.startsWith("/");
     const skipLinkPreviews = isBot || isSlashCommand;
-    const parsedMessageLinks = skipLinkPreviews || !message.content || standaloneGifUrl
+    const previewableContent =
+        message.content ? stripMarkdownLinkSpans(message.content) : "";
+    const parsedMessageLinks = skipLinkPreviews || !previewableContent || standaloneGifUrl
         ? []
-        : extractLinkParts(message.content);
+        : extractLinkParts(previewableContent);
     const parsedMessageLinkUrls = new Set(
         parsedMessageLinks.map((part) => part.url as string),
     );
@@ -140,7 +143,7 @@ function ThreadMessageRow({
         ? []
         : Array.from(
               new Set(
-                  (message.content?.match(/https?:\/\/[^\s]+/gi) || []).map((url) =>
+                  (previewableContent.match(/https?:\/\/[^\s]+/gi) || []).map((url) =>
                       url.trim(),
                   ),
               ),

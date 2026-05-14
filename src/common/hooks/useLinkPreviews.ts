@@ -17,7 +17,7 @@ const MAX_PREVIEW_RETRIES = 3;
 
 const YOUTUBE_HOST_RE = /(?:youtube\.com|youtu\.be)/i;
 
-const isWeakMetadata = (m: LinkPreviewMetadata | null) =>
+export const isWeakMetadata = (m: LinkPreviewMetadata | null) =>
     !!m && !m.title && !m.description && !m.image;
 
 async function fetchYouTubeOembed(url: string): Promise<LinkPreviewMetadata | null> {

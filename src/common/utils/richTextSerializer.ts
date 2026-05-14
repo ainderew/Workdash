@@ -118,37 +118,30 @@ function serializeListItem(node: JSONContent, prefix: string = '-'): string {
 }
 
 function serializeTextNode(node: JSONContent): string {
-  let text = node.text ?? '';
-  if (!node.marks || node.marks.length === 0) return text;
+  const rawText = node.text ?? '';
+  if (!node.marks || node.marks.length === 0) return rawText;
 
-  // Apply marks inside-out: code first, then structural marks, then link
+  // Code wins over everything else
   const hasCode = node.marks.some((m) => m.type === 'code');
-  if (hasCode) return `\`${text}\``;
+  if (hasCode) return `\`${rawText}\``;
 
   const hasLink = node.marks.find((m) => m.type === 'link');
-  const hasBold = node.marks.some((m) => m.type === 'bold');
-  const hasItalic = node.marks.some((m) => m.type === 'italic');
-  const hasUnderline = node.marks.some((m) => m.type === 'underline');
 
-  if (hasBold) text = `**${text}**`;
-  if (hasItalic) text = `*${text}*`;
-  if (hasUnderline) text = `__${text}__`;
-
+  // Inside an anchor, the link's own styling carries the emphasis. Re-wrapping
+  // the bracket text with **/*/__ produces literal markers in the rendered
+  // label (e.g. `[__text__](url)` → visible underscores) because the inline
+  // parser matches the outer [text](url) first and never re-tokenizes the
+  // bracket content.
   if (hasLink) {
     const href = hasLink.attrs?.href ?? '';
-    if (text === href) {
-      // Bare URL — no wrapping needed, linkParser will handle display
-      return text;
-    }
-    // Strip any markdown wrapping that was just applied to go inside []
-    const innerText = node.text ?? '';
-    let inner = innerText;
-    if (hasBold) inner = `**${inner}**`;
-    if (hasItalic) inner = `*${inner}*`;
-    if (hasUnderline) inner = `__${inner}__`;
-    return `[${inner}](${href})`;
+    if (rawText === href) return rawText;
+    return `[${rawText}](${href})`;
   }
 
+  let text = rawText;
+  if (node.marks.some((m) => m.type === 'bold')) text = `**${text}**`;
+  if (node.marks.some((m) => m.type === 'italic')) text = `*${text}*`;
+  if (node.marks.some((m) => m.type === 'underline')) text = `__${text}__`;
   return text;
 }
 
