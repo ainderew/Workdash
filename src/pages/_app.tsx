@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import type { AppProps } from "next/app";
 import { SessionProvider } from "next-auth/react";
 import { ThemeProvider } from "next-themes";
@@ -16,6 +16,19 @@ export default function App({
     Component,
     pageProps: { session, ...pageProps },
 }: AppProps) {
+    useEffect(() => {
+        if (
+            typeof window === "undefined" ||
+            !("serviceWorker" in navigator) ||
+            process.env.NODE_ENV !== "production"
+        ) {
+            return;
+        }
+        navigator.serviceWorker.register("/sw.js").catch(() => {
+            // Registration failures are non-fatal — app still works without PWA install.
+        });
+    }, []);
+
     return (
         <SessionProvider session={session} refetchOnWindowFocus={false}>
             <ThemeProvider

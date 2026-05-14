@@ -2,6 +2,7 @@ import React from 'react';
 import { ChevronDown } from 'lucide-react';
 import { SettingsSection, SettingsToggle } from '../settings-primitives';
 import { useGeneralSettings } from '../hooks/useGeneralSettings';
+import { usePushNotifications } from '@/common/hooks/usePushNotifications';
 
 function GeneralPanel() {
   const {
@@ -11,6 +12,14 @@ function GeneralPanel() {
     autoJoinMusic,
     setAutoJoinMusic,
   } = useGeneralSettings();
+  const push = usePushNotifications();
+
+  const pushDescription = (() => {
+    if (push.state === 'unsupported') return 'Your browser does not support web push notifications.';
+    if (push.state === 'denied') return 'Notifications are blocked. Enable them in your browser site settings, then retry.';
+    if (push.state === 'subscribed') return 'You will receive notifications for mentions and replies when WorkDash is in the background.';
+    return 'Get notified about mentions and replies even when WorkDash is in the background.';
+  })();
 
   return (
     <div className="space-y-4">
@@ -56,6 +65,22 @@ function GeneralPanel() {
           checked={autoJoinMusic}
           onChange={(checked) => setAutoJoinMusic(checked)}
         />
+      </SettingsSection>
+
+      <SettingsSection label="Notifications">
+        <SettingsToggle
+          label="Push notifications"
+          description={pushDescription}
+          checked={push.state === 'subscribed'}
+          disabled={push.busy || push.state === 'unsupported' || push.state === 'denied'}
+          onChange={(checked) => {
+            if (checked) void push.subscribe();
+            else void push.unsubscribe();
+          }}
+        />
+        {push.error && (
+          <p className="mt-2 text-xs wd-text-danger">{push.error}</p>
+        )}
       </SettingsSection>
     </div>
   );

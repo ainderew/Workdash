@@ -5,16 +5,27 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useDesktopApp } from "./useDesktopApp";
+import { useInstallApp } from "./useInstallApp";
+
+const TOOLTIPS = {
+    installable: "Install WorkDash",
+    installed: "WorkDash is installed",
+    "ios-manual": "Install: Share → Add to Home Screen",
+    unsupported: "Install via browser menu",
+} as const;
 
 function DesktopAppButton() {
-    const { isAvailable, downloadUrl } = useDesktopApp();
+    const { state, install } = useInstallApp();
+
+    if (state === "installed") return null;
 
     const handleClick = () => {
-        if (isAvailable && downloadUrl) {
-            window.open(downloadUrl, "_blank", "noopener,noreferrer");
+        if (state === "installable") {
+            void install();
         }
     };
+
+    const isInteractive = state === "installable";
 
     return (
         <Tooltip>
@@ -22,8 +33,9 @@ function DesktopAppButton() {
                 <button
                     type="button"
                     onClick={handleClick}
-                    className="group relative w-11 h-11 rounded-xl wd-bg-elevated transition-all duration-200 hover:bg-[var(--wd-accent-soft-solid)] cursor-pointer"
-                    aria-label="Download Desktop App (Coming Soon)"
+                    disabled={!isInteractive}
+                    className="group relative w-11 h-11 rounded-xl wd-bg-elevated transition-all duration-200 hover:bg-[var(--wd-accent-soft-solid)] cursor-pointer disabled:cursor-default disabled:opacity-60"
+                    aria-label={TOOLTIPS[state]}
                 >
                     <span className="inline-flex h-full w-full items-center justify-center overflow-hidden rounded-lg">
                         <Image
@@ -37,11 +49,7 @@ function DesktopAppButton() {
                 </button>
             </TooltipTrigger>
             <TooltipContent side="right" align="center">
-                <span>
-                    {isAvailable
-                        ? "Download Desktop App"
-                        : "Desktop App — Coming Soon"}
-                </span>
+                <span>{TOOLTIPS[state]}</span>
             </TooltipContent>
         </Tooltip>
     );

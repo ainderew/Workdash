@@ -3,7 +3,19 @@ import { Html, Head, Main, NextScript } from "next/document";
 export default function Document() {
     return (
         <Html lang="en">
-            <Head />
+            <Head>
+                <link rel="manifest" href="/manifest.webmanifest" />
+                <meta name="theme-color" content="#C2410C" />
+                <meta name="application-name" content="WorkDash" />
+                <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+                <meta name="apple-mobile-web-app-capable" content="yes" />
+                <meta name="apple-mobile-web-app-title" content="WorkDash" />
+                <meta
+                    name="apple-mobile-web-app-status-bar-style"
+                    content="black-translucent"
+                />
+                <meta name="mobile-web-app-capable" content="yes" />
+            </Head>
             <body>
                 <script
                     dangerouslySetInnerHTML={{
