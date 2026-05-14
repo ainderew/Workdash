@@ -737,7 +737,7 @@ function ThreadPanel({
 
     return (
         <aside
-            className={`flex h-full min-h-0 w-full md:w-[370px] md:max-w-[45vw] md:min-w-[320px] flex-col md:border-l wd-border-subtle wd-bg-panel ${className ?? ""}`}
+            className={`flex h-full min-h-0 w-full md:w-[444px] md:max-w-[45vw] md:min-w-[320px] flex-col md:border-l wd-border-subtle wd-bg-panel ${className ?? ""}`}
         >
             <header className="h-12 shrink-0 border-b wd-border-subtle px-3 flex items-center justify-between">
                 <div>
