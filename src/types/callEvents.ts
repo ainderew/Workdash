@@ -9,6 +9,8 @@ export const CallEvents = {
   OWNERSHIP_CHANGED: "call:ownership-changed",
   OWNERSHIP_LOST: "call:ownership-lost",
   OWNERSHIP_CLEARED: "call:ownership-cleared",
+  WORKSPACE_CALL_ACTIVE: "workspace:call:active",
+  DM_CALL_ACTIVE: "dm:call:active",
 
   // RPC events (client → server with ack)
   START: "call:start",
@@ -17,6 +19,7 @@ export const CallEvents = {
   GET_STATE: "call:get-state",
   SET_MEDIA: "call:set-media",
   GET_ACTIVE: "call:get-active",
+  GET_ACTIVE_FOR_WORKSPACES: "call:get-active-for-workspaces",
   TRANSFER_REQUEST: "call:transfer-request",
 
   // Session management

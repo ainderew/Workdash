@@ -7,6 +7,8 @@ import {
 } from "@/components/ui/tooltip";
 import { toWorkspaceInitials } from "@/common/utils/workspaceDisplay";
 import DesktopAppButton from "./DesktopApp/DesktopAppButton";
+import WorkspaceCallBadge from "./WorkspaceCallBadge";
+import DmCallBadge from "./DmCallBadge";
 
 type GuildRailWorkspace = {
     id: string;
@@ -38,6 +40,7 @@ function RailButton({
     backgroundImageUrl,
     onClick,
     onContextMenu,
+    callBadge,
     children,
 }: {
     active: boolean;
@@ -47,6 +50,7 @@ function RailButton({
     backgroundImageUrl?: string | null;
     onClick: () => void;
     onContextMenu?: (event: React.MouseEvent<HTMLButtonElement>) => void;
+    callBadge?: React.ReactNode;
     children: React.ReactNode;
 }) {
     return (
@@ -78,6 +82,7 @@ function RailButton({
                     <span className="inline-flex h-full w-full items-center justify-center overflow-hidden rounded-lg">
                         {children}
                     </span>
+                    {callBadge}
                     {typeof unreadCount === "number" && unreadCount > 0 ? (
                         <span className="absolute -bottom-1 -right-1 h-5 min-w-5 px-1 rounded-full bg-[var(--wd-danger)] text-white text-[10px] font-bold inline-flex items-center justify-center z-10">
                             {unreadCount > 99 ? "99+" : unreadCount}
@@ -168,6 +173,7 @@ function GuildRail({
                 onContextMenu={(event) =>
                     handleContextMenu(event, workspace.id)
                 }
+                callBadge={<WorkspaceCallBadge workspaceId={workspace.id} />}
             >
                 {!workspace.imageUrl && (
                     <span className="text-sm font-bold">
@@ -206,6 +212,7 @@ function GuildRail({
                 unreadCount={dmUnreadCount}
                 indicatorMode="dot-to-bar"
                 onClick={onSelectDm}
+                callBadge={<DmCallBadge />}
             >
                 <MessageSquareMore size={18} />
             </RailButton>

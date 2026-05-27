@@ -11,6 +11,7 @@ import useChatV2Store from "@/common/store/chatV2Store";
 import useWorkspaceStore from "@/common/store/workspaceStore";
 import useUiStore from "@/common/store/uiStore";
 import { ChatV2Service } from "@/communication/chatV2/chatV2Service";
+import { useWorkspaceCallSync } from "./hooks/useWorkspaceCallSync";
 import type {
     AwardTagData,
     ChatV2Room,
@@ -128,6 +129,15 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
         void initialize();
         void fetchMyWorkspaces();
     }, [initialize, fetchMyWorkspaces]);
+
+    // Snapshot active calls across every workspace the user belongs to
+    // (not just the active one). Re-runs whenever the user joins/leaves a
+    // workspace; the service will also re-fetch on every socket reconnect.
+    const workspaceIds = useMemo(
+        () => workspaces.map((w) => w.id),
+        [workspaces],
+    );
+    useWorkspaceCallSync(workspaceIds);
 
     const prevWsRef = useRef<string | null>(null);
     useEffect(() => {

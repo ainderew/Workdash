@@ -1,6 +1,11 @@
 import { MediaTransportService } from "@/communication/mediaTransportService/mediaTransportService";
 import useCallStore from "@/common/store/callStore";
-import type { CallParticipant, CallParticipantMedia, CallPresence } from "@/common/store/callStore";
+import type {
+  CallParticipant,
+  CallParticipantMedia,
+  CallPresence,
+  MiniCallState,
+} from "@/common/store/callStore";
 import { AudioChat } from "@/communication/audioChat/audioChat";
 import { VideoChatService } from "@/communication/videoChat/videoChat";
 import { VideoChatViewer } from "@/communication/videoChat/videoChatViewer";
@@ -30,6 +35,19 @@ interface AckResponse<T = unknown> {
   calls?: T[];
 }
 
+interface WorkspaceCallSnapshotAck {
+  ok?: boolean;
+  error?: string;
+  snapshot?: {
+    byWorkspace: Record<string, MiniCallState[]>;
+    dmCalls: Array<{
+      directRoomId: string;
+      participantCount: number;
+      type: "audio" | "video";
+    }>;
+  };
+}
+
 // ----------------------------------------------------------------
 // Sound helpers
 // ----------------------------------------------------------------
@@ -51,8 +69,13 @@ export class CallSignalingService {
   private static instance: CallSignalingService | null = null;
   private socket: SocketIOClient.Socket;
   private listening = false;
+  /** Workspace IDs the React layer last reported. Re-fetched on every reconnect. */
+  private knownWorkspaceIds: string[] = [];
   private onConnectHandler = () => {
     this.registerSession();
+    if (this.knownWorkspaceIds.length > 0) {
+      void this.fetchActiveCallsForWorkspaces(this.knownWorkspaceIds);
+    }
   };
 
   private constructor() {
@@ -80,6 +103,11 @@ export class CallSignalingService {
 
     this.registerSession();
 
+    // NOTE: while the socket is disconnected, activeCallsByWorkspace and
+    // activeDmCallsByRoomId may go stale. We deliberately hold the last-known
+    // state instead of clearing on disconnect — most blips are sub-second and
+    // wiping would cause badges to flicker. onConnectHandler refetches a fresh
+    // bulk snapshot, which restores correctness within one RTT of reconnect.
     this.socket.on("connect", this.onConnectHandler);
 
     initCallOwnershipChannel((msg) => {
@@ -220,6 +248,29 @@ export class CallSignalingService {
         broadcastCallOwnership("call-released", data.channelId);
       },
     );
+
+    this.socket.on(
+      CallEvents.WORKSPACE_CALL_ACTIVE,
+      (payload: {
+        workspaceId: string;
+        channels: MiniCallState[];
+      }) => {
+        store().applyWorkspaceCallActivity(payload);
+      },
+    );
+
+    this.socket.on(
+      CallEvents.DM_CALL_ACTIVE,
+      (payload: {
+        userId: number;
+        directRoomId: string;
+        participantCount: number;
+        type: "audio" | "video";
+        ended?: boolean;
+      }) => {
+        store().applyDmCallActivity(payload);
+      },
+    );
   }
 
   teardown(): void {
@@ -232,9 +283,20 @@ export class CallSignalingService {
     this.socket.off(CallEvents.OWNERSHIP_CHANGED);
     this.socket.off(CallEvents.OWNERSHIP_LOST);
     this.socket.off(CallEvents.OWNERSHIP_CLEARED);
+    this.socket.off(CallEvents.WORKSPACE_CALL_ACTIVE);
+    this.socket.off(CallEvents.DM_CALL_ACTIVE);
     this.socket.off("connect", this.onConnectHandler);
     destroyCallOwnershipChannel();
     this.listening = false;
+  }
+
+  /**
+   * Record the user's current workspace memberships so the service can
+   * re-fetch a snapshot on socket reconnect. Called from React whenever
+   * the workspace list changes.
+   */
+  setKnownWorkspaceIds(ids: string[]): void {
+    this.knownWorkspaceIds = ids;
   }
 
   private registerSession(): void {
@@ -462,6 +524,29 @@ export class CallSignalingService {
             useCallStore
               .getState()
               .handleBulkCallState(res.calls, channelIds);
+          }
+          resolve();
+        },
+      );
+    });
+  }
+
+  /**
+   * Bulk snapshot of active calls across all of the user's workspaces + DMs.
+   * Used on cold start and on socket reconnect to reconcile drift.
+   */
+  fetchActiveCallsForWorkspaces(workspaceIds: string[]): Promise<void> {
+    return new Promise((resolve) => {
+      this.socket.emit(
+        CallEvents.GET_ACTIVE_FOR_WORKSPACES,
+        { workspaceIds },
+        (res: WorkspaceCallSnapshotAck) => {
+          if (res.ok && res.snapshot) {
+            useCallStore
+              .getState()
+              .applyBulkWorkspaceCallSnapshot(res.snapshot);
+          } else if (res.error) {
+            logger.warn("fetchActiveCallsForWorkspaces failed:", res.error);
           }
           resolve();
         },

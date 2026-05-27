@@ -27,6 +27,16 @@ export interface CallPresence {
   participants: CallParticipant[];
 }
 
+/**
+ * Minimal call snapshot used to power the workspace rail badge.
+ * Lives in the cross-workspace maps below — survives workspace switches.
+ */
+export interface MiniCallState {
+  channelId: string;
+  participantCount: number;
+  type: "audio" | "video";
+}
+
 // ----------------------------------------------------------------
 // Floating window types
 // ----------------------------------------------------------------
@@ -61,6 +71,19 @@ export interface StatsSnapshot {
 interface CallState {
   /** Active calls the user can see (for sidebar indicators), keyed by channelId */
   activeCallsByChannel: Record<string, CallPresence>;
+
+  /**
+   * Mini call state per workspace — keyed by workspaceId then channelId.
+   * Survives workspace switches (not cleared in resetForWorkspaceSwitch).
+   * Powers the cross-workspace rail badge in GuildRail.
+   */
+  activeCallsByWorkspace: Record<string, Record<string, MiniCallState>>;
+
+  /**
+   * DM call state — keyed by directRoomId. Survives workspace switches.
+   * Powers the DM rail entry's call badge.
+   */
+  activeDmCallsByRoomId: Record<string, MiniCallState>;
 
   /** Current user's active call (null if not in one) */
   currentCall: {
@@ -125,6 +148,33 @@ interface CallState {
   ) => void;
   handleBulkCallState: (calls: CallPresence[], queriedChannelIds?: string[]) => void;
 
+  applyWorkspaceCallActivity: (payload: {
+    workspaceId: string;
+    channels: MiniCallState[];
+  }) => void;
+
+  applyDmCallActivity: (payload: {
+    directRoomId: string;
+    participantCount: number;
+    type: "audio" | "video";
+    ended?: boolean;
+  }) => void;
+
+  applyBulkWorkspaceCallSnapshot: (snapshot: {
+    byWorkspace: Record<string, MiniCallState[]>;
+    dmCalls: Array<{
+      directRoomId: string;
+      participantCount: number;
+      type: "audio" | "video";
+    }>;
+  }) => void;
+
+  /**
+   * Drop one workspace's call entry — used when the user leaves/is removed
+   * from a workspace so a stale badge doesn't linger after server events stop.
+   */
+  clearWorkspaceCallActivity: (workspaceId: string) => void;
+
   // Producer → userId mapping
   setProducerUser: (producerId: string, userId: number) => void;
   removeProducer: (producerId: string) => void;
@@ -173,6 +223,8 @@ const initialLocalMedia: CallParticipantMedia = {
 
 const useCallStore = create<CallState>((set) => ({
   activeCallsByChannel: {},
+  activeCallsByWorkspace: {},
+  activeDmCallsByRoomId: {},
   currentCall: null,
   localMedia: { ...initialLocalMedia },
   producerUserMap: {},
@@ -374,6 +426,71 @@ const useCallStore = create<CallState>((set) => ({
       return { activeCallsByChannel: map };
     }),
 
+  applyWorkspaceCallActivity: ({ workspaceId, channels }) =>
+    set((state) => {
+      if (!Array.isArray(channels) || channels.length === 0) {
+        if (!(workspaceId in state.activeCallsByWorkspace)) return state;
+        const next = { ...state.activeCallsByWorkspace };
+        delete next[workspaceId];
+        return { activeCallsByWorkspace: next };
+      }
+      const byChannel: Record<string, MiniCallState> = {};
+      for (const c of channels) byChannel[c.channelId] = c;
+      return {
+        activeCallsByWorkspace: {
+          ...state.activeCallsByWorkspace,
+          [workspaceId]: byChannel,
+        },
+      };
+    }),
+
+  applyDmCallActivity: ({ directRoomId, participantCount, type, ended }) =>
+    set((state) => {
+      if (ended || participantCount === 0) {
+        if (!(directRoomId in state.activeDmCallsByRoomId)) return state;
+        const next = { ...state.activeDmCallsByRoomId };
+        delete next[directRoomId];
+        return { activeDmCallsByRoomId: next };
+      }
+      return {
+        activeDmCallsByRoomId: {
+          ...state.activeDmCallsByRoomId,
+          [directRoomId]: { channelId: directRoomId, participantCount, type },
+        },
+      };
+    }),
+
+  applyBulkWorkspaceCallSnapshot: ({ byWorkspace, dmCalls }) =>
+    set(() => {
+      const nextWs: Record<string, Record<string, MiniCallState>> = {};
+      for (const [wsId, channels] of Object.entries(byWorkspace)) {
+        if (!Array.isArray(channels) || channels.length === 0) continue;
+        const byChannel: Record<string, MiniCallState> = {};
+        for (const c of channels) byChannel[c.channelId] = c;
+        nextWs[wsId] = byChannel;
+      }
+      const nextDm: Record<string, MiniCallState> = {};
+      for (const d of dmCalls) {
+        nextDm[d.directRoomId] = {
+          channelId: d.directRoomId,
+          participantCount: d.participantCount,
+          type: d.type,
+        };
+      }
+      return {
+        activeCallsByWorkspace: nextWs,
+        activeDmCallsByRoomId: nextDm,
+      };
+    }),
+
+  clearWorkspaceCallActivity: (workspaceId) =>
+    set((state) => {
+      if (!(workspaceId in state.activeCallsByWorkspace)) return state;
+      const next = { ...state.activeCallsByWorkspace };
+      delete next[workspaceId];
+      return { activeCallsByWorkspace: next };
+    }),
+
   setProducerUser: (producerId, userId) =>
     set((state) => ({
       producerUserMap: { ...state.producerUserMap, [producerId]: userId },
@@ -496,6 +613,8 @@ const useCallStore = create<CallState>((set) => ({
   reset: () =>
     set(() => ({
       activeCallsByChannel: {},
+      activeCallsByWorkspace: {},
+      activeDmCallsByRoomId: {},
       currentCall: null,
       localMedia: { ...initialLocalMedia },
       producerUserMap: {},
@@ -515,5 +634,38 @@ const useCallStore = create<CallState>((set) => ({
       ownershipChannelId: null,
     })),
 }));
+
+/**
+ * Aggregate call activity for a single workspace.
+ * Subscribe to primitives derived from this (not the object itself) to avoid
+ * re-renders triggered by Zustand's reference-equality check on new object literals.
+ */
+export function selectWorkspaceCallSummary(
+  state: CallState,
+  workspaceId: string,
+): { totalParticipants: number; channelCount: number } {
+  const channels = state.activeCallsByWorkspace[workspaceId];
+  if (!channels) return { totalParticipants: 0, channelCount: 0 };
+  let totalParticipants = 0;
+  let channelCount = 0;
+  for (const c of Object.values(channels)) {
+    totalParticipants += c.participantCount;
+    channelCount += 1;
+  }
+  return { totalParticipants, channelCount };
+}
+
+/** Aggregate DM-rail call activity (across all of the user's DMs). */
+export function selectDmCallSummary(
+  state: CallState,
+): { totalParticipants: number; callCount: number } {
+  let totalParticipants = 0;
+  let callCount = 0;
+  for (const c of Object.values(state.activeDmCallsByRoomId)) {
+    totalParticipants += c.participantCount;
+    callCount += 1;
+  }
+  return { totalParticipants, callCount };
+}
 
 export default useCallStore;

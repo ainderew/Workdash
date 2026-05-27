@@ -1,5 +1,8 @@
-import useCallStore from './callStore';
-import type { CallPresence, CallParticipant, CallParticipantMedia } from './callStore';
+import useCallStore, {
+  selectDmCallSummary,
+  selectWorkspaceCallSummary,
+} from './callStore';
+import type { CallPresence, CallParticipant, CallParticipantMedia, MiniCallState } from './callStore';
 import type { BackendUser } from '@/types/auth';
 
 // ---------------------------------------------------------------------------
@@ -736,5 +739,281 @@ describe('handleBulkCallState', () => {
 
     const state = useCallStore.getState();
     expect(state.activeCallsByChannel['ch-1'].participants).toHaveLength(2);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Workspace call indicator — slices, actions, selectors
+// ---------------------------------------------------------------------------
+
+function makeMini(
+  channelId: string,
+  participantCount: number,
+  type: 'audio' | 'video' = 'audio',
+): MiniCallState {
+  return { channelId, participantCount, type };
+}
+
+describe('applyWorkspaceCallActivity', () => {
+  it('adds an entry when channels is non-empty', () => {
+    useCallStore.getState().applyWorkspaceCallActivity({
+      workspaceId: 'W',
+      channels: [makeMini('C1', 2), makeMini('C2', 1)],
+    });
+
+    const state = useCallStore.getState();
+    expect(state.activeCallsByWorkspace.W).toEqual({
+      C1: makeMini('C1', 2),
+      C2: makeMini('C2', 1),
+    });
+  });
+
+  it('removes the workspace entry when channels is empty', () => {
+    useCallStore.getState().applyWorkspaceCallActivity({
+      workspaceId: 'W',
+      channels: [makeMini('C1', 2)],
+    });
+
+    useCallStore.getState().applyWorkspaceCallActivity({
+      workspaceId: 'W',
+      channels: [],
+    });
+
+    expect('W' in useCallStore.getState().activeCallsByWorkspace).toBe(false);
+  });
+
+  it('overwrites — does not merge — when channels is non-empty', () => {
+    useCallStore.getState().applyWorkspaceCallActivity({
+      workspaceId: 'W',
+      channels: [makeMini('C1', 1), makeMini('C2', 1)],
+    });
+
+    useCallStore.getState().applyWorkspaceCallActivity({
+      workspaceId: 'W',
+      channels: [makeMini('C3', 3)],
+    });
+
+    const state = useCallStore.getState();
+    expect(Object.keys(state.activeCallsByWorkspace.W)).toEqual(['C3']);
+    expect(state.activeCallsByWorkspace.W.C3.participantCount).toBe(3);
+  });
+
+  it('preserves map identity when removing an absent entry (no re-render churn)', () => {
+    const before = useCallStore.getState().activeCallsByWorkspace;
+    useCallStore.getState().applyWorkspaceCallActivity({
+      workspaceId: 'unknown',
+      channels: [],
+    });
+    const after = useCallStore.getState().activeCallsByWorkspace;
+    expect(after).toBe(before);
+  });
+});
+
+describe('applyDmCallActivity', () => {
+  it('adds an entry on non-zero participantCount', () => {
+    useCallStore.getState().applyDmCallActivity({
+      directRoomId: 'dm-1',
+      participantCount: 2,
+      type: 'audio',
+    });
+
+    expect(useCallStore.getState().activeDmCallsByRoomId['dm-1']).toEqual({
+      channelId: 'dm-1',
+      participantCount: 2,
+      type: 'audio',
+    });
+  });
+
+  it('removes the entry when participantCount is 0', () => {
+    useCallStore.getState().applyDmCallActivity({
+      directRoomId: 'dm-1',
+      participantCount: 1,
+      type: 'audio',
+    });
+    useCallStore.getState().applyDmCallActivity({
+      directRoomId: 'dm-1',
+      participantCount: 0,
+      type: 'audio',
+    });
+
+    expect('dm-1' in useCallStore.getState().activeDmCallsByRoomId).toBe(false);
+  });
+
+  it('removes the entry when ended: true even if participantCount > 0', () => {
+    useCallStore.getState().applyDmCallActivity({
+      directRoomId: 'dm-1',
+      participantCount: 2,
+      type: 'audio',
+    });
+    useCallStore.getState().applyDmCallActivity({
+      directRoomId: 'dm-1',
+      participantCount: 2,
+      type: 'audio',
+      ended: true,
+    });
+
+    expect('dm-1' in useCallStore.getState().activeDmCallsByRoomId).toBe(false);
+  });
+});
+
+describe('applyBulkWorkspaceCallSnapshot', () => {
+  it('replaces both maps with the snapshot', () => {
+    useCallStore.getState().applyBulkWorkspaceCallSnapshot({
+      byWorkspace: {
+        W1: [makeMini('C1', 2)],
+        W2: [makeMini('C2', 1, 'video')],
+      },
+      dmCalls: [
+        { directRoomId: 'dm-1', participantCount: 2, type: 'audio' },
+      ],
+    });
+
+    const state = useCallStore.getState();
+    expect(state.activeCallsByWorkspace.W1.C1.participantCount).toBe(2);
+    expect(state.activeCallsByWorkspace.W2.C2.type).toBe('video');
+    expect(state.activeDmCallsByRoomId['dm-1'].participantCount).toBe(2);
+  });
+
+  it('drops workspaces whose channels arrays are empty', () => {
+    useCallStore.getState().applyBulkWorkspaceCallSnapshot({
+      byWorkspace: { W1: [], W2: [makeMini('C2', 1)] },
+      dmCalls: [],
+    });
+
+    const state = useCallStore.getState();
+    expect('W1' in state.activeCallsByWorkspace).toBe(false);
+    expect('W2' in state.activeCallsByWorkspace).toBe(true);
+  });
+
+  it('clears existing entries that are not present in the snapshot', () => {
+    useCallStore.getState().applyWorkspaceCallActivity({
+      workspaceId: 'W-stale',
+      channels: [makeMini('C-old', 4)],
+    });
+    useCallStore.getState().applyDmCallActivity({
+      directRoomId: 'dm-stale',
+      participantCount: 2,
+      type: 'audio',
+    });
+
+    useCallStore.getState().applyBulkWorkspaceCallSnapshot({
+      byWorkspace: { W1: [makeMini('C1', 1)] },
+      dmCalls: [],
+    });
+
+    const state = useCallStore.getState();
+    expect('W-stale' in state.activeCallsByWorkspace).toBe(false);
+    expect('dm-stale' in state.activeDmCallsByRoomId).toBe(false);
+    expect(state.activeCallsByWorkspace.W1).toBeDefined();
+  });
+});
+
+describe('clearWorkspaceCallActivity', () => {
+  it('removes the workspace entry', () => {
+    useCallStore.getState().applyWorkspaceCallActivity({
+      workspaceId: 'W',
+      channels: [makeMini('C1', 1)],
+    });
+
+    useCallStore.getState().clearWorkspaceCallActivity('W');
+
+    expect('W' in useCallStore.getState().activeCallsByWorkspace).toBe(false);
+  });
+
+  it('is a no-op when the entry is absent (preserves identity)', () => {
+    const before = useCallStore.getState().activeCallsByWorkspace;
+    useCallStore.getState().clearWorkspaceCallActivity('does-not-exist');
+    const after = useCallStore.getState().activeCallsByWorkspace;
+    expect(after).toBe(before);
+  });
+});
+
+describe('resetForWorkspaceSwitch — workspace-indicator interaction', () => {
+  it('does NOT clear activeCallsByWorkspace or activeDmCallsByRoomId', () => {
+    useCallStore.getState().applyWorkspaceCallActivity({
+      workspaceId: 'W',
+      channels: [makeMini('C1', 2)],
+    });
+    useCallStore.getState().applyDmCallActivity({
+      directRoomId: 'dm-1',
+      participantCount: 1,
+      type: 'audio',
+    });
+    useCallStore.getState().handleCallStarted(
+      makeCall('ch-x', [makeParticipant(1)]),
+    );
+
+    useCallStore.getState().resetForWorkspaceSwitch();
+
+    const state = useCallStore.getState();
+    expect(state.activeCallsByChannel).toEqual({});
+    expect(state.activeCallsByWorkspace.W).toBeDefined();
+    expect(state.activeDmCallsByRoomId['dm-1']).toBeDefined();
+  });
+});
+
+describe('reset — workspace-indicator interaction', () => {
+  it('clears activeCallsByWorkspace and activeDmCallsByRoomId', () => {
+    useCallStore.getState().applyWorkspaceCallActivity({
+      workspaceId: 'W',
+      channels: [makeMini('C1', 2)],
+    });
+    useCallStore.getState().applyDmCallActivity({
+      directRoomId: 'dm-1',
+      participantCount: 1,
+      type: 'audio',
+    });
+
+    useCallStore.getState().reset();
+
+    const state = useCallStore.getState();
+    expect(state.activeCallsByWorkspace).toEqual({});
+    expect(state.activeDmCallsByRoomId).toEqual({});
+  });
+});
+
+describe('selectWorkspaceCallSummary', () => {
+  it('returns 0/0 for an unknown workspace', () => {
+    expect(
+      selectWorkspaceCallSummary(useCallStore.getState(), 'never-seen'),
+    ).toEqual({ totalParticipants: 0, channelCount: 0 });
+  });
+
+  it('sums participantCount across all channels in the workspace', () => {
+    useCallStore.getState().applyWorkspaceCallActivity({
+      workspaceId: 'W',
+      channels: [makeMini('C1', 2), makeMini('C2', 3)],
+    });
+
+    expect(
+      selectWorkspaceCallSummary(useCallStore.getState(), 'W'),
+    ).toEqual({ totalParticipants: 5, channelCount: 2 });
+  });
+});
+
+describe('selectDmCallSummary', () => {
+  it('returns 0/0 when no DM calls are active', () => {
+    expect(selectDmCallSummary(useCallStore.getState())).toEqual({
+      totalParticipants: 0,
+      callCount: 0,
+    });
+  });
+
+  it('aggregates across all DM entries', () => {
+    useCallStore.getState().applyDmCallActivity({
+      directRoomId: 'dm-1',
+      participantCount: 2,
+      type: 'audio',
+    });
+    useCallStore.getState().applyDmCallActivity({
+      directRoomId: 'dm-2',
+      participantCount: 3,
+      type: 'video',
+    });
+
+    expect(selectDmCallSummary(useCallStore.getState())).toEqual({
+      totalParticipants: 5,
+      callCount: 2,
+    });
   });
 });

@@ -426,3 +426,154 @@ describe("CallSignalingService — registerSession error handling", () => {
     expect(mockAudioChat.stopMic).not.toHaveBeenCalled();
   });
 });
+
+// ---------------------------------------------------------------------------
+// Workspace + DM call activity wiring
+// ---------------------------------------------------------------------------
+
+describe("CallSignalingService — workspace call activity", () => {
+  function initService() {
+    const service = CallSignalingService.getInstance();
+    service.setupListeners();
+    return service;
+  }
+
+  beforeEach(() => {
+    useCallStore.setState({
+      activeCallsByWorkspace: {},
+      activeDmCallsByRoomId: {},
+    });
+  });
+
+  it("subscribes to WORKSPACE_CALL_ACTIVE on setupListeners", () => {
+    initService();
+    expect(socketHandlers[CallEvents.WORKSPACE_CALL_ACTIVE]).toBeDefined();
+  });
+
+  it("subscribes to DM_CALL_ACTIVE on setupListeners", () => {
+    initService();
+    expect(socketHandlers[CallEvents.DM_CALL_ACTIVE]).toBeDefined();
+  });
+
+  it("WORKSPACE_CALL_ACTIVE handler applies the payload to the store", () => {
+    initService();
+    const handler = socketHandlers[CallEvents.WORKSPACE_CALL_ACTIVE];
+
+    handler({
+      workspaceId: "W",
+      channels: [
+        { channelId: "C1", participantCount: 2, type: "audio" },
+      ],
+    });
+
+    expect(useCallStore.getState().activeCallsByWorkspace.W).toEqual({
+      C1: { channelId: "C1", participantCount: 2, type: "audio" },
+    });
+  });
+
+  it("DM_CALL_ACTIVE handler applies the payload to the store", () => {
+    initService();
+    const handler = socketHandlers[CallEvents.DM_CALL_ACTIVE];
+
+    handler({
+      userId: 1,
+      directRoomId: "dm-1",
+      participantCount: 2,
+      type: "audio",
+    });
+
+    expect(useCallStore.getState().activeDmCallsByRoomId["dm-1"]).toEqual({
+      channelId: "dm-1",
+      participantCount: 2,
+      type: "audio",
+    });
+  });
+
+  it("fetchActiveCallsForWorkspaces emits with workspaceIds and applies snapshot on ok ack", async () => {
+    const service = initService();
+
+    mockSocket.emit.mockImplementation(
+      (event: string, _payload: unknown, ack?: (res: unknown) => void) => {
+        if (event === CallEvents.GET_ACTIVE_FOR_WORKSPACES && ack) {
+          ack({
+            ok: true,
+            snapshot: {
+              byWorkspace: {
+                W1: [
+                  { channelId: "C1", participantCount: 2, type: "audio" },
+                ],
+              },
+              dmCalls: [],
+            },
+          });
+        }
+      },
+    );
+
+    await service.fetchActiveCallsForWorkspaces(["W1", "W2"]);
+
+    const emitCall = mockSocket.emit.mock.calls.find(
+      (call: unknown[]) => call[0] === CallEvents.GET_ACTIVE_FOR_WORKSPACES,
+    );
+    expect(emitCall).toBeDefined();
+    expect(emitCall![1]).toEqual({ workspaceIds: ["W1", "W2"] });
+
+    expect(useCallStore.getState().activeCallsByWorkspace.W1.C1.participantCount).toBe(2);
+  });
+
+  it("fetchActiveCallsForWorkspaces does NOT apply when ack returns ok: false", async () => {
+    const service = initService();
+
+    mockSocket.emit.mockImplementation(
+      (event: string, _payload: unknown, ack?: (res: unknown) => void) => {
+        if (event === CallEvents.GET_ACTIVE_FOR_WORKSPACES && ack) {
+          ack({ ok: false, error: "boom" });
+        }
+      },
+    );
+
+    await service.fetchActiveCallsForWorkspaces(["W1"]);
+
+    expect(useCallStore.getState().activeCallsByWorkspace).toEqual({});
+  });
+
+  it("setKnownWorkspaceIds + reconnect re-triggers the bulk fetch", () => {
+    const service = initService();
+    service.setKnownWorkspaceIds(["W1", "W2"]);
+
+    mockSocket.emit.mockClear();
+
+    const connectHandler = socketHandlers["connect"];
+    expect(connectHandler).toBeDefined();
+    connectHandler();
+
+    const fetchEmit = mockSocket.emit.mock.calls.find(
+      (call: unknown[]) => call[0] === CallEvents.GET_ACTIVE_FOR_WORKSPACES,
+    );
+    expect(fetchEmit).toBeDefined();
+    expect(fetchEmit![1]).toEqual({ workspaceIds: ["W1", "W2"] });
+  });
+
+  it("reconnect does NOT re-fetch when no workspace IDs were registered", () => {
+    initService();
+    mockSocket.emit.mockClear();
+
+    const connectHandler = socketHandlers["connect"];
+    connectHandler();
+
+    const fetchEmit = mockSocket.emit.mock.calls.find(
+      (call: unknown[]) => call[0] === CallEvents.GET_ACTIVE_FOR_WORKSPACES,
+    );
+    expect(fetchEmit).toBeUndefined();
+  });
+
+  it("teardown unsubscribes from the new events", () => {
+    const service = initService();
+    service.teardown();
+
+    expect(mockSocket.off).toHaveBeenCalledWith(
+      CallEvents.WORKSPACE_CALL_ACTIVE,
+    );
+    expect(mockSocket.off).toHaveBeenCalledWith(CallEvents.DM_CALL_ACTIVE);
+  });
+});
