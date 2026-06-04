@@ -642,6 +642,12 @@ export interface BotCardPlaylistShow {
     }>;
 }
 
+export interface BotCardReadyCheck {
+    type: "ready-check";
+    checkId: string;
+    channelId: string;
+}
+
 export type BotCardPayload =
     | BotCardSearching
     | BotCardNowPlaying
@@ -657,7 +663,8 @@ export type BotCardPayload =
     | BotCardPlaylistCreated
     | BotCardPlaylistTrackAdded
     | BotCardPlaylistList
-    | BotCardPlaylistShow;
+    | BotCardPlaylistShow
+    | BotCardReadyCheck;
 
 export type CreateMessageResponse = {
     message: ChatV2Message | null;

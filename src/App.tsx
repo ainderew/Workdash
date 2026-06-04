@@ -18,6 +18,8 @@ import { useKeyboardShortcuts } from "@/common/keyboard";
 import { PollService } from "./communication/poll/poll";
 import PollDisplay from "./common/components/Poll/PollDisplay";
 import { CallSignalingService } from "./communication/callSignaling/callSignalingService";
+import { ReadyCheckClientService } from "./communication/readyCheck/readyCheckService";
+import ReadyCheckOverlay from "./common/components/DeskMode/ReadyCheck/ReadyCheckOverlay";
 import { WebrtcStatsService } from "./communication/webrtcStats/webrtcStatsService";
 import { getMusicBotAvatarDataUri } from "@/common/utils/botAvatar";
 import { MusicClientService } from "./communication/music/musicService";
@@ -156,6 +158,8 @@ function App() {
 
             const callService = CallSignalingService.getInstance();
             callService.setupListeners();
+
+            ReadyCheckClientService.getInstance().setupListeners();
 
             WebrtcStatsService.getInstance().start();
 
@@ -415,6 +419,7 @@ function App() {
             <PingDisplay />
             <WorkspaceSelectorOverlay />
             <DevControlPanel />
+            <ReadyCheckOverlay />
         </div>
     );
 }

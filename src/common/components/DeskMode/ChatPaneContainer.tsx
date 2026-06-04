@@ -3,6 +3,7 @@ import useChatV2Store from "@/common/store/chatV2Store";
 import useCallStore from "@/common/store/callStore";
 import usePlaylistStore from "@/common/store/playlistStore";
 import { ChatV2Service } from "@/communication/chatV2/chatV2Service";
+import { ReadyCheckClientService } from "@/communication/readyCheck/readyCheckService";
 import type {
     AwardTagData,
     ChatV2DirectRoom,
@@ -286,6 +287,13 @@ function ChatPaneContainer({
     useEffect(() => {
         closeThreadPanel();
     }, [closeThreadPanel, currentRoomId]);
+
+    // Snapshot the active ready check (if any) for the channel just entered.
+    // Reconnect path is handled by the service's "connect" listener.
+    useEffect(() => {
+        if (!currentRoomId) return;
+        void ReadyCheckClientService.getInstance().fetchActive(currentRoomId);
+    }, [currentRoomId]);
 
     useEffect(() => {
         if (!activeThreadRootId) return;
