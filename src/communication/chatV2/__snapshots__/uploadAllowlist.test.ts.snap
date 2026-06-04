@@ -1,0 +1,40 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`upload allowlist mirror > ALLOWED_UPLOAD_CONTENT_TYPES matches the backend snapshot 1`] = `
+[
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+  "video/mp4",
+  "video/webm",
+  "video/quicktime",
+  "video/x-msvideo",
+  "audio/mpeg",
+  "audio/wav",
+  "audio/ogg",
+  "audio/flac",
+  "audio/x-m4a",
+  "application/pdf",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  "text/plain",
+  "text/csv",
+  "application/zip",
+  "application/gzip",
+  "application/x-tar",
+  "application/vnd.rar",
+  "application/x-7z-compressed",
+  "application/x-zip-compressed",
+  "application/x-rar-compressed",
+  "application/x-rar",
+]
+`;
+
+exports[`upload allowlist mirror > UPLOAD_CONTENT_TYPE_ALIASES matches the backend snapshot 1`] = `
+{
+  "application/x-rar": "application/vnd.rar",
+  "application/x-rar-compressed": "application/vnd.rar",
+  "application/x-zip-compressed": "application/zip",
+}
+`;

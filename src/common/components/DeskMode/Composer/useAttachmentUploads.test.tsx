@@ -21,6 +21,17 @@ vi.mock("@/communication/chatV2/uploadService", () => ({
         uploadMock(...args),
 }));
 
+vi.mock("@/communication/chatV2/fileCategories", async () => {
+    const actual = await vi.importActual<
+        typeof import("@/communication/chatV2/fileCategories")
+    >("@/communication/chatV2/fileCategories");
+    return {
+        ...actual,
+        inferMimeType: (file: File) =>
+            file.name.endsWith(".bad") ? null : "application/zip",
+    };
+});
+
 import { useAttachmentUploads } from "./useAttachmentUploads";
 
 beforeEach(() => {
@@ -235,6 +246,68 @@ describe("useAttachmentUploads", () => {
             expect(result.current.hasFailedUploads).toBe(true);
             expect(result.current.hasActiveUploads).toBe(false);
         });
+    });
+
+    it("partitions accepted and rejected files; populates rejection state", () => {
+        const { result } = renderHook(() =>
+            useAttachmentUploads({ roomId: "room-1" }),
+        );
+
+        const ok = new File([new Uint8Array([0])], "a.zip", {
+            type: "application/zip",
+        });
+        const bad = new File([new Uint8Array([0])], "virus.bad", { type: "" });
+
+        act(() => {
+            result.current.addFiles([bad, ok]);
+        });
+
+        expect(result.current.uploads).toHaveLength(1);
+        expect(result.current.uploads[0].displayName).toBe("a.zip");
+        expect(result.current.rejection).toEqual({
+            count: 1,
+            firstFilename: "virus.bad",
+        });
+    });
+
+    it("clears rejection when a subsequent addFiles call has no rejects", () => {
+        const { result } = renderHook(() =>
+            useAttachmentUploads({ roomId: "room-1" }),
+        );
+
+        act(() => {
+            result.current.addFiles([
+                new File([new Uint8Array([0])], "x.bad", { type: "" }),
+            ]);
+        });
+        expect(result.current.rejection).not.toBeNull();
+
+        act(() => {
+            result.current.addFiles([
+                new File([new Uint8Array([0])], "y.zip", {
+                    type: "application/zip",
+                }),
+            ]);
+        });
+        expect(result.current.rejection).toBeNull();
+    });
+
+    it("dismissRejection() clears the rejection state", () => {
+        const { result } = renderHook(() =>
+            useAttachmentUploads({ roomId: "room-1" }),
+        );
+
+        act(() => {
+            result.current.addFiles([
+                new File([new Uint8Array([0])], "x.bad", { type: "" }),
+            ]);
+        });
+        expect(result.current.rejection).not.toBeNull();
+
+        act(() => {
+            result.current.dismissRejection();
+        });
+        expect(result.current.rejection).toBeNull();
     });
 
     it("throttles concurrent uploads to 4", async () => {

@@ -1,3 +1,8 @@
+import {
+  ALLOWED_UPLOAD_CONTENT_TYPE_SET,
+  UPLOAD_CONTENT_TYPE_ALIASES,
+} from './uploadAllowlist';
+
 export type FileCategory = 'image' | 'video' | 'audio' | 'document' | 'archive' | 'unknown';
 
 const MIME_CATEGORY_MAP: Record<string, FileCategory> = {
@@ -57,5 +62,46 @@ export function getExpiryLabel(expiresAt: string | null): string | null {
   const days = Math.ceil(diff / (24 * 60 * 60 * 1000));
   if (days === 1) return 'Expires tomorrow';
   if (days <= 3) return `Expires in ${days} days`;
+  return null;
+}
+
+const EXTENSION_TO_CANONICAL_MIME: Readonly<Record<string, string>> = {
+  zip: 'application/zip',
+  rar: 'application/vnd.rar',
+};
+
+/**
+ * Resolves the canonical MIME for an uploaded file. Returns null when the file
+ * is not in the allowlist — the Composer surfaces an inline "unsupported file"
+ * error in that case and skips the upload.
+ *
+ * Resolution order:
+ *   1. If file.type is a known alias → return its canonical form.
+ *   2. If file.type is already in the allowlist → return it unchanged.
+ *   3. If file.type is empty or "application/octet-stream", and the extension
+ *      is one we know how to canonicalize → return that canonical MIME.
+ *   4. Otherwise → null.
+ *
+ * Only .zip and .rar get extension-based inference. Browsers are reliable for
+ * other formats; expanding the table invites maintenance for no benefit today.
+ */
+export function inferMimeType(file: File): string | null {
+  const rawType = (file.type || '').trim().toLowerCase();
+
+  const aliasCanonical = UPLOAD_CONTENT_TYPE_ALIASES[rawType];
+  if (aliasCanonical) return aliasCanonical;
+
+  if (rawType && ALLOWED_UPLOAD_CONTENT_TYPE_SET.has(rawType)) {
+    return rawType;
+  }
+
+  const isGenericOrEmpty =
+    rawType === '' || rawType === 'application/octet-stream';
+  if (isGenericOrEmpty) {
+    const ext = getFileExtension(file.name);
+    const fromExt = EXTENSION_TO_CANONICAL_MIME[ext];
+    if (fromExt) return fromExt;
+  }
+
   return null;
 }

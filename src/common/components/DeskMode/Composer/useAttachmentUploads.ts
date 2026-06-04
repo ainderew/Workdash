@@ -14,6 +14,7 @@ import {
     uploadChatFileForMessageWithProgress,
     type UploadChatFileWithProgressResult,
 } from "@/communication/chatV2/uploadService";
+import { inferMimeType } from "@/communication/chatV2/fileCategories";
 
 const MAX_CONCURRENT_UPLOADS = 4;
 const MAX_ATTACHMENTS_PER_MESSAGE = 10;
@@ -39,11 +40,14 @@ const buildPreviewUrl = (file: File): string | null => {
     }
 };
 
-const makeEntry = (file: File): PendingAttachmentUpload => ({
+const makeEntry = (
+    file: File,
+    canonicalMimeType: string,
+): PendingAttachmentUpload => ({
     clientId: generateClientId(),
     file,
     displayName: file.name,
-    mimeType: file.type || "application/octet-stream",
+    mimeType: canonicalMimeType,
     sizeBytes: file.size,
     previewUrl: buildPreviewUrl(file),
     progress: null,
@@ -57,6 +61,11 @@ type UseAttachmentUploadsArgs = {
     roomId: string | null;
 };
 
+export type AttachmentRejection = {
+    count: number;
+    firstFilename: string;
+};
+
 type UseAttachmentUploadsResult = {
     uploads: PendingAttachmentUpload[];
     addFiles: (files: File[]) => void;
@@ -68,16 +77,21 @@ type UseAttachmentUploadsResult = {
     takeReadyAttachments: () => ChatV2CreateAttachment[] | null;
     hasActiveUploads: boolean;
     hasFailedUploads: boolean;
+    rejection: AttachmentRejection | null;
+    dismissRejection: () => void;
 };
 
 export const useAttachmentUploads = ({
     roomId,
 }: UseAttachmentUploadsArgs): UseAttachmentUploadsResult => {
     const [uploads, setUploads] = useState<PendingAttachmentUpload[]>([]);
+    const [rejection, setRejection] = useState<AttachmentRejection | null>(null);
     const uploadsRef = useRef<PendingAttachmentUpload[]>([]);
     uploadsRef.current = uploads;
     const roomIdRef = useRef<string | null>(roomId);
     roomIdRef.current = roomId;
+
+    const dismissRejection = useCallback(() => setRejection(null), []);
 
     const patchUpload = useCallback(
         (clientId: string, patch: Partial<PendingAttachmentUpload>) => {
@@ -186,11 +200,37 @@ export const useAttachmentUploads = ({
 
     const addFiles = useCallback((files: File[]) => {
         if (files.length === 0) return;
+
+        const accepted: Array<{ file: File; mimeType: string }> = [];
+        const rejected: File[] = [];
+
+        for (const file of files) {
+            const mimeType = inferMimeType(file);
+            if (mimeType) {
+                accepted.push({ file, mimeType });
+            } else {
+                rejected.push(file);
+            }
+        }
+
+        if (rejected.length > 0) {
+            setRejection({
+                count: rejected.length,
+                firstFilename: rejected[0].name,
+            });
+        } else {
+            setRejection(null);
+        }
+
+        if (accepted.length === 0) return;
+
         setUploads((prev) => {
             const remaining = MAX_ATTACHMENTS_PER_MESSAGE - prev.length;
             if (remaining <= 0) return prev;
-            const accepted = files.slice(0, remaining).map(makeEntry);
-            return [...prev, ...accepted];
+            const entries = accepted
+                .slice(0, remaining)
+                .map(({ file, mimeType }) => makeEntry(file, mimeType));
+            return [...prev, ...entries];
         });
     }, []);
 
@@ -309,5 +349,7 @@ export const useAttachmentUploads = ({
         takeReadyAttachments,
         hasActiveUploads,
         hasFailedUploads,
+        rejection,
+        dismissRejection,
     };
 };

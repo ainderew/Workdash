@@ -56,6 +56,8 @@ function Composer(props: ComposerProps) {
         takeReadyAttachments,
         hasActiveUploads,
         hasFailedUploads,
+        rejection,
+        dismissRejection,
     } = useAttachmentUploads({ roomId });
 
     const [showLinkPopover, setShowLinkPopover] = useState(false);
@@ -228,6 +230,28 @@ function Composer(props: ComposerProps) {
                     onRetry={retryUpload}
                     onPreviewClick={(url, name) => setLightbox({ url, name })}
                 />
+            )}
+
+            {rejection && (
+                <div
+                    role="status"
+                    className="mb-2 flex items-center gap-2 text-xs wd-text-danger"
+                >
+                    <AlertTriangle size={14} aria-hidden="true" />
+                    <span>
+                        {rejection.count === 1
+                            ? `“${rejection.firstFilename}” isn’t a supported file type.`
+                            : `${rejection.count} files weren’t supported (e.g. “${rejection.firstFilename}”).`}
+                    </span>
+                    <button
+                        type="button"
+                        onClick={dismissRejection}
+                        className="ml-auto rounded px-1 wd-text-danger hover:wd-bg-elevated focus-visible:wd-bg-elevated"
+                        aria-label="Dismiss"
+                    >
+                        Dismiss
+                    </button>
+                </div>
             )}
 
             {failedCount > 0 && (
