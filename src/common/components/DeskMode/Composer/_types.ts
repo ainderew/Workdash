@@ -18,6 +18,8 @@ export interface ComposerProps {
             clientMessageId?: string;
         },
     ) => Promise<void> | void;
+    /** Set when composing a thread reply — recorded on pending entries for retry */
+    replyToMessageId?: string | null;
     onEditLastMessage?: () => void;
     onTyping?: () => void;
 }

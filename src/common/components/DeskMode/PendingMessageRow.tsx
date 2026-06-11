@@ -1,6 +1,7 @@
 import React from "react";
-import { AlertTriangle, Loader2 } from "lucide-react";
+import { AlertTriangle, Loader2, RotateCcw, Trash2 } from "lucide-react";
 import type { PendingMessage } from "@/communication/chatV2/_types";
+import useChatV2Store from "@/common/store/chatV2Store";
 import UserAvatar from "./UserAvatar";
 import { ComposerAttachmentTile } from "./Composer/ComposerAttachmentTile";
 
@@ -15,6 +16,8 @@ export function PendingMessageRow({
     displayName,
     avatarUrl,
 }: PendingMessageRowProps) {
+    const retryPendingMessage = useChatV2Store((s) => s.retryPendingMessage);
+    const removePendingMessage = useChatV2Store((s) => s.removePendingMessage);
     const isFailed = pending.status === "failed";
 
     return (
@@ -68,8 +71,36 @@ export function PendingMessageRow({
                     </div>
                 )}
                 {isFailed && (
-                    <div className="mt-2 text-[11px] wd-text-muted">
-                        {pending.error ?? "Message failed to send."}
+                    <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px]">
+                        <span className="wd-text-muted">
+                            {pending.error ?? "Message failed to send."}
+                        </span>
+                        <button
+                            type="button"
+                            onClick={() =>
+                                void retryPendingMessage(
+                                    pending.roomId,
+                                    pending.clientMessageId,
+                                )
+                            }
+                            className="inline-flex items-center gap-1 font-medium text-[var(--wd-accent)] hover:underline wd-ring-focus"
+                        >
+                            <RotateCcw size={10} aria-hidden="true" />
+                            Retry
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() =>
+                                removePendingMessage(
+                                    pending.roomId,
+                                    pending.clientMessageId,
+                                )
+                            }
+                            className="inline-flex items-center gap-1 wd-text-muted hover:underline wd-ring-focus"
+                        >
+                            <Trash2 size={10} aria-hidden="true" />
+                            Discard
+                        </button>
                     </div>
                 )}
             </div>

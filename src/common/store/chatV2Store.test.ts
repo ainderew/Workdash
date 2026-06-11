@@ -857,6 +857,8 @@ describe('useChatV2Store', () => {
       createdAt: '2026-01-01T00:00:00.000Z',
       mentionedUserIds: [],
       uploads: [],
+      attachments: [],
+      replyToMessageId: null,
       status: 'sending',
       error: null,
       ...overrides,
@@ -904,6 +906,71 @@ describe('useChatV2Store', () => {
       const saved = useChatV2Store.getState().pendingMessagesByRoom['room-1'][0];
       expect(saved.status).toBe('failed');
       expect(saved.error).toBe('network');
+    });
+
+    it('sendMessage failure marks the matching pending entry failed', async () => {
+      useChatV2Store.setState({ currentRoomId: 'room-1' });
+      const pending = makePending();
+      useChatV2Store.getState().addPendingMessage(pending);
+      mockService.createMessage.mockRejectedValue(new Error('network down'));
+
+      const result = await useChatV2Store
+        .getState()
+        .sendMessage('hi', undefined, { clientMessageId: 'cmid-1' });
+
+      expect(result).toBeNull();
+      const saved = useChatV2Store.getState().pendingMessagesByRoom['room-1'][0];
+      expect(saved.status).toBe('failed');
+      expect(saved.error).toBe('network down');
+    });
+
+    it('retryPendingMessage resends a failed entry and drops it on success', async () => {
+      useChatV2Store.setState({ currentRoomId: 'room-1' });
+      const pending = makePending({
+        status: 'failed',
+        error: 'network down',
+        mentionedUserIds: [7],
+      });
+      useChatV2Store.getState().addPendingMessage(pending);
+
+      const sentMessage = makeMessage({
+        id: 'msg-retried',
+        roomId: 'room-1',
+        clientMessageId: 'cmid-1',
+        content: 'hi',
+      });
+      mockService.createMessage.mockResolvedValue({
+        message: sentMessage,
+        everyoneMentionSuppressed: false,
+      });
+
+      await useChatV2Store
+        .getState()
+        .retryPendingMessage('room-1', 'cmid-1');
+
+      expect(mockService.createMessage).toHaveBeenCalledWith(
+        'room-1',
+        'hi',
+        undefined,
+        expect.objectContaining({
+          clientMessageId: 'cmid-1',
+          mentionedUserIds: [7],
+        }),
+      );
+      const state = useChatV2Store.getState();
+      expect(state.pendingMessagesByRoom['room-1'] ?? []).toEqual([]);
+      expect(state.messagesByRoomId['room-1']![0].id).toBe('msg-retried');
+    });
+
+    it('retryPendingMessage ignores entries that are still sending', async () => {
+      useChatV2Store.setState({ currentRoomId: 'room-1' });
+      useChatV2Store.getState().addPendingMessage(makePending());
+
+      await useChatV2Store
+        .getState()
+        .retryPendingMessage('room-1', 'cmid-1');
+
+      expect(mockService.createMessage).not.toHaveBeenCalled();
     });
 
     it('realtime onMessageNew drops pending entry with matching clientMessageId atomically', async () => {

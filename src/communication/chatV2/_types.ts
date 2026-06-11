@@ -117,6 +117,9 @@ export type PendingMessage = {
     createdAt: string;
     mentionedUserIds: number[];
     uploads: PendingAttachmentUpload[];
+    /** Ready-to-send attachment descriptors, kept so a failed send can retry */
+    attachments: ChatV2CreateAttachment[];
+    replyToMessageId: string | null;
     status: PendingMessageStatus;
     error: string | null;
 };

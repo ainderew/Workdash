@@ -890,6 +890,7 @@ function ThreadPanel({
                 }
                 members={members}
                 onSend={onSendReply}
+                replyToMessageId={rootMessage?.id ?? null}
             />
 
             {lightboxState && (

@@ -31,6 +31,8 @@ const pending = (clientMessageId: string): PendingMessage => ({
     createdAt: "2026-04-19T00:00:00Z",
     mentionedUserIds: [],
     uploads: [],
+    attachments: [],
+    replyToMessageId: null,
     status: "sending",
     error: null,
 });

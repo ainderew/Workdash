@@ -231,6 +231,10 @@ type ChatV2State = {
         clientMessageId: string,
         error: string,
     ) => void;
+    retryPendingMessage: (
+        roomId: string,
+        clientMessageId: string,
+    ) => Promise<void>;
     removePendingMessage: (roomId: string, clientMessageId: string) => void;
     clearPendingMessagesForRoom: (roomId: string) => void;
     clear: () => void;
@@ -371,6 +375,24 @@ const dropPendingByClientMessageId = (
     );
     if (next.length === roomPending.length) return pendingByRoom;
     return { ...pendingByRoom, [roomId]: next };
+};
+
+const patchPendingByClientMessageId = (
+    pendingByRoom: Record<string, PendingMessage[]>,
+    roomId: string,
+    clientMessageId: string,
+    patch: Partial<Pick<PendingMessage, "status" | "error">>,
+): Record<string, PendingMessage[]> => {
+    const roomPending = pendingByRoom[roomId];
+    if (!roomPending || roomPending.length === 0) return pendingByRoom;
+    return {
+        ...pendingByRoom,
+        [roomId]: roomPending.map((entry) =>
+            entry.clientMessageId === clientMessageId
+                ? { ...entry, ...patch }
+                : entry,
+        ),
+    };
 };
 
 const applyReplySummaryInsert = (
@@ -1247,15 +1269,53 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
 
             return message;
         } catch (error) {
-            set({
+            const errorMessage =
+                error instanceof Error
+                    ? error.message
+                    : "Failed to send message";
+            set((state) => ({
                 isSending: false,
-                error:
-                    error instanceof Error
-                        ? error.message
-                        : "Failed to send message",
-            });
+                error: errorMessage,
+                pendingMessagesByRoom: clientMessageId
+                    ? patchPendingByClientMessageId(
+                        state.pendingMessagesByRoom,
+                        roomId,
+                        clientMessageId,
+                        { status: "failed", error: errorMessage },
+                    )
+                    : state.pendingMessagesByRoom,
+            }));
             return null;
         }
+    },
+
+    retryPendingMessage: async (roomId, clientMessageId) => {
+        const pending = (get().pendingMessagesByRoom[roomId] || []).find(
+            (entry) => entry.clientMessageId === clientMessageId,
+        );
+        if (!pending || pending.status !== "failed") return;
+        if (get().currentRoomId !== roomId) return;
+
+        set((state) => ({
+            pendingMessagesByRoom: patchPendingByClientMessageId(
+                state.pendingMessagesByRoom,
+                roomId,
+                clientMessageId,
+                { status: "sending", error: null },
+            ),
+        }));
+
+        await get().sendMessage(
+            pending.content,
+            pending.attachments.length > 0 ? pending.attachments : undefined,
+            {
+                replyToMessageId: pending.replyToMessageId ?? undefined,
+                mentionedUserIds: pending.mentionedUserIds.length
+                    ? pending.mentionedUserIds
+                    : undefined,
+                clientMessageId,
+            },
+        );
     },
 
     toggleMessageReaction: async (messageId, emoji) => {
@@ -2134,21 +2194,14 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
     },
 
     markPendingMessageFailed: (roomId, clientMessageId, error) => {
-        set((state) => {
-            const roomPending = state.pendingMessagesByRoom[roomId];
-            if (!roomPending) return {};
-            const nextRoom = roomPending.map((entry) =>
-                entry.clientMessageId === clientMessageId
-                    ? { ...entry, status: "failed" as const, error }
-                    : entry,
-            );
-            return {
-                pendingMessagesByRoom: {
-                    ...state.pendingMessagesByRoom,
-                    [roomId]: nextRoom,
-                },
-            };
-        });
+        set((state) => ({
+            pendingMessagesByRoom: patchPendingByClientMessageId(
+                state.pendingMessagesByRoom,
+                roomId,
+                clientMessageId,
+                { status: "failed", error },
+            ),
+        }));
     },
 
     removePendingMessage: (roomId, clientMessageId) => {

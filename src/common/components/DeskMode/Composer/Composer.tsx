@@ -27,6 +27,7 @@ function Composer(props: ComposerProps) {
         placeholder = "Message room",
         members,
         onSend,
+        replyToMessageId,
         onEditLastMessage,
         onTyping,
     } = props;
@@ -109,6 +110,7 @@ function Composer(props: ComposerProps) {
         closeMentionFlyout: autocomplete.closeMentionFlyout,
         focusInput: tiptap.focus,
         onSend,
+        replyToMessageId,
         selectedWorkspaceId,
     });
 

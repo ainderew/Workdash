@@ -29,6 +29,7 @@ interface UseSendMessageArgs {
       clientMessageId?: string;
     },
   ) => Promise<void> | void;
+  replyToMessageId?: string | null;
   selectedWorkspaceId: string | null;
 }
 
@@ -53,6 +54,7 @@ export function useSendMessage({
   closeMentionFlyout,
   focusInput,
   onSend,
+  replyToMessageId,
   selectedWorkspaceId,
 }: UseSendMessageArgs) {
   const serializeCustomEmojis = useCallback(
@@ -113,6 +115,8 @@ export function useSendMessage({
       createdAt: new Date().toISOString(),
       mentionedUserIds: serializedMentionContent.mentionedUserIds,
       uploads: [],
+      attachments: ready,
+      replyToMessageId: replyToMessageId ?? null,
       status: 'sending',
       error: null,
     };
@@ -168,6 +172,7 @@ export function useSendMessage({
     clearContent,
     closeMentionFlyout,
     onSend,
+    replyToMessageId,
     focusInput,
   ]);
 
