@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { toast } from 'sonner';
 import { ChatV2Service } from '@/communication/chatV2/chatV2Service';
+import usePlaylistStore from '@/common/store/playlistStore';
 import { logger } from '@/common/utils/logger';
 
 export function LoungeHearthBackdrop() {
@@ -49,14 +50,23 @@ export function LoungeSoloState({ workspaceId }: LoungeSoloStateProps) {
       <p className="text-[10.5px] wd-text-muted">
         The fire&apos;s lit — friends can see the lounge glowing
       </p>
-      <button
-        type="button"
-        onClick={() => void pingCrew()}
-        disabled={isPinging || pinged}
-        className="mt-1 rounded-lg bg-[rgb(var(--wd-den-fire-rgb))] px-3 py-1.5 text-[11px] font-bold text-[rgb(var(--wd-den-bg-1-rgb))] transition-opacity disabled:opacity-60"
-      >
-        {pinged ? 'Crew pinged' : isPinging ? 'Pinging…' : 'Ping the crew'}
-      </button>
+      <div className="mt-1 flex items-center gap-2.5">
+        <button
+          type="button"
+          onClick={() => void pingCrew()}
+          disabled={isPinging || pinged}
+          className="rounded-lg bg-[rgb(var(--wd-den-fire-rgb))] px-3 py-1.5 text-[11px] font-bold text-[rgb(var(--wd-den-bg-1-rgb))] transition-opacity disabled:opacity-60"
+        >
+          {pinged ? 'Crew pinged' : isPinging ? 'Pinging…' : 'Ping the crew'}
+        </button>
+        <button
+          type="button"
+          onClick={() => usePlaylistStore.getState().setSidebarOpen(true)}
+          className="rounded-lg border wd-border-strong px-3 py-1.5 text-[11px] font-semibold wd-text-muted transition-colors hover:wd-text-primary"
+        >
+          Queue some music
+        </button>
+      </div>
     </div>
   );
 }

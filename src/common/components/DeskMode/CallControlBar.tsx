@@ -46,7 +46,7 @@ const sizeConfig = {
 function GroupSeparator() {
   return (
     <span
-      className="w-px h-5 mx-0.5 shrink-0"
+      className="w-px h-5 mx-2 shrink-0"
       style={{ backgroundColor: 'var(--wd-border-strong)' }}
     />
   );
@@ -216,16 +216,16 @@ export default function CallControlBar({
 
   if (variant === 'dock') {
     return (
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-2.5">
         {qualityDot}
-        <div className={`flex items-center ${gap}`}>
+        <div className="flex items-center gap-2.5">
           {micButton}
           {noiseToggle}
           {videoButton}
           {screenShareButton}
         </div>
         <GroupSeparator />
-        <div className={`flex items-center ${gap}`}>
+        <div className="flex items-center gap-2.5">
           <SoundboardButton />
           {reactionButton}
           {raiseHandButton}
@@ -234,7 +234,7 @@ export default function CallControlBar({
         <button
           type="button"
           onClick={onLeave}
-          className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg px-3 text-xs font-bold cursor-pointer transition-transform hover:-translate-y-px"
+          className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg px-3.5 text-xs font-bold cursor-pointer transition-transform hover:-translate-y-px"
           style={{ backgroundColor: 'var(--wd-danger)', color: '#fff' }}
         >
           <PhoneOff size={13} />

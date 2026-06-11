@@ -302,7 +302,7 @@ export default function CallView({ channelId, onLeave, onPictureInPicture, onFul
         )}
 
         {/* Floating control dock — overlaps the bottom of the tile field */}
-        <div className="relative z-[2] mx-auto -mt-3 mb-3 w-fit max-w-full overflow-x-auto rounded-2xl border wd-border-strong wd-bg-panel-2 px-3 py-1.5 shadow-[0_8px_24px_rgb(0_0_0/0.45)]">
+        <div className="relative z-[2] mx-auto -mt-3 mb-3 w-fit max-w-full overflow-x-auto rounded-2xl border wd-border-strong wd-bg-panel-2 px-4 py-2 shadow-[0_8px_24px_rgb(0_0_0/0.45)]">
           <CallControlBar
             variant="dock"
             isMuted={isMuted}
