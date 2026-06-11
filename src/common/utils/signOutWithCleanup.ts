@@ -1,4 +1,5 @@
 import { signOut } from "next-auth/react";
+import { LOUNGE_PREF_STORAGE_KEYS } from "@/common/utils/loungePrefs";
 
 /**
  * localStorage keys holding account-scoped data. Cleared on sign-out so a
@@ -11,6 +12,7 @@ const USER_SCOPED_STORAGE_KEYS = [
     "workdash:autoJoinMusic",
     "workdash_audio_settings",
     "wd:lastSeen",
+    ...LOUNGE_PREF_STORAGE_KEYS,
 ] as const;
 
 export function clearUserScopedStorage(): void {

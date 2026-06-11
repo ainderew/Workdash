@@ -5,6 +5,7 @@ import useChatV2Store from '@/common/store/chatV2Store';
 import { usePresenceStore } from '@/common/store/presenceStore';
 import useUserStore from '@/common/store/useStore';
 import { CallSignalingService } from '@/communication/callSignaling/callSignalingService';
+import { joinLoungeCall } from '@/communication/callSignaling/loungeCall';
 import { logger } from '@/common/utils/logger';
 import UserAvatar from '../UserAvatar';
 
@@ -46,16 +47,7 @@ export default function LoungeCard({
 
     setIsBusy(true);
     try {
-      const service = CallSignalingService.getInstance();
-      const activeCall = useCallStore.getState().currentCall;
-      if (activeCall && activeCall.channelId !== loungeChannelId) {
-        await service.leaveCall(activeCall.channelId);
-      }
-      if (isLive) {
-        await service.joinCall(loungeChannelId);
-      } else {
-        await service.startCall(loungeChannelId);
-      }
+      await joinLoungeCall(loungeChannelId, { navigate: false });
     } catch (err) {
       logger.error('Failed to join the lounge:', err);
     } finally {

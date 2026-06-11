@@ -45,6 +45,7 @@ import { useChatNotificationSound } from "@/common/hooks/useChatNotificationSoun
 import { useAchievementListener } from "@/common/hooks/useAchievementListener";
 import { useDeviceEnumeration } from "@/common/hooks/useDeviceEnumeration";
 import { useActivityHeartbeat } from "@/common/hooks/useActivityHeartbeat";
+import { useLoungeNudges } from "@/common/hooks/useLoungeNudges";
 import { SoundboardService } from "./communication/soundboard/soundboardService";
 import FloatingPassiveCallIndicator from "./common/components/DeskMode/FloatingPassiveCallIndicator";
 
@@ -91,6 +92,7 @@ function App() {
     useAchievementListener();
     useDeviceEnumeration();
     useActivityHeartbeat(isInitialized);
+    useLoungeNudges();
 
     useEffect(() => {
         if (status !== "authenticated" || !session?.backendJwt) {
