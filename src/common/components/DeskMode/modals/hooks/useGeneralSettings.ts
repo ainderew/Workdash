@@ -1,5 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import useWorkspaceStore from '@/common/store/workspaceStore';
+import {
+  areNudgesEnabled,
+  getLoungeHours,
+  isAutoJoinEnabled,
+  setAutoJoinEnabled,
+  setLoungeHours,
+  setNudgesEnabled,
+  type LoungeHours,
+} from '@/common/utils/loungePrefs';
 
 const DEFAULT_WS_KEY = 'workdash:defaultWorkspaceId';
 const AUTO_JOIN_MUSIC_KEY = 'workdash:autoJoinMusic';
@@ -36,6 +45,31 @@ export function useGeneralSettings() {
     localStorage.setItem(AUTO_JOIN_MUSIC_KEY, String(enabled));
   }, []);
 
+  const [loungeNudges, setLoungeNudgesState] = useState<boolean>(() =>
+    areNudgesEnabled(),
+  );
+  const [loungeAutoJoin, setLoungeAutoJoinState] = useState<boolean>(() =>
+    isAutoJoinEnabled(),
+  );
+  const [loungeHours, setLoungeHoursState] = useState<LoungeHours>(() =>
+    getLoungeHours(),
+  );
+
+  const setLoungeNudges = useCallback((enabled: boolean) => {
+    setLoungeNudgesState(enabled);
+    setNudgesEnabled(enabled);
+  }, []);
+
+  const setLoungeAutoJoin = useCallback((enabled: boolean) => {
+    setLoungeAutoJoinState(enabled);
+    setAutoJoinEnabled(enabled);
+  }, []);
+
+  const updateLoungeHours = useCallback((hours: LoungeHours) => {
+    setLoungeHoursState(hours);
+    setLoungeHours(hours);
+  }, []);
+
   return useMemo(
     () => ({
       workspaces,
@@ -43,7 +77,25 @@ export function useGeneralSettings() {
       setDefaultWorkspaceId,
       autoJoinMusic,
       setAutoJoinMusic,
+      loungeNudges,
+      setLoungeNudges,
+      loungeAutoJoin,
+      setLoungeAutoJoin,
+      loungeHours,
+      updateLoungeHours,
     }),
-    [workspaces, defaultWorkspaceId, setDefaultWorkspaceId, autoJoinMusic, setAutoJoinMusic],
+    [
+      workspaces,
+      defaultWorkspaceId,
+      setDefaultWorkspaceId,
+      autoJoinMusic,
+      setAutoJoinMusic,
+      loungeNudges,
+      setLoungeNudges,
+      loungeAutoJoin,
+      setLoungeAutoJoin,
+      loungeHours,
+      updateLoungeHours,
+    ],
   );
 }

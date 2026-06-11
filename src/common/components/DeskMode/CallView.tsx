@@ -14,6 +14,12 @@ import CallAvatar from './CallAvatar';
 import CallControlBar from './CallControlBar';
 import CallTileGrid from './call-tiles/CallTileGrid';
 import { ScreenShareViewer } from '@/communication/screenShare/screenShareViewer';
+import useWorkspaceStore from '@/common/store/workspaceStore';
+import {
+  LoungeCallHeader,
+  LoungeHearthBackdrop,
+  LoungeSoloState,
+} from './LoungeHearth';
 
 interface CallViewProps {
   channelId: string;
@@ -36,6 +42,14 @@ export default function CallView({ channelId, onLeave, onPictureInPicture, onFul
   // Load room members so tiles can resolve profile images + character data
   const membersByRoomId = useChatV2Store((s) => s.membersByRoomId);
   const loadRoomMembers = useChatV2Store((s) => s.loadRoomMembers);
+
+  const loungeWorkspaceId = useWorkspaceStore(
+    (s) =>
+      s.workspaces.find((ws) => ws.loungeChannelId === channelId)?.id ?? null,
+  );
+  const roomName = useChatV2Store(
+    (s) => s.roomsById[channelId]?.name ?? 'Lounge',
+  );
 
   const isScreenSharing = useCallStore((s) => s.localMedia.screen);
 
@@ -211,15 +225,36 @@ export default function CallView({ channelId, onLeave, onPictureInPicture, onFul
     );
   }
 
+  const isLounge = loungeWorkspaceId !== null;
+  const isSoloInLounge =
+    isLounge &&
+    call.participants.length === 1 &&
+    call.participants[0]?.userId === userId;
+
   return (
     <div className="flex flex-col border-b wd-border-subtle">
       {/* Participant tiles — resizable container, tiles maintain aspect ratio */}
-      <CallTileGrid
-        participants={call.participants}
-        channelId={channelId}
-        localUserId={userId}
-        height={height}
-      />
+      <div className={isLounge ? 'wd-hearth' : undefined}>
+        {isLounge && <LoungeHearthBackdrop />}
+        {isLounge && (
+          <LoungeCallHeader
+            roomName={roomName}
+            participantCount={call.participants.length}
+            startedAt={call.startedAt}
+          />
+        )}
+        <div className={isLounge ? 'relative z-[1]' : undefined}>
+          <CallTileGrid
+            participants={call.participants}
+            channelId={channelId}
+            localUserId={userId}
+            height={height}
+          />
+        </div>
+        {isSoloInLounge && loungeWorkspaceId && (
+          <LoungeSoloState workspaceId={loungeWorkspaceId} />
+        )}
+      </div>
 
       {/* Drag handle */}
       <div

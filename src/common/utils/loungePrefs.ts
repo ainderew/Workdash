@@ -7,6 +7,7 @@ const SNOOZE_KEY = "workdash:lounge:snoozeUntil";
 const QUORUM_NIGHT_KEY = "workdash:lounge:lastQuorumNightKey";
 const LIVE_NUDGE_KEY = "workdash:lounge:lastLiveNudgeCallStart";
 const NUDGES_ENABLED_KEY = "workdash:lounge:nudgesEnabled";
+const AUTO_JOIN_KEY = "workdash:lounge:autoJoin";
 
 /** Hour of the morning at which a "Not tonight" snooze expires. */
 const SNOOZE_RESET_HOUR = 6;
@@ -54,6 +55,14 @@ export function areNudgesEnabled(): boolean {
 
 export function setNudgesEnabled(enabled: boolean): void {
     writeString(NUDGES_ENABLED_KEY, String(enabled));
+}
+
+export function isAutoJoinEnabled(): boolean {
+    return readString(AUTO_JOIN_KEY) === "true";
+}
+
+export function setAutoJoinEnabled(enabled: boolean): void {
+    writeString(AUTO_JOIN_KEY, String(enabled));
 }
 
 /** A window like 19→1 crosses midnight; 9→17 does not. */
@@ -119,4 +128,5 @@ export const LOUNGE_PREF_STORAGE_KEYS = [
     QUORUM_NIGHT_KEY,
     LIVE_NUDGE_KEY,
     NUDGES_ENABLED_KEY,
+    AUTO_JOIN_KEY,
 ] as const;

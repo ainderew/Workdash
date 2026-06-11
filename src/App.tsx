@@ -48,6 +48,7 @@ import { useActivityHeartbeat } from "@/common/hooks/useActivityHeartbeat";
 import { useLoungeNudges } from "@/common/hooks/useLoungeNudges";
 import { SoundboardService } from "./communication/soundboard/soundboardService";
 import FloatingPassiveCallIndicator from "./common/components/DeskMode/FloatingPassiveCallIndicator";
+import LoungeAutoJoinPill from "./common/components/DeskMode/LoungeAutoJoinPill";
 
 function resolveModeFromStorage(): InteractionMode | null {
     const params = new URLSearchParams(window.location.search);
@@ -408,6 +409,8 @@ function App() {
             {interactionMode === "world" && (
                 <FloatingPassiveCallIndicator />
             )}
+
+            <LoungeAutoJoinPill />
 
             <ReactionToast />
             <CharacterCustomizationButton />

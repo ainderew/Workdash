@@ -30,6 +30,7 @@ import {
 import { getDisplayName } from "@/common/utils/displayName";
 import useUserStore from "@/common/store/useStore";
 import useWorkspaceStore from "@/common/store/workspaceStore";
+import { showLoungePingToast } from "@/common/utils/loungePing";
 import { getIsDocumentFocused } from "@/common/hooks/useDocumentFocus";
 import { toast } from "sonner";
 import { setEveryoneCooldown } from "@/communication/chatV2/everyoneCooldown";
@@ -831,6 +832,9 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
                 },
                 onWorkspaceUpdated: (workspace) => {
                     useWorkspaceStore.getState().applyWorkspaceUpdate(workspace);
+                },
+                onLoungePinged: (payload) => {
+                    showLoungePingToast(payload);
                 },
             });
 

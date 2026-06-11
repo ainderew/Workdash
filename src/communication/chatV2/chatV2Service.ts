@@ -68,6 +68,11 @@ type RealtimeHandlers = {
     onRoomMemberAdded?: (payload: { roomId: string; role: string }) => void;
     onAwardTagsUpdated?: (payload: { workspaceId: string; awards: Record<string, AwardTagData> }) => void;
     onWorkspaceUpdated?: (workspace: Workspace) => void;
+    onLoungePinged?: (payload: {
+        workspaceId: string;
+        loungeChannelId: string;
+        byUserId: number;
+    }) => void;
 };
 
 export class ChatV2Service {
@@ -250,6 +255,27 @@ export class ChatV2Service {
         };
         this.transport.socket.on("workspace:updated", onWorkspaceUpdated);
 
+        const onLoungePinged = (payload: {
+            workspaceId?: string;
+            loungeChannelId?: string;
+            byUserId?: number;
+        }) => {
+            if (
+                payload?.workspaceId &&
+                payload?.loungeChannelId &&
+                typeof payload?.byUserId === "number"
+            ) {
+                handlers.onLoungePinged?.(
+                    payload as {
+                        workspaceId: string;
+                        loungeChannelId: string;
+                        byUserId: number;
+                    },
+                );
+            }
+        };
+        this.transport.socket.on("workspace:lounge:pinged", onLoungePinged);
+
         this.teardownRealtimeHandlers = () => {
             this.transport.socket.off("chat:v2:message:new", onMessageNew);
             this.transport.socket.off("chat:v2:message:update", onMessageUpdate);
@@ -271,6 +297,7 @@ export class ChatV2Service {
             this.transport.socket.off("chat:v2:room:member:added", onRoomMemberAdded);
             this.transport.socket.off("workspace:member:award-updated", onAwardTagsUpdated);
             this.transport.socket.off("workspace:updated", onWorkspaceUpdated);
+            this.transport.socket.off("workspace:lounge:pinged", onLoungePinged);
             this.teardownRealtimeHandlers = null;
         };
 
@@ -929,6 +956,14 @@ export class ChatV2Service {
             payload,
         );
         return response.workspace;
+    }
+
+    /** Broadcast a "come hang out" ping to everyone in the workspace. */
+    async pingLounge(workspaceId: string): Promise<void> {
+        await this.emitWithAck<{ loungeChannelId: string }>(
+            "workspace:lounge:ping",
+            { workspaceId },
+        );
     }
 
     /** Notify the SFU server which workspace the client is currently viewing.

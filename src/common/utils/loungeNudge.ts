@@ -17,6 +17,10 @@ export interface LoungeNudgeInput {
 /** Statuses where the user has signalled "do not interrupt me". */
 const SUPPRESSED_STATUS_IDS = new Set(["focus", "dnd", "do-not-disturb"]);
 
+export function isLoungeNudgeSuppressedStatus(statusId: string): boolean {
+    return SUPPRESSED_STATUS_IDS.has(statusId);
+}
+
 /**
  * Pure nudge policy. The live-call nudge fires once per call (keyed by
  * startedAt) at any hour; the quorum nudge fires at most once per night and

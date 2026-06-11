@@ -11,6 +11,12 @@ function GeneralPanel() {
     setDefaultWorkspaceId,
     autoJoinMusic,
     setAutoJoinMusic,
+    loungeNudges,
+    setLoungeNudges,
+    loungeAutoJoin,
+    setLoungeAutoJoin,
+    loungeHours,
+    updateLoungeHours,
   } = useGeneralSettings();
   const push = usePushNotifications();
 
@@ -65,6 +71,68 @@ function GeneralPanel() {
           checked={autoJoinMusic}
           onChange={(checked) => setAutoJoinMusic(checked)}
         />
+      </SettingsSection>
+
+      <SettingsSection
+        label="Lounge"
+        description="The always-open hangout spot pinned in your sidebar"
+      >
+        <SettingsToggle
+          label="Suggest hanging out"
+          description="Nudge me when friends are online during lounge hours, or when the lounge goes live"
+          checked={loungeNudges}
+          onChange={(checked) => setLoungeNudges(checked)}
+        />
+        <SettingsToggle
+          label="Auto-join a live lounge on open"
+          description="5-second countdown when you open WorkDash with the lounge live — joins muted"
+          checked={loungeAutoJoin}
+          onChange={(checked) => setLoungeAutoJoin(checked)}
+        />
+        <div className="mt-3">
+          <p
+            id="lounge-hours-sublabel"
+            className="text-[10px] font-bold uppercase tracking-widest wd-text-muted mb-1.5"
+          >
+            Lounge hours
+          </p>
+          <div className="flex items-center gap-2">
+            {(['startHour', 'endHour'] as const).map((field, index) => (
+              <React.Fragment key={field}>
+                {index === 1 && (
+                  <span className="text-xs wd-text-muted">to</span>
+                )}
+                <div className="relative flex-1">
+                  <select
+                    aria-label={index === 0 ? 'Lounge hours start' : 'Lounge hours end'}
+                    value={loungeHours[field]}
+                    onChange={(e) =>
+                      updateLoungeHours({
+                        ...loungeHours,
+                        [field]: Number(e.target.value),
+                      })
+                    }
+                    className="wd-settings-select h-9 w-full appearance-none rounded-lg border wd-border-subtle px-3 pr-8 text-xs wd-text-primary outline-none transition-all duration-150 focus:border-[var(--wd-accent)] focus:shadow-[0_0_0_3px_var(--wd-accent-soft)]"
+                    style={{ backgroundColor: 'var(--wd-surface-elevated)' }}
+                  >
+                    {Array.from({ length: 24 }, (_, h) => (
+                      <option key={h} value={h}>
+                        {h === 0 ? '12 AM' : h < 12 ? `${h} AM` : h === 12 ? '12 PM' : `${h - 12} PM`}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown
+                    size={14}
+                    className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 wd-text-muted"
+                  />
+                </div>
+              </React.Fragment>
+            ))}
+          </div>
+          <p className="mt-1.5 text-[10.5px] wd-text-muted">
+            Friend-online nudges only fire in this window. A live lounge always notifies.
+          </p>
+        </div>
       </SettingsSection>
 
       <SettingsSection label="Notifications">
