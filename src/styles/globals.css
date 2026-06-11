@@ -2782,9 +2782,10 @@ input[type="range"].wd-volume-slider::-moz-range-progress {
     --wd-den-fire-rgb: 240 163 94;
 }
 
+/* overflow stays visible so control popovers (mic/camera pickers) escape;
+   the glow + embers are clipped by .wd-hearth-backdrop instead */
 .wd-hearth {
     position: relative;
-    overflow: hidden;
     background: radial-gradient(
         140% 120% at 50% 118%,
         rgb(var(--wd-den-bg-0-rgb)) 0%,
@@ -2792,6 +2793,14 @@ input[type="range"].wd-volume-slider::-moz-range-progress {
         rgb(var(--wd-den-bg-2-rgb)) 70%,
         rgb(var(--wd-surface-panel-rgb)) 100%
     );
+}
+
+.wd-hearth-backdrop {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 0;
 }
 
 /* mantle — hairline of lamplight along the top edge */
@@ -2894,9 +2903,9 @@ input[type="range"].wd-volume-slider::-moz-range-progress {
     border-radius: 9999px;
     background: conic-gradient(
         from 0deg,
-        var(--wd-success),
-        rgb(var(--wd-den-ember-rgb)),
-        var(--wd-success)
+        var(--wd-accent),
+        rgb(var(--wd-accent-rgb) / 0.25),
+        var(--wd-accent)
     );
     opacity: 0;
     transition: opacity 0.2s ease;
@@ -2931,7 +2940,7 @@ input[type="range"].wd-volume-slider::-moz-range-progress {
 .wd-eq span {
     width: 2.5px;
     border-radius: 2px;
-    background: var(--wd-success);
+    background: var(--wd-accent);
     animation: wd-eq-bounce 0.9s ease-in-out infinite;
 }
 

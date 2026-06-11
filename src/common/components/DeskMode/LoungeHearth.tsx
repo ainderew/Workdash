@@ -6,14 +6,14 @@ import { logger } from '@/common/utils/logger';
 
 export function LoungeHearthBackdrop() {
   return (
-    <>
+    <div className="wd-hearth-backdrop">
       <div className="wd-hearth-glow" />
       <span className="wd-ember" />
       <span className="wd-ember" />
       <span className="wd-ember" />
       <span className="wd-ember" />
       <span className="wd-ember" />
-    </>
+    </div>
   );
 }
 

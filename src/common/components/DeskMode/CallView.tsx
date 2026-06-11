@@ -303,7 +303,7 @@ export default function CallView({ channelId, onLeave, onPictureInPicture, onFul
 
         {/* Floating control dock — overlaps the bottom of the tile field */}
         <div
-          className={`relative z-[2] mx-auto mb-3 w-fit max-w-full overflow-x-auto rounded-2xl border px-4 py-2 ${
+          className={`relative z-[2] mx-auto mb-3 w-fit max-w-full rounded-2xl border px-4 py-2 ${
             isSoloInLounge ? 'mt-1' : '-mt-3'
           } ${
             isLounge
