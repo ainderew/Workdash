@@ -11,6 +11,8 @@ interface CallTileGridProps {
   channelId: string;
   localUserId: number;
   height: number;
+  /** "transparent" lets a decorated parent (lounge hearth) paint the backdrop */
+  surface?: 'panel' | 'transparent';
 }
 
 function renderTile(tile: TileData, channelId: string, pinnedTileKey: string | null, togglePin: (key: string) => void) {
@@ -42,7 +44,9 @@ export default function CallTileGrid({
   channelId,
   localUserId,
   height,
+  surface = 'panel',
 }: CallTileGridProps) {
+  const surfaceClass = surface === 'panel' ? 'wd-bg-panel-2' : '';
   const pinnedTileKey = useCallStore((s) => s.pinnedTileKey);
   const setPinnedTileKey = useCallStore((s) => s.setPinnedTileKey);
 
@@ -61,7 +65,7 @@ export default function CallTileGrid({
   if (pinnedTile) {
     return (
       <div
-        className="flex gap-2 p-3 wd-bg-panel-2 overflow-hidden"
+        className={`flex gap-2 p-3 ${surfaceClass} overflow-hidden`}
         style={{ height }}
       >
         <div className="flex-1 min-w-0 h-full flex items-center justify-center">
@@ -78,7 +82,7 @@ export default function CallTileGrid({
 
   return (
     <div
-      className="flex items-center justify-center gap-2 p-3 wd-bg-panel-2 overflow-hidden"
+      className={`flex items-center justify-center gap-2 p-3 ${surfaceClass} overflow-hidden`}
       style={{ height }}
     >
       {allTiles.map((t) => renderTile(t, channelId, pinnedTileKey, togglePin))}

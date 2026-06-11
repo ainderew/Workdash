@@ -294,6 +294,7 @@ export default function CallView({ channelId, onLeave, onPictureInPicture, onFul
             channelId={channelId}
             localUserId={userId}
             height={height}
+            surface={isLounge ? 'transparent' : 'panel'}
           />
         </div>
         {isSoloInLounge && loungeWorkspaceId && (
