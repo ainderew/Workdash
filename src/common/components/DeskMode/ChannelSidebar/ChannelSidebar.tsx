@@ -4,12 +4,14 @@ import type {
   ChatV2RoomCategory,
 } from '@/communication/chatV2/_types';
 import useChatV2Store from '@/common/store/chatV2Store';
+import useWorkspaceStore from '@/common/store/workspaceStore';
 import { NowPlayingBar } from '../NowPlayingBar';
 import type { ChannelSidebarProps } from './_types';
 import { DEFAULT_CATEGORY_KEY, DEFAULT_CATEGORY_NAME } from './_types';
 import useContextMenus from './hooks/useContextMenus';
 import useRoomDragDrop from './hooks/useRoomDragDrop';
 import ServerHeader from './ServerHeader';
+import LoungeCard from './LoungeCard';
 import CategoryList from './CategoryList';
 import SidebarFooter from './SidebarFooter';
 import SidebarModals from './SidebarModals';
@@ -43,6 +45,11 @@ function ChannelSidebar({
   onCollapseSidebar,
 }: ChannelSidebarProps) {
   const unreadByRoomId = useChatV2Store((state) => state.unreadByRoomId);
+  const loungeChannelId = useWorkspaceStore(
+    (state) =>
+      state.workspaces.find((ws) => ws.id === serverId)?.loungeChannelId ??
+      null,
+  );
 
   const [isCreateRoomModalOpen, setIsCreateRoomModalOpen] = useState(false);
   const [isCreateCategoryModalOpen, setIsCreateCategoryModalOpen] =
@@ -188,6 +195,13 @@ function ChannelSidebar({
         onOpenServerSettings={() => setIsServerSettingsModalOpen(true)}
         onCollapseSidebar={onCollapseSidebar}
       />
+
+      {loungeChannelId && roomById[loungeChannelId] && (
+        <LoungeCard
+          loungeChannelId={loungeChannelId}
+          onSelectRoom={onSelectRoom}
+        />
+      )}
 
       <CategoryList
         categoryTree={categoryTree}

@@ -13,8 +13,9 @@ type WorkspaceState = {
     createWorkspace: (name: string, iconUrl?: string) => Promise<Workspace | null>;
     updateWorkspaceLocal: (
         workspaceId: string,
-        patch: Partial<Pick<Workspace, "name" | "iconUrl">>,
+        patch: Partial<Pick<Workspace, "name" | "iconUrl" | "loungeChannelId">>,
     ) => void;
+    applyWorkspaceUpdate: (workspace: Workspace) => void;
 };
 
 const getChatV2Service = () => ChatV2Service.getInstance();
@@ -89,6 +90,14 @@ const useWorkspaceStore = create<WorkspaceState>((set) => ({
         }
     },
 
+    applyWorkspaceUpdate: (workspace) => {
+        set((state) => ({
+            workspaces: state.workspaces.map((ws) =>
+                ws.id === workspace.id ? { ...ws, ...workspace } : ws,
+            ),
+        }));
+    },
+
     updateWorkspaceLocal: (workspaceId, patch) => {
         set((state) => ({
             workspaces: state.workspaces.map((ws) => {
@@ -97,6 +106,9 @@ const useWorkspaceStore = create<WorkspaceState>((set) => ({
                     ...ws,
                     ...(patch.name !== undefined ? { name: patch.name } : {}),
                     ...(patch.iconUrl !== undefined ? { iconUrl: patch.iconUrl } : {}),
+                    ...(patch.loungeChannelId !== undefined
+                        ? { loungeChannelId: patch.loungeChannelId }
+                        : {}),
                 };
             }),
         }));

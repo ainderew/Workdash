@@ -67,6 +67,7 @@ type RealtimeHandlers = {
     onAchievementUnlocked?: (payload: AchievementUnlockPayload) => void;
     onRoomMemberAdded?: (payload: { roomId: string; role: string }) => void;
     onAwardTagsUpdated?: (payload: { workspaceId: string; awards: Record<string, AwardTagData> }) => void;
+    onWorkspaceUpdated?: (workspace: Workspace) => void;
 };
 
 export class ChatV2Service {
@@ -242,6 +243,13 @@ export class ChatV2Service {
         this.transport.socket.on("chat:v2:room:member:added", onRoomMemberAdded);
         this.transport.socket.on("workspace:member:award-updated", onAwardTagsUpdated);
 
+        const onWorkspaceUpdated = (payload: { workspace?: Workspace }) => {
+            if (payload?.workspace?.id) {
+                handlers.onWorkspaceUpdated?.(payload.workspace);
+            }
+        };
+        this.transport.socket.on("workspace:updated", onWorkspaceUpdated);
+
         this.teardownRealtimeHandlers = () => {
             this.transport.socket.off("chat:v2:message:new", onMessageNew);
             this.transport.socket.off("chat:v2:message:update", onMessageUpdate);
@@ -262,6 +270,7 @@ export class ChatV2Service {
             this.transport.socket.off("achievement:unlocked", onAchievementUnlocked);
             this.transport.socket.off("chat:v2:room:member:added", onRoomMemberAdded);
             this.transport.socket.off("workspace:member:award-updated", onAwardTagsUpdated);
+            this.transport.socket.off("workspace:updated", onWorkspaceUpdated);
             this.teardownRealtimeHandlers = null;
         };
 
@@ -898,6 +907,7 @@ export class ChatV2Service {
         iconUrl?: string | null;
         description?: string | null;
         visibility?: 'PUBLIC' | 'PRIVATE';
+        loungeChannelId?: string | null;
     }): Promise<Workspace> {
         const payload: {
             workspaceId: string;
@@ -905,11 +915,14 @@ export class ChatV2Service {
             iconUrl?: string | null;
             description?: string | null;
             visibility?: 'PUBLIC' | 'PRIVATE';
+            loungeChannelId?: string | null;
         } = { workspaceId: input.workspaceId };
         if (input.name !== undefined) payload.name = input.name;
         if (input.iconUrl !== undefined) payload.iconUrl = input.iconUrl;
         if (input.description !== undefined) payload.description = input.description;
         if (input.visibility !== undefined) payload.visibility = input.visibility;
+        if (input.loungeChannelId !== undefined)
+            payload.loungeChannelId = input.loungeChannelId;
 
         const response = await this.emitWithAck<{ workspace: Workspace }>(
             "workspace:update",

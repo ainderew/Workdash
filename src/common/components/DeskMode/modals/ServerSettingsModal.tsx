@@ -27,6 +27,8 @@ const DEFAULT_ROLE_PERMISSIONS = Object.values(PERMISSIONS)
     .reduce((acc, p) => acc | p.bit, BigInt(0));
 import type { WorkspaceMember, WorkspaceRole } from "@/communication/chatV2/_types";
 import { ChatV2Service } from "@/communication/chatV2/chatV2Service";
+import useChatV2Store from "@/common/store/chatV2Store";
+import useWorkspaceStore from "@/common/store/workspaceStore";
 import { colorToHex } from "@/common/utils/roleColor";
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
@@ -546,7 +548,24 @@ function ServerSettingsModal({
     const [initialVisibility, setInitialVisibility] = useState<"PUBLIC" | "PRIVATE">("PRIVATE");
     const [description, setDescription] = useState("");
     const [initialDescription, setInitialDescription] = useState("");
+    const [loungeChannelId, setLoungeChannelId] = useState("");
+    const [initialLoungeChannelId, setInitialLoungeChannelId] = useState("");
     const [isSavingVisibility, setIsSavingVisibility] = useState(false);
+
+    const roomsById = useChatV2Store((s) => s.roomsById);
+    const roomOrder = useChatV2Store((s) => s.roomOrder);
+    const loungeChannelOptions = React.useMemo(
+        () =>
+            roomOrder
+                .map((id) => roomsById[id])
+                .filter(
+                    (room) =>
+                        !!room &&
+                        room.type !== "DIRECT" &&
+                        room.workspaceId === serverId,
+                ),
+        [roomOrder, roomsById, serverId],
+    );
 
     const { canManageEmojis, canManageWorkspace } = useWorkspacePermissions(serverId);
     const [pendingRequestCount, setPendingRequestCount] = useState(0);
@@ -576,6 +595,9 @@ function ServerSettingsModal({
                         const desc = ws.description ?? "";
                         setDescription(desc);
                         setInitialDescription(desc);
+                        const lounge = ws.loungeChannelId ?? "";
+                        setLoungeChannelId(lounge);
+                        setInitialLoungeChannelId(lounge);
                     }
                 }).catch(() => {
                     // Non-critical — defaults to PRIVATE
@@ -816,7 +838,8 @@ function ServerSettingsModal({
     const nameChanged = editName.trim() !== serverName && editName.trim().length > 0;
     const visibilityChanged = visibility !== initialVisibility;
     const descriptionChanged = description !== initialDescription;
-    const hasUnsavedChanges = !!selectedFile || nameChanged || visibilityChanged || descriptionChanged;
+    const loungeChannelChanged = loungeChannelId !== initialLoungeChannelId;
+    const hasUnsavedChanges = !!selectedFile || nameChanged || visibilityChanged || descriptionChanged || loungeChannelChanged;
 
     return (
         <div className="fixed inset-0 z-[290] flex items-center justify-center bg-black/70 backdrop-blur-[1px] p-4">
@@ -1102,6 +1125,30 @@ function ServerSettingsModal({
                                 </div>
                             </div>
 
+                            {/* Lounge channel */}
+                            <div className="rounded-lg border wd-border-subtle wd-bg-panel-2 p-3">
+                                <p className="text-[11px] font-semibold uppercase tracking-wide wd-text-muted">
+                                    Lounge Channel
+                                </p>
+                                <p className="mt-1 text-xs wd-text-secondary">
+                                    Pinned above your channel list as the always-open hangout spot. Clicking it joins the call in one click.
+                                </p>
+                                <select
+                                    value={loungeChannelId}
+                                    onChange={(e) => setLoungeChannelId(e.target.value)}
+                                    disabled={isBusy || !canManageWorkspace}
+                                    aria-label="Lounge channel"
+                                    className="mt-3 h-9 w-full rounded-md border wd-border-subtle bg-[var(--wd-surface-elevated)] px-3 text-sm wd-text-primary outline-none focus:border-[var(--wd-border-strong)] disabled:opacity-50"
+                                >
+                                    <option value="">None</option>
+                                    {loungeChannelOptions.map((room) => (
+                                        <option key={room.id} value={room.id}>
+                                            #{room.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
                             {error && (
                                 <p className="rounded-md border border-[rgba(237,66,69,0.35)] bg-[rgba(237,66,69,0.12)] px-3 py-2 text-sm wd-text-danger">
                                     {error}
@@ -1118,6 +1165,7 @@ function ServerSettingsModal({
                                             setEditName(serverName);
                                             setVisibility(initialVisibility);
                                             setDescription(initialDescription);
+                                            setLoungeChannelId(initialLoungeChannelId);
                                             setError(null);
                                             if (fileInputRef.current) {
                                                 fileInputRef.current.value = "";
@@ -1133,7 +1181,7 @@ function ServerSettingsModal({
                                         onClick={async () => {
                                             if (selectedFile) await handleUpload();
                                             if (nameChanged) await handleRename();
-                                            if ((visibilityChanged || descriptionChanged) && serverId) {
+                                            if ((visibilityChanged || descriptionChanged || loungeChannelChanged) && serverId) {
                                                 setIsSavingVisibility(true);
                                                 try {
                                                     const service = ChatV2Service.getInstance();
@@ -1141,12 +1189,22 @@ function ServerSettingsModal({
                                                         workspaceId: string;
                                                         visibility?: "PUBLIC" | "PRIVATE";
                                                         description?: string | null;
+                                                        loungeChannelId?: string | null;
                                                     } = { workspaceId: serverId };
                                                     if (visibilityChanged) updatePayload.visibility = visibility;
                                                     if (descriptionChanged) updatePayload.description = description || null;
+                                                    if (loungeChannelChanged) updatePayload.loungeChannelId = loungeChannelId || null;
                                                     await service.updateWorkspace(updatePayload);
                                                     setInitialVisibility(visibility);
                                                     setInitialDescription(description);
+                                                    if (loungeChannelChanged) {
+                                                        setInitialLoungeChannelId(loungeChannelId);
+                                                        useWorkspaceStore
+                                                            .getState()
+                                                            .updateWorkspaceLocal(serverId, {
+                                                                loungeChannelId: loungeChannelId || null,
+                                                            });
+                                                    }
                                                 } catch (err) {
                                                     setError(err instanceof Error ? err.message : "Failed to update settings");
                                                 } finally {

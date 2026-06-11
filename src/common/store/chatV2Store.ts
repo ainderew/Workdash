@@ -29,6 +29,7 @@ import {
 } from "@/communication/chatV2/reactionFrequentCache";
 import { getDisplayName } from "@/common/utils/displayName";
 import useUserStore from "@/common/store/useStore";
+import useWorkspaceStore from "@/common/store/workspaceStore";
 import { getIsDocumentFocused } from "@/common/hooks/useDocumentFocus";
 import { toast } from "sonner";
 import { setEveryoneCooldown } from "@/communication/chatV2/everyoneCooldown";
@@ -827,6 +828,9 @@ const useChatV2Store = create<ChatV2State>((set, get) => ({
                 },
                 onAwardTagsUpdated: (payload) => {
                     set({ awardTagUpdate: payload });
+                },
+                onWorkspaceUpdated: (workspace) => {
+                    useWorkspaceStore.getState().applyWorkspaceUpdate(workspace);
                 },
             });
 

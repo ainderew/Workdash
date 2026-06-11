@@ -367,6 +367,7 @@ export type Workspace = {
     name: string;
     iconUrl: string | null;
     description?: string | null;
+    loungeChannelId?: string | null;
     visibility?: 'PUBLIC' | 'PRIVATE';
     ownerId: number;
     createdAt: string | Date;
