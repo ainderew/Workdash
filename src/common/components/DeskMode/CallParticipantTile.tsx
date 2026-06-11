@@ -207,35 +207,37 @@ export default function CallParticipantTile({
       {/* Background layer: profile pic → sprite → initials */}
       {!participant.media.video && (
         <div className="absolute inset-0 flex items-center justify-center">
-          {profileImage ? (
-            <Image
-              src={profileImage}
-              alt={participant.displayName}
-              width={64}
-              height={64}
-              className="rounded-full object-cover"
-              unoptimized
-            />
-          ) : spriteAvatar ? (
-            <Image
-              src={spriteAvatar}
-              alt={participant.displayName}
-              width={64}
-              height={64}
-              style={{ imageRendering: 'pixelated' }}
-              unoptimized
-            />
-          ) : (
-            <span
-              className="inline-flex items-center justify-center h-16 w-16 rounded-full text-xl font-bold"
-              style={{
-                backgroundColor: 'var(--wd-surface-elevated)',
-                color: 'var(--wd-text-primary)',
-              }}
-            >
-              {initials}
-            </span>
-          )}
+          <span className="wd-speaker-halo">
+            {profileImage ? (
+              <Image
+                src={profileImage}
+                alt={participant.displayName}
+                width={64}
+                height={64}
+                className="rounded-full object-cover"
+                unoptimized
+              />
+            ) : spriteAvatar ? (
+              <Image
+                src={spriteAvatar}
+                alt={participant.displayName}
+                width={64}
+                height={64}
+                style={{ imageRendering: 'pixelated' }}
+                unoptimized
+              />
+            ) : (
+              <span
+                className="inline-flex items-center justify-center h-16 w-16 rounded-full text-xl font-bold"
+                style={{
+                  backgroundColor: 'var(--wd-surface-elevated)',
+                  color: 'var(--wd-text-primary)',
+                }}
+              >
+                {initials}
+              </span>
+            )}
+          </span>
         </div>
       )}
 
@@ -260,6 +262,9 @@ export default function CallParticipantTile({
             ✋
           </span>
         )}
+        <span className="wd-eq" aria-hidden="true">
+          <span /><span /><span />
+        </span>
         <span className="text-xs font-medium text-white truncate">
           {participant.displayName}
           {isLocal && (

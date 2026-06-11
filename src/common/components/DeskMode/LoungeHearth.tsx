@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { Sofa } from 'lucide-react';
 import { toast } from 'sonner';
 import { ChatV2Service } from '@/communication/chatV2/chatV2Service';
 import { logger } from '@/common/utils/logger';
@@ -14,33 +13,6 @@ export function LoungeHearthBackdrop() {
       <span className="wd-ember" />
       <span className="wd-ember" />
     </>
-  );
-}
-
-interface LoungeCallHeaderProps {
-  roomName: string;
-  participantCount: number;
-  startedAt: string;
-}
-
-export function LoungeCallHeader({
-  roomName,
-  participantCount,
-  startedAt,
-}: LoungeCallHeaderProps) {
-  const since = new Date(startedAt);
-  const sinceLabel = Number.isNaN(since.getTime())
-    ? null
-    : since.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-
-  return (
-    <div className="relative z-[1] flex items-center gap-2 px-3 pt-2 text-[11px]">
-      <Sofa size={12} className="text-[rgb(var(--wd-den-ember-rgb))]" />
-      <span className="font-bold wd-text-primary">{roomName}</span>
-      <span className="wd-text-muted">
-        {participantCount} here{sinceLabel ? ` · warming since ${sinceLabel}` : ''}
-      </span>
-    </div>
   );
 }
 

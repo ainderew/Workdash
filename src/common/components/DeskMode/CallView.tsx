@@ -13,13 +13,30 @@ import { VideoChatViewer } from '@/communication/videoChat/videoChatViewer';
 import CallAvatar from './CallAvatar';
 import CallControlBar from './CallControlBar';
 import CallTileGrid from './call-tiles/CallTileGrid';
+import DisplayModeSplitButton from './DisplayModeSplitButton';
 import { ScreenShareViewer } from '@/communication/screenShare/screenShareViewer';
 import useWorkspaceStore from '@/common/store/workspaceStore';
-import {
-  LoungeCallHeader,
-  LoungeHearthBackdrop,
-  LoungeSoloState,
-} from './LoungeHearth';
+import { LoungeHearthBackdrop, LoungeSoloState } from './LoungeHearth';
+
+function formatElapsed(startedAt: string, now: number): string | null {
+  const started = new Date(startedAt).getTime();
+  if (!Number.isFinite(started) || started > now) return null;
+  const totalSeconds = Math.floor((now - started) / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  const mmss = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  return hours > 0 ? `${hours}:${mmss}` : mmss;
+}
+
+function useElapsed(startedAt: string): string | null {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+  return formatElapsed(startedAt, now);
+}
 
 interface CallViewProps {
   channelId: string;
@@ -50,6 +67,16 @@ export default function CallView({ channelId, onLeave, onPictureInPicture, onFul
   const roomName = useChatV2Store(
     (s) => s.roomsById[channelId]?.name ?? 'Lounge',
   );
+
+  const elapsed = useElapsed(call?.startedAt ?? '');
+  const startedAtDate = call?.startedAt ? new Date(call.startedAt) : null;
+  const startedAtLabel =
+    startedAtDate && !Number.isNaN(startedAtDate.getTime())
+      ? startedAtDate.toLocaleTimeString([], {
+          hour: 'numeric',
+          minute: '2-digit',
+        })
+      : null;
 
   const isScreenSharing = useCallStore((s) => s.localMedia.screen);
 
@@ -233,17 +260,35 @@ export default function CallView({ channelId, onLeave, onPictureInPicture, onFul
 
   return (
     <div className="flex flex-col border-b wd-border-subtle">
-      {/* Participant tiles — resizable container, tiles maintain aspect ratio */}
-      <div className={isLounge ? 'wd-hearth' : undefined}>
+      <div className={isLounge ? 'wd-hearth' : 'wd-bg-panel'}>
         {isLounge && <LoungeHearthBackdrop />}
-        {isLounge && (
-          <LoungeCallHeader
-            roomName={roomName}
-            participantCount={call.participants.length}
-            startedAt={call.startedAt}
-          />
-        )}
-        <div className={isLounge ? 'relative z-[1]' : undefined}>
+
+        {/* Call header — context for the room the call lives in */}
+        <div className="relative z-[1] flex items-center gap-2.5 px-3 py-2 border-b wd-border-subtle text-xs">
+          <span className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide bg-[rgb(var(--wd-success-rgb)/0.14)] text-[var(--wd-success)]">
+            <span className="h-1.5 w-1.5 rounded-full bg-[var(--wd-success)] motion-safe:animate-pulse" />
+            Live
+          </span>
+          <span className="font-bold wd-text-primary truncate">
+            {isLounge ? '🛋️ ' : ''}{roomName}
+          </span>
+          <span className="wd-text-muted tabular-nums">
+            {call.participants.length} here
+            {elapsed ? ` · ${isLounge ? `warming since ${startedAtLabel}` : elapsed}` : ''}
+          </span>
+          <span className="ml-auto">
+            <DisplayModeSplitButton
+              isCollapsed={false}
+              onToggleCollapse={() => setCollapsed(true)}
+              onPictureInPicture={onPictureInPicture}
+              onToggleFullscreen={onFullscreen}
+              size="sm"
+            />
+          </span>
+        </div>
+
+        {/* Participant tiles — resizable container, tiles maintain aspect ratio */}
+        <div className="relative z-[1]">
           <CallTileGrid
             participants={call.participants}
             channelId={channelId}
@@ -254,6 +299,20 @@ export default function CallView({ channelId, onLeave, onPictureInPicture, onFul
         {isSoloInLounge && loungeWorkspaceId && (
           <LoungeSoloState workspaceId={loungeWorkspaceId} />
         )}
+
+        {/* Floating control dock — overlaps the bottom of the tile field */}
+        <div className="relative z-[2] mx-auto -mt-3 mb-3 w-fit max-w-full overflow-x-auto rounded-2xl border wd-border-strong wd-bg-panel-2 px-3 py-1.5 shadow-[0_8px_24px_rgb(0_0_0/0.45)]">
+          <CallControlBar
+            variant="dock"
+            isMuted={isMuted}
+            isVideoOff={isVideoOff}
+            isScreenSharing={isScreenSharing}
+            onToggleMic={handleToggleMic}
+            onToggleVideo={handleToggleVideo}
+            onToggleScreenShare={handleScreenShare}
+            onLeave={onLeave}
+          />
+        </div>
       </div>
 
       {/* Drag handle */}
@@ -267,25 +326,6 @@ export default function CallView({ channelId, onLeave, onPictureInPicture, onFul
         <div
           className="w-12 h-1 rounded-full transition-colors group-hover:opacity-100 opacity-60"
           style={{ backgroundColor: 'var(--wd-text-muted)' }}
-        />
-      </div>
-
-      {/* Controls bar */}
-      <div className="flex items-center justify-center gap-2 px-3 py-2 wd-bg-panel">
-        <CallControlBar
-          isMuted={isMuted}
-          isVideoOff={isVideoOff}
-          isScreenSharing={isScreenSharing}
-          onToggleMic={handleToggleMic}
-          onToggleVideo={handleToggleVideo}
-          onToggleScreenShare={handleScreenShare}
-          onLeave={onLeave}
-          displayModeProps={{
-            isCollapsed: false,
-            onToggleCollapse: () => setCollapsed(true),
-            onPictureInPicture,
-            onToggleFullscreen: onFullscreen,
-          }}
         />
       </div>
     </div>

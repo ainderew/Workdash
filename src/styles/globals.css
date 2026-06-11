@@ -2877,3 +2877,75 @@ input[type="range"].wd-volume-slider::-moz-range-progress {
         transform: none;
     }
 }
+
+/* speaker halo + nameplate equalizer — appear only while speaking */
+.wd-speaker-halo {
+    position: relative;
+    display: inline-flex;
+    border-radius: 9999px;
+    padding: 3px;
+}
+
+.wd-speaker-halo::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 9999px;
+    background: conic-gradient(
+        from 0deg,
+        var(--wd-success),
+        rgb(var(--wd-den-ember-rgb)),
+        var(--wd-success)
+    );
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.wd-speaker-tile[data-speaking="true"] .wd-speaker-halo::before {
+    opacity: 1;
+    animation: wd-halo-spin 5s linear infinite;
+}
+
+.wd-speaker-halo > * {
+    position: relative;
+    z-index: 1;
+}
+
+@keyframes wd-halo-spin {
+    to { transform: rotate(360deg); }
+}
+
+.wd-eq {
+    display: none;
+    align-items: flex-end;
+    gap: 2px;
+    height: 10px;
+    flex-shrink: 0;
+}
+
+.wd-speaker-tile[data-speaking="true"] .wd-eq {
+    display: inline-flex;
+}
+
+.wd-eq span {
+    width: 2.5px;
+    border-radius: 2px;
+    background: var(--wd-success);
+    animation: wd-eq-bounce 0.9s ease-in-out infinite;
+}
+
+.wd-eq span:nth-child(1) { height: 5px; }
+.wd-eq span:nth-child(2) { height: 9px; animation-delay: 0.15s; }
+.wd-eq span:nth-child(3) { height: 6px; animation-delay: 0.3s; }
+
+@keyframes wd-eq-bounce {
+    0%, 100% { transform: scaleY(0.5); }
+    50% { transform: scaleY(1.1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .wd-speaker-tile[data-speaking="true"] .wd-speaker-halo::before,
+    .wd-eq span {
+        animation: none;
+    }
+}
