@@ -2773,13 +2773,14 @@ input[type="range"].wd-volume-slider::-moz-range-progress {
 
 /* ── Lounge hearth — den treatment for the lounge call panel ──────── */
 
+/* den surfaces are derived from the user's accent so the hearth re-tints
+   with whatever theme is selected */
 :root {
-    --wd-den-bg-0-rgb: 43 28 16;
-    --wd-den-bg-1-rgb: 33 22 9;
-    --wd-den-bg-2-rgb: 26 18 12;
-    --wd-den-border-rgb: 74 54 33;
-    --wd-den-ember-rgb: 255 196 107;
-    --wd-den-fire-rgb: 240 163 94;
+    --wd-den-bg-0: color-mix(in srgb, var(--wd-accent) 20%, rgb(var(--wd-surface-panel-rgb)));
+    --wd-den-bg-1: color-mix(in srgb, var(--wd-accent) 12%, rgb(var(--wd-surface-panel-rgb)));
+    --wd-den-bg-2: color-mix(in srgb, var(--wd-accent) 7%, rgb(var(--wd-surface-panel-rgb)));
+    --wd-den-border: color-mix(in srgb, var(--wd-accent) 35%, rgb(var(--wd-surface-panel-rgb)));
+    --wd-den-ember: color-mix(in srgb, var(--wd-accent) 70%, white);
 }
 
 /* overflow stays visible so control popovers (mic/camera pickers) escape;
@@ -2788,9 +2789,9 @@ input[type="range"].wd-volume-slider::-moz-range-progress {
     position: relative;
     background: radial-gradient(
         140% 120% at 50% 118%,
-        rgb(var(--wd-den-bg-0-rgb)) 0%,
-        rgb(var(--wd-den-bg-1-rgb)) 35%,
-        rgb(var(--wd-den-bg-2-rgb)) 70%,
+        var(--wd-den-bg-0) 0%,
+        var(--wd-den-bg-1) 35%,
+        var(--wd-den-bg-2) 70%,
         rgb(var(--wd-surface-panel-rgb)) 100%
     );
 }
@@ -2815,7 +2816,7 @@ input[type="range"].wd-volume-slider::-moz-range-progress {
     background: linear-gradient(
         90deg,
         transparent,
-        rgb(var(--wd-den-ember-rgb) / 0.5),
+        color-mix(in srgb, var(--wd-den-ember) 50%, transparent),
         transparent
     );
 }
@@ -2827,8 +2828,8 @@ input[type="range"].wd-volume-slider::-moz-range-progress {
     z-index: 0;
     background: radial-gradient(
         60% 55% at 50% 108%,
-        rgb(var(--wd-den-fire-rgb) / 0.2),
-        rgb(var(--wd-den-fire-rgb) / 0.06) 45%,
+        rgb(var(--wd-accent-rgb) / 0.2),
+        rgb(var(--wd-accent-rgb) / 0.06) 45%,
         transparent 70%
     );
     animation: wd-hearth-breathe 7s ease-in-out infinite;
@@ -2845,7 +2846,7 @@ input[type="range"].wd-volume-slider::-moz-range-progress {
     width: 3px;
     height: 3px;
     border-radius: 999px;
-    background: rgb(var(--wd-den-ember-rgb));
+    background: var(--wd-den-ember);
     filter: blur(0.5px);
     opacity: 0;
     z-index: 1;
@@ -2886,6 +2887,16 @@ input[type="range"].wd-volume-slider::-moz-range-progress {
     .wd-hearth .wd-speaker-tile[data-speaking="true"] {
         transform: none;
     }
+}
+
+
+/* dock surface inside the hearth — accent-tinted to match the panel */
+.wd-hearth-dock {
+    background-color: color-mix(in srgb, var(--wd-den-bg-2) 95%, transparent);
+    border-color: var(--wd-den-border);
+    box-shadow:
+        inset 0 1px 0 color-mix(in srgb, var(--wd-den-ember) 8%, transparent),
+        0 10px 28px rgb(0 0 0 / 0.55);
 }
 
 /* speaker halo + nameplate equalizer — appear only while speaking */

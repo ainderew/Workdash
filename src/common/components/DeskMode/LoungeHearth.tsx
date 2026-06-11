@@ -55,7 +55,7 @@ export function LoungeSoloState({ workspaceId }: LoungeSoloStateProps) {
           type="button"
           onClick={() => void pingCrew()}
           disabled={isPinging || pinged}
-          className="rounded-lg bg-[rgb(var(--wd-den-fire-rgb))] px-3 py-1.5 text-[11px] font-bold text-[rgb(var(--wd-den-bg-1-rgb))] transition-opacity disabled:opacity-60"
+          className="rounded-lg bg-[var(--wd-accent)] px-3 py-1.5 text-[11px] font-bold text-white transition-opacity disabled:opacity-60"
         >
           {pinged ? 'Crew pinged' : isPinging ? 'Pinging…' : 'Ping the crew'}
         </button>

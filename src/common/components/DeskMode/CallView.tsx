@@ -307,7 +307,7 @@ export default function CallView({ channelId, onLeave, onPictureInPicture, onFul
             isSoloInLounge ? 'mt-1' : '-mt-3'
           } ${
             isLounge
-              ? 'border-[rgb(var(--wd-den-border-rgb))] bg-[rgb(var(--wd-den-bg-2-rgb)/0.95)] shadow-[inset_0_1px_0_rgb(var(--wd-den-ember-rgb)/0.08),0_10px_28px_rgb(0_0_0/0.55)]'
+              ? 'wd-hearth-dock'
               : 'wd-border-strong wd-bg-panel-2 shadow-[0_8px_24px_rgb(0_0_0/0.45)]'
           }`}
         >
