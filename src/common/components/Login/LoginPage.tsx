@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useMemo } from "react";
-import { signOut, useSession } from "next-auth/react";
+import { useSession } from "next-auth/react";
+import { signOutWithCleanup } from "@/common/utils/signOutWithCleanup";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { LoginCard } from "./LoginCard";
@@ -192,7 +193,7 @@ export function LoginPage() {
                 <ArrowRightIcon className="h-4 w-4" />
               </Link>
               <button
-                onClick={() => signOut({ callbackUrl: "/login" })}
+                onClick={() => signOutWithCleanup({ callbackUrl: "/login" })}
                 className="py-2.5 text-sm transition-opacity duration-150 hover:opacity-70"
                 style={{ color: "var(--wd-login-text-muted)" }}
               >

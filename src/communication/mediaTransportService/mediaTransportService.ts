@@ -1,4 +1,4 @@
-import { signOut } from "next-auth/react";
+import { signOutWithCleanup } from "@/common/utils/signOutWithCleanup";
 import useUserStore from "@/common/store/useStore";
 import { CONFIG } from "@/common/utils/config";
 import { logger } from "@/common/utils/logger";
@@ -153,7 +153,7 @@ export class MediaTransportService {
                 clearTimeout(timeout);
                 logger.error("Server auth error:", data.code);
                 if (data.code === "USER_NOT_FOUND") {
-                    signOut({ callbackUrl: "/login" });
+                    signOutWithCleanup({ callbackUrl: "/login" });
                 }
                 reject(new Error(`Auth error: ${data.code}`));
             });

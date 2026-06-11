@@ -1,5 +1,6 @@
 import React from "react";
-import { signIn, signOut, useSession } from "next-auth/react";
+import { signIn, useSession } from "next-auth/react";
+import { signOutWithCleanup } from "@/common/utils/signOutWithCleanup";
 import { logger } from "@/common/utils/logger";
 
 export default function GameUI() {
@@ -20,7 +21,7 @@ export default function GameUI() {
 
     return (
         <div className="game-overlay">
-            <button className="bg-white w-30 h-10" onClick={() => signOut()}>
+            <button className="bg-white w-30 h-10" onClick={() => signOutWithCleanup()}>
                 Sign Out
             </button>
             {session ? (

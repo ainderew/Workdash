@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { format, addDays, subDays } from "date-fns";
 import { RefreshCw, LogOut, ChevronLeft, ChevronRight } from "lucide-react";
-import { useSession, signOut } from "next-auth/react";
+import { useSession } from "next-auth/react";
+import { signOutWithCleanup } from "@/common/utils/signOutWithCleanup";
 import { getDisplayName } from "@/common/utils/displayName";
 import SidebarHeader from "../SidebarMenu/SidebarHeader";
 import SidebarMenu from "../SidebarMenu/SidebarMenu";
@@ -96,7 +97,7 @@ function CalendarMenu({ isOpen, onClose }: CalendarMenuProps) {
                                     />
                                 </button>
                                 <button
-                                    onClick={() => signOut()}
+                                    onClick={() => signOutWithCleanup()}
                                     className="text-gray-400 hover:text-red-400 transition-colors p-2 rounded hover:bg-gray-800"
                                     title="Sign out"
                                 >

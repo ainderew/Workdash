@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { signOut } from 'next-auth/react';
+import { signOutWithCleanup } from '@/common/utils/signOutWithCleanup';
 import { AnimatePresence, motion } from 'framer-motion';
 import { LogOut, Search, X } from 'lucide-react';
 
@@ -240,7 +240,7 @@ function SettingsModalShell({
                   {/* Logout button */}
                   <button
                     type="button"
-                    onClick={() => signOut({ callbackUrl: '/' })}
+                    onClick={() => signOutWithCleanup({ callbackUrl: '/' })}
                     className="group flex w-full items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-[12.5px] font-medium text-[var(--wd-danger)] transition-all duration-150 hover:bg-[var(--wd-danger-soft)]"
                   >
                     <span className="inline-flex h-[26px] w-[26px] items-center justify-center rounded-md bg-[var(--wd-danger-soft)] text-[var(--wd-danger)] transition-all duration-150 group-hover:bg-[var(--wd-danger)] group-hover:text-white">

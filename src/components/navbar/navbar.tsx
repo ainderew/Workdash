@@ -12,7 +12,8 @@ import {
     LayoutDashboard,
     Settings,
 } from "lucide-react";
-import { useSession, signOut } from "next-auth/react";
+import { useSession } from "next-auth/react";
+import { signOutWithCleanup } from "@/common/utils/signOutWithCleanup";
 import Image from "next/image";
 import Link from "next/link";
 import { getDisplayName } from "@/common/utils/displayName";
@@ -222,7 +223,7 @@ export function Navbar() {
 
                                                         <button
                                                             onClick={() =>
-                                                                signOut({
+                                                                signOutWithCleanup({
                                                                     callbackUrl:
                                                                         "/",
                                                                 })
@@ -344,7 +345,7 @@ export function Navbar() {
                                         </Link>
                                         <button
                                             onClick={() =>
-                                                signOut({ callbackUrl: "/" })
+                                                signOutWithCleanup({ callbackUrl: "/" })
                                             }
                                             className="wd-landing-btn-secondary w-full flex items-center justify-center gap-2 text-[var(--wd-danger)]"
                                         >
