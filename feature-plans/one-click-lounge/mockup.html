@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Workdash — One-click Lounge UI mockup</title>
+<style>
+  :root {
+    --base: rgb(2 6 23);
+    --panel: rgb(15 17 21);
+    --panel-2: rgb(22 26 34);
+    --elevated: rgb(31 37 48);
+    --border-subtle: rgb(43 50 64);
+    --border-strong: rgb(61 71 89);
+    --text-primary: rgb(255 255 255);
+    --text-muted: rgb(144 153 171);
+    --accent: rgb(168 85 247);
+    --accent-hover: rgb(147 51 234);
+    --accent-soft: rgb(168 85 247 / 0.16);
+    --success: rgb(59 165 93);
+    --success-soft: rgb(59 165 93 / 0.16);
+    --danger: rgb(248 113 113);
+    --warning: rgb(240 178 50);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--base);
+    color: var(--text-primary);
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    padding: 40px;
+    line-height: 1.4;
+  }
+  h1 { font-size: 20px; margin-bottom: 6px; }
+  .sub { color: var(--text-muted); font-size: 13px; margin-bottom: 36px; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin: 40px 0 8px; }
+  .hint { font-size: 12px; color: var(--text-muted); margin-bottom: 16px; max-width: 720px; }
+  .row { display: flex; gap: 28px; flex-wrap: wrap; align-items: flex-start; }
+  .frame { display: flex; flex-direction: column; gap: 8px; }
+  .frame > label { font-size: 11px; color: var(--text-muted); font-weight: 600; }
+
+  /* ── Sidebar replica ─────────────────────────────── */
+  .sidebar {
+    width: 270px;
+    background: var(--panel);
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+    padding: 12px 10px;
+  }
+  .ws-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 4px 8px 12px; font-weight: 700; font-size: 14px;
+  }
+  .ws-header .chev { color: var(--text-muted); font-size: 11px; }
+  .section-label {
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.07em;
+    color: var(--text-muted); padding: 10px 8px 6px; text-transform: uppercase;
+  }
+  .channel {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 8px; border-radius: 7px; color: var(--text-muted);
+    font-size: 13.5px; font-weight: 500;
+  }
+  .channel .hash { opacity: 0.55; }
+  .channel.active { background: var(--elevated); color: var(--text-primary); }
+
+  /* ── Lounge card ─────────────────────────────────── */
+  .lounge {
+    border-radius: 10px;
+    padding: 10px 10px 10px 12px;
+    border: 1px solid var(--border-subtle);
+    background: var(--panel-2);
+    position: relative;
+    overflow: hidden;
+  }
+  .lounge.live {
+    border-color: rgb(59 165 93 / 0.55);
+    box-shadow: 0 0 0 1px rgb(59 165 93 / 0.25), 0 0 18px rgb(59 165 93 / 0.12);
+  }
+  .lounge-top { display: flex; align-items: center; gap: 8px; }
+  .sofa { font-size: 14px; }
+  .lounge-name { font-size: 13px; font-weight: 700; flex: 1; }
+  .live-dot {
+    width: 8px; height: 8px; border-radius: 99px; background: var(--success);
+    animation: pulse 1.8s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgb(59 165 93 / 0.55); }
+    50% { box-shadow: 0 0 0 6px rgb(59 165 93 / 0); }
+  }
+  .lounge-body { display: flex; align-items: center; gap: 8px; margin-top: 9px; }
+  .stack { display: flex; }
+  .avatar {
+    width: 24px; height: 24px; border-radius: 99px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 9px; font-weight: 800; color: #fff;
+    border: 2px solid var(--panel-2);
+  }
+  .stack .avatar + .avatar { margin-left: -7px; }
+  .a1 { background: #7c3aed; } .a2 { background: #0e7490; } .a3 { background: #be185d; }
+  .lounge-meta { font-size: 11.5px; color: var(--text-muted); flex: 1; }
+  .lounge-meta b { color: var(--text-primary); font-weight: 600; }
+  .speaking-ring { outline: 2px solid var(--success); outline-offset: 0; }
+  .btn {
+    border: 0; border-radius: 7px; cursor: pointer;
+    font-size: 11.5px; font-weight: 700; padding: 6px 12px;
+    color: #fff; background: var(--success);
+  }
+  .btn.purple { background: var(--accent); }
+  .btn.ghost {
+    background: transparent; color: var(--text-muted);
+    border: 1px solid var(--border-strong); font-weight: 600;
+  }
+  .btn.sm { padding: 4px 10px; font-size: 11px; }
+  .lounge.empty .lounge-meta { font-style: normal; }
+  .quiet-note { font-size: 10.5px; color: var(--text-muted); margin-top: 8px; display: flex; align-items: center; gap: 5px; }
+
+  /* ── Toasts ──────────────────────────────────────── */
+  .toast {
+    width: 360px; background: var(--panel-2);
+    border: 1px solid var(--border-subtle); border-radius: 12px;
+    padding: 13px 14px; box-shadow: 0 12px 40px rgb(0 0 0 / 0.5);
+  }
+  .toast.live { border-color: rgb(59 165 93 / 0.5); }
+  .toast-head { display: flex; align-items: center; gap: 10px; }
+  .toast-title { font-size: 13px; font-weight: 700; flex: 1; }
+  .toast-sub { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+  .toast-actions { display: flex; gap: 8px; margin-top: 12px; }
+  .badge-live {
+    font-size: 9px; font-weight: 800; letter-spacing: 0.06em;
+    background: var(--success-soft); color: var(--success);
+    padding: 2.5px 7px; border-radius: 99px; text-transform: uppercase;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .badge-live::before { content: ""; width: 5px; height: 5px; border-radius: 99px; background: var(--success); }
+
+  /* ── Auto-join pill ──────────────────────────────── */
+  .pill {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--panel-2); border: 1px solid rgb(168 85 247 / 0.5);
+    border-radius: 14px; padding: 12px 14px; width: 420px;
+    box-shadow: 0 12px 40px rgb(0 0 0 / 0.5);
+  }
+  .ring {
+    position: relative; width: 34px; height: 34px; flex-shrink: 0;
+  }
+  .ring svg { transform: rotate(-90deg); }
+  .ring .count {
+    position: absolute; inset: 0; display: flex; align-items: center;
+    justify-content: center; font-size: 12px; font-weight: 800;
+  }
+  .pill-text { flex: 1; }
+  .pill-title { font-size: 13px; font-weight: 700; }
+  .pill-sub { font-size: 11.5px; color: var(--text-muted); margin-top: 2px; }
+  .mic-chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 10px; font-weight: 700; color: var(--warning);
+    background: rgb(240 178 50 / 0.14); border-radius: 99px; padding: 2px 8px;
+  }
+
+  /* ── Settings ────────────────────────────────────── */
+  .settings {
+    width: 460px; background: var(--panel); border: 1px solid var(--border-subtle);
+    border-radius: 12px; padding: 18px;
+  }
+  .settings h3 { font-size: 13px; font-weight: 700; margin-bottom: 2px; }
+  .settings .desc { font-size: 11.5px; color: var(--text-muted); margin-bottom: 14px; }
+  .setting-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 11px 0; border-top: 1px solid var(--border-subtle);
+  }
+  .setting-row .l { font-size: 12.5px; font-weight: 600; }
+  .setting-row .s { font-size: 11px; color: var(--text-muted); margin-top: 2px; max-width: 280px; }
+  .select {
+    background: var(--elevated); border: 1px solid var(--border-strong);
+    color: var(--text-primary); font-size: 12px; border-radius: 7px; padding: 6px 10px;
+  }
+  .toggle { width: 36px; height: 20px; background: var(--accent); border-radius: 99px; position: relative; }
+  .toggle::after {
+    content: ""; position: absolute; top: 2px; right: 2px;
+    width: 16px; height: 16px; background: #fff; border-radius: 99px;
+  }
+  .toggle.off { background: var(--border-strong); }
+  .toggle.off::after { right: auto; left: 2px; }
+  .time-range { display: flex; gap: 6px; align-items: center; font-size: 12px; color: var(--text-muted); }
+</style>
+</head>
+<body>
+
+<h1>One-click Lounge — desk mode UI</h1>
+<div class="sub">All states, using the live workdash dark-theme tokens. Names/avatars mirror your screenshot.</div>
+
+<h2>1 · Sidebar — pinned Lounge card (above CHANNELS)</h2>
+<div class="hint">The card lives at the top of the channel sidebar, always visible regardless of scroll or category collapse. One click joins from anywhere — no navigating to the channel first. Green treatment only when live, so it stays quiet most of the day.</div>
+<div class="row">
+
+  <div class="frame">
+    <label>STATE A — CALL LIVE (2 in, one speaking)</label>
+    <div class="sidebar">
+      <div class="ws-header">🎮 Dev Break Room <span class="chev">▾</span></div>
+      <div class="lounge live">
+        <div class="lounge-top">
+          <span class="sofa">🛋️</span>
+          <span class="lounge-name">Lounge</span>
+          <span class="live-dot"></span>
+        </div>
+        <div class="lounge-body">
+          <span class="stack">
+            <span class="avatar a1 speaking-ring">BG</span>
+            <span class="avatar a2">IB</span>
+          </span>
+          <span class="lounge-meta"><b>Brett</b> &amp; <b>IBan</b> hanging out</span>
+          <button class="btn">Join</button>
+        </div>
+      </div>
+      <div class="section-label">Channels</div>
+      <div class="channel"><span class="hash">#</span> General</div>
+      <div class="channel"><span class="hash">#</span> Bugs/Features</div>
+      <div class="section-label">Gaming</div>
+      <div class="channel active"><span class="hash">#</span> 🎮 Game-Night</div>
+      <div class="channel"><span class="hash">#</span> ☢️ Dota 2</div>
+    </div>
+  </div>
+
+  <div class="frame">
+    <label>STATE B — EMPTY, FRIENDS ONLINE (quorum)</label>
+    <div class="sidebar">
+      <div class="ws-header">🎮 Dev Break Room <span class="chev">▾</span></div>
+      <div class="lounge empty">
+        <div class="lounge-top">
+          <span class="sofa">🛋️</span>
+          <span class="lounge-name">Lounge</span>
+        </div>
+        <div class="lounge-body">
+          <span class="stack">
+            <span class="avatar a2">IB</span>
+            <span class="avatar a3">SJ</span>
+          </span>
+          <span class="lounge-meta">2 friends online</span>
+          <button class="btn purple">Start</button>
+        </div>
+      </div>
+      <div class="section-label">Channels</div>
+      <div class="channel"><span class="hash">#</span> General</div>
+      <div class="channel"><span class="hash">#</span> Bugs/Features</div>
+      <div class="section-label">Gaming</div>
+      <div class="channel"><span class="hash">#</span> 🎮 Game-Night</div>
+      <div class="channel"><span class="hash">#</span> ☢️ Dota 2</div>
+    </div>
+  </div>
+
+  <div class="frame">
+    <label>STATE C — QUIET (nobody around)</label>
+    <div class="sidebar">
+      <div class="ws-header">🎮 Dev Break Room <span class="chev">▾</span></div>
+      <div class="lounge empty">
+        <div class="lounge-top">
+          <span class="sofa">🛋️</span>
+          <span class="lounge-name">Lounge</span>
+        </div>
+        <div class="quiet-note">Nobody's here — be the first to sit down</div>
+      </div>
+      <div class="section-label">Channels</div>
+      <div class="channel"><span class="hash">#</span> General</div>
+      <div class="channel"><span class="hash">#</span> Bugs/Features</div>
+      <div class="section-label">Gaming</div>
+      <div class="channel"><span class="hash">#</span> 🎮 Game-Night</div>
+      <div class="channel"><span class="hash">#</span> ☢️ Dota 2</div>
+    </div>
+  </div>
+</div>
+
+<h2>2 · Nudge toasts (bottom-right, sonner)</h2>
+<div class="hint">Live-call nudge fires whenever a Lounge call starts and you're not in it (any hour). Quorum nudge fires at most once per evening, only inside lounge hours, never in DND/focus, never while you're in another call. "Not tonight" snoozes both until 6am.</div>
+<div class="row">
+  <div class="frame">
+    <label>LIVE-CALL NUDGE (strong)</label>
+    <div class="toast live">
+      <div class="toast-head">
+        <span class="stack">
+          <span class="avatar a1">BG</span>
+          <span class="avatar a2">IB</span>
+        </span>
+        <div>
+          <div class="toast-title">Brett &amp; IBan are in the Lounge</div>
+          <div class="toast-sub">Started 2 min ago</div>
+        </div>
+        <span class="badge-live">Live</span>
+      </div>
+      <div class="toast-actions">
+        <button class="btn">Join Lounge</button>
+        <button class="btn ghost">Not tonight</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="frame">
+    <label>QUORUM NUDGE (gentle)</label>
+    <div class="toast">
+      <div class="toast-head">
+        <span class="stack">
+          <span class="avatar a2">IB</span>
+          <span class="avatar a3">SJ</span>
+        </span>
+        <div>
+          <div class="toast-title">IBan &amp; Sung Jin-Drw are online</div>
+          <div class="toast-sub">Open the lounge?</div>
+        </div>
+      </div>
+      <div class="toast-actions">
+        <button class="btn purple">Start call</button>
+        <button class="btn ghost">Not tonight</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h2>3 · Auto-join countdown pill (on app open, call live)</h2>
+<div class="hint">Opt-in. Joins muted when the ring completes; any click cancels or fast-tracks. If the browser blocks media without a gesture, the ring pauses and "Join now" becomes the single tap needed.</div>
+<div class="row">
+  <div class="frame">
+    <label>COUNTDOWN RUNNING</label>
+    <div class="pill">
+      <span class="ring">
+        <svg width="34" height="34">
+          <circle cx="17" cy="17" r="14" fill="none" stroke="rgb(43 50 64)" stroke-width="3"/>
+          <circle cx="17" cy="17" r="14" fill="none" stroke="rgb(168 85 247)" stroke-width="3"
+                  stroke-dasharray="88" stroke-dashoffset="30" stroke-linecap="round"/>
+        </svg>
+        <span class="count">3</span>
+      </span>
+      <span class="pill-text">
+        <span class="pill-title">Joining the Lounge…</span>
+        <div class="pill-sub">Brett &amp; IBan are in there &nbsp;·&nbsp; <span class="mic-chip">🎙️ joins muted</span></div>
+      </span>
+      <button class="btn sm">Join now</button>
+      <button class="btn ghost sm">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<h2>4 · Workspace settings — Lounge section</h2>
+<div class="hint">Channel designation is a workspace (admin) setting. Auto-join and lounge hours are per-user.</div>
+<div class="row">
+  <div class="settings">
+    <h3>🛋️ Lounge</h3>
+    <div class="desc">Pin one channel as the always-on hangout spot for this workspace.</div>
+    <div class="setting-row">
+      <div>
+        <div class="l">Lounge channel</div>
+        <div class="s">Shown pinned above your channel list</div>
+      </div>
+      <select class="select"><option># 🎮 Game-Night</option></select>
+    </div>
+    <div class="setting-row">
+      <div>
+        <div class="l">Suggest hanging out</div>
+        <div class="s">Toast when 2+ members are online during lounge hours (max once per evening)</div>
+      </div>
+      <span class="toggle"></span>
+    </div>
+    <div class="setting-row">
+      <div>
+        <div class="l">Lounge hours</div>
+        <div class="s">Quorum nudges only fire in this window. Live calls always notify.</div>
+      </div>
+      <span class="time-range">
+        <select class="select"><option>7:00 PM</option></select> –
+        <select class="select"><option>1:00 AM</option></select>
+      </span>
+    </div>
+    <div class="setting-row">
+      <div>
+        <div class="l">Auto-join live Lounge on open</div>
+        <div class="s">5-second countdown, joins with mic muted</div>
+      </div>
+      <span class="toggle off"></span>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Workdash — brand personality variants (Lounge)</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0b0d12;
+    color: #fff;
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    padding: 40px;
+  }
+  h1 { font-size: 20px; margin-bottom: 6px; }
+  .sub { color: #9099ab; font-size: 13px; margin-bottom: 36px; }
+  .grid { display: flex; gap: 26px; flex-wrap: wrap; align-items: stretch; }
+  .variant {
+    flex: 1; min-width: 360px; max-width: 460px;
+    border-radius: 16px; padding: 26px;
+    display: flex; flex-direction: column; gap: 18px;
+  }
+  .v-label { font-size: 11px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; }
+  .v-desc { font-size: 12px; opacity: 0.75; margin-top: -12px; line-height: 1.5; }
+  .stack { display: flex; }
+  .avatar {
+    width: 26px; height: 26px; border-radius: 99px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 9.5px; font-weight: 800; color: #fff;
+  }
+  .stack .avatar + .avatar { margin-left: -8px; }
+
+  /* ════ VARIANT 1 — COZY GAMER DEN ════ */
+  .v1 { background: #181210; border: 1px solid #32271f; }
+  .v1 .v-label { color: #f0a35e; }
+  .v1 .card {
+    background: linear-gradient(180deg, #221a14, #1d1511);
+    border: 1px solid #3d2f23; border-radius: 16px; padding: 14px;
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04);
+  }
+  .v1 .card.live { border-color: #6b8f5e; box-shadow: 0 0 22px rgb(140 180 110 / 0.13), inset 0 1px 0 rgb(255 255 255 / 0.04); }
+  .v1 .top { display: flex; align-items: center; gap: 9px; }
+  .v1 .name { font-size: 14px; font-weight: 700; color: #f3e6d5; flex: 1; letter-spacing: 0.01em; }
+  .v1 .dot { width: 8px; height: 8px; border-radius: 99px; background: #97c27f; animation: pulse1 2.2s ease-in-out infinite; }
+  @keyframes pulse1 { 0%,100% { box-shadow: 0 0 0 0 rgb(151 194 127 / 0.5);} 50% { box-shadow: 0 0 0 7px rgb(151 194 127 / 0);} }
+  .v1 .body { display: flex; align-items: center; gap: 9px; margin-top: 11px; }
+  .v1 .avatar { border: 2px solid #1d1511; }
+  .v1 .meta { font-size: 12px; color: #b5a18a; flex: 1; }
+  .v1 .meta b { color: #f3e6d5; }
+  .v1 .btn {
+    border: 0; border-radius: 12px; cursor: pointer; padding: 8px 16px;
+    font-size: 12px; font-weight: 800; color: #241a12;
+    background: linear-gradient(180deg, #ffc46b, #f0a35e);
+    box-shadow: 0 2px 0 #9c6430;
+  }
+  .v1 .toast {
+    background: #221a14; border: 1px solid #3d2f23; border-radius: 18px;
+    padding: 15px 16px; box-shadow: 0 14px 40px rgb(0 0 0 / 0.55);
+  }
+  .v1 .t-title { font-size: 13.5px; font-weight: 700; color: #f3e6d5; }
+  .v1 .t-sub { font-size: 11.5px; color: #b5a18a; margin-top: 3px; }
+  .v1 .t-actions { display: flex; gap: 9px; margin-top: 13px; }
+  .v1 .ghost {
+    background: transparent; border: 1px solid #4a3a2c; color: #b5a18a;
+    border-radius: 12px; padding: 8px 14px; font-size: 12px; font-weight: 600; cursor: pointer;
+  }
+  .v1 .fire { font-size: 15px; }
+
+  /* ════ VARIANT 2 — SLEEK TOOL, PLAYFUL ACCENTS ════ */
+  .v2 { background: #0f1115; border: 1px solid #23262e; }
+  .v2 .v-label { color: #a855f7; }
+  .v2 .card {
+    background: #15171d; border: 1px solid #262a33; border-radius: 10px; padding: 12px;
+  }
+  .v2 .card.live { border-color: rgb(59 165 93 / 0.5); box-shadow: 0 0 0 1px rgb(59 165 93 / 0.18); }
+  .v2 .top { display: flex; align-items: center; gap: 8px; }
+  .v2 .name { font-size: 13px; font-weight: 600; flex: 1; letter-spacing: -0.01em; }
+  .v2 .dot { width: 7px; height: 7px; border-radius: 99px; background: #3ba55d; animation: pulse2 2s ease-in-out infinite; }
+  @keyframes pulse2 { 0%,100% { box-shadow: 0 0 0 0 rgb(59 165 93 / 0.45);} 50% { box-shadow: 0 0 0 5px rgb(59 165 93 / 0);} }
+  .v2 .body { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+  .v2 .avatar { width: 22px; height: 22px; font-size: 8.5px; border: 2px solid #15171d; }
+  .v2 .meta { font-size: 11.5px; color: #8b93a5; flex: 1; }
+  .v2 .meta b { color: #e8eaf0; font-weight: 600; }
+  .v2 .btn {
+    border: 0; border-radius: 7px; cursor: pointer; padding: 6px 13px;
+    font-size: 11.5px; font-weight: 600; color: #fff; background: #3ba55d;
+  }
+  .v2 .toast {
+    background: #15171d; border: 1px solid #262a33; border-radius: 11px;
+    padding: 13px 14px; box-shadow: 0 10px 32px rgb(0 0 0 / 0.45);
+  }
+  .v2 .t-title { font-size: 12.5px; font-weight: 600; letter-spacing: -0.01em; }
+  .v2 .t-sub { font-size: 11.5px; color: #8b93a5; margin-top: 2px; }
+  .v2 .t-actions { display: flex; gap: 8px; margin-top: 11px; }
+  .v2 .ghost {
+    background: transparent; border: 1px solid #32363f; color: #8b93a5;
+    border-radius: 7px; padding: 6px 12px; font-size: 11.5px; font-weight: 500; cursor: pointer;
+  }
+  .v2 .kbd {
+    font-size: 9.5px; color: #8b93a5; border: 1px solid #32363f; border-radius: 4px;
+    padding: 1px 5px; font-family: ui-monospace, monospace; margin-left: 6px;
+  }
+
+  /* ════ VARIANT 3 — BOLD & LOUD ════ */
+  .v3 { background: #060608; border: 1px solid #1f1f2e; position: relative; overflow: hidden; }
+  .v3::before {
+    content: ""; position: absolute; inset: -40%;
+    background: radial-gradient(circle at 20% 10%, rgb(168 85 247 / 0.12), transparent 45%),
+                radial-gradient(circle at 85% 90%, rgb(0 229 255 / 0.1), transparent 45%);
+    pointer-events: none;
+  }
+  .v3 .v-label {
+    background: linear-gradient(90deg, #c084fc, #22d3ee);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .v3 .card {
+    background: #0c0c12; border-radius: 14px; padding: 15px; position: relative;
+    border: 1px solid #26263a;
+  }
+  .v3 .card.live { border: 1px solid transparent;
+    background:
+      linear-gradient(#0c0c12, #0c0c12) padding-box,
+      linear-gradient(120deg, #a855f7, #22d3ee, #a855f7) border-box;
+    box-shadow: 0 0 30px rgb(168 85 247 / 0.22);
+  }
+  .v3 .top { display: flex; align-items: center; gap: 9px; }
+  .v3 .name {
+    font-size: 15px; font-weight: 900; flex: 1; text-transform: uppercase;
+    letter-spacing: 0.06em;
+    background: linear-gradient(90deg, #fff, #c4b5fd);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .v3 .dot { width: 9px; height: 9px; border-radius: 99px; background: #4ade80;
+    box-shadow: 0 0 12px #4ade80; animation: pulse3 1.4s ease-in-out infinite; }
+  @keyframes pulse3 { 0%,100% { transform: scale(1);} 50% { transform: scale(1.35);} }
+  .v3 .body { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+  .v3 .avatar { width: 28px; height: 28px; border: 2px solid #0c0c12; box-shadow: 0 0 10px rgb(168 85 247 / 0.4); }
+  .v3 .meta { font-size: 12px; color: #9d9db8; flex: 1; }
+  .v3 .meta b { color: #fff; }
+  .v3 .btn {
+    border: 0; border-radius: 9px; cursor: pointer; padding: 9px 18px;
+    font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.05em;
+    color: #060608; background: linear-gradient(90deg, #4ade80, #22d3ee);
+    box-shadow: 0 0 18px rgb(74 222 128 / 0.4);
+  }
+  .v3 .toast {
+    background: #0c0c12; border-radius: 14px; padding: 15px 16px; position: relative;
+    border: 1px solid #26263a; box-shadow: 0 16px 48px rgb(0 0 0 / 0.7);
+  }
+  .v3 .t-title { font-size: 14px; font-weight: 800; }
+  .v3 .t-title .hl { color: #c084fc; }
+  .v3 .t-sub { font-size: 11.5px; color: #9d9db8; margin-top: 3px; text-transform: uppercase; letter-spacing: 0.07em; font-weight: 700; }
+  .v3 .t-actions { display: flex; gap: 9px; margin-top: 13px; }
+  .v3 .ghost {
+    background: transparent; border: 1px solid #32324a; color: #9d9db8;
+    border-radius: 9px; padding: 9px 14px; font-size: 11.5px; font-weight: 700; cursor: pointer;
+  }
+
+  .a1 { background: #7c3aed; } .a2 { background: #0e7490; } .a3 { background: #be185d; }
+  .section-note { font-size: 11px; opacity: 0.6; margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<h1>Same Lounge, three personalities</h1>
+<div class="sub">Identical content and mechanics — only the brand voice changes. Pick the one that feels like Workdash.</div>
+
+<div class="grid">
+
+  <!-- ─────────── 1 · COZY GAMER DEN ─────────── -->
+  <div class="variant v1">
+    <div class="v-label">1 · Cozy gamer den</div>
+    <div class="v-desc">Warm woods &amp; lamplight. Soft radii, amber accents, tactile buttons. The lounge as a literal living room. Friendly copy.</div>
+
+    <div class="card live">
+      <div class="top">
+        <span class="fire">🛋️</span>
+        <span class="name">The Den</span>
+        <span class="dot"></span>
+      </div>
+      <div class="body">
+        <span class="stack"><span class="avatar a1">BG</span><span class="avatar a2">IB</span></span>
+        <span class="meta"><b>Brett</b> &amp; <b>IBan</b> are on the couch</span>
+        <button class="btn">Sit down</button>
+      </div>
+    </div>
+
+    <div class="toast">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span class="stack"><span class="avatar a1">BG</span><span class="avatar a2">IB</span></span>
+        <div>
+          <div class="t-title">The den's warming up 🔥</div>
+          <div class="t-sub">Brett &amp; IBan just sat down</div>
+        </div>
+      </div>
+      <div class="t-actions">
+        <button class="btn">Join them</button>
+        <button class="ghost">Not tonight</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────── 2 · SLEEK TOOL ─────────── -->
+  <div class="variant v2">
+    <div class="v-label">2 · Sleek tool, playful accents</div>
+    <div class="v-desc">Linear-grade restraint: hairline borders, tight type, muted surfaces. Personality lives in the moments — the pulse, the avatars — not the chrome.</div>
+
+    <div class="card live">
+      <div class="top">
+        <span style="font-size:13px;">🛋️</span>
+        <span class="name">Lounge</span>
+        <span class="dot"></span>
+      </div>
+      <div class="body">
+        <span class="stack"><span class="avatar a1">BG</span><span class="avatar a2">IB</span></span>
+        <span class="meta"><b>Brett</b> &amp; <b>IBan</b> hanging out</span>
+        <button class="btn">Join</button>
+      </div>
+    </div>
+
+    <div class="toast">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span class="stack"><span class="avatar a1">BG</span><span class="avatar a2">IB</span></span>
+        <div style="flex:1;">
+          <div class="t-title">Brett &amp; IBan are in the Lounge</div>
+          <div class="t-sub">Started 2 min ago</div>
+        </div>
+      </div>
+      <div class="t-actions">
+        <button class="btn">Join<span class="kbd">J</span></button>
+        <button class="ghost">Not tonight</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────── 3 · BOLD & LOUD ─────────── -->
+  <div class="variant v3">
+    <div class="v-label">3 · Bold &amp; loud</div>
+    <div class="v-desc">Neon gradients, glow, uppercase swagger. The live card gets an animated gradient border. Unmissable — leans full gamer.</div>
+
+    <div class="card live">
+      <div class="top">
+        <span style="font-size:15px;">🛋️</span>
+        <span class="name">Lounge</span>
+        <span class="dot"></span>
+      </div>
+      <div class="body">
+        <span class="stack"><span class="avatar a1">BG</span><span class="avatar a2">IB</span></span>
+        <span class="meta"><b>Brett</b> &amp; <b>IBan</b> in voice</span>
+        <button class="btn">Drop in</button>
+      </div>
+    </div>
+
+    <div class="toast">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span class="stack"><span class="avatar a1">BG</span><span class="avatar a2">IB</span></span>
+        <div style="flex:1;">
+          <div class="t-title">Squad's up. <span class="hl">2 in the Lounge</span></div>
+          <div class="t-sub">⚡ Live now</div>
+        </div>
+      </div>
+      <div class="t-actions">
+        <button class="btn">Drop in</button>
+        <button class="ghost">Not tonight</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

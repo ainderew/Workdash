@@ -1,0 +1,568 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Workdash — in-call desk view v3 (the hearth)</title>
+<style>
+  :root {
+    --base: #181210;
+    --panel: #1d1511;
+    --panel-2: #221a14;
+    --raised: #2a2018;
+    --border: #3d2f23;
+    --border-strong: #4a3a2c;
+    --ink: #f3e6d5;
+    --muted: #b5a18a;
+    --amber: #f0a35e;
+    --amber-hi: #ffc46b;
+    --amber-ink: #241a12;
+    --sage: #97c27f;
+    --danger: #e8836f;
+    --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0c0908; color: var(--ink);
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    padding: 32px; line-height: 1.4;
+  }
+  h1 { font-size: 18px; margin-bottom: 4px; }
+  .sub { color: var(--muted); font-size: 12.5px; margin-bottom: 24px; }
+
+  svg.ic { width: 16px; height: 16px; stroke: currentColor; fill: none;
+    stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+  svg.ic.sm { width: 13px; height: 13px; }
+  svg.ic.lg { width: 18px; height: 18px; }
+
+  .app {
+    display: flex; width: 1380px; height: 880px;
+    background: var(--base); border-radius: 18px; overflow: hidden;
+    border: 1px solid var(--border);
+  }
+
+  /* ── Guild rail ── */
+  .rail {
+    width: 68px; background: #140f0c; padding: var(--s4) 0;
+    display: flex; flex-direction: column; align-items: center; gap: var(--s3);
+    border-right: 1px solid var(--border);
+  }
+  .guild {
+    width: 42px; height: 42px; border-radius: 14px; background: var(--panel-2);
+    display: flex; align-items: center; justify-content: center; font-size: 17px;
+    border: 1px solid var(--border); color: var(--muted);
+  }
+  .guild.active { border-color: var(--amber); box-shadow: 0 0 14px rgb(240 163 94 / 0.25); }
+  .rail .spacer { flex: 1; }
+
+  /* ── Sidebar ── */
+  .side { width: 272px; background: var(--panel); border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; }
+  .ws-head {
+    padding: 14px 16px; font-weight: 700; font-size: 14px;
+    display: flex; align-items: center; gap: var(--s2);
+    border-bottom: 1px solid var(--border);
+  }
+  .ws-head svg { margin-left: auto; color: var(--muted); }
+  .side-scroll { flex: 1; padding: var(--s3) 10px; overflow: hidden; }
+
+  .den {
+    background: linear-gradient(180deg, var(--panel-2), #1d1511);
+    border: 1px solid var(--sage); border-radius: 16px; padding: 13px;
+    box-shadow: 0 0 22px rgb(140 180 110 / 0.12), inset 0 1px 0 rgb(255 255 255 / 0.04);
+  }
+  .den-top { display: flex; align-items: center; gap: var(--s2); }
+  .den-name { font-size: 13.5px; font-weight: 700; flex: 1; }
+  .dot { width: 8px; height: 8px; border-radius: 99px; background: var(--sage);
+    animation: pulse 2.1s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgb(151 194 127 / 0.5);} 50% { box-shadow: 0 0 0 7px rgb(151 194 127 / 0);} }
+  @media (prefers-reduced-motion: reduce) { .dot { animation: none; } }
+  .den-body { display: flex; align-items: center; gap: var(--s2); margin-top: 10px; }
+  .stack { display: flex; }
+  .avatar {
+    width: 24px; height: 24px; border-radius: 99px; border: 2px solid var(--panel-2);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 9px; font-weight: 800; color: #fff;
+  }
+  .stack .avatar + .avatar { margin-left: -7px; }
+  .a1 { background: #b45309; } .a2 { background: #15803d; } .a3 { background: #be185d; } .a4 { background: #4338ca; }
+  .den-meta { font-size: 11.5px; color: var(--muted); flex: 1; }
+  .den-meta b { color: var(--ink); font-weight: 600; }
+  .btn {
+    border: 0; border-radius: 12px; cursor: pointer; padding: 7px 14px;
+    font-size: 11.5px; font-weight: 800; color: var(--amber-ink);
+    background: linear-gradient(180deg, var(--amber-hi), var(--amber));
+    box-shadow: 0 2px 0 #9c6430;
+  }
+
+  .sec {
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.07em; color: var(--muted);
+    padding: 18px 8px 6px; text-transform: uppercase;
+  }
+  .ch {
+    display: flex; align-items: center; gap: var(--s2); padding: 6px 9px;
+    border-radius: 9px; color: var(--muted); font-size: 13px; font-weight: 500;
+  }
+  .ch svg { opacity: 0.55; }
+  .ch.active { background: var(--raised); color: var(--ink); }
+  .voice-pill {
+    margin-left: auto; display: inline-flex; align-items: center; gap: 5px;
+    background: rgb(151 194 127 / 0.14); color: var(--sage);
+    font-size: 10px; font-weight: 800; border-radius: 99px; padding: 2px 8px;
+  }
+  .voice-pill::before { content: ""; width: 5px; height: 5px; border-radius: 99px; background: var(--sage); }
+
+  .me {
+    border-top: 1px solid var(--border); padding: 10px 12px;
+    display: flex; align-items: center; gap: 9px; background: var(--panel-2);
+  }
+  .me .avatar { width: 32px; height: 32px; font-size: 11px; position: relative; }
+  .me .status-dot {
+    position: absolute; right: -1px; bottom: -1px; width: 10px; height: 10px;
+    border-radius: 99px; background: var(--sage); border: 2px solid var(--panel-2);
+  }
+  .me .who { flex: 1; min-width: 0; }
+  .me .who .n { font-size: 12.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .me .who .s { font-size: 10.5px; color: var(--sage); }
+  .icon-btn {
+    width: 30px; height: 30px; border-radius: 9px; border: 0; cursor: pointer;
+    background: transparent; color: var(--muted);
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .icon-btn:hover { background: var(--raised); }
+  .icon-btn.danger { color: var(--danger); background: rgb(232 131 111 / 0.12); }
+
+  /* ── Main ── */
+  .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .top-bar {
+    display: flex; align-items: center; gap: var(--s2); padding: var(--s3) 18px;
+    border-bottom: 1px solid var(--border); font-weight: 700; font-size: 14px;
+  }
+  .top-bar svg { color: var(--muted); }
+  .top-bar .right { margin-left: auto; display: flex; gap: var(--s1); }
+
+  .call {
+    margin: var(--s4) 18px 0; border-radius: 18px;
+    background: radial-gradient(140% 120% at 50% 118%, #2b1c10 0%, #211609 28%, #1a120c 55%, #16100b 100%);
+    border: 1px solid #4a3621; overflow: hidden; position: relative;
+    box-shadow: inset 0 1px 0 rgb(255 200 130 / 0.08), 0 14px 44px rgb(0 0 0 / 0.45);
+  }
+  /* lit mantle — hairline of lamplight along the top edge */
+  .call::before {
+    content: ""; position: absolute; top: 0; left: 8%; right: 8%; height: 1px; z-index: 2;
+    background: linear-gradient(90deg, transparent, rgb(255 196 107 / 0.55), transparent);
+  }
+  /* hearth glow — firelight breathing from below the tiles */
+  .hearth {
+    position: absolute; inset: 0; pointer-events: none; z-index: 0;
+    background: radial-gradient(60% 55% at 50% 108%, rgb(240 163 94 / 0.22), rgb(240 110 60 / 0.07) 45%, transparent 70%);
+    animation: hearth 7s ease-in-out infinite;
+  }
+  @keyframes hearth {
+    0%, 100% { opacity: 0.75; transform: scaleY(1); }
+    50% { opacity: 1; transform: scaleY(1.08); }
+  }
+  /* embers — six slow sparks drifting up the panel */
+  .ember {
+    position: absolute; bottom: -6px; width: 3px; height: 3px; border-radius: 99px;
+    background: var(--amber-hi); filter: blur(0.5px); opacity: 0; z-index: 1;
+    animation: rise linear infinite;
+  }
+  @keyframes rise {
+    0% { transform: translateY(0) translateX(0); opacity: 0; }
+    8% { opacity: 0.5; }
+    60% { opacity: 0.25; }
+    100% { transform: translateY(-340px) translateX(var(--drift, 14px)); opacity: 0; }
+  }
+  .ember:nth-child(2) { left: 12%; animation-duration: 11s; --drift: 18px; }
+  .ember:nth-child(3) { left: 30%; animation-duration: 14s; animation-delay: 3s; --drift: -12px; width: 2px; height: 2px; }
+  .ember:nth-child(4) { left: 52%; animation-duration: 10s; animation-delay: 6s; --drift: 10px; }
+  .ember:nth-child(5) { left: 71%; animation-duration: 13s; animation-delay: 1.5s; --drift: -16px; width: 2px; height: 2px; }
+  .ember:nth-child(6) { left: 88%; animation-duration: 12s; animation-delay: 4.5s; --drift: 8px; }
+  @media (prefers-reduced-motion: reduce) {
+    .hearth, .ember, .halo::before, .eq span, .live-badge::before { animation: none !important; }
+  }
+
+  .call-head {
+    display: flex; align-items: center; gap: 10px; padding: 11px 16px;
+    font-size: 12px; position: relative; z-index: 2;
+    border-bottom: 1px solid rgb(74 54 33 / 0.6);
+  }
+  .live-badge {
+    display: inline-flex; align-items: center; gap: 5px; font-size: 10px;
+    font-weight: 800; letter-spacing: 0.05em; color: var(--sage);
+    background: rgb(151 194 127 / 0.14); padding: 3px 9px; border-radius: 99px;
+  }
+  .live-badge::before {
+    content: ""; width: 5px; height: 5px; border-radius: 99px; background: var(--sage);
+    animation: pulse 2.1s ease-in-out infinite;
+  }
+  .call-head .name { font-weight: 800; font-size: 13px; letter-spacing: 0.01em; }
+  .call-head .meta { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .call-head .right { margin-left: auto; display: flex; gap: var(--s1); }
+
+  .tiles {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: var(--s3); padding: var(--s4) var(--s4) 30px;
+    position: relative; z-index: 1;
+  }
+  .tile {
+    aspect-ratio: 4 / 3; border-radius: 16px;
+    background: linear-gradient(180deg, rgb(34 26 18 / 0.92), rgb(26 19 13 / 0.95));
+    border: 1px solid #443322; position: relative; overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+    transition: transform 200ms ease, filter 200ms ease, box-shadow 200ms ease;
+    filter: brightness(0.88) saturate(0.95);
+  }
+  /* the voice is the hero: speaker lifts and lights, the room dims around them */
+  .tile.speaking {
+    filter: none; transform: translateY(-3px) scale(1.015);
+    border-color: var(--sage);
+    box-shadow: 0 0 0 1px rgb(151 194 127 / 0.7), 0 8px 28px rgb(151 194 127 / 0.16),
+                0 18px 40px rgb(0 0 0 / 0.4);
+  }
+  .tile.speaking::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(70% 60% at 50% 30%, rgb(255 196 107 / 0.1), transparent 65%);
+  }
+  .tile .big-avatar {
+    width: 64px; height: 64px; border-radius: 99px; font-size: 22px; font-weight: 800;
+    display: flex; align-items: center; justify-content: center; color: #fff;
+  }
+  /* rotating lamplight halo on the active speaker */
+  .halo { position: relative; width: 72px; height: 72px; border-radius: 99px;
+    display: flex; align-items: center; justify-content: center; }
+  .halo::before {
+    content: ""; position: absolute; inset: 0; border-radius: 99px;
+    background: conic-gradient(from 0deg, var(--sage), var(--amber-hi), var(--sage));
+    animation: spin 5s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .halo .big-avatar { position: relative; width: 64px; height: 64px; }
+  .tile.video-on { background: linear-gradient(135deg, #2d3a2a, #1a2418); }
+  .tile.video-on::after {
+    content: ""; position: absolute; inset: 0;
+    background: radial-gradient(ellipse at 50% 40%, rgb(151 194 127 / 0.18), transparent 60%);
+  }
+  .video-label { position: absolute; top: 8px; right: 8px; color: rgb(243 230 213 / 0.5); z-index: 1; }
+  .plate {
+    position: absolute; left: 8px; bottom: 8px; display: flex; align-items: center; gap: 6px;
+    background: rgb(16 11 8 / 0.85); border-radius: 99px; padding: 4px 11px;
+    font-size: 11px; font-weight: 600; z-index: 1;
+    border: 1px solid rgb(255 255 255 / 0.05);
+  }
+  .plate svg { width: 11px; height: 11px; }
+  .plate .off { color: var(--danger); }
+  .plate .on { color: rgb(243 230 213 / 0.65); }
+  /* tiny equalizer beside the speaker's name — sound made visible */
+  .eq { display: inline-flex; align-items: flex-end; gap: 2px; height: 10px; }
+  .eq span { width: 2.5px; border-radius: 2px; background: var(--sage); animation: eq 0.9s ease-in-out infinite; }
+  .eq span:nth-child(1) { height: 5px; animation-delay: 0s; }
+  .eq span:nth-child(2) { height: 9px; animation-delay: 0.15s; }
+  .eq span:nth-child(3) { height: 6px; animation-delay: 0.3s; }
+  @keyframes eq { 0%, 100% { transform: scaleY(0.5); } 50% { transform: scaleY(1.1); } }
+
+  /* floating control dock — overlaps the tile field like a mantelpiece */
+  .controls {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    width: fit-content; margin: -22px auto 16px; padding: 9px 12px;
+    border-radius: 18px; position: relative; z-index: 3;
+    background: rgb(22 15 10 / 0.95); border: 1px solid #4a3621;
+    box-shadow: 0 10px 30px rgb(0 0 0 / 0.55), inset 0 1px 0 rgb(255 200 130 / 0.07);
+  }
+  .ctl {
+    width: 40px; height: 40px; border-radius: 13px; border: 1px solid var(--border-strong);
+    background: var(--raised); color: var(--ink); cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease;
+  }
+  .ctl:hover {
+    border-color: var(--amber); transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgb(240 163 94 / 0.25);
+  }
+  .ctl.off { background: rgb(232 131 111 / 0.15); border-color: var(--danger); color: var(--danger); }
+  .ctl-group { display: flex; gap: var(--s2); }
+  .ctl-sep { width: 1px; height: 24px; background: var(--border-strong); margin: 0 var(--s2); }
+  .leave {
+    display: inline-flex; align-items: center; gap: 7px;
+    border: 0; border-radius: 13px; cursor: pointer; padding: 0 16px; height: 40px;
+    background: linear-gradient(180deg, #f29b85, var(--danger)); color: #2a120c;
+    font-weight: 800; font-size: 12px; box-shadow: 0 2px 0 #8f4636;
+    transition: transform 150ms ease;
+  }
+  .leave:hover { transform: translateY(-2px); }
+
+  /* chat — grouped rhythm */
+  .chat { flex: 1; overflow: hidden; padding: var(--s4) 18px var(--s2); display: flex; flex-direction: column; }
+  .divider {
+    display: flex; align-items: center; gap: var(--s3); color: var(--muted);
+    font-size: 10.5px; font-weight: 700; margin-bottom: var(--s4);
+  }
+  .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+  .group { display: flex; gap: 11px; }
+  .group + .group { margin-top: 20px; }
+  .group .avatar { width: 36px; height: 36px; font-size: 12px; border: 0; }
+  .group .body { min-width: 0; flex: 1; }
+  .group .head { display: flex; align-items: baseline; gap: var(--s2); }
+  .group .who { font-size: 13.5px; font-weight: 700; }
+  .c1 { color: #ffb46b; } .c2 { color: #8fd07f; } .c3 { color: #ff8fa3; }
+  .badge {
+    font-size: 9px; font-weight: 800; letter-spacing: 0.04em;
+    border-radius: 6px; padding: 2px 7px; text-transform: uppercase;
+  }
+  .badge.gold { background: rgb(240 178 50 / 0.16); color: #f0b232; border: 1px solid rgb(240 178 50 / 0.35); }
+  .badge.teal { background: rgb(151 194 127 / 0.14); color: var(--sage); border: 1px solid rgb(151 194 127 / 0.3); }
+  .ts { font-size: 10.5px; color: var(--muted); }
+  .line { font-size: 13.5px; margin-top: 3px; max-width: 72ch; }
+  .line + .line { margin-top: 2px; }
+  .line a { color: var(--amber-hi); }
+  .in-voice { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; color: var(--sage); }
+  .in-voice svg { width: 10px; height: 10px; }
+
+  .hover-msg { position: relative; border-radius: 10px; margin: -4px -10px; padding: 4px 10px; background: var(--panel-2); }
+  .actions {
+    position: absolute; top: -14px; right: 10px; display: flex; gap: 2px;
+    background: var(--raised); border: 1px solid var(--border-strong);
+    border-radius: 9px; padding: 3px;
+  }
+  .actions .icon-btn { width: 24px; height: 24px; border-radius: 6px; }
+
+  .composer {
+    margin: var(--s2) 18px var(--s4); background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 14px; padding: 11px 14px; display: flex; align-items: center; gap: var(--s3);
+  }
+  .composer .ph { color: var(--muted); font-size: 13px; flex: 1; }
+  .composer .icon-btn { width: 26px; height: 26px; }
+  .send {
+    width: 32px; height: 32px; border-radius: 10px; border: 0; cursor: pointer;
+    background: linear-gradient(180deg, var(--amber-hi), var(--amber)); color: var(--amber-ink);
+    display: inline-flex; align-items: center; justify-content: center;
+    box-shadow: 0 2px 0 #9c6430;
+  }
+
+  .legend { margin-top: 26px; max-width: 920px; }
+  .legend h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 10px; }
+  .legend ol { padding-left: 20px; display: flex; flex-direction: column; gap: 7px; font-size: 12.5px; color: var(--muted); }
+  .legend b { color: var(--ink); }
+</style>
+</head>
+<body>
+
+<svg style="display:none" xmlns="http://www.w3.org/2000/svg">
+  <symbol id="i-mic" viewBox="0 0 24 24"><path d="M12 19v3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><rect x="9" y="2" width="6" height="13" rx="3"/></symbol>
+  <symbol id="i-mic-off" viewBox="0 0 24 24"><path d="M12 19v3"/><path d="M15 9.34V5a3 3 0 0 0-5.68-1.33"/><path d="M16.95 16.95A7 7 0 0 1 5 12v-2"/><path d="M18.89 13.23A7 7 0 0 0 19 12v-2"/><path d="m2 2 20 20"/><path d="M9 9v3a3 3 0 0 0 5.12 2.12"/></symbol>
+  <symbol id="i-video" viewBox="0 0 24 24"><path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5"/><rect x="2" y="6" width="14" height="12" rx="2"/></symbol>
+  <symbol id="i-monitor-up" viewBox="0 0 24 24"><path d="m9 10 3-3 3 3"/><path d="M12 13V7"/><rect width="20" height="14" x="2" y="3" rx="2"/><path d="M12 17v4"/><path d="M8 21h8"/></symbol>
+  <symbol id="i-smile-plus" viewBox="0 0 24 24"><path d="M22 11v1a10 10 0 1 1-9-10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/><path d="M16 5h6"/><path d="M19 2v6"/></symbol>
+  <symbol id="i-hand" viewBox="0 0 24 24"><path d="M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2"/><path d="M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></symbol>
+  <symbol id="i-volume-2" viewBox="0 0 24 24"><path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z"/><path d="M16 9a5 5 0 0 1 0 6"/><path d="M19.364 18.364a9 9 0 0 0 0-12.728"/></symbol>
+  <symbol id="i-phone-off" viewBox="0 0 24 24"><path d="M10.1 13.9a14 14 0 0 0 3.732 2.668 1 1 0 0 0 1.213-.303l.355-.465A2 2 0 0 1 17 15h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2 18 18 0 0 1-12.728-5.272"/><path d="M22 2 2 22"/><path d="M4.76 13.582A18 18 0 0 1 2 4a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v3a2 2 0 0 1-.8 1.6l-.468.351a1 1 0 0 0-.292 1.233 14 14 0 0 0 .244.473"/></symbol>
+  <symbol id="i-settings" viewBox="0 0 24 24"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-headphones" viewBox="0 0 24 24"><path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 18 0v7a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><path d="M16 3.128a4 4 0 0 1 0 7.744"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><circle cx="9" cy="7" r="4"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></symbol>
+  <symbol id="i-paperclip" viewBox="0 0 24 24"><path d="m16 6-8.414 8.586a2 2 0 0 0 2.829 2.829l8.414-8.586a4 4 0 1 0-5.657-5.657l-8.379 8.551a6 6 0 1 0 8.485 8.485l8.379-8.551"/></symbol>
+  <symbol id="i-code" viewBox="0 0 24 24"><path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/></symbol>
+  <symbol id="i-smile" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" x2="9.01" y1="9" y2="9"/><line x1="15" x2="15.01" y1="9" y2="9"/></symbol>
+  <symbol id="i-sticker" viewBox="0 0 24 24"><path d="M15.5 3H5a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2V8.5L15.5 3Z"/><path d="M14 3v4a2 2 0 0 0 2 2h4"/><path d="M8 13h.01"/><path d="M16 13h.01"/><path d="M10 16s.8 1 2 1c1.3 0 2-1 2-1"/></symbol>
+  <symbol id="i-send" viewBox="0 0 24 24"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/></symbol>
+  <symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-maximize-2" viewBox="0 0 24 24"><path d="M15 3h6v6"/><path d="m21 3-7 7"/><path d="m3 21 7-7"/><path d="M9 21H3v-6"/></symbol>
+  <symbol id="i-hash" viewBox="0 0 24 24"><line x1="4" x2="20" y1="9" y2="9"/><line x1="4" x2="20" y1="15" y2="15"/><line x1="10" x2="8" y1="3" y2="21"/><line x1="16" x2="14" y1="3" y2="21"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
+  <symbol id="i-volume" viewBox="0 0 24 24"><path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z"/><path d="M16 9a5 5 0 0 1 0 6"/></symbol>
+</svg>
+
+<h1>In-call desk view — v3: the hearth</h1>
+<div class="sub">Chat untouched from v2. The call panel becomes the fireplace of the den — firelight, drifting embers, and the speaker lit by the room.</div>
+
+<div class="app">
+
+  <div class="rail">
+    <div class="guild active">🎮</div>
+    <div class="guild">😈</div>
+    <div class="guild" style="font-size:13px;font-weight:800;">TH</div>
+    <div class="guild"><svg class="ic"><use href="#i-plus"/></svg></div>
+    <div class="spacer"></div>
+    <div class="guild"><svg class="ic"><use href="#i-smile"/></svg></div>
+  </div>
+
+  <div class="side">
+    <div class="ws-head">🎮 Dev Break Room <svg class="ic sm"><use href="#i-chevron-down"/></svg></div>
+    <div class="side-scroll">
+
+      <div class="den">
+        <div class="den-top">
+          <span>🛋️</span>
+          <span class="den-name">The Den</span>
+          <span class="dot"></span>
+        </div>
+        <div class="den-body">
+          <span class="stack"><span class="avatar a1">BG</span><span class="avatar a2">IB</span><span class="avatar a4">MG</span></span>
+          <span class="den-meta"><b>Brett</b> +2 on the couch</span>
+          <button class="btn">Sit down</button>
+        </div>
+      </div>
+
+      <div class="sec">Channels</div>
+      <div class="ch"><svg class="ic sm"><use href="#i-hash"/></svg> General</div>
+      <div class="ch"><svg class="ic sm"><use href="#i-hash"/></svg> Bugs/Features</div>
+
+      <div class="sec">Gaming</div>
+      <div class="ch active"><svg class="ic sm"><use href="#i-hash"/></svg> 🎮 Game-Night <span class="voice-pill">4 in voice</span></div>
+      <div class="ch"><svg class="ic sm"><use href="#i-hash"/></svg> ☢️ Dota 2</div>
+      <div class="ch"><svg class="ic sm"><use href="#i-hash"/></svg> Game-Suggestions</div>
+
+      <div class="sec">Work</div>
+      <div class="ch"><svg class="ic sm"><use href="#i-hash"/></svg> 📰 Tech News</div>
+      <div class="ch"><svg class="ic sm"><use href="#i-hash"/></svg> PZ-Standup</div>
+    </div>
+
+    <div class="me">
+      <span class="avatar a3" style="position:relative;">SJ<span class="status-dot"></span></span>
+      <span class="who">
+        <div class="n">Sung Jin-Drw</div>
+        <div class="s">In voice · Game-Night</div>
+      </span>
+      <button class="icon-btn danger"><svg class="ic"><use href="#i-mic-off"/></svg></button>
+      <button class="icon-btn"><svg class="ic"><use href="#i-headphones"/></svg></button>
+      <button class="icon-btn"><svg class="ic"><use href="#i-settings"/></svg></button>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="top-bar">
+      <svg class="ic"><use href="#i-hash"/></svg> 🎮 Game-Night
+      <div class="right">
+        <button class="icon-btn"><svg class="ic"><use href="#i-bell"/></svg></button>
+        <button class="icon-btn"><svg class="ic"><use href="#i-pin"/></svg></button>
+        <button class="icon-btn"><svg class="ic"><use href="#i-users"/></svg></button>
+        <button class="icon-btn"><svg class="ic"><use href="#i-search"/></svg></button>
+      </div>
+    </div>
+
+    <div class="call">
+      <div class="hearth"></div>
+      <span class="ember"></span><span class="ember"></span><span class="ember"></span>
+      <span class="ember"></span><span class="ember"></span><span class="ember"></span>
+
+      <div class="call-head">
+        <span class="live-badge">Live</span>
+        <span class="name">Voice — Game-Night</span>
+        <span class="meta">4 here · 23:10</span>
+        <span class="right">
+          <button class="icon-btn"><svg class="ic sm"><use href="#i-maximize-2"/></svg></button>
+          <button class="icon-btn"><svg class="ic sm"><use href="#i-chevron-down"/></svg></button>
+        </span>
+      </div>
+
+      <div class="tiles">
+        <div class="tile speaking">
+          <span class="halo"><span class="big-avatar a1">BG</span></span>
+          <span class="plate"><span class="eq"><span></span><span></span><span></span></span> brett galvez</span>
+        </div>
+        <div class="tile video-on">
+          <span class="video-label"><svg class="ic sm"><use href="#i-video"/></svg></span>
+          <span class="plate"><svg class="ic on"><use href="#i-mic"/></svg> IBan</span>
+        </div>
+        <div class="tile">
+          <span class="big-avatar a4">MG</span>
+          <span class="plate"><svg class="ic on"><use href="#i-monitor-up"/></svg> Migs · sharing</span>
+        </div>
+        <div class="tile">
+          <span class="big-avatar a3">SJ</span>
+          <span class="plate"><svg class="ic off"><use href="#i-mic-off"/></svg> Sung Jin-Drw (You)</span>
+        </div>
+      </div>
+
+      <div class="controls">
+        <span class="ctl-group">
+          <button class="ctl off" title="Unmute"><svg class="ic lg"><use href="#i-mic-off"/></svg></button>
+          <button class="ctl" title="Camera"><svg class="ic lg"><use href="#i-video"/></svg></button>
+          <button class="ctl" title="Share screen"><svg class="ic lg"><use href="#i-monitor-up"/></svg></button>
+        </span>
+        <span class="ctl-sep"></span>
+        <span class="ctl-group">
+          <button class="ctl" title="React"><svg class="ic lg"><use href="#i-smile-plus"/></svg></button>
+          <button class="ctl" title="Raise hand"><svg class="ic lg"><use href="#i-hand"/></svg></button>
+          <button class="ctl" title="Soundboard"><svg class="ic lg"><use href="#i-volume-2"/></svg></button>
+        </span>
+        <span class="ctl-sep"></span>
+        <button class="leave"><svg class="ic"><use href="#i-phone-off"/></svg> Leave</button>
+      </div>
+    </div>
+
+    <div class="chat">
+      <div class="divider">Today</div>
+
+      <div class="group">
+        <span class="avatar a1">BG</span>
+        <span class="body">
+          <span class="head"><span class="who c1">brett galvez</span><span class="ts">6:01 AM</span></span>
+          <div class="line"><a href="#">https://thyncspace.bg-labs.com/</a></div>
+        </span>
+      </div>
+
+      <div class="group">
+        <span class="avatar a2">IB</span>
+        <span class="body">
+          <span class="head"><span class="who c2">IBan</span><span class="badge teal">Top WR</span><span class="ts">6:01 AM</span></span>
+          <div class="line hover-msg">unsa na??
+            <span class="actions">
+              <button class="icon-btn"><svg class="ic sm"><use href="#i-smile-plus"/></svg></button>
+              <button class="icon-btn"><svg class="ic sm"><use href="#i-code"/></svg></button>
+              <button class="icon-btn"><svg class="ic sm"><use href="#i-pin"/></svg></button>
+            </span>
+          </div>
+        </span>
+      </div>
+
+      <div class="group">
+        <span class="avatar a1">BG</span>
+        <span class="body">
+          <span class="head"><span class="who c1">brett galvez</span><span class="ts">6:02 AM</span></span>
+          <div class="line">app nako hahaa</div>
+          <div class="line">ggz sa mga sirs</div>
+        </span>
+      </div>
+
+      <div class="group">
+        <span class="avatar a3">SJ</span>
+        <span class="body">
+          <span class="head">
+            <span class="who c3">Sung Jin-Drw</span>
+            <span class="badge gold">MVP 🏆</span>
+            <span class="ts">6:03 AM</span>
+            <span class="in-voice"><svg class="ic"><use href="#i-volume"/></svg> in voice</span>
+          </span>
+          <div class="line">ggz</div>
+        </span>
+      </div>
+    </div>
+
+    <div class="composer">
+      <button class="icon-btn"><svg class="ic"><use href="#i-paperclip"/></svg></button>
+      <button class="icon-btn"><svg class="ic"><use href="#i-code"/></svg></button>
+      <span class="ph">Message #Game-Night</span>
+      <button class="icon-btn"><svg class="ic"><use href="#i-smile"/></svg></button>
+      <button class="icon-btn"><svg class="ic"><use href="#i-sticker"/></svg></button>
+      <button class="send"><svg class="ic"><use href="#i-send"/></svg></button>
+    </div>
+  </div>
+
+</div>
+
+<div class="legend">
+  <h2>v3 — what makes it sing (call panel only; chat untouched)</h2>
+  <ol>
+    <li><b>The hearth.</b> The panel is lit from below by a breathing firelight gradient (7s cycle) with a hairline of lamplight along the top edge — the call literally glows in the room. Six embers drift up at low opacity on staggered 10–14s loops. All of it sits behind the tiles and dies under <code>prefers-reduced-motion</code>.</li>
+    <li><b>The voice is the hero.</b> Idle tiles sit dimmed at 88% brightness; the active speaker's tile lifts 3px, brightens to full, and catches a warm light from above. Attention goes where the sound is — this is state, not decoration.</li>
+    <li><b>Lamplight halo.</b> The speaker's avatar wears a slowly rotating sage-to-amber ring (5s), and their nameplate swaps the mic icon for a 3-bar equalizer that dances with speech.</li>
+    <li><b>Mantelpiece dock.</b> The control bar floats half-overlapping the tile field on its own shadow, like an object in the room rather than a toolbar strip. Buttons lift 2px with an amber underglow on hover; Leave gets a warm gradient and pressed edge.</li>
+    <li><b>Discipline kept.</b> No neon, no glass, no purple-cyan. One material (warm light), three semantic colors (amber action, sage voice, warm-red off), 150–200ms transitions. The wow is the hearth concept committed fully, not effect stacking.</li>
+  </ol>
+</div>
+
+</body>
+</html>

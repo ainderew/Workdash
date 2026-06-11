@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Workdash — in-call desk view, cozy den redesign</title>
+<style>
+  :root {
+    --base: #181210;
+    --panel: #1d1511;
+    --panel-2: #221a14;
+    --raised: #2a2018;
+    --border: #3d2f23;
+    --border-strong: #4a3a2c;
+    --ink: #f3e6d5;
+    --muted: #b5a18a;
+    --amber: #f0a35e;
+    --amber-hi: #ffc46b;
+    --amber-ink: #241a12;
+    --sage: #97c27f;
+    --danger: #e8836f;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0c0908; color: var(--ink);
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    padding: 32px; line-height: 1.4;
+  }
+  h1 { font-size: 18px; margin-bottom: 4px; }
+  .sub { color: var(--muted); font-size: 12.5px; margin-bottom: 24px; }
+
+  .app {
+    display: flex; width: 1380px; height: 860px;
+    background: var(--base); border-radius: 18px; overflow: hidden;
+    border: 1px solid var(--border);
+  }
+
+  /* ── Guild rail ── */
+  .rail {
+    width: 68px; background: #140f0c; padding: 14px 0;
+    display: flex; flex-direction: column; align-items: center; gap: 12px;
+    border-right: 1px solid var(--border);
+  }
+  .guild {
+    width: 42px; height: 42px; border-radius: 14px; background: var(--panel-2);
+    display: flex; align-items: center; justify-content: center; font-size: 18px;
+    border: 1px solid var(--border);
+  }
+  .guild.active { border-color: var(--amber); box-shadow: 0 0 14px rgb(240 163 94 / 0.25); }
+  .rail .spacer { flex: 1; }
+
+  /* ── Sidebar ── */
+  .side {
+    width: 272px; background: var(--panel); border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+  }
+  .ws-head {
+    padding: 14px 16px 10px; font-weight: 700; font-size: 14px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+  }
+  .ws-head .chev { color: var(--muted); font-size: 10px; }
+  .side-scroll { flex: 1; padding: 12px 10px; overflow: hidden; }
+
+  .den {
+    background: linear-gradient(180deg, var(--panel-2), #1d1511);
+    border: 1px solid var(--sage); border-radius: 16px; padding: 13px;
+    box-shadow: 0 0 22px rgb(140 180 110 / 0.12), inset 0 1px 0 rgb(255 255 255 / 0.04);
+    margin-bottom: 6px;
+  }
+  .den-top { display: flex; align-items: center; gap: 8px; }
+  .den-name { font-size: 13.5px; font-weight: 700; flex: 1; }
+  .dot { width: 8px; height: 8px; border-radius: 99px; background: var(--sage);
+    animation: pulse 2.1s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgb(151 194 127 / 0.5);} 50% { box-shadow: 0 0 0 7px rgb(151 194 127 / 0);} }
+  .den-body { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+  .stack { display: flex; }
+  .avatar {
+    width: 24px; height: 24px; border-radius: 99px; border: 2px solid var(--panel-2);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 9px; font-weight: 800; color: #fff;
+  }
+  .stack .avatar + .avatar { margin-left: -7px; }
+  .a1 { background: #b45309; } .a2 { background: #15803d; } .a3 { background: #be185d; }
+  .den-meta { font-size: 11.5px; color: var(--muted); flex: 1; }
+  .den-meta b { color: var(--ink); font-weight: 600; }
+  .btn {
+    border: 0; border-radius: 12px; cursor: pointer; padding: 7px 14px;
+    font-size: 11.5px; font-weight: 800; color: var(--amber-ink);
+    background: linear-gradient(180deg, var(--amber-hi), var(--amber));
+    box-shadow: 0 2px 0 #9c6430;
+  }
+
+  .sec {
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.07em; color: var(--muted);
+    padding: 14px 8px 6px; text-transform: uppercase;
+  }
+  .ch {
+    display: flex; align-items: center; gap: 8px; padding: 6px 9px;
+    border-radius: 9px; color: var(--muted); font-size: 13px; font-weight: 500;
+  }
+  .ch .hash { opacity: 0.5; }
+  .ch.active { background: var(--raised); color: var(--ink); }
+  .voice-pill {
+    margin-left: auto; display: inline-flex; align-items: center; gap: 5px;
+    background: rgb(151 194 127 / 0.14); color: var(--sage);
+    font-size: 10px; font-weight: 800; border-radius: 99px; padding: 2px 8px;
+  }
+  .voice-pill::before { content: ""; width: 5px; height: 5px; border-radius: 99px; background: var(--sage); }
+
+  /* improved bottom user bar */
+  .me {
+    border-top: 1px solid var(--border); padding: 10px 12px;
+    display: flex; align-items: center; gap: 9px; background: var(--panel-2);
+  }
+  .me .avatar { width: 32px; height: 32px; font-size: 11px; position: relative; border-color: var(--panel-2); }
+  .me .status-dot {
+    position: absolute; right: -1px; bottom: -1px; width: 10px; height: 10px;
+    border-radius: 99px; background: var(--sage); border: 2px solid var(--panel-2);
+  }
+  .me .who { flex: 1; min-width: 0; }
+  .me .who .n { font-size: 12.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .me .who .s { font-size: 10.5px; color: var(--sage); }
+  .icon-btn {
+    width: 30px; height: 30px; border-radius: 9px; border: 0; cursor: pointer;
+    background: transparent; color: var(--muted); font-size: 13px;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .icon-btn:hover { background: var(--raised); }
+  .icon-btn.danger { color: var(--danger); background: rgb(232 131 111 / 0.12); }
+
+  /* ── Main column ── */
+  .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .top-bar {
+    display: flex; align-items: center; gap: 10px; padding: 12px 18px;
+    border-bottom: 1px solid var(--border); font-weight: 700; font-size: 14px;
+  }
+  .top-bar .hash { color: var(--muted); font-weight: 500; }
+  .top-bar .right { margin-left: auto; display: flex; gap: 6px; }
+
+  /* call panel */
+  .call {
+    margin: 14px 18px 0; border-radius: 16px; background: var(--panel-2);
+    border: 1px solid var(--border); overflow: hidden;
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04);
+  }
+  .call-head {
+    display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+    border-bottom: 1px solid var(--border); font-size: 12px;
+  }
+  .live-badge {
+    display: inline-flex; align-items: center; gap: 5px; font-size: 10px;
+    font-weight: 800; letter-spacing: 0.05em; color: var(--sage);
+    background: rgb(151 194 127 / 0.14); padding: 3px 9px; border-radius: 99px;
+  }
+  .live-badge::before { content: ""; width: 5px; height: 5px; border-radius: 99px; background: var(--sage); }
+  .call-head .name { font-weight: 700; font-size: 12.5px; }
+  .call-head .meta { color: var(--muted); }
+  .call-head .right { margin-left: auto; display: flex; gap: 4px; color: var(--muted); }
+
+  .tiles { display: flex; justify-content: center; gap: 14px; padding: 18px; }
+  .tile {
+    width: 280px; aspect-ratio: 4 / 3; border-radius: 14px; background: var(--panel);
+    border: 1px solid var(--border); position: relative;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .tile.speaking { border-color: var(--sage); box-shadow: 0 0 0 1px var(--sage), 0 0 16px rgb(151 194 127 / 0.2); }
+  .tile .big-avatar {
+    width: 72px; height: 72px; border-radius: 99px; font-size: 24px; font-weight: 800;
+    display: flex; align-items: center; justify-content: center; color: #fff;
+  }
+  .plate {
+    position: absolute; left: 10px; bottom: 9px; display: flex; align-items: center; gap: 6px;
+    background: rgb(20 15 12 / 0.78); border-radius: 8px; padding: 4px 9px;
+    font-size: 11px; font-weight: 600;
+  }
+  .plate .mic-off { color: var(--danger); font-size: 10px; }
+
+  .controls {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    padding: 11px; border-top: 1px solid var(--border); background: rgb(20 15 12 / 0.5);
+  }
+  .ctl {
+    width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--border-strong);
+    background: var(--raised); color: var(--ink); font-size: 15px; cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .ctl.off { background: rgb(232 131 111 / 0.15); border-color: var(--danger); color: var(--danger); }
+  .ctl-group { display: flex; gap: 8px; }
+  .ctl-sep { width: 1px; height: 24px; background: var(--border-strong); margin: 0 6px; }
+  .leave {
+    border: 0; border-radius: 12px; cursor: pointer; padding: 0 18px; height: 40px;
+    background: var(--danger); color: #2a120c; font-weight: 800; font-size: 12px;
+  }
+
+  /* chat */
+  .chat { flex: 1; overflow: hidden; padding: 16px 18px 8px; display: flex; flex-direction: column; gap: 16px; }
+  .msg { display: flex; gap: 11px; }
+  .msg .avatar { width: 36px; height: 36px; font-size: 12px; border: 0; }
+  .msg .body { min-width: 0; }
+  .msg .head { display: flex; align-items: baseline; gap: 8px; }
+  .msg .who { font-size: 13.5px; font-weight: 700; }
+  .c1 { color: #ffb46b; } .c2 { color: #8fd07f; } .c3 { color: #ff8fa3; }
+  .badge {
+    font-size: 9px; font-weight: 800; letter-spacing: 0.04em;
+    border-radius: 6px; padding: 2px 7px; text-transform: uppercase;
+  }
+  .badge.gold { background: rgb(240 178 50 / 0.16); color: #f0b232; border: 1px solid rgb(240 178 50 / 0.35); }
+  .badge.teal { background: rgb(151 194 127 / 0.14); color: var(--sage); border: 1px solid rgb(151 194 127 / 0.3); }
+  .msg .ts { font-size: 10.5px; color: var(--muted); }
+  .msg .text { font-size: 13.5px; color: var(--ink); margin-top: 2px; }
+  .msg .text a { color: var(--amber-hi); }
+  .in-call-chip { font-size: 10px; color: var(--sage); }
+
+  /* composer */
+  .composer {
+    margin: 8px 18px 16px; background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 14px; padding: 11px 14px; display: flex; align-items: center; gap: 10px;
+  }
+  .composer .ph { color: var(--muted); font-size: 13px; flex: 1; }
+  .composer .ic { color: var(--muted); font-size: 14px; }
+  .send {
+    width: 32px; height: 32px; border-radius: 10px; border: 0; cursor: pointer;
+    background: linear-gradient(180deg, var(--amber-hi), var(--amber)); color: var(--amber-ink);
+    font-size: 13px; box-shadow: 0 2px 0 #9c6430;
+  }
+
+  .legend { margin-top: 26px; max-width: 900px; }
+  .legend h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 10px; }
+  .legend ol { padding-left: 20px; display: flex; flex-direction: column; gap: 7px; font-size: 12.5px; color: var(--muted); }
+  .legend b { color: var(--ink); }
+</style>
+</head>
+<body>
+
+<h1>In-call desk view — cozy den redesign</h1>
+<div class="sub">Same screen as your screenshot (Game-Night call + chat), restructured and re-skinned per PRODUCT.md personality 1.</div>
+
+<div class="app">
+
+  <div class="rail">
+    <div class="guild active">🎮</div>
+    <div class="guild">😈</div>
+    <div class="guild">TH</div>
+    <div class="guild">＋</div>
+    <div class="spacer"></div>
+    <div class="guild">💬</div>
+  </div>
+
+  <div class="side">
+    <div class="ws-head">🎮 Dev Break Room <span class="chev">▾</span></div>
+    <div class="side-scroll">
+
+      <div class="den">
+        <div class="den-top">
+          <span>🛋️</span>
+          <span class="den-name">The Den</span>
+          <span class="dot"></span>
+        </div>
+        <div class="den-body">
+          <span class="stack"><span class="avatar a1">BG</span><span class="avatar a2">IB</span></span>
+          <span class="den-meta"><b>Brett</b> &amp; <b>IBan</b> on the couch</span>
+          <button class="btn">Sit down</button>
+        </div>
+      </div>
+
+      <div class="sec">Channels</div>
+      <div class="ch"><span class="hash">#</span> General</div>
+      <div class="ch"><span class="hash">#</span> Bugs/Features</div>
+
+      <div class="sec">Gaming</div>
+      <div class="ch active"><span class="hash">#</span> 🎮 Game-Night <span class="voice-pill">1 in voice</span></div>
+      <div class="ch"><span class="hash">#</span> ☢️ Dota 2</div>
+      <div class="ch"><span class="hash">#</span> Game-Suggestions</div>
+
+      <div class="sec">Work</div>
+      <div class="ch"><span class="hash">#</span> 📰 Tech News</div>
+      <div class="ch"><span class="hash">#</span> PZ-Standup</div>
+    </div>
+
+    <div class="me">
+      <span class="avatar a3" style="position:relative;">SJ<span class="status-dot"></span></span>
+      <span class="who">
+        <div class="n">Sung Jin-Drw</div>
+        <div class="s">In voice · Game-Night</div>
+      </span>
+      <button class="icon-btn danger">🎙</button>
+      <button class="icon-btn">🎧</button>
+      <button class="icon-btn">⚙️</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="top-bar">
+      <span class="hash">#</span> 🎮 Game-Night
+      <div class="right">
+        <button class="icon-btn">🔔</button>
+        <button class="icon-btn">📌</button>
+        <button class="icon-btn">👥</button>
+        <button class="icon-btn">🔍</button>
+      </div>
+    </div>
+
+    <div class="call">
+      <div class="call-head">
+        <span class="live-badge">Live</span>
+        <span class="name">Voice — Game-Night</span>
+        <span class="meta">1 here · 23:10</span>
+        <span class="right">
+          <button class="icon-btn" title="Pop out">⧉</button>
+          <button class="icon-btn" title="Collapse">▾</button>
+        </span>
+      </div>
+      <div class="tiles">
+        <div class="tile speaking">
+          <span class="big-avatar a3">SJ</span>
+          <span class="plate"><span class="mic-off">🎙✕</span> Sung Jin-Drw (You)</span>
+        </div>
+      </div>
+      <div class="controls">
+        <span class="ctl-group">
+          <button class="ctl off" title="Unmute">🎙</button>
+          <button class="ctl" title="Camera">📷</button>
+          <button class="ctl" title="Share screen">🖥</button>
+        </span>
+        <span class="ctl-sep"></span>
+        <span class="ctl-group">
+          <button class="ctl" title="React">😊</button>
+          <button class="ctl" title="Raise hand">✋</button>
+          <button class="ctl" title="Soundboard">🔊</button>
+        </span>
+        <span class="ctl-sep"></span>
+        <button class="leave">Leave</button>
+      </div>
+    </div>
+
+    <div class="chat">
+      <div class="msg">
+        <span class="avatar a1">BG</span>
+        <span class="body">
+          <span class="head"><span class="who c1">brett galvez</span><span class="ts">6:01 AM</span></span>
+          <div class="text"><a href="#">https://thyncspace.bg-labs.com/</a></div>
+        </span>
+      </div>
+      <div class="msg">
+        <span class="avatar a2">IB</span>
+        <span class="body">
+          <span class="head"><span class="who c2">IBan</span><span class="badge teal">Top WR</span><span class="ts">6:01 AM</span></span>
+          <div class="text">unsa na??</div>
+        </span>
+      </div>
+      <div class="msg">
+        <span class="avatar a1">BG</span>
+        <span class="body">
+          <span class="head"><span class="who c1">brett galvez</span><span class="ts">6:02 AM</span></span>
+          <div class="text">app nako hahaa</div>
+          <div class="text">ggz sa mga sirs</div>
+        </span>
+      </div>
+      <div class="msg">
+        <span class="avatar a3">SJ</span>
+        <span class="body">
+          <span class="head"><span class="who c3">Sung Jin-Drw</span><span class="badge gold">MVP 🏆</span><span class="ts">6:03 AM</span><span class="in-call-chip">· in voice</span></span>
+          <div class="text">ggz</div>
+        </span>
+      </div>
+    </div>
+
+    <div class="composer">
+      <span class="ic">📎</span>
+      <span class="ic">⌨️</span>
+      <span class="ph">Message #Game-Night</span>
+      <span class="ic">😊</span>
+      <span class="ic">GIF</span>
+      <button class="send">➤</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="legend">
+  <h2>What changed vs. your screenshot</h2>
+  <ol>
+    <li><b>The call is a card, not a void.</b> Header strip gives it context (LIVE badge, channel, count, timer, pop-out/collapse) and the tile no longer floats in dead space.</li>
+    <li><b>Controls dock inside the call panel</b>, grouped into media / expression / leave with separators — no more ambiguous bar hovering between call and chat, and Leave is isolated so it can't be fat-fingered.</li>
+    <li><b>The Den card is pinned</b> above channels with live occupancy and one-click join (the Lounge feature, in place).</li>
+    <li><b>Bottom user bar breathes</b>: full name, "In voice · Game-Night" status line, three controls instead of five cramped ones.</li>
+    <li><b>Channel row shows a proper voice pill</b> ("1 in voice") instead of the tiny avatar+phone glyph.</li>
+    <li><b>Warm den palette throughout</b> — amber actions, sage live signals, cream text on warm charcoal, name colors and badges re-tuned to match. AA contrast holds (body text ≥ 5.4:1).</li>
+    <li><b>Composer says where it's sending</b> ("Message #Game-Night") and the send action uses the amber primary.</li>
+  </ol>
+</div>
+
+</body>
+</html>
