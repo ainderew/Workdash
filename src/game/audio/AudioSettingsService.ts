@@ -1,4 +1,5 @@
 import { CONFIG } from "@/common/utils/config";
+import { logger } from "@/common/utils/logger";
 import { tokenStore } from "@/common/utils/tokenStore";
 
 const STORAGE_KEY = "workdash_audio_settings";
@@ -84,35 +85,35 @@ export class AudioSettingsService {
     }
 
     private async saveToAPI(settings: AudioSettings): Promise<void> {
-        try {
-            const token = this.getToken();
-            if (!token) {
-                return;
-            }
-
-            const payload: Record<string, unknown> = {
-                volume: settings.volume,
-                selectedMicrophoneId: settings.selectedMicrophoneId,
-                selectedCameraId: settings.selectedCameraId,
-                selectedOutputDeviceId: settings.selectedOutputDeviceId,
-            };
-
-            // Only include playBackgroundMusic when it's a boolean — null means
-            // the user hasn't made a choice yet, and the backend rejects non-boolean.
-            if (settings.backgroundMusicEnabled !== null) {
-                payload.playBackgroundMusic = settings.backgroundMusicEnabled;
-            }
-
-            await fetch(`${CONFIG.SFU_SERVER_URL}/api/settings`, {
-                method: "PATCH",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify(payload),
-            });
-        } catch {
+        const token = this.getToken();
+        if (!token) {
             return;
+        }
+
+        const payload: Record<string, unknown> = {
+            volume: settings.volume,
+            selectedMicrophoneId: settings.selectedMicrophoneId,
+            selectedCameraId: settings.selectedCameraId,
+            selectedOutputDeviceId: settings.selectedOutputDeviceId,
+        };
+
+        // Only include playBackgroundMusic when it's a boolean — null means
+        // the user hasn't made a choice yet, and the backend rejects non-boolean.
+        if (settings.backgroundMusicEnabled !== null) {
+            payload.playBackgroundMusic = settings.backgroundMusicEnabled;
+        }
+
+        const response = await fetch(`${CONFIG.SFU_SERVER_URL}/api/settings`, {
+            method: "PATCH",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+            throw new Error(`Settings save failed with status ${response.status}`);
         }
     }
 
@@ -181,7 +182,12 @@ export class AudioSettingsService {
 
         this.cachedSettings = settings;
         this.saveToLocalStorage(settings);
-        this.saveToAPI(settings).catch(() => {});
+        this.saveToAPI(settings).catch((err) => {
+            logger.warn(
+                "Audio settings saved locally but failed to sync to server:",
+                err,
+            );
+        });
     }
 
     async setBackgroundMusicEnabled(enabled: boolean): Promise<void> {

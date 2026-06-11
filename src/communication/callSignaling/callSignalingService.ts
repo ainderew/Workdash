@@ -52,6 +52,8 @@ interface WorkspaceCallSnapshotAck {
 // Sound helpers
 // ----------------------------------------------------------------
 
+const CALL_ACK_TIMEOUT_MS = 10_000;
+
 function playCallSound(name: "join-call" | "end-call"): void {
   try {
     const audio = new Audio(`/assets/sounds/${name}.mp3`);
@@ -69,6 +71,8 @@ export class CallSignalingService {
   private static instance: CallSignalingService | null = null;
   private socket: SocketIOClient.Socket;
   private listening = false;
+  /** In-flight start/join promises by channelId — prevents duplicate setup */
+  private pendingCallSetups = new Map<string, Promise<CallPresence | null>>();
   /** Workspace IDs the React layer last reported. Re-fetched on every reconnect. */
   private knownWorkspaceIds: string[] = [];
   private onConnectHandler = () => {
@@ -370,28 +374,38 @@ export class CallSignalingService {
     return new Promise((resolve) => {
       let settled = false;
 
-      const rollback = () => {
-        if (settled) return;
+      const settle = () => {
         settled = true;
-        useCallStore.setState(prevState);
-        resolve({ success: false, error: "Disconnected during transfer" });
+        clearTimeout(timeout);
+        this.socket.off("disconnect", onDisconnect);
       };
-      this.socket.once("disconnect", rollback);
+
+      const fail = (error: string) => {
+        if (settled) return;
+        settle();
+        useCallStore.setState(prevState);
+        resolve({ success: false, error });
+      };
+
+      const onDisconnect = () => fail("Disconnected during transfer");
+      const timeout = setTimeout(
+        () => fail("Transfer request timed out"),
+        CALL_ACK_TIMEOUT_MS,
+      );
+      this.socket.once("disconnect", onDisconnect);
 
       this.socket.emit(
         CallEvents.TRANSFER_REQUEST,
         { channelId },
         (res: AckResponse) => {
-          this.socket.off("disconnect", rollback);
           if (settled) return;
-          settled = true;
 
           if (res.error) {
-            useCallStore.setState(prevState);
-            resolve({ success: false, error: res.error });
+            fail(res.error);
             return;
           }
 
+          settle();
           broadcastCallOwnership("call-claimed", channelId);
           resolve({ success: true });
         },
@@ -413,47 +427,60 @@ export class CallSignalingService {
     channelId: string,
     type: "audio" | "video" = "audio",
   ): Promise<CallPresence | null> {
-    return new Promise((resolve, reject) => {
-      this.socket.emit(
-        CallEvents.START,
-        { channelId, type },
-        async (res: AckResponse<CallPresence>) => {
-          if (res.error) return reject(new Error(res.error));
-          useCallStore.getState().setCurrentCallAsOwner(channelId);
-          broadcastCallOwnership("call-claimed", channelId);
-          playCallSound("join-call");
-          try {
-            await AudioChat.getInstance().joinVoiceChat();
-          } catch (err) {
-            logger.error("Failed to acquire mic when starting call:", err);
-          }
-          this.loadCallProducers();
-          resolve(res.call ?? null);
-        },
-      );
+    return this.startOrJoinCall(CallEvents.START, channelId, {
+      channelId,
+      type,
     });
   }
 
   joinCall(channelId: string): Promise<CallPresence | null> {
-    return new Promise((resolve, reject) => {
-      this.socket.emit(
-        CallEvents.JOIN,
-        { channelId },
-        async (res: AckResponse<CallPresence>) => {
-          if (res.error) return reject(new Error(res.error));
-          useCallStore.getState().setCurrentCallAsOwner(channelId);
-          broadcastCallOwnership("call-claimed", channelId);
-          playCallSound("join-call");
-          try {
-            await AudioChat.getInstance().joinVoiceChat();
-          } catch (err) {
-            logger.error("Failed to acquire mic when joining call:", err);
-          }
-          this.loadCallProducers();
-          resolve(res.call ?? null);
-        },
-      );
+    return this.startOrJoinCall(CallEvents.JOIN, channelId, { channelId });
+  }
+
+  /**
+   * Shared start/join flow with per-channel in-flight dedup — a second call
+   * while one is pending returns the same promise, so a double-click or a
+   * reconnect-triggered retry can't acquire the mic and load producers twice.
+   */
+  private startOrJoinCall(
+    event: typeof CallEvents.START | typeof CallEvents.JOIN,
+    channelId: string,
+    payload: Record<string, unknown>,
+  ): Promise<CallPresence | null> {
+    const pending = this.pendingCallSetups.get(channelId);
+    if (pending) return pending;
+
+    const setup = new Promise<CallPresence | null>((resolve, reject) => {
+      let settled = false;
+
+      const timeout = setTimeout(() => {
+        settled = true;
+        reject(new Error(`${event} timed out`));
+      }, CALL_ACK_TIMEOUT_MS);
+
+      this.socket.emit(event, payload, async (res: AckResponse<CallPresence>) => {
+        clearTimeout(timeout);
+        if (settled) return;
+        settled = true;
+
+        if (res.error) return reject(new Error(res.error));
+        useCallStore.getState().setCurrentCallAsOwner(channelId);
+        broadcastCallOwnership("call-claimed", channelId);
+        playCallSound("join-call");
+        try {
+          await AudioChat.getInstance().joinVoiceChat();
+        } catch (err) {
+          logger.error("Failed to acquire mic when joining call:", err);
+        }
+        this.loadCallProducers();
+        resolve(res.call ?? null);
+      });
+    }).finally(() => {
+      this.pendingCallSetups.delete(channelId);
     });
+
+    this.pendingCallSetups.set(channelId, setup);
+    return setup;
   }
 
   leaveCall(channelId: string): Promise<void> {
@@ -477,7 +504,7 @@ export class CallSignalingService {
       const timeout = setTimeout(() => {
         cleanup();
         reject(new Error("leaveCall timed out"));
-      }, 10_000);
+      }, CALL_ACK_TIMEOUT_MS);
 
       this.socket.emit(
         CallEvents.LEAVE,
