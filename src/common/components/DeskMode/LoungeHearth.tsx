@@ -43,7 +43,7 @@ export function LoungeSoloState({ workspaceId }: LoungeSoloStateProps) {
   };
 
   return (
-    <div className="relative z-[1] flex flex-col items-center gap-1.5 px-3 pb-3 pt-1 text-center">
+    <div className="relative z-[1] flex flex-col items-center gap-1.5 px-3 pb-4 pt-1 text-center">
       <p className="text-xs font-semibold wd-text-primary">
         You&apos;re the first one down here
       </p>

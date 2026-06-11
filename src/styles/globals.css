@@ -2777,6 +2777,7 @@ input[type="range"].wd-volume-slider::-moz-range-progress {
     --wd-den-bg-0-rgb: 43 28 16;
     --wd-den-bg-1-rgb: 33 22 9;
     --wd-den-bg-2-rgb: 26 18 12;
+    --wd-den-border-rgb: 74 54 33;
     --wd-den-ember-rgb: 255 196 107;
     --wd-den-fire-rgb: 240 163 94;
 }
