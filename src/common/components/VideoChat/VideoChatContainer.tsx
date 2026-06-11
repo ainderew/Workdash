@@ -1,7 +1,10 @@
-import React from "react";
+import React, { useRef } from "react";
 import { X, Maximize2, Minimize2 } from "lucide-react";
 import { VideoChatViewer } from "@/communication/videoChat/videoChatViewer";
+import useCallStore from "@/common/store/callStore";
+import useUiStore from "@/common/store/uiStore";
 import useUserStore from "@/common/store/useStore";
+import { useActiveSpeaker } from "@/common/hooks/useActiveSpeaker";
 import { getDisplayName, getNameAliases } from "@/common/utils/displayName";
 
 function VideoChatContainer({
@@ -39,6 +42,21 @@ function VideoChatContainer({
         (localDisplayName.length > 0 && ownerName === localDisplayName) ||
         localNameAliases.includes(ownerName);
 
+    const tileRef = useRef<HTMLDivElement>(null);
+    const producerUserId = useCallStore(
+        (s) => s.producerUserMap[producerId] ?? null,
+    );
+    const localMuted = useUiStore((s) => s.isMuted);
+    const speakerUserId = isCurrentUserOwner
+        ? (backendUser?.id ?? null)
+        : producerUserId;
+    useActiveSpeaker(
+        speakerUserId,
+        isCurrentUserOwner,
+        isCurrentUserOwner && localMuted,
+        tileRef,
+    );
+
     return (
         <>
             {isExpanded && (
@@ -49,9 +67,10 @@ function VideoChatContainer({
             )}
 
             <div
+                ref={tileRef}
                 onClick={!isExpanded ? handleClick : undefined}
                 className={`
-                    rounded-lg overflow-hidden
+                    wd-speaker-tile rounded-lg overflow-hidden
                     transition-all duration-300 ease-in-out
                     bg-black
                     ${

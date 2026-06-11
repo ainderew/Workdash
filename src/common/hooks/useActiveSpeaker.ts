@@ -14,9 +14,12 @@ const DEACTIVATION_DELAY_MS = 500;
  *
  * Uses hysteresis: 50 ms activation / 500 ms deactivation to prevent flicker.
  * All mutations are direct DOM writes — no React state is involved.
+ *
+ * Pass `userId: null` when the participant is not yet known — monitoring is
+ * disabled until a userId is available.
  */
 export function useActiveSpeaker(
-  userId: number,
+  userId: number | null,
   isLocal: boolean,
   isMuted: boolean,
   tileRef: RefObject<HTMLDivElement | null>,
@@ -25,8 +28,9 @@ export function useActiveSpeaker(
     const tileEl = tileRef.current;
     if (!tileEl) return;
 
-    // When muted, ensure highlight is off and skip monitoring
-    if (isMuted) {
+    // When muted (or the participant is unknown), ensure highlight is off
+    // and skip monitoring
+    if (isMuted || userId === null) {
       tileEl.removeAttribute('data-speaking');
       return;
     }
