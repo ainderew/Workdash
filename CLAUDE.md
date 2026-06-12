@@ -1,5 +1,8 @@
 # CLAUDE.md
 
+> Known bugs, UX debt, and deferred work for BOTH repos live in `BACKLOG.md`
+> (repo root) — check it before starting bugfix/improvement work.
+
 The app has two mutually exclusive modes toggled via `uiStore.interactionMode`:
 
 - **"world"** — Phaser game canvas is active; 2D avatar movement, proximity audio, spatial interactions

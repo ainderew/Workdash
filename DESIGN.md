@@ -15,6 +15,14 @@ copy, restraint in layout.
 
 ### Den direction (new work)
 
+**Implemented as accent-derived, not fixed amber.** The shipped den surfaces
+(`--wd-den-*` in `globals.css`) are computed from the user's selected theme
+accent via `color-mix` — panel tint stops at 20/12/7% accent into the panel
+surface, embers at 70% accent toward white, glow at accent 0.2/0.06 alpha.
+Speaking indicators (halo, equalizer, tile ring) all follow `--wd-accent`.
+The fixed warm values below remain the *reference mood* (what the den feels
+like under an amber theme) and the palette for mockups:
+
 | Role | Value | Notes |
 |---|---|---|
 | Background (base) | `#181210` | warm near-black |
