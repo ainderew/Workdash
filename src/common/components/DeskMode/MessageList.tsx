@@ -60,6 +60,7 @@ interface MessageListProps {
     focusedMessageId?: string | null;
     onFocusedMessageHandled?: () => void;
     onOpenThread?: (rootMessageId: string) => void;
+    onQuickReply?: (message: ChatV2Message) => void;
     isLoadingOlderMessages?: boolean;
     hasMoreMessages?: boolean;
     onLoadOlderMessages?: () => void;
@@ -200,6 +201,7 @@ function MessageList({
     focusedMessageId = null,
     onFocusedMessageHandled,
     onOpenThread,
+    onQuickReply,
     isLoadingOlderMessages = false,
     hasMoreMessages = true,
     onLoadOlderMessages,
@@ -381,6 +383,9 @@ function MessageList({
         // chronological. In the common case (one pending newer than everything
         // else) this still appends to the end.
         for (const pending of pendingForRoom) {
+            // Quick replies thread onto their target — keep their optimistic
+            // entry out of the main timeline (matches confirmed replies above).
+            if (pending.replyToMessageId) continue;
             const pendingTime = new Date(pending.createdAt).getTime();
             let insertIndex = rootMessages.length;
             for (let i = rootMessages.length - 1; i >= 0; i--) {
@@ -1249,6 +1254,7 @@ function MessageList({
                     getSenderName={getSenderName}
                     getSenderAvatar={getSenderAvatar}
                     onOpenThread={onOpenThread}
+                    onQuickReply={onQuickReply}
                     onPinMessage={onPinMessage}
                     onUnpinMessage={onUnpinMessage}
                     onFlyoutChange={handleFlyoutChange}
@@ -1285,6 +1291,7 @@ function MessageList({
             getSenderName,
             getSenderAvatar,
             onOpenThread,
+            onQuickReply,
             onPinMessage,
             onUnpinMessage,
             handleFlyoutChange,

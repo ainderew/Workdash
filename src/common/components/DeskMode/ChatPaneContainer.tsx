@@ -170,6 +170,12 @@ function ChatPaneContainer({
     const [threadReplies, setThreadReplies] = useState<ChatV2Message[]>([]);
     const [isLoadingThread, setIsLoadingThread] = useState(false);
     const [threadError, setThreadError] = useState<string | null>(null);
+    const [replyTarget, setReplyTarget] = useState<ChatV2Message | null>(null);
+
+    // Drop a stale quick-reply target when switching channels.
+    useEffect(() => {
+        setReplyTarget(null);
+    }, [currentRoomId]);
 
     const channelContentRef = useRef<HTMLDivElement>(null);
     const lastTypingEmitRef = useRef(0);
@@ -532,6 +538,7 @@ function ChatPaneContainer({
                         }
                     }}
                     onOpenThread={handleOpenThread}
+                    onQuickReply={setReplyTarget}
                 />
 
                 <TypingIndicator roomId={currentRoomId} />
@@ -542,6 +549,8 @@ function ChatPaneContainer({
                     isSending={isSending}
                     members={roomMembers}
                     onTyping={handleTyping}
+                    replyTarget={replyTarget}
+                    onCancelReply={() => setReplyTarget(null)}
                     onSend={async (content, attachments, options) => {
                         if (content.trim() === "/playlists") {
                             usePlaylistStore
@@ -551,10 +560,14 @@ function ChatPaneContainer({
                         }
                         await sendMessage(content, attachments, {
                             mentionedUserIds: options?.mentionedUserIds,
+                            ...(options?.replyToMessageId && {
+                                replyToMessageId: options.replyToMessageId,
+                            }),
                             ...(options?.clientMessageId && {
                                 clientMessageId: options.clientMessageId,
                             }),
                         });
+                        setReplyTarget(null);
                     }}
                 />
             </div>

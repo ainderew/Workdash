@@ -2840,6 +2840,18 @@ input[type="range"].wd-volume-slider::-moz-range-progress {
     50% { opacity: 1; }
 }
 
+/* Composer reply context bar — slides up from the input as it mounts */
+@keyframes wd-reply-in {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .wd-reply-context {
+        animation: wd-reply-in 140ms ease-out;
+    }
+}
+
 .wd-ember {
     position: absolute;
     bottom: -6px;

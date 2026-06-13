@@ -20,8 +20,13 @@ const GITHUB_ISSUE_REGEX = /github\.com\/([^/]+)\/([^/]+)\/(?:issues|pull)\/(\d+
 const INSTAGRAM_REGEX = /(?:instagram\.com|instagr\.am)\//;
 const FACEBOOK_REGEX = /(?:facebook\.com|fb\.com|fb\.watch)\//;
 
+// Jira cloud issue links: company.atlassian.net/browse/PROJ-123 (also under a path prefix)
+const JIRA_REGEX = /[a-z0-9-]+\.atlassian\.net\/(?:[^\s]*\/)?browse\/([A-Z][A-Z0-9]+-\d+)/i;
+// Linear issue links: linear.app/team/issue/ENG-123/slug
+const LINEAR_REGEX = /linear\.app\/[^/\s]+\/issue\/([A-Za-z0-9]+-\d+)/i;
+
 export interface ParsedMessage {
-    type: 'text' | 'link' | 'youtube' | 'twitter' | 'github' | 'instagram' | 'facebook';
+    type: 'text' | 'link' | 'youtube' | 'twitter' | 'github' | 'instagram' | 'facebook' | 'jira' | 'linear';
     content: string;
     url?: string;
     youtubeId?: string;
@@ -31,6 +36,8 @@ export interface ParsedMessage {
     githubRepo?: string;
     githubIssueNumber?: string;
     githubType?: 'repo' | 'issue' | 'pull';
+    jiraKey?: string;
+    linearKey?: string;
 }
 
 export function parseMessageContent(message: string): ParsedMessage[] {
@@ -44,6 +51,8 @@ export function parseMessageContent(message: string): ParsedMessage[] {
             const twitterMatch = segment.match(TWITTER_REGEX);
             const githubIssueMatch = segment.match(GITHUB_ISSUE_REGEX);
             const githubRepoMatch = segment.match(GITHUB_REPO_REGEX);
+            const jiraMatch = segment.match(JIRA_REGEX);
+            const linearMatch = segment.match(LINEAR_REGEX);
 
             if (youtubeMatch) {
                 
@@ -83,6 +92,20 @@ export function parseMessageContent(message: string): ParsedMessage[] {
                     githubOwner: githubRepoMatch[1],
                     githubRepo: githubRepoMatch[2],
                     githubType: 'repo',
+                });
+            } else if (jiraMatch) {
+                parts.push({
+                    type: 'jira',
+                    content: segment,
+                    url: segment,
+                    jiraKey: jiraMatch[1],
+                });
+            } else if (linearMatch) {
+                parts.push({
+                    type: 'linear',
+                    content: segment,
+                    url: segment,
+                    linearKey: linearMatch[1],
                 });
             } else if (segment.match(INSTAGRAM_REGEX)) {
                 parts.push({

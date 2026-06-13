@@ -79,6 +79,34 @@ export function FacebookIcon({ size = 16 }: { size?: number }) {
     );
 }
 
+export function JiraIcon({ size = 16 }: { size?: number }) {
+    return (
+        <svg
+            width={size}
+            height={size}
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            className="text-blue-500"
+        >
+            <path d="M11.53 2c0 2.4 1.97 4.35 4.35 4.35h1.78v1.7c0 2.4 1.94 4.34 4.34 4.35V2.84a.84.84 0 0 0-.84-.84zM6.77 6.8a4.362 4.362 0 0 0 4.34 4.34h1.8v1.72a4.362 4.362 0 0 0 4.34 4.34V7.63a.84.84 0 0 0-.83-.83zM2 11.6c0 2.4 1.95 4.35 4.35 4.35h1.78v1.7c.01 2.4 1.95 4.34 4.34 4.35v-9.57a.84.84 0 0 0-.83-.83z" />
+        </svg>
+    );
+}
+
+export function LinearIcon({ size = 16 }: { size?: number }) {
+    return (
+        <svg
+            width={size}
+            height={size}
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            className="text-indigo-400"
+        >
+            <path d="M3.5 13.2 10.8 20.5a9 9 0 0 1-7.3-7.3ZM3.02 10.06 13.94 20.98a9.04 9.04 0 0 1-1.86-.55L3.57 11.92a9.04 9.04 0 0 1-.55-1.86ZM3.62 7.46 16.54 20.38a9.06 9.06 0 0 1-1.3-.74L4.36 8.76a9.06 9.06 0 0 1-.74-1.3ZM5.2 5.2a9 9 0 0 1 13.6 11.78z" />
+        </svg>
+    );
+}
+
 export function GlobeIcon({ size = 16 }: { size?: number }) {
     return (
         <svg
@@ -99,7 +127,15 @@ export function GlobeIcon({ size = 16 }: { size?: number }) {
     );
 }
 
-export type PlatformType = "youtube" | "twitter" | "github" | "instagram" | "facebook" | "generic";
+export type PlatformType =
+    | "youtube"
+    | "twitter"
+    | "github"
+    | "instagram"
+    | "facebook"
+    | "jira"
+    | "linear"
+    | "generic";
 
 const PLATFORM_ICON_MAP: Record<PlatformType, React.ComponentType<{ size?: number }>> = {
     youtube: YouTubeIcon,
@@ -107,6 +143,8 @@ const PLATFORM_ICON_MAP: Record<PlatformType, React.ComponentType<{ size?: numbe
     github: GitHubIcon,
     instagram: InstagramIcon,
     facebook: FacebookIcon,
+    jira: JiraIcon,
+    linear: LinearIcon,
     generic: GlobeIcon,
 };
 
@@ -116,6 +154,8 @@ const PLATFORM_GRADIENT_MAP: Record<PlatformType, string> = {
     github: "from-neutral-700/60 to-neutral-900/80",
     instagram: "from-purple-900/60 to-pink-950/80",
     facebook: "from-blue-900/60 to-blue-950/80",
+    jira: "from-blue-900/60 to-blue-950/80",
+    linear: "from-indigo-900/60 to-indigo-950/80",
     generic: "from-neutral-700/60 to-neutral-800/80",
 };
 

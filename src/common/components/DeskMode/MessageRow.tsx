@@ -66,6 +66,7 @@ export interface MessageRowProps {
     getSenderAvatar: (message: ChatV2Message) => SenderAvatar;
 
     onOpenThread?: (rootMessageId: string) => void;
+    onQuickReply?: (message: ChatV2Message) => void;
     onPinMessage?: (messageId: string) => void;
     onUnpinMessage?: (messageId: string) => void;
     onFlyoutChange: (messageId: string | null) => void;
@@ -120,6 +121,7 @@ const MessageRow = React.memo(function MessageRow({
     getSenderName,
     getSenderAvatar,
     onOpenThread,
+    onQuickReply,
     onPinMessage,
     onUnpinMessage,
     onFlyoutChange,
@@ -301,11 +303,15 @@ const MessageRow = React.memo(function MessageRow({
                                     pinnedMessageIds?.has(message.id) ?? false
                                 }
                                 onReply={() => {
-                                    if (!message.replyToMessageId) {
-                                        onOpenThread?.(message.id);
+                                    if (message.replyToMessageId) {
+                                        onFutureAction("Reply");
                                         return;
                                     }
-                                    onFutureAction("Reply");
+                                    if (onQuickReply) {
+                                        onQuickReply(message);
+                                    } else {
+                                        onOpenThread?.(message.id);
+                                    }
                                 }}
                                 onReact={(emoji) => {
                                     void toggleMessageReaction(
@@ -497,7 +503,9 @@ const MessageRow = React.memo(function MessageRow({
                                                                           | "twitter"
                                                                           | "github"
                                                                           | "instagram"
-                                                                          | "facebook")
+                                                                          | "facebook"
+                                                                          | "jira"
+                                                                          | "linear")
                                                             }
                                                             metadata={
                                                                 linkPreviews[
@@ -509,6 +517,16 @@ const MessageRow = React.memo(function MessageRow({
                                                                     part.youtubeId,
                                                                 githubType:
                                                                     part.githubType,
+                                                                githubOwner:
+                                                                    part.githubOwner,
+                                                                githubRepo:
+                                                                    part.githubRepo,
+                                                                githubNumber:
+                                                                    part.githubIssueNumber,
+                                                                jiraKey:
+                                                                    part.jiraKey,
+                                                                linearKey:
+                                                                    part.linearKey,
                                                             }}
                                                         />
                                                     ),
