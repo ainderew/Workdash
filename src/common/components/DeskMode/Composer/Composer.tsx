@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { AlertTriangle, Upload } from "lucide-react";
 import DeskGifPicker from "../DeskGifPicker";
 import EmojiPicker from "../EmojiPicker";
@@ -17,6 +17,7 @@ import { useTiptapAutocomplete } from "./useTiptapAutocomplete";
 import { useSendMessage } from "./useSendMessage";
 import { useFileDrop } from "./useFileDrop";
 import { useAttachmentUploads } from "./useAttachmentUploads";
+import { ReplyContextBar } from "./ReplyContextBar";
 import type { ComposerProps } from "./_types";
 
 function Composer(props: ComposerProps) {
@@ -28,9 +29,15 @@ function Composer(props: ComposerProps) {
         members,
         onSend,
         replyToMessageId,
+        replyTarget,
+        onCancelReply,
         onEditLastMessage,
         onTyping,
     } = props;
+
+    // Thread composer drives replyToMessageId directly; the main composer drives
+    // it from the quick-reply target selected in the timeline.
+    const effectiveReplyToMessageId = replyTarget?.id ?? replyToMessageId;
 
     const state = useComposerState(props);
     const {
@@ -110,11 +117,19 @@ function Composer(props: ComposerProps) {
         closeMentionFlyout: autocomplete.closeMentionFlyout,
         focusInput: tiptap.focus,
         onSend,
-        replyToMessageId,
+        replyToMessageId: effectiveReplyToMessageId,
         selectedWorkspaceId,
     });
 
     submitRef.current = () => void submit();
+
+    // Focus the input only when a *new* quick-reply target is selected. tiptap
+    // returns a fresh focus() each render, so keying on it would refocus
+    // constantly and steal focus — the id is the real trigger.
+    const replyTargetId = replyTarget?.id;
+    useEffect(() => {
+        if (replyTargetId) tiptap.focus();
+    }, [replyTargetId]);
 
     const handleToggleCodeBlock = useCallback(() => {
         tiptap.editor?.chain().focus().toggleCodeBlock().run();
@@ -273,6 +288,10 @@ function Composer(props: ComposerProps) {
                     editor={tiptap.editor}
                     onClose={() => setShowLinkPopover(false)}
                 />
+            )}
+
+            {replyTarget && onCancelReply && (
+                <ReplyContextBar target={replyTarget} onCancel={onCancelReply} />
             )}
 
             <ComposerActions

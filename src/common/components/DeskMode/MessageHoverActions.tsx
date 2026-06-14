@@ -127,7 +127,7 @@ function MessageHoverActions({
                     <button
                         type="button"
                         onClick={onReply}
-                        title="Reply in thread"
+                        title="Reply"
                         className={iconButtonClassName}
                     >
                         <Reply size={16} />

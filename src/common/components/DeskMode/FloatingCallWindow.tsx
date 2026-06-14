@@ -16,6 +16,8 @@ import { logger } from '@/common/utils/logger';
 import { VideoChatViewer } from '@/communication/videoChat/videoChatViewer';
 import CallControlBar from './CallControlBar';
 import FloatingTileGrid from './call-tiles/FloatingTileGrid';
+import { LoungeHearthBackdrop } from './LoungeHearth';
+import useWorkspaceStore from '@/common/store/workspaceStore';
 
 const WINDOW_WIDTH = 320;
 const WINDOW_HEIGHT_EXPANDED = 268;
@@ -73,6 +75,15 @@ export default function FloatingCallWindow() {
   const isCollapsed = floatingWindowState === 'collapsed';
   const isFullscreen = floatingWindowState === 'fullscreen';
   const currentHeight = isCollapsed ? PILL_HEIGHT : WINDOW_HEIGHT_EXPANDED;
+
+  // Lounge calls glow with the hearth + rising embers — mirror the desk-mode
+  // CallView treatment, but only when fullscreen (the pill/popup is too small).
+  const isLounge = useWorkspaceStore((s) =>
+    channelId
+      ? s.workspaces.some((ws) => ws.loungeChannelId === channelId)
+      : false,
+  );
+  const showHearth = isFullscreen && isLounge && !isInDifferentWorkspace;
 
   // Initialize position on first show
   useEffect(() => {
@@ -462,7 +473,12 @@ export default function FloatingCallWindow() {
 
         {/* Expanded content */}
         {!isCollapsed && (
-          <div className={isFullscreen ? 'flex-1 min-h-0 flex flex-col' : ''}>
+          <div
+            className={`${isFullscreen ? 'flex-1 min-h-0 flex flex-col' : ''} ${
+              showHearth ? 'wd-hearth' : ''
+            }`}
+          >
+            {showHearth && <LoungeHearthBackdrop />}
             {isInDifferentWorkspace ? (
               /* Paused overlay — replaces participant tiles */
               <div
@@ -505,11 +521,16 @@ export default function FloatingCallWindow() {
                 channelId={channelId}
                 localUserId={userId}
                 fillHeight={isFullscreen}
+                transparent={showHearth}
               />
             )}
 
             {/* Controls bar — only leave + return when paused */}
-            <div className="px-2 py-2 border-t wd-border-subtle">
+            <div
+              className={`px-2 py-2 border-t wd-border-subtle ${
+                showHearth ? 'relative z-[2]' : ''
+              }`}
+            >
               {isInDifferentWorkspace ? (
                 <div className="flex items-center justify-center gap-2">
                   <Tooltip>

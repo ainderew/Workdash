@@ -9,6 +9,7 @@ import {
     getPlatformGradient,
     type PlatformType,
 } from "./platformIcons";
+import { RichLinkCard, type RichLinkRef } from "./RichLinkCard";
 
 interface UnifiedLinkPreviewProps {
     url: string;
@@ -17,7 +18,48 @@ interface UnifiedLinkPreviewProps {
     platformHints?: {
         youtubeId?: string;
         githubType?: "repo" | "issue" | "pull";
+        githubOwner?: string;
+        githubRepo?: string;
+        githubNumber?: string;
+        jiraKey?: string;
+        linearKey?: string;
     };
+}
+
+function buildRichRef(
+    platform: PlatformType,
+    hints: UnifiedLinkPreviewProps["platformHints"],
+): RichLinkRef | null {
+    if (platform === "github" && hints?.githubOwner && hints?.githubRepo) {
+        const identifier = `${hints.githubOwner}/${hints.githubRepo}`;
+        const num = hints.githubNumber;
+        const badge =
+            hints.githubType === "pull"
+                ? num
+                    ? `PR #${num}`
+                    : "PR"
+                : hints.githubType === "issue"
+                  ? num
+                      ? `Issue #${num}`
+                      : "Issue"
+                  : "Repo";
+        return { provider: "github", identifier, badge };
+    }
+    if (platform === "jira" && hints?.jiraKey) {
+        return {
+            provider: "jira",
+            identifier: hints.jiraKey.toUpperCase(),
+            badge: "Issue",
+        };
+    }
+    if (platform === "linear" && hints?.linearKey) {
+        return {
+            provider: "linear",
+            identifier: hints.linearKey.toUpperCase(),
+            badge: "Issue",
+        };
+    }
+    return null;
 }
 
 const isFacebookVideoUrl = (value: string) => {
@@ -65,6 +107,13 @@ export function UnifiedLinkPreview({
     metadata,
     platformHints,
 }: UnifiedLinkPreviewProps) {
+    // GitHub / Jira / Linear render a structured card from the parsed
+    // identifier, so they show even when OG metadata is missing or weak.
+    const richRef = buildRichRef(platform, platformHints);
+    if (richRef) {
+        return <RichLinkCard url={url} reference={richRef} metadata={metadata} />;
+    }
+
     if (platform !== "youtube" && (!metadata || isWeakMetadata(metadata))) {
         return null;
     }
@@ -131,7 +180,7 @@ export function UnifiedLinkPreview({
             href={displayUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="relative mt-2 block max-w-md overflow-hidden rounded-md border wd-border-subtle wd-bg-elevated transition-colors hover:bg-[var(--wd-surface-base)]  before:absolute before:left-0 before:top-0 before:bottom-0 before:w-1 before:bg-amber-500 before:content-['']"
+            className="mt-2 block max-w-md overflow-hidden rounded-xl border wd-border-subtle wd-bg-elevated transition-colors duration-150 motion-reduce:transition-none hover:bg-[var(--wd-surface-base)] hover:wd-border-strong"
         >
             {showImage ? (
                 <img

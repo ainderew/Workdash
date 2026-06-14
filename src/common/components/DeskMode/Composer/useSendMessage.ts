@@ -27,6 +27,7 @@ interface UseSendMessageArgs {
     options?: {
       mentionedUserIds?: number[];
       clientMessageId?: string;
+      replyToMessageId?: string | null;
     },
   ) => Promise<void> | void;
   replyToMessageId?: string | null;
@@ -136,6 +137,7 @@ export function useSendMessage({
             mentionedUserIds: serializedMentionContent.mentionedUserIds,
           }),
           clientMessageId,
+          ...(replyToMessageId ? { replyToMessageId } : {}),
         },
       );
       // Server reconciliation drops the pending entry on realtime receipt.

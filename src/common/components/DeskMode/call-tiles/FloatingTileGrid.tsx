@@ -12,6 +12,8 @@ interface FloatingTileGridProps {
   channelId: string;
   localUserId: number;
   fillHeight?: boolean;
+  /** Drop the opaque tile background so a hearth backdrop shows through. */
+  transparent?: boolean;
 }
 
 const TILE_CONTAINER_HEIGHT = 168;
@@ -54,6 +56,7 @@ export default function FloatingTileGrid({
   channelId,
   localUserId,
   fillHeight = false,
+  transparent = false,
 }: FloatingTileGridProps) {
   const pinnedTileKey = useCallStore((s) => s.pinnedTileKey);
   const setPinnedTileKey = useCallStore((s) => s.setPinnedTileKey);
@@ -78,10 +81,10 @@ export default function FloatingTileGrid({
     const hiddenCount = fillHeight ? 0 : others.length - visibleOthers.length;
     return (
       <div
-        className={`flex flex-col p-2 ${fillHeight ? 'flex-1 min-h-0 overflow-hidden gap-3 p-4' : 'gap-1.5'}`}
+        className={`flex flex-col p-2 ${fillHeight ? 'flex-1 min-h-0 overflow-hidden gap-3 p-4' : 'gap-1.5'} ${transparent ? 'relative z-[1]' : ''}`}
         style={{
           ...(fillHeight ? { minHeight: 0 } : { height: TILE_CONTAINER_HEIGHT }),
-          backgroundColor: 'var(--wd-surface-panel-2)',
+          ...(transparent ? {} : { backgroundColor: 'var(--wd-surface-panel-2)' }),
         }}
       >
         <div className="flex-1 min-h-0 overflow-hidden">
@@ -119,12 +122,12 @@ export default function FloatingTileGrid({
 
   return (
     <div
-      className={`grid p-2 ${fillHeight ? 'flex-1 min-h-0 overflow-hidden gap-3 p-4' : 'gap-1.5'}`}
+      className={`grid p-2 ${fillHeight ? 'flex-1 min-h-0 overflow-hidden gap-3 p-4' : 'gap-1.5'} ${transparent ? 'relative z-[1]' : ''}`}
       style={{
         gridTemplateColumns: `repeat(${cols}, 1fr)`,
         ...(rows != null ? { gridTemplateRows: `repeat(${rows}, 1fr)` } : {}),
         ...(fillHeight ? { minHeight: 0 } : { height: TILE_CONTAINER_HEIGHT }),
-        backgroundColor: 'var(--wd-surface-panel-2)',
+        ...(transparent ? {} : { backgroundColor: 'var(--wd-surface-panel-2)' }),
       }}
     >
       {visibleTiles.map((t) => renderTile(t, channelId, pinnedTileKey, togglePin, fillHeight))}
