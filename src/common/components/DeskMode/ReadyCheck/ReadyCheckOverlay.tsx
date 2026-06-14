@@ -60,19 +60,26 @@ function ReadyCheckOverlay() {
         }
     }, [candidate?.checkId, engagedId]);
 
-    // Resolution → ignite (all in) or fade (timeout/cancel), then auto-close.
+    // Resolution → move into the climax (ignite) or the fade (exiting).
     useEffect(() => {
         if (!snapshot?.resolved || phase !== "gathering") return;
         if (snapshot.resolvedReason === "all-responded") {
             setPhase("igniting");
             playLockedInChime();
-            const t = setTimeout(closeRitual, 2400);
-            return () => clearTimeout(t);
+        } else {
+            setPhase("exiting");
         }
-        setPhase("exiting");
-        const t = setTimeout(closeRitual, 1100);
-        return () => clearTimeout(t);
     }, [snapshot, phase]);
+
+    // Own the auto-close timer in its own effect so the phase change that
+    // triggers the climax can't cancel the dismissal (the previous fix had the
+    // setPhase re-run clear its own timeout).
+    useEffect(() => {
+        if (phase === "gathering") return;
+        const delay = phase === "igniting" ? 2400 : 1100;
+        const t = setTimeout(closeRitual, delay);
+        return () => clearTimeout(t);
+    }, [phase]);
 
     // Focus the primary action when the ritual opens.
     useEffect(() => {

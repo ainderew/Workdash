@@ -1,10 +1,49 @@
 import React from "react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { render, screen, fireEvent, act } from "@testing-library/react";
 import type {
     ReadyCheckSnapshot,
     ReadyCheckTarget,
 } from "@/communication/readyCheck/_types";
+
+// Make motion elements plain DOM + AnimatePresence synchronous so the
+// auto-dismiss timer test is deterministic (no async exit animations).
+vi.mock("framer-motion", () => {
+    const MOTION_ONLY = new Set([
+        "initial",
+        "animate",
+        "exit",
+        "transition",
+        "whileHover",
+        "whileTap",
+        "whileInView",
+        "variants",
+        "layout",
+        "layoutId",
+    ]);
+    const cache: Record<string, React.ComponentType<Record<string, unknown>>> = {};
+    const passthrough = (tag: string) => {
+        if (!cache[tag]) {
+            const Comp = React.forwardRef<HTMLElement, Record<string, unknown>>(
+                (props, ref) => {
+                    const clean: Record<string, unknown> = { ref };
+                    for (const key in props) {
+                        if (!MOTION_ONLY.has(key)) clean[key] = props[key];
+                    }
+                    return React.createElement(tag, clean);
+                },
+            );
+            Comp.displayName = `motion.${tag}`;
+            cache[tag] = Comp as React.ComponentType<Record<string, unknown>>;
+        }
+        return cache[tag];
+    };
+    return {
+        motion: new Proxy({}, { get: (_t, tag: string) => passthrough(tag) }),
+        AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+        useReducedMotion: () => true,
+    };
+});
 
 // ---------------------------------------------------------------------------
 // Mocks — control selector return values per test
@@ -91,6 +130,10 @@ beforeEach(() => {
     mockLocalResponse = {};
 });
 
+afterEach(() => {
+    vi.useRealTimers();
+});
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -156,5 +199,31 @@ describe("ReadyCheckOverlay", () => {
         const cancel = screen.getByRole("button", { name: /Cancel ready check/ });
         fireEvent.click(cancel);
         expect(cancelSpy).toHaveBeenCalledWith("c-1");
+    });
+
+    it("auto-dismisses after everyone locks in", () => {
+        vi.useFakeTimers();
+        engage();
+        const { rerender } = render(<ReadyCheckOverlay />);
+        expect(screen.queryByRole("dialog")).toBeInTheDocument();
+
+        // Everyone readies → resolved (all-responded); candidate clears.
+        const resolved = makeSnapshot({
+            resolved: true,
+            resolvedReason: "all-responded",
+            targets: [
+                makeTarget({ state: "ready" }),
+                makeTarget({ userId: 3, displayName: "Cara", state: "ready" }),
+            ],
+        });
+        mockCandidate = null;
+        mockSnapshot = resolved;
+        rerender(<ReadyCheckOverlay />);
+
+        // Climax holds, then the overlay closes on its own.
+        act(() => {
+            vi.advanceTimersByTime(2500);
+        });
+        expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });
 });
