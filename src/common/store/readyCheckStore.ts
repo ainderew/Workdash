@@ -99,6 +99,24 @@ export function selectSnapshotByCheckId(
   return null;
 }
 
+/** Selector: the unresolved check the local user takes part in (as invoker or
+ *  target), or null. Drives the summoning ritual — unlike `activePromptCheckId`
+ *  this stays valid after the local user has responded, so they keep watching
+ *  the hearth fill until everyone locks in. */
+export function selectActiveParticipantCheck(
+  state: ReadyCheckStoreState,
+  localUserId: number | null | undefined,
+): ReadyCheckSnapshot | null {
+  if (!localUserId) return null;
+  for (const snapshot of Object.values(state.currentCheckByChannelId)) {
+    if (snapshot.resolved) continue;
+    const isInvoker = snapshot.invokerUserId === localUserId;
+    const isTarget = snapshot.targets.some((t) => t.userId === localUserId);
+    if (isInvoker || isTarget) return snapshot;
+  }
+  return null;
+}
+
 /** Selector: is the local user a pending target for the given checkId? */
 export function selectIsLocalUserPending(
   state: ReadyCheckStoreState,

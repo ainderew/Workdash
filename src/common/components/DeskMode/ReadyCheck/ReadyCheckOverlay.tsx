@@ -1,135 +1,159 @@
-import React, { useEffect, useRef } from "react";
-import { Phone } from "lucide-react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import useReadyCheckStore, {
+    selectActiveParticipantCheck,
     selectSnapshotByCheckId,
 } from "@/common/store/readyCheckStore";
 import useUserStore from "@/common/store/useStore";
-import { Button } from "@/components/ui/button";
+import useChatV2Store from "@/common/store/chatV2Store";
 import { ReadyCheckClientService } from "@/communication/readyCheck/readyCheckService";
+import { playLockedInChime } from "@/communication/readyCheck/readyCheckSound";
 import { useReadyCheckCountdown } from "./useReadyCheckCountdown";
+import SummoningStage from "./SummoningStage";
+import type { RitualPhase } from "./_ritual";
+import type { ChatV2CharacterCustomization } from "@/communication/chatV2/_types";
 
+/**
+ * Drives the ready-check "summoning ritual". Unlike the old modal, the overlay
+ * stays mounted for every participant (invoker or target) through the whole
+ * fill, so each person watches the hearth light up seat by seat and sees the
+ * locked-in climax — then it auto-dismisses.
+ */
 function ReadyCheckOverlay() {
-    const activePromptCheckId = useReadyCheckStore(
-        (s) => s.activePromptCheckId,
+    const localUserId = useUserStore((s) => s.backendUser?.id);
+
+    const candidate = useReadyCheckStore((s) =>
+        selectActiveParticipantCheck(s, localUserId),
     );
+
+    const [engagedId, setEngagedId] = useState<string | null>(null);
+    const [phase, setPhase] = useState<RitualPhase>("gathering");
+    const dismissedRef = useRef<Set<string>>(new Set());
+    const wrapperRef = useRef<HTMLDivElement>(null);
+
     const snapshot = useReadyCheckStore((s) =>
-        selectSnapshotByCheckId(s, activePromptCheckId),
+        selectSnapshotByCheckId(s, engagedId),
     );
     const localResponse = useReadyCheckStore((s) =>
-        activePromptCheckId
-            ? s.localResponseByCheckId[activePromptCheckId]
-            : undefined,
+        engagedId ? s.localResponseByCheckId[engagedId] : undefined,
     );
-    const localUserId = useUserStore((s) => s.backendUser?.id);
-    const remaining = useReadyCheckCountdown(snapshot?.expiresAt ?? null);
+    const members = useChatV2Store((s) =>
+        snapshot ? s.membersByRoomId[snapshot.channelId] : undefined,
+    );
 
-    const readyButtonRef = useRef<HTMLButtonElement>(null);
-    const notReadyButtonRef = useRef<HTMLButtonElement>(null);
+    const remaining = useReadyCheckCountdown(
+        snapshot && !snapshot.resolved ? snapshot.expiresAt : null,
+    );
 
-    // Auto-focus the Ready button when the prompt opens
+    const closeRitual = () => {
+        if (engagedId) dismissedRef.current.add(engagedId);
+        setEngagedId(null);
+        setPhase("gathering");
+    };
+
+    // Engage when a fresh check the local user takes part in appears.
     useEffect(() => {
-        if (activePromptCheckId) {
-            readyButtonRef.current?.focus();
+        const id = candidate?.checkId;
+        if (id && id !== engagedId && !dismissedRef.current.has(id)) {
+            setEngagedId(id);
+            setPhase("gathering");
         }
-    }, [activePromptCheckId]);
+    }, [candidate?.checkId, engagedId]);
 
-    if (!activePromptCheckId || !snapshot || snapshot.resolved) return null;
+    // Resolution → ignite (all in) or fade (timeout/cancel), then auto-close.
+    useEffect(() => {
+        if (!snapshot?.resolved || phase !== "gathering") return;
+        if (snapshot.resolvedReason === "all-responded") {
+            setPhase("igniting");
+            playLockedInChime();
+            const t = setTimeout(closeRitual, 2400);
+            return () => clearTimeout(t);
+        }
+        setPhase("exiting");
+        const t = setTimeout(closeRitual, 1100);
+        return () => clearTimeout(t);
+    }, [snapshot, phase]);
 
-    const localTarget = snapshot.targets.find((t) => t.userId === localUserId);
-    if (!localTarget || localTarget.state !== "pending") return null;
+    // Focus the primary action when the ritual opens.
+    useEffect(() => {
+        if (!engagedId) return;
+        const el = wrapperRef.current?.querySelector<HTMLButtonElement>(
+            "[data-autofocus]",
+        );
+        el?.focus();
+    }, [engagedId]);
+
+    const avatarById = useMemo(() => {
+        const map = new Map<
+            number,
+            {
+                image?: string | null;
+                characterCustomization?: ChatV2CharacterCustomization | null;
+            }
+        >();
+        members?.forEach((m) =>
+            map.set(m.userId, {
+                image: m.user.image,
+                characterCustomization: m.user.characterCustomization,
+            }),
+        );
+        return map;
+    }, [members]);
+
+    const localTarget = snapshot?.targets.find((t) => t.userId === localUserId);
+    const isPendingLocal =
+        localTarget?.state === "pending" &&
+        !snapshot?.resolved &&
+        localResponse === undefined;
 
     const handleRespond = (ready: boolean) => {
-        void ReadyCheckClientService.getInstance().respond(
-            snapshot.checkId,
-            ready,
-        );
+        if (!snapshot) return;
+        void ReadyCheckClientService.getInstance().respond(snapshot.checkId, ready);
+    };
+    const handleCancel = () => {
+        if (!snapshot) return;
+        void ReadyCheckClientService.getInstance().cancel(snapshot.checkId);
     };
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
         if (e.key === "Escape") {
             e.preventDefault();
-            handleRespond(false);
-            return;
-        }
-        if (e.key === "Tab") {
-            const active = document.activeElement;
-            if (e.shiftKey) {
-                if (active === readyButtonRef.current) {
-                    e.preventDefault();
-                    notReadyButtonRef.current?.focus();
-                }
-            } else {
-                if (active === notReadyButtonRef.current) {
-                    e.preventDefault();
-                    readyButtonRef.current?.focus();
-                }
-            }
+            if (isPendingLocal) handleRespond(false);
+            else closeRitual();
         }
     };
 
-    const disabled = localResponse !== undefined;
-
+    // AnimatePresence stays mounted so the backdrop can fade out on close.
     return (
-        <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="ready-check-title"
-            onKeyDown={handleKeyDown}
-            className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm motion-safe:animate-in motion-safe:fade-in-0"
-        >
-            <div className="w-[360px] rounded-2xl wd-bg-panel wd-border-strong border shadow-[0_20px_60px_rgba(0,0,0,0.5)] p-6">
-                <div className="flex items-center gap-3 mb-2">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--wd-success)] motion-safe:animate-pulse">
-                        <Phone size={18} className="text-white" />
-                    </div>
-                    <div className="flex-1">
-                        <h2
-                            id="ready-check-title"
-                            className="text-base font-semibold wd-text-primary"
-                        >
-                            Ready Check
-                        </h2>
-                        <p className="text-xs wd-text-muted">
-                            {snapshot.invokerDisplayName} is asking
-                        </p>
-                    </div>
-                    <span
-                        className="text-xs font-mono wd-text-muted tabular-nums"
-                        aria-label={`${remaining} seconds remaining`}
-                    >
-                        {remaining}s
-                    </span>
-                </div>
-
-                <p className="text-sm wd-text-secondary mb-5">Are you ready?</p>
-
-                <div className="flex gap-2">
-                    <Button
-                        ref={readyButtonRef}
-                        type="button"
-                        onClick={() => handleRespond(true)}
-                        disabled={disabled}
-                        className="flex-1 bg-[var(--wd-success)] hover:bg-[var(--wd-success)]/90 text-white"
-                    >
-                        Ready
-                    </Button>
-                    <Button
-                        ref={notReadyButtonRef}
-                        type="button"
-                        variant="outline"
-                        onClick={() => handleRespond(false)}
-                        disabled={disabled}
-                        className="flex-1 border-[var(--wd-danger)] text-[var(--wd-danger)] hover:bg-[var(--wd-danger)]/10"
-                    >
-                        Not Ready
-                    </Button>
-                </div>
-
-                <p className="text-[10px] wd-text-muted mt-4 text-center">
-                    Auto-resolves to Not Ready when the timer ends.
-                </p>
-            </div>
-        </div>
+        <AnimatePresence>
+            {engagedId && snapshot && (
+                <motion.div
+                    key="ready-check-ritual"
+                    ref={wrapperRef}
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="ready-check-title"
+                    onKeyDown={handleKeyDown}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.25 }}
+                    className="wd-summon-backdrop fixed inset-0 z-[200] flex items-center justify-center backdrop-blur-md"
+                >
+                    <SummoningStage
+                        snapshot={snapshot}
+                        localUserId={localUserId}
+                        avatarById={avatarById}
+                        phase={phase}
+                        remaining={remaining}
+                        hasLocalResponse={localResponse !== undefined}
+                        onRespond={handleRespond}
+                        onCancel={handleCancel}
+                        onDismiss={closeRitual}
+                    />
+                </motion.div>
+            )}
+        </AnimatePresence>
     );
 }
 

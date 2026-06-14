@@ -5,28 +5,15 @@ import useUserStore from "@/common/store/useStore";
 import useChatV2Store from "@/common/store/chatV2Store";
 import { ReadyCheckEvents } from "@/types/readyCheckEvents";
 import { logger } from "@/common/utils/logger";
+import { playSummonChime } from "./readyCheckSound";
 import type {
   ReadyCheckPromptPayload,
   ReadyCheckSnapshot,
 } from "./_types";
 
-// TODO: replace with a dedicated ready-check.mp3 chime when the asset ships
-const PROMPT_SOUND_PATH = "/assets/sounds/notification.mp3";
-
-function prefersReducedMotion(): boolean {
-  if (typeof window === "undefined") return false;
-  return (
-    window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true
-  );
-}
-
 function playPromptSound(): void {
   try {
-    if (prefersReducedMotion()) return;
-    const audio = new Audio(PROMPT_SOUND_PATH);
-    audio.play().catch(() => {
-      // Browser autoplay policy may reject without user gesture — non-critical
-    });
+    playSummonChime();
   } catch {
     // ignore — sound is non-critical
   }
