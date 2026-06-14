@@ -1017,3 +1017,65 @@ describe('selectDmCallSummary', () => {
     });
   });
 });
+
+// ---------------------------------------------------------------------------
+// Presenter / stage mode
+// ---------------------------------------------------------------------------
+
+describe('presenter / stage', () => {
+  it('setPresenter sets the presenter and resets a prior opt-out', () => {
+    const store = useCallStore.getState();
+    store.setStageOptOut(true);
+    store.setPresenter({ userId: 7, source: 'screen' });
+    expect(useCallStore.getState().presenter).toEqual({ userId: 7, source: 'screen' });
+    // A fresh "take stage" re-engages everyone (clears the local opt-out)
+    expect(useCallStore.getState().stageOptOut).toBe(false);
+  });
+
+  it('setStageOptOut toggles the local-only escape', () => {
+    useCallStore.getState().setStageOptOut(true);
+    expect(useCallStore.getState().stageOptOut).toBe(true);
+    useCallStore.getState().setStageOptOut(false);
+    expect(useCallStore.getState().stageOptOut).toBe(false);
+  });
+
+  it('clears the presenter when that participant leaves', () => {
+    const store = useCallStore.getState();
+    store.handleCallStarted(makeCall('ch-1', [makeParticipant(1), makeParticipant(2)]));
+    store.setPresenter({ userId: 2, source: 'camera' });
+    store.handleParticipantLeft('ch-1', 2);
+    expect(useCallStore.getState().presenter).toBeNull();
+  });
+
+  it('keeps the presenter when a different participant leaves', () => {
+    const store = useCallStore.getState();
+    store.handleCallStarted(makeCall('ch-1', [makeParticipant(1), makeParticipant(2)]));
+    store.setPresenter({ userId: 1, source: 'camera' });
+    store.handleParticipantLeft('ch-1', 2);
+    expect(useCallStore.getState().presenter).toEqual({ userId: 1, source: 'camera' });
+  });
+
+  it('drops a screen presenter when they stop sharing', () => {
+    const store = useCallStore.getState();
+    store.handleCallStarted(makeCall('ch-1', [makeParticipant(1, { screen: true })]));
+    store.setPresenter({ userId: 1, source: 'screen' });
+    store.handleMediaChanged('ch-1', 1, { audio: false, video: false, screen: false });
+    expect(useCallStore.getState().presenter).toBeNull();
+  });
+
+  it('keeps a camera presenter when their screen state changes', () => {
+    const store = useCallStore.getState();
+    store.handleCallStarted(makeCall('ch-1', [makeParticipant(1)]));
+    store.setPresenter({ userId: 1, source: 'camera' });
+    store.handleMediaChanged('ch-1', 1, { audio: false, video: true, screen: false });
+    expect(useCallStore.getState().presenter).toEqual({ userId: 1, source: 'camera' });
+  });
+
+  it('clears the presenter when the current call is left', () => {
+    const store = useCallStore.getState();
+    store.setCurrentCall('ch-1');
+    store.setPresenter({ userId: 1, source: 'camera' });
+    store.setCurrentCall(null);
+    expect(useCallStore.getState().presenter).toBeNull();
+  });
+});

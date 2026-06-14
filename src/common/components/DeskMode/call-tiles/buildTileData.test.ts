@@ -1,4 +1,4 @@
-import { buildTileData, tileKey } from './buildTileData';
+import { buildTileData, tileKey, resolveFocusedKey } from './buildTileData';
 import type { CallParticipant, CallParticipantMedia } from '@/common/store/callStore';
 
 // ---------------------------------------------------------------------------
@@ -163,5 +163,43 @@ describe('buildTileData with raisedHands', () => {
     const tiles = buildTileData(participants, 99, new Set([1, 2, 3]));
     const keys = tiles.map((t) => t.key);
     expect(keys).toEqual(['1', '2', '3', '3-screen']);
+  });
+});
+
+describe('resolveFocusedKey', () => {
+  it('returns the pin key (not a stage) when there is no presenter', () => {
+    expect(resolveFocusedKey(null, false, '5')).toEqual({ key: '5', isStage: false });
+  });
+
+  it('returns null when there is neither a presenter nor a pin', () => {
+    expect(resolveFocusedKey(null, false, null)).toEqual({ key: null, isStage: false });
+  });
+
+  it('a camera presenter focuses that user\'s camera tile and marks it a stage', () => {
+    expect(resolveFocusedKey({ userId: 7, source: 'camera' }, false, null)).toEqual({
+      key: '7',
+      isStage: true,
+    });
+  });
+
+  it('a screen presenter focuses that user\'s screen tile', () => {
+    expect(resolveFocusedKey({ userId: 7, source: 'screen' }, false, null)).toEqual({
+      key: '7-screen',
+      isStage: true,
+    });
+  });
+
+  it('the stage wins over a local pin', () => {
+    expect(resolveFocusedKey({ userId: 7, source: 'camera' }, false, '3')).toEqual({
+      key: '7',
+      isStage: true,
+    });
+  });
+
+  it('opting out of the stage falls back to the local pin', () => {
+    expect(resolveFocusedKey({ userId: 7, source: 'camera' }, true, '3')).toEqual({
+      key: '3',
+      isStage: false,
+    });
   });
 });

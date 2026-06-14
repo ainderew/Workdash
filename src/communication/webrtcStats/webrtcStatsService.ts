@@ -1,6 +1,10 @@
 import { MediaTransportService } from '../mediaTransportService/mediaTransportService';
 import useCallStore from '@/common/store/callStore';
 import type { ConnectionQuality, StatsSnapshot } from '@/common/store/callStore';
+import {
+  startScreenLayerController,
+  stopScreenLayerController,
+} from '@/communication/screenShare/screenLayerController';
 
 const POLL_INTERVAL_MS = 2_000;
 const QUALITY_HOLD_MS = 4_000;
@@ -29,6 +33,10 @@ export class WebrtcStatsService {
     // Fix #4: guard on unsubscribe to prevent leaked subscriptions
     if (this.unsubscribe) return;
 
+    // Screen-share quality boost reacts to focus/quality changes via its own
+    // callStore subscription; share this service's start/stop lifecycle.
+    startScreenLayerController();
+
     // Watch callStore — only react to currentCall changes (not quality/stats updates)
     let prevInCall = !!useCallStore.getState().currentCall;
     this.unsubscribe = useCallStore.subscribe((state) => {
@@ -52,6 +60,7 @@ export class WebrtcStatsService {
     this.stopPolling();
     this.unsubscribe?.();
     this.unsubscribe = null;
+    stopScreenLayerController();
   }
 
   private startPolling(): void {

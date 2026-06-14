@@ -4,6 +4,7 @@ import type {
   CallParticipant,
   CallParticipantMedia,
   CallPresence,
+  CallPresenter,
   MiniCallState,
 } from "@/common/store/callStore";
 import { AudioChat } from "@/communication/audioChat/audioChat";
@@ -208,6 +209,21 @@ export class CallSignalingService {
     );
 
     this.socket.on(
+      CallEvents.PRESENTER_CHANGED,
+      ({
+        channelId,
+        presenter,
+      }: {
+        channelId: string;
+        presenter: CallPresenter | null;
+      }) => {
+        // Only reflect presenter changes for the call we're actually in.
+        if (store().currentCall?.channelId !== channelId) return;
+        store().setPresenter(presenter);
+      },
+    );
+
+    this.socket.on(
       CallEvents.OWNERSHIP_CHANGED,
       async (data: {
         channelId: string;
@@ -228,6 +244,12 @@ export class CallSignalingService {
               logger.error("Failed to set up media after ownership change:", err);
             }
             this.loadCallProducers();
+            // Sync the current stage to this freshly-owning tab.
+            void this.getCallState(data.channelId).then((call) => {
+              if (store().currentCall?.channelId === data.channelId) {
+                store().setPresenter(call?.presenter ?? null);
+              }
+            });
           }
           broadcastCallOwnership("call-claimed", data.channelId);
         } else {
@@ -284,6 +306,7 @@ export class CallSignalingService {
     this.socket.off(CallEvents.PARTICIPANT_JOINED);
     this.socket.off(CallEvents.PARTICIPANT_LEFT);
     this.socket.off(CallEvents.MEDIA_CHANGED);
+    this.socket.off(CallEvents.PRESENTER_CHANGED);
     this.socket.off(CallEvents.OWNERSHIP_CHANGED);
     this.socket.off(CallEvents.OWNERSHIP_LOST);
     this.socket.off(CallEvents.OWNERSHIP_CLEARED);
@@ -473,6 +496,8 @@ export class CallSignalingService {
           logger.error("Failed to acquire mic when joining call:", err);
         }
         this.loadCallProducers();
+        // Land on the stage immediately if a presenter is already set.
+        useCallStore.getState().setPresenter(res.call?.presenter ?? null);
         resolve(res.call ?? null);
       });
     }).finally(() => {
@@ -537,6 +562,24 @@ export class CallSignalingService {
       CallEvents.SET_MEDIA,
       { channelId, media },
       () => {},
+    );
+  }
+
+  /**
+   * Take or release the synced stage. `presenter: null` clears it (back to grid
+   * for everyone). The server validates and broadcasts PRESENTER_CHANGED, which
+   * updates every client (including this one), so we don't optimistically set
+   * local state here — the round-trip is what keeps everyone in sync.
+   */
+  setPresenter(channelId: string, presenter: CallPresenter | null): void {
+    this.socket.emit(
+      CallEvents.SET_PRESENTER,
+      { channelId, presenter },
+      (res: AckResponse) => {
+        if (res?.error) {
+          logger.warn("setPresenter failed:", res.error);
+        }
+      },
     );
   }
 

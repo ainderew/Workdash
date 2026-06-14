@@ -5,7 +5,7 @@ import useCallReactionStore from '@/common/store/callReactionStore';
 import CallParticipantTile from '../CallParticipantTile';
 import ScreenShareTile from '../ScreenShareTile';
 import CallAvatar from '../CallAvatar';
-import { buildTileData, type TileData } from './buildTileData';
+import { buildTileData, resolveFocusedKey, type TileData } from './buildTileData';
 
 interface FloatingTileGridProps {
   participants: CallParticipant[];
@@ -57,18 +57,23 @@ export default function FloatingTileGrid({
 }: FloatingTileGridProps) {
   const pinnedTileKey = useCallStore((s) => s.pinnedTileKey);
   const setPinnedTileKey = useCallStore((s) => s.setPinnedTileKey);
+  const presenter = useCallStore((s) => s.presenter);
+  const stageOptOut = useCallStore((s) => s.stageOptOut);
 
   const togglePin = (key: string) =>
     setPinnedTileKey(pinnedTileKey === key ? null : key);
 
   const raisedHands = useCallReactionStore((s) => s.raisedHands);
   const allTiles = buildTileData(participants, localUserId, raisedHands);
-  const pinnedTile = pinnedTileKey
-    ? allTiles.find((t) => t.key === pinnedTileKey)
+
+  // Stage presenter wins over a local pin for the big slot.
+  const { key: focusedKey } = resolveFocusedKey(presenter, stageOptOut, pinnedTileKey);
+  const focusedTile = focusedKey
+    ? allTiles.find((t) => t.key === focusedKey)
     : null;
 
-  if (pinnedTile) {
-    const others = allTiles.filter((t) => t.key !== pinnedTileKey);
+  if (focusedTile) {
+    const others = allTiles.filter((t) => t.key !== focusedTile.key);
     const visibleOthers = fillHeight ? others : others.slice(0, 3);
     const hiddenCount = fillHeight ? 0 : others.length - visibleOthers.length;
     return (
@@ -80,11 +85,11 @@ export default function FloatingTileGrid({
         }}
       >
         <div className="flex-1 min-h-0 overflow-hidden">
-          {renderTile(pinnedTile, channelId, pinnedTileKey, togglePin, fillHeight)}
+          {renderTile(focusedTile, channelId, focusedTile.key, togglePin, fillHeight)}
         </div>
         {others.length > 0 && (
           <div className={`flex gap-1 shrink-0 overflow-hidden ${fillHeight ? 'gap-3 h-20' : 'h-12'}`}>
-            {visibleOthers.map((t) => renderTile(t, channelId, pinnedTileKey, togglePin, fillHeight))}
+            {visibleOthers.map((t) => renderTile(t, channelId, focusedTile.key, togglePin, fillHeight))}
             {hiddenCount > 0 && (
               <div className="flex items-center justify-center rounded-lg wd-bg-elevated px-1">
                 <span className="text-[10px] wd-text-muted">

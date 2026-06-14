@@ -52,13 +52,26 @@ export class ScreenShareService {
             this.currentStream = stream;
             const videoTrack = stream.getVideoTracks()[0];
 
+            // Bias the encoder toward spatial detail (crisp text/UI) over
+            // smooth framerate — screen content is mostly static.
+            if ("contentHint" in videoTrack) {
+                (videoTrack as MediaStreamTrack & { contentHint: string }).contentHint =
+                    "detail";
+            }
+
             assertTransportReady(this.sfuService.sendTransport, "Send");
+            // Two-layer simulcast so viewers can pull a cheap thumbnail layer
+            // (spatial 0) or the full-res layer (spatial 1) on demand. The
+            // focused/staged screen requests high; thumbnails request low.
+            // See screenLayerController.ts. Capped at 2 layers to bound the
+            // sharer's encode cost.
             this.screenProducer = await this.sfuService.sendTransport.produce({
                 track: videoTrack,
                 encodings: [
-                    { maxBitrate: 5_000_000, maxFramerate: 30 },
+                    { rid: "low", scaleResolutionDownBy: 2, maxBitrate: 600_000, maxFramerate: 30 },
+                    { rid: "high", scaleResolutionDownBy: 1, maxBitrate: 5_000_000, maxFramerate: 30 },
                 ],
-                codecOptions: { videoGoogleStartBitrate: 1500 },
+                codecOptions: { videoGoogleStartBitrate: 1000 },
                 appData: {
                     source: "screen",
                 },

@@ -1,4 +1,4 @@
-import type { CallParticipant } from '@/common/store/callStore';
+import type { CallParticipant, CallPresenter } from '@/common/store/callStore';
 
 export interface TileData {
   key: string;
@@ -9,6 +9,24 @@ export interface TileData {
 
 export function tileKey(userId: number, screen?: boolean): string {
   return screen ? `${userId}-screen` : String(userId);
+}
+
+/**
+ * Which tile occupies the big "focus" slot. A synced stage presenter wins over
+ * a local pin; if this viewer opted out of the stage, fall back to their pin.
+ */
+export function resolveFocusedKey(
+  presenter: CallPresenter | null,
+  stageOptOut: boolean,
+  pinnedTileKey: string | null,
+): { key: string | null; isStage: boolean } {
+  if (presenter && !stageOptOut) {
+    return {
+      key: tileKey(presenter.userId, presenter.source === 'screen'),
+      isStage: true,
+    };
+  }
+  return { key: pinnedTileKey, isStage: false };
 }
 
 /**

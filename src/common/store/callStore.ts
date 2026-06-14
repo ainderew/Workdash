@@ -20,11 +20,19 @@ export interface CallParticipant {
 
 export type CallOwnershipStatus = "owner" | "passive" | "rejoin-available";
 
+/** Who is "on stage" in a synced presenter-mode call, and which of their streams. */
+export interface CallPresenter {
+  userId: number;
+  source: "camera" | "screen";
+}
+
 export interface CallPresence {
   channelId: string;
   type: "audio" | "video";
   startedAt: string;
   participants: CallParticipant[];
+  /** Current synced presenter (null/absent = grid mode). */
+  presenter?: CallPresenter | null;
 }
 
 /**
@@ -123,6 +131,19 @@ interface CallState {
   /** Whether fullscreen was auto-triggered by a remote screen share (so we can auto-exit) */
   screenShareAutoFullscreen: boolean;
 
+  /**
+   * Current synced presenter for the active call (null = grid mode).
+   * Server-authoritative — set from GET_STATE on join and PRESENTER_CHANGED events.
+   */
+  presenter: CallPresenter | null;
+
+  /**
+   * Local per-viewer opt-out from stage layout. When a presenter is set, this
+   * viewer falls back to grid without affecting anyone else. Reset whenever the
+   * presenter changes so a new "take stage" re-engages everyone.
+   */
+  stageOptOut: boolean;
+
   /** WebRTC connection quality indicator */
   connectionQuality: ConnectionQuality;
 
@@ -201,6 +222,10 @@ interface CallState {
   setPinnedTileKey: (key: string | null) => void;
   setScreenShareAutoFullscreen: (value: boolean) => void;
 
+  // Presenter / stage actions
+  setPresenter: (presenter: CallPresenter | null) => void;
+  setStageOptOut: (value: boolean) => void;
+
   setCallOwnershipStatus: (channelId: string, status: CallOwnershipStatus) => void;
   setCurrentCallAsOwner: (channelId: string) => void;
   clearCallOwnership: () => void;
@@ -237,6 +262,8 @@ const useCallStore = create<CallState>((set) => ({
   channelContentRect: null,
   pinnedTileKey: null,
   screenShareAutoFullscreen: false,
+  presenter: null,
+  stageOptOut: false,
   connectionQuality: 'unknown' satisfies ConnectionQuality,
   statsSnapshot: null,
   isCallOwner: false,
@@ -263,6 +290,8 @@ const useCallStore = create<CallState>((set) => ({
         localMedia: wasInCall ? { ...initialLocalMedia } : state.localMedia,
         pinnedTileKey: wasInCall ? null : state.pinnedTileKey,
         screenShareAutoFullscreen: wasInCall ? false : state.screenShareAutoFullscreen,
+        presenter: wasInCall ? null : state.presenter,
+        stageOptOut: wasInCall ? false : state.stageOptOut,
         ...(clearOwnership && {
           callOwnershipStatus: null,
           isCallOwner: false,
@@ -351,6 +380,9 @@ const useCallStore = create<CallState>((set) => ({
         floatingWindowState: nextFloatingWindowState,
         manualFloating: nextManualFloating,
         screenShareAutoFullscreen: nextScreenShareAutoFullscreen,
+        // Drop the stage if the presenter is the one leaving
+        presenter: state.presenter?.userId === userId ? null : state.presenter,
+        stageOptOut: state.presenter?.userId === userId ? false : state.stageOptOut,
       };
     });
   },
@@ -391,6 +423,14 @@ const useCallStore = create<CallState>((set) => ({
         nextScreenShareAutoFullscreen = true;
       }
 
+      // Drop the stage if the screen-presenter stopped sharing (server also
+      // broadcasts this; clearing here avoids a blank stage for a round-trip).
+      const presenterScreenGone =
+        state.presenter?.source === 'screen' &&
+        state.presenter.userId === userId &&
+        !media.screen;
+      const nextPresenter = presenterScreenGone ? null : state.presenter;
+
       return {
         activeCallsByChannel: {
           ...state.activeCallsByChannel,
@@ -405,6 +445,8 @@ const useCallStore = create<CallState>((set) => ({
         floatingWindowState: nextFloatingWindowState,
         manualFloating: nextManualFloating,
         screenShareAutoFullscreen: nextScreenShareAutoFullscreen,
+        presenter: nextPresenter,
+        stageOptOut: presenterScreenGone ? false : state.stageOptOut,
       };
     }),
 
@@ -541,6 +583,8 @@ const useCallStore = create<CallState>((set) => ({
         callOwnershipStatus: null,
         isCallOwner: false,
         ownershipChannelId: null,
+        presenter: null,
+        stageOptOut: false,
       }),
     })),
 
@@ -566,6 +610,14 @@ const useCallStore = create<CallState>((set) => ({
 
   setScreenShareAutoFullscreen: (value) =>
     set(() => ({ screenShareAutoFullscreen: value })),
+
+  setPresenter: (presenter) =>
+    // A presenter change always re-engages the stage for everyone (clears any
+    // local opt-out from a previous presenter).
+    set(() => ({ presenter, stageOptOut: false })),
+
+  setStageOptOut: (value) =>
+    set(() => ({ stageOptOut: value })),
 
   setCallOwnershipStatus: (channelId, status) =>
     set(() => ({
@@ -605,6 +657,8 @@ const useCallStore = create<CallState>((set) => ({
       producerToConsumerMap: {},
       pinnedTileKey: null,
       screenShareAutoFullscreen: false,
+      presenter: null,
+      stageOptOut: false,
       isCallOwner: false,
       callOwnershipStatus: null,
       ownershipChannelId: null,
@@ -627,6 +681,8 @@ const useCallStore = create<CallState>((set) => ({
       channelContentRect: null,
       pinnedTileKey: null,
       screenShareAutoFullscreen: false,
+      presenter: null,
+      stageOptOut: false,
       connectionQuality: 'unknown' satisfies ConnectionQuality,
       statsSnapshot: null,
       isCallOwner: false,

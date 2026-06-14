@@ -4,7 +4,8 @@ import useCallStore from '@/common/store/callStore';
 import useCallReactionStore from '@/common/store/callReactionStore';
 import CallParticipantTile from '../CallParticipantTile';
 import ScreenShareTile from '../ScreenShareTile';
-import { buildTileData, type TileData } from './buildTileData';
+import { buildTileData, resolveFocusedKey, type TileData } from './buildTileData';
+import StageBanner from './StageBanner';
 
 interface CallTileGridProps {
   participants: CallParticipant[];
@@ -49,43 +50,67 @@ export default function CallTileGrid({
   const surfaceClass = surface === 'panel' ? 'wd-bg-panel-2' : '';
   const pinnedTileKey = useCallStore((s) => s.pinnedTileKey);
   const setPinnedTileKey = useCallStore((s) => s.setPinnedTileKey);
+  const presenter = useCallStore((s) => s.presenter);
+  const stageOptOut = useCallStore((s) => s.stageOptOut);
+  const setStageOptOut = useCallStore((s) => s.setStageOptOut);
 
   const togglePin = (key: string) =>
     setPinnedTileKey(pinnedTileKey === key ? null : key);
 
   const raisedHands = useCallReactionStore((s) => s.raisedHands);
   const allTiles = buildTileData(participants, localUserId, raisedHands);
-  const pinnedTile = pinnedTileKey
-    ? allTiles.find((t) => t.key === pinnedTileKey)
+
+  // Stage presenter wins over a local pin; the focused key drives the big slot.
+  const { key: focusedKey } = resolveFocusedKey(presenter, stageOptOut, pinnedTileKey);
+  const focusedTile = focusedKey
+    ? allTiles.find((t) => t.key === focusedKey)
     : null;
-  const otherTiles = pinnedTile
-    ? allTiles.filter((t) => t.key !== pinnedTileKey)
+  const otherTiles = focusedTile
+    ? allTiles.filter((t) => t.key !== focusedTile.key)
     : allTiles;
 
-  if (pinnedTile) {
+  const presenterName = presenter
+    ? participants.find((p) => p.userId === presenter.userId)?.displayName ?? 'Someone'
+    : null;
+
+  const banner = presenter ? (
+    <StageBanner
+      presenterName={presenterName ?? 'Someone'}
+      optedOut={stageOptOut}
+      onToggleOptOut={() => setStageOptOut(!stageOptOut)}
+    />
+  ) : null;
+
+  if (focusedTile) {
     return (
-      <div
-        className={`flex gap-2 p-3 ${surfaceClass} overflow-hidden`}
-        style={{ height }}
-      >
-        <div className="flex-1 min-w-0 h-full flex items-center justify-center">
-          {renderTile(pinnedTile, channelId, pinnedTileKey, togglePin)}
-        </div>
-        {otherTiles.length > 0 && (
-          <div className="flex flex-col gap-1.5 h-full overflow-y-auto" style={{ width: 100 }}>
-            {otherTiles.map((t) => renderTile(t, channelId, pinnedTileKey, togglePin))}
+      <div className="flex flex-col">
+        {banner}
+        <div
+          className={`flex gap-2 p-3 ${surfaceClass} overflow-hidden`}
+          style={{ height }}
+        >
+          <div className="flex-1 min-w-0 h-full flex items-center justify-center">
+            {renderTile(focusedTile, channelId, focusedTile.key, togglePin)}
           </div>
-        )}
+          {otherTiles.length > 0 && (
+            <div className="flex flex-col gap-1.5 h-full overflow-y-auto" style={{ width: 100 }}>
+              {otherTiles.map((t) => renderTile(t, channelId, focusedTile.key, togglePin))}
+            </div>
+          )}
+        </div>
       </div>
     );
   }
 
   return (
-    <div
-      className={`flex items-center justify-center gap-2 p-3 ${surfaceClass} overflow-hidden`}
-      style={{ height }}
-    >
-      {allTiles.map((t) => renderTile(t, channelId, pinnedTileKey, togglePin))}
+    <div className="flex flex-col">
+      {banner}
+      <div
+        className={`flex items-center justify-center gap-2 p-3 ${surfaceClass} overflow-hidden`}
+        style={{ height }}
+      >
+        {allTiles.map((t) => renderTile(t, channelId, pinnedTileKey, togglePin))}
+      </div>
     </div>
   );
 }

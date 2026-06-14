@@ -43,6 +43,10 @@ vi.mock('./NoiseCancelToggle', () => ({
   default: () => null,
 }));
 
+vi.mock('./StageButton', () => ({
+  default: () => null,
+}));
+
 vi.mock('@/common/components/Soundboard/SoundboardButton', () => ({
   default: () => null,
 }));

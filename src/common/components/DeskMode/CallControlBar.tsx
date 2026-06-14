@@ -9,6 +9,7 @@ import VideoSplitButton from './VideoSplitButton';
 import DisplayModeSplitButton from './DisplayModeSplitButton';
 import type { DisplayModeSplitButtonProps } from './DisplayModeSplitButton';
 import NoiseCancelToggle from './NoiseCancelToggle';
+import StageButton from './StageButton';
 import SoundboardButton from '@/common/components/Soundboard/SoundboardButton';
 import ReactionPickerFlyout from './ReactionPickerFlyout';
 import { useCallReaction } from './hooks/useCallReaction';
@@ -223,6 +224,7 @@ export default function CallControlBar({
           {noiseToggle}
           {videoButton}
           {screenShareButton}
+          <StageButton size={size} />
         </div>
         <GroupSeparator />
         <div className="flex items-center gap-2.5">
@@ -251,6 +253,7 @@ export default function CallControlBar({
       {noiseToggle}
       {videoButton}
       {screenShareButton}
+      <StageButton size={size} />
       <SoundboardButton />
       {reactionButton}
       {raiseHandButton}

@@ -265,6 +265,8 @@ export class ScreenShareViewer {
 
             if (consumerData.kind === "video") {
                 this.displayVideo(producerId, consumer);
+                // Quality layer is driven by the rendered tile size via
+                // screenLayerController (ScreenShareTile reports its width).
             }
         } catch (error) {
             if (attempt < ScreenShareViewer.CONSUME_MAX_RETRIES) {

@@ -1,10 +1,15 @@
-import React, { useRef, useEffect, useCallback, useState } from 'react';
-import { Monitor, Pin, PinOff } from 'lucide-react';
+import React, { useRef, useEffect, useCallback, useState, useId } from 'react';
+import { Monitor, Pin, PinOff, AlertTriangle } from 'lucide-react';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { ScreenShareLoadingIndicator } from '@/common/components/ScreenShare/ScreenShareLoadingIndicator';
 import type { CallParticipant } from '@/common/store/callStore';
 import useCallStore from '@/common/store/callStore';
 import { ScreenShareViewer } from '@/communication/screenShare/screenShareViewer';
 import { ScreenShareService } from '@/communication/screenShare/screenShare';
+import {
+  reportScreenTileSize,
+  clearScreenTileSize,
+} from '@/communication/screenShare/screenLayerController';
 
 interface ScreenShareTileProps {
   participant: CallParticipant;
@@ -22,8 +27,10 @@ export default function ScreenShareTile({
   onTogglePin,
   fillCell,
 }: ScreenShareTileProps) {
+  const rootRef = useRef<HTMLDivElement>(null);
   const videoContainerRef = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const tileId = useId();
 
   // Targeted selector: only re-renders when THIS participant's producerId changes
   const producerId = useCallStore(
@@ -35,6 +42,29 @@ export default function ScreenShareTile({
       [participant.userId],
     ),
   );
+
+  // A weak link is what caps screen quality — surface that so a blurry screen
+  // reads as "my internet" rather than "the app is broken".
+  const connectionQuality = useCallStore((s) => s.connectionQuality);
+  const isConnectionWeak = !isLocal && connectionQuality === 'poor';
+
+  // Report the rendered tile size so the SFU sends a layer that matches how big
+  // this screen actually appears — automatic quality, no pinning required.
+  useEffect(() => {
+    if (isLocal || !producerId) return;
+    const el = rootRef.current;
+    if (!el) return;
+    reportScreenTileSize(tileId, producerId, el.clientWidth);
+    const ro = new ResizeObserver((entries) => {
+      const width = entries[0]?.contentRect.width ?? el.clientWidth;
+      reportScreenTileSize(tileId, producerId, width);
+    });
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      clearScreenTileSize(tileId);
+    };
+  }, [isLocal, producerId, tileId]);
 
   // Local self-view effect — only depends on isLocal + participant identity
   useEffect(() => {
@@ -148,33 +178,57 @@ export default function ScreenShareTile({
 
   return (
     <div
+      ref={rootRef}
       className="relative overflow-hidden rounded-lg border wd-border-subtle h-full min-w-0 group/tile"
       style={{
         aspectRatio: fillCell ? 'auto' : '16 / 9',
         backgroundColor: 'var(--wd-surface-base)',
       }}
     >
-      {/* Pin button — top-right, visible on hover or when pinned */}
+      {/* Pin button — top-right. Makes this screen the big tile (which also
+          sharpens it automatically, since quality follows rendered size). */}
       {onTogglePin && (
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onTogglePin();
-          }}
-          className={`absolute top-1 right-1 z-10 inline-flex items-center justify-center h-6 w-6 rounded transition-opacity ${
-            isPinned
-              ? 'opacity-100 bg-[var(--wd-accent)]/80'
-              : 'opacity-0 group-hover/tile:opacity-100 bg-black/50 hover:bg-black/70'
-          }`}
-          title={isPinned ? 'Unpin' : 'Pin'}
-        >
-          {isPinned ? (
-            <PinOff size={12} className="text-white" />
-          ) : (
-            <Pin size={12} className="text-white" />
-          )}
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onTogglePin();
+              }}
+              aria-pressed={isPinned}
+              className={`absolute top-1 right-1 z-20 inline-flex items-center justify-center h-6 w-6 rounded transition-opacity ${
+                isPinned
+                  ? 'opacity-100 bg-[var(--wd-accent)]/80'
+                  : 'opacity-70 group-hover/tile:opacity-100 bg-black/50 hover:bg-black/70'
+              }`}
+            >
+              {isPinned ? (
+                <PinOff size={12} className="text-white" />
+              ) : (
+                <Pin size={12} className="text-white" />
+              )}
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="left" sideOffset={6}>
+            {isPinned ? 'Unpin' : 'Pin to enlarge'}
+          </TooltipContent>
+        </Tooltip>
+      )}
+
+      {/* Weak-connection warning — explains why a screen looks soft */}
+      {isConnectionWeak && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="absolute top-1 left-1 z-20 inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold bg-[var(--wd-warning)] text-[var(--wd-surface-base)] cursor-default">
+              <AlertTriangle size={10} />
+              Low quality
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="right" sideOffset={6}>
+            Your connection is weak — quality lowered to keep the call smooth
+          </TooltipContent>
+        </Tooltip>
       )}
 
       {/* Video container */}

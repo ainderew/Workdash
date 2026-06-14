@@ -11,6 +11,7 @@ export const CallEvents = {
   OWNERSHIP_CLEARED: "call:ownership-cleared",
   WORKSPACE_CALL_ACTIVE: "workspace:call:active",
   DM_CALL_ACTIVE: "dm:call:active",
+  PRESENTER_CHANGED: "call:presenter_changed",
 
   // RPC events (client → server with ack)
   START: "call:start",
@@ -18,6 +19,7 @@ export const CallEvents = {
   LEAVE: "call:leave",
   GET_STATE: "call:get-state",
   SET_MEDIA: "call:set-media",
+  SET_PRESENTER: "call:set-presenter",
   GET_ACTIVE: "call:get-active",
   GET_ACTIVE_FOR_WORKSPACES: "call:get-active-for-workspaces",
   TRANSFER_REQUEST: "call:transfer-request",

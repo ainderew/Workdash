@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import Image from 'next/image';
 import { Mic, MicOff, Video, Monitor, Pin, PinOff, HeadphoneOff } from 'lucide-react';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import useFocusStore from '@/common/store/focusStore';
 import useCallReactionStore from '@/common/store/callReactionStore';
 import type { CallParticipant } from '@/common/store/callStore';
@@ -168,27 +169,34 @@ export default function CallParticipantTile({
         backgroundColor: 'var(--wd-surface-panel)',
       }}
     >
-      {/* Pin button — top-right, visible on hover or when pinned */}
+      {/* Pin button — top-right. Spotlights this person as the big tile. */}
       {onTogglePin && (
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onTogglePin();
-          }}
-          className={`absolute top-1 right-1 z-10 inline-flex items-center justify-center h-6 w-6 rounded transition-opacity ${
-            isPinned
-              ? 'opacity-100 bg-[var(--wd-accent)]/80'
-              : 'opacity-0 group-hover/tile:opacity-100 bg-[var(--wd-surface-base)]/50 hover:bg-[var(--wd-surface-base)]/70'
-          }`}
-          title={isPinned ? 'Unpin' : 'Pin'}
-        >
-          {isPinned ? (
-            <PinOff size={12} className="text-white" />
-          ) : (
-            <Pin size={12} className="text-white" />
-          )}
-        </button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onTogglePin();
+              }}
+              aria-pressed={isPinned}
+              className={`absolute top-1 right-1 z-10 inline-flex items-center justify-center h-6 w-6 rounded transition-opacity ${
+                isPinned
+                  ? 'opacity-100 bg-[var(--wd-accent)]/80'
+                  : 'opacity-60 group-hover/tile:opacity-100 bg-[var(--wd-surface-base)]/50 hover:bg-[var(--wd-surface-base)]/70'
+              }`}
+            >
+              {isPinned ? (
+                <PinOff size={12} className="text-white" />
+              ) : (
+                <Pin size={12} className="text-white" />
+              )}
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="left" sideOffset={6}>
+            {isPinned ? 'Unpin' : 'Pin to spotlight'}
+          </TooltipContent>
+        </Tooltip>
       )}
 
       {/* Focus mode overlay + badge */}
