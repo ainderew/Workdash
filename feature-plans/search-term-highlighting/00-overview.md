@@ -13,7 +13,7 @@
   - **Search flow:** Query state is owned by `ChatPaneContainer.tsx` (`searchQuery` → debounced `debouncedSearchQuery`, min 2 chars). `chatV2Service.searchMessages(...)` returns `ChatV2Message[]` into `searchResults`, rendered by `DeskSearchResultsPanel.tsx`. Search can also run on `fromUser`/`room` filters with **no text query**.
   - **Jump-to-result:** Clicking a card → `onSelectSearchResult` → `selectRoom()` + `setFocusedMessageId()`. The main timeline already flashes the whole jumped-to row (`MessageRow.tsx:244` → `bg-[var(--wd-accent-soft)]`). We do **not** touch this.
 - **Related code:** `src/common/components/DeskMode/DeskSearchResultsPanel.tsx` (the only render surface we modify), `src/common/components/DeskMode/ChatPaneContainer.tsx` (owns the query, passes it down).
-- **Testing setup:** Vitest (`vitest.config.ts`, `globals: true`, `jsdom`, `setupFiles: ./src/tests/setup.ts` with `@testing-library/jest-dom`). Colocated `*.test.ts(x)`. **Zero tests exist under `src` today** — this feature adds the first. Tests run on Node 23 (`nvm use 23 && npm test`); build on Node 20.
+- **Testing setup:** Vitest (`vitest.config.ts`, `globals: true`, `jsdom`, `setupFiles: ./src/tests/setup.ts` with `@testing-library/jest-dom`). Colocated `*.test.ts(x)` is an established pattern — the repo has 100+ existing tests. Closest analogs to follow: `src/common/utils/linkParser.test.ts` (pure util) and `src/common/components/TextChat/UnifiedLinkPreview.test.tsx` (component render). Tests run on Node 23 (`nvm use 23 && npm test`); build on Node 20.
 - **Styling approach:** `--wd-*` CSS variables + `wd-*` utility classes. Lint (`npm run lint`) runs `scripts/theme-guardrails.cjs` which **forbids raw hex** in app scope. Existing token `--wd-accent-soft` (a low-alpha accent tint) is the highlight background.
 
 ## Feature Summary
@@ -74,7 +74,7 @@ export interface HighlightSegment {
 | 0 | `00-overview.md` | This document | Architecture, decisions, scope |
 | 1 | `01-phase-foundation.md` | Foundation | `highlightText.ts` pure util + `HighlightedText.tsx` component + `.wd-search-hl` style |
 | 2 | `02-phase-integration.md` | Integration | Wire `query` from `ChatPaneContainer` → `DeskSearchResultsPanel`; highlight body + sender + room |
-| 3 | `03-phase-polish-testing.md` | Polish & Testing | Edge cases, a11y, reduced-motion, and the first colocated Vitest suite |
+| 3 | `03-phase-polish-testing.md` | Polish & Testing | Edge cases, a11y, reduced-motion, and colocated Vitest suites (util + component + panel) |
 
 ## Out of Scope
 

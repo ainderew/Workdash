@@ -3,7 +3,7 @@
 > **Feature:** Search-Term Highlighting
 > **Phase:** 3 of 3
 > **Depends on:** `01-phase-foundation.md`, `02-phase-integration.md`
-> **Estimated scope:** Medium (single session, ~60 min — most of it is the first test suite in the repo)
+> **Estimated scope:** Medium (single session, ~60 min — most of it is the test suites)
 
 ## Context from Previous Phase
 
@@ -23,18 +23,19 @@ Highlighting works end-to-end in the search panel. What remains: prove the edge 
 - `vitest.config.ts` — `globals: true`, `environment: "jsdom"`, `include: ["src/**/*.test.ts", "src/**/*.test.tsx"]`, `setupFiles: ["./src/tests/setup.ts"]`, alias `@ → ./src`. **Tests run on Node 23** (`nvm use 23 && npm test`); the app **builds on Node 20** (`CLAUDE.md` "Build & Test").
 - `src/tests/setup.ts` — already imports `@testing-library/jest-dom` and stubs canvas. No extra setup needed.
 - `CLAUDE.md` "General Testing Rules" — query by role/accessible name; test the contract not the implementation; mock at module boundaries. `@testing-library/react` is installed.
+- **Existing test analogs to copy conventions from** (the repo has 100+ colocated tests already): `src/common/utils/linkParser.test.ts` (pure-util style, explicit `import { describe, expect, it } from 'vitest'`), `src/common/components/TextChat/UnifiedLinkPreview.test.tsx` (component render with `@testing-library/react`), `src/common/components/DeskMode/MemberPanel.test.tsx` (DeskMode panel render).
 - `src/common/components/DeskMode/DeskSearchResultsPanel.tsx` — for the render test you'll pass a small `messages: ChatV2Message[]` fixture, `roomsById`, and `query`. Check the imported types in that file's header for the exact shapes (`ChatV2Message`, `ChatV2Room`, `ChatV2MessageSearchSort`).
 
 ## Objective
 
-Turn a working feature into a robust, regression-protected one: handle the nasty inputs (regex-special queries, unicode, very long clamped content), verify the highlight is accessible and theme-correct, and establish the colocated test pattern the repo has been missing.
+Turn a working feature into a robust, regression-protected one: handle the nasty inputs (regex-special queries, unicode, very long clamped content), verify the highlight is accessible and theme-correct, and lock the behavior with colocated tests that follow the repo's existing Vitest conventions.
 
 ## Architecture Decisions
 
-### Decision: Establish colocated `*.test.ts(x)` as the repo's test pattern
+### Decision: Colocate `*.test.ts(x)` next to sources (matching existing convention)
 - **Choice:** Put `highlightText.test.ts` and `HighlightedText.test.tsx` next to their sources; `DeskSearchResultsPanel.test.tsx` next to the panel.
 - **Alternatives considered:** A separate `__tests__/` tree.
-- **Rationale:** `vitest.config.ts` already globs `src/**/*.test.ts(x)`; colocation matches `CLAUDE.md` ("Tests: colocated alongside source").
+- **Rationale:** `vitest.config.ts` already globs `src/**/*.test.ts(x)` and the repo's 100+ existing tests are colocated; matches `CLAUDE.md` ("Tests: colocated alongside source").
 - **Tradeoff:** None.
 
 ### Decision: Unit-test the logic heavily, render-test the UI lightly
@@ -89,7 +90,7 @@ Turn a working feature into a robust, regression-protected one: handle the nasty
 
 ### Step 4: Write the utility unit tests
 
-**What:** Exhaustive pure-function tests — the first test file in `src`.
+**What:** Exhaustive pure-function tests (follow `src/common/utils/linkParser.test.ts` for style).
 
 **File(s):** `src/common/utils/highlightText.test.ts`
 
@@ -176,6 +177,6 @@ No new state. Polish and tests only.
 
 ## Handoff to Next Phase
 
-This is the final phase. On completion, search-term highlighting ships: matched words are highlighted in the search results panel (body, sender, room), edge cases are covered, accessibility is verified, and the repo has its first colocated Vitest suites establishing the pattern for future tests. The main timeline remains unchanged (whole-row flash on jump). Deferred items (in-timeline term highlighting, attachment-filename/stemmed-match coverage) are recorded in `00-overview.md` → Out of Scope / Open Questions.
+This is the final phase. On completion, search-term highlighting ships: matched words are highlighted in the search results panel (body, sender, room), edge cases are covered, accessibility is verified, and the behavior is locked with colocated Vitest suites (util + component + panel). The main timeline remains unchanged (whole-row flash on jump). Deferred items (in-timeline term highlighting, attachment-filename/stemmed-match coverage) are recorded in `00-overview.md` → Out of Scope / Open Questions.
 
 **Open questions for next phase:** None — feature complete. Future enhancement candidates live in the overview's Out of Scope list.

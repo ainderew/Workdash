@@ -137,7 +137,7 @@ No new state is introduced — only a prop pass-through of existing state.
 
 ## Handoff to Next Phase
 
-Highlighting is now live in the search panel across body, sender, and room heading, driven by the debounced query. Phase 3 hardens edge cases (regex-special queries, very long messages with `line-clamp`, unicode/emoji, single-char tokens), confirms accessibility/contrast and reduced-motion, and writes the first colocated Vitest suite covering `highlightText.ts`, `HighlightedText.tsx`, and `DeskSearchResultsPanel` rendering.
+Highlighting is now live in the search panel across body, sender, and room heading, driven by the debounced query. Phase 3 hardens edge cases (regex-special queries, very long messages with `line-clamp`, unicode/emoji, single-char tokens), confirms accessibility/contrast and reduced-motion, and writes colocated Vitest suites covering `highlightText.ts`, `HighlightedText.tsx`, and `DeskSearchResultsPanel` rendering (following existing test conventions — e.g. `src/common/utils/linkParser.test.ts`).
 
 **Open questions for next phase:**
 - Decide whether to keep 1-char tokens highlighting or raise the floor to 2 (overview Open Question 🟢) — validate against real usage in the smoke test and lock it in Phase 3.
