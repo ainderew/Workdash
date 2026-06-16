@@ -638,6 +638,7 @@ function ChatPaneContainer({
                         sort={searchSort}
                         isLoading={isSearching}
                         error={searchError}
+                        query={debouncedSearchQuery.trim()}
                         onSortChange={setSearchSort}
                         onSelectResult={(message) => {
                             void onSelectSearchResult(message);

@@ -7,6 +7,7 @@ import type {
 import { ArrowUpDown } from "lucide-react";
 import ChannelHashIcon from "./ChannelHashIcon";
 import UserAvatar from "./UserAvatar";
+import HighlightedText from "./HighlightedText";
 import { getDisplayName } from "@/common/utils/displayName";
 import { formatChatMessageTimestamp } from "@/common/utils/messageTimestamp";
 
@@ -17,6 +18,8 @@ interface DeskSearchResultsPanelProps {
     sort: ChatV2MessageSearchSort;
     isLoading: boolean;
     error: string | null;
+    /** Trimmed text query, used to highlight matched terms in results. */
+    query: string;
     onSortChange: (sort: ChatV2MessageSearchSort) => void;
     onSelectResult: (message: ChatV2Message) => void;
 }
@@ -28,6 +31,7 @@ function DeskSearchResultsPanel({
     sort,
     isLoading,
     error,
+    query,
     onSortChange,
     onSelectResult,
 }: DeskSearchResultsPanelProps) {
@@ -94,7 +98,7 @@ function DeskSearchResultsPanel({
                     <div className="min-w-0">
                         <div className="flex items-center gap-2 min-w-0">
                             <span className="text-[0.85rem] font-semibold wd-text-accent truncate">
-                                {senderName}
+                                <HighlightedText text={senderName} query={query} />
                             </span>
                             <span className="text-[0.85rem] wd-text-muted shrink-0">
                                 {formatChatMessageTimestamp(message.createdAt)}
@@ -102,7 +106,16 @@ function DeskSearchResultsPanel({
                         </div>
 
                         <p className="mt-1 text-[0.85rem] wd-text-primary whitespace-pre-wrap break-words line-clamp-4">
-                            {message.content || (hasImageAttachment ? "Image attachment" : "File attachment")}
+                            {message.content ? (
+                                <HighlightedText
+                                    text={message.content}
+                                    query={query}
+                                />
+                            ) : hasImageAttachment ? (
+                                "Image attachment"
+                            ) : (
+                                "File attachment"
+                            )}
                         </p>
                     </div>
                 </div>
@@ -174,7 +187,7 @@ function DeskSearchResultsPanel({
                         {groupedResults.map((group) => (
                             <section key={group.roomId}>
                                 <h4 className="text-[0.85rem] font-semibold wd-text-primary mb-3 inline-flex items-center gap-1">
-                                    <ChannelHashIcon size={15} className="shrink-0 opacity-60" />{group.roomName}
+                                    <ChannelHashIcon size={15} className="shrink-0 opacity-60" /><HighlightedText text={group.roomName} query={query} />
                                 </h4>
                                 <div className="space-y-2">
                                     {group.messages.map((message) =>

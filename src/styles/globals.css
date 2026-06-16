@@ -18,6 +18,17 @@ body {
 }
 
 @layer utilities {
+    /* Search-term highlight — low-alpha accent tint, text stays legible. */
+    .wd-search-hl {
+        background-color: var(--wd-accent-soft);
+        color: inherit;
+        border-radius: 3px;
+        padding: 0 1px;
+        /* keep the tint intact across line wraps + override the UA mark default */
+        box-decoration-break: clone;
+        -webkit-box-decoration-break: clone;
+    }
+
     .no-scrollbar {
         /* This reserves the space so content doesn't shift */
         scrollbar-gutter: stable;
