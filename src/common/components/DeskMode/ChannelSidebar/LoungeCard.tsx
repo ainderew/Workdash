@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { Sofa } from 'lucide-react';
+import { Sofa, Music } from 'lucide-react';
 import useCallStore from '@/common/store/callStore';
 import useChatV2Store from '@/common/store/chatV2Store';
 import { usePresenceStore } from '@/common/store/presenceStore';
 import useUserStore from '@/common/store/useStore';
+import useMusicStore from '@/common/store/musicStore';
+import usePlaylistStore from '@/common/store/playlistStore';
 import { CallSignalingService } from '@/communication/callSignaling/callSignalingService';
 import { joinLoungeCall } from '@/communication/callSignaling/loungeCall';
 import { logger } from '@/common/utils/logger';
@@ -26,6 +28,13 @@ export default function LoungeCard({
   const call = useCallStore((s) => s.activeCallsByChannel[loungeChannelId]);
   const currentCall = useCallStore((s) => s.currentCall);
   const localUserId = useUserStore((s) => s.backendUser?.id);
+
+  const musicWorkspaceId = useChatV2Store((s) => s.selectedWorkspaceId);
+  const musicSession = useMusicStore((s) =>
+    musicWorkspaceId ? s.sessionsByWorkspace[musicWorkspaceId] : null,
+  );
+  const currentTrack = musicSession?.currentTrack ?? null;
+  const isMusicPlaying = musicSession?.state === 'playing';
 
   const onlineCount = usePresenceStore((s) => {
     let count = 0;
@@ -142,6 +151,50 @@ export default function LoungeCard({
             {meta}
           </span>
         </div>
+
+        {/* Now-playing — read-only glance; controls live in NowPlayingBar */}
+        {currentTrack ? (
+          <div className="mt-2 flex items-center gap-2 rounded-lg bg-[rgb(0_0_0/0.18)] p-1.5">
+            <span
+              className="grid h-8 w-8 shrink-0 place-items-center overflow-hidden rounded-md"
+              style={{
+                background:
+                  'linear-gradient(135deg, var(--wd-accent), color-mix(in srgb, var(--wd-accent) 45%, black))',
+              }}
+            >
+              {isMusicPlaying ? (
+                <span className="flex h-3 items-end gap-[2px]">
+                  <span className="wd-eq-bar wd-eq-bar-1" />
+                  <span className="wd-eq-bar wd-eq-bar-2" />
+                  <span className="wd-eq-bar wd-eq-bar-3" />
+                </span>
+              ) : (
+                <Music size={13} className="text-white/70" />
+              )}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[12px] font-semibold wd-text-primary">
+                {currentTrack.title}
+              </span>
+              <span className="block truncate text-[10px] wd-text-muted">
+                added by {currentTrack.requestedBy}
+              </span>
+            </span>
+          </div>
+        ) : (
+          (isLive || isInLounge) && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                usePlaylistStore.getState().setSidebarOpen(true);
+              }}
+              className="mt-1.5 w-full py-1 text-center text-[11px] wd-text-muted transition-colors hover:wd-text-primary"
+            >
+              ♪ Add a song
+            </button>
+          )
+        )}
 
         {isInLounge ? (
           <button

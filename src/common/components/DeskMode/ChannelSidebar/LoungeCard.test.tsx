@@ -6,6 +6,7 @@ import useCallStore from '@/common/store/callStore';
 import useChatV2Store from '@/common/store/chatV2Store';
 import { usePresenceStore } from '@/common/store/presenceStore';
 import useUserStore from '@/common/store/useStore';
+import useMusicStore from '@/common/store/musicStore';
 import { CallSignalingService } from '@/communication/callSignaling/callSignalingService';
 
 vi.mock('@/game/EventBus', () => ({
@@ -64,6 +65,7 @@ describe('LoungeCard', () => {
     });
     usePresenceStore.setState({ presenceMap: {} });
     useUserStore.setState({ backendUser: { id: 99 } as never });
+    useMusicStore.setState({ sessionsByWorkspace: {} });
   });
 
   it('starts a call and navigates when the lounge is empty', async () => {
@@ -134,5 +136,37 @@ describe('LoungeCard', () => {
     await waitFor(() => expect(mockService.leaveCall).toHaveBeenCalledWith(LOUNGE_ID));
     expect(mockService.joinCall).not.toHaveBeenCalled();
     expect(mockService.startCall).not.toHaveBeenCalled();
+  });
+
+  it('shows the now-playing track and who queued it', () => {
+    const WS = 'ws-1';
+    useChatV2Store.setState({
+      roomsById: {
+        [LOUNGE_ID]: { id: LOUNGE_ID, name: 'dev-break-room' } as never,
+      },
+      selectedWorkspaceId: WS,
+    });
+    useMusicStore.setState({
+      sessionsByWorkspace: {
+        [WS]: {
+          state: 'playing',
+          currentTrack: {
+            title: 'Midnight City',
+            duration: 243,
+            requestedBy: 'Brett',
+          },
+          queueLength: 0,
+          volume: 100,
+          listenerCount: 1,
+          shuffle: false,
+          repeatMode: 'off',
+        },
+      },
+    });
+
+    render(<LoungeCard loungeChannelId={LOUNGE_ID} onSelectRoom={vi.fn()} />);
+
+    expect(screen.getByText('Midnight City')).toBeInTheDocument();
+    expect(screen.getByText(/added by Brett/i)).toBeInTheDocument();
   });
 });
