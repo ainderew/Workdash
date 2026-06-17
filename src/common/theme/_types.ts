@@ -1,4 +1,5 @@
 export const THEME_IDS = [
+    "den",
     "classic",
     "cyber",
     "eco",
@@ -22,6 +23,6 @@ export type ThemeDefinition = {
     swatch: ThemeSwatch;
 };
 
-export const DEFAULT_THEME_ID: ThemeId = "classic";
+export const DEFAULT_THEME_ID: ThemeId = "den";
 export const THEME_STORAGE_KEY = "workdash:theme";
 export const THEME_ATTRIBUTE = "data-theme";

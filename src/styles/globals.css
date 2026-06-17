@@ -329,6 +329,73 @@ body {
 }
 
 :root,
+[data-theme="den"] {
+    /* Cozy gamer den — warm charcoal surfaces, amber lamplight accent.
+       Reference mood from DESIGN.md. This is the default theme. */
+    --background-rgb: 24 18 16;
+    --foreground-rgb: 243 230 213;
+    --card-rgb: 29 21 17;
+    --card-foreground-rgb: 243 230 213;
+    --popover-rgb: 29 21 17;
+    --popover-foreground-rgb: 243 230 213;
+    --primary-rgb: 240 163 94;
+    --primary-foreground-rgb: 36 26 18;
+    --secondary-rgb: 34 26 20;
+    --secondary-foreground-rgb: 243 230 213;
+    --muted-rgb: 34 26 20;
+    --muted-foreground-rgb: 181 161 138;
+    --accent-rgb: 34 26 20;
+    --accent-foreground-rgb: 243 230 213;
+    --destructive-rgb: 232 131 111;
+    --border-rgb: 61 47 35;
+    --input-rgb: 61 47 35;
+    --ring-rgb: 240 163 94;
+    --chart-1-rgb: 240 163 94;
+    --chart-2-rgb: 151 194 127;
+    --chart-3-rgb: 232 131 111;
+    --chart-4-rgb: 224 168 90;
+    --chart-5-rgb: 125 175 210;
+    --sidebar-rgb: 29 21 17;
+    --sidebar-foreground-rgb: 243 230 213;
+    --sidebar-primary-rgb: 240 163 94;
+    --sidebar-primary-foreground-rgb: 36 26 18;
+    --sidebar-accent-rgb: 34 26 20;
+    --sidebar-accent-foreground-rgb: 243 230 213;
+    --sidebar-border-rgb: 61 47 35;
+    --sidebar-ring-rgb: 240 163 94;
+
+    --wd-surface-base-rgb: 24 18 16;
+    --wd-surface-panel-rgb: 29 21 17;
+    --wd-surface-panel-2-rgb: 34 26 20;
+    --wd-surface-elevated-rgb: 42 32 24;
+    --wd-surface-overlay-rgb: 18 13 11;
+    --wd-surface-overlay-alpha: 0.96;
+    --wd-border-subtle-rgb: 61 47 35;
+    --wd-border-strong-rgb: 74 58 44;
+    --wd-text-primary-rgb: 243 230 213;
+    --wd-text-secondary-rgb: 224 209 188;
+    --wd-text-muted-rgb: 181 161 138;
+    --wd-accent-rgb: 240 163 94;
+    --wd-accent-hover-rgb: 255 196 107;
+    --wd-accent-soft-alpha: 0.16;
+    --wd-success-rgb: 151 194 127;
+    --wd-danger-rgb: 232 131 111;
+    --wd-danger-soft-alpha: 0.2;
+    --wd-warning-rgb: 240 178 50;
+    --wd-info-rgb: 125 175 210;
+    --wd-neo-dark-alpha: 0.5;
+    --wd-neo-light-alpha: 0.2;
+    --wd-neo-highlight-alpha: 0.04;
+
+    /* Dota chart palette — warm-anchored, bright on dark */
+    --wd-dota-1-rgb: 251 191 96;   /* amber — anchor */
+    --wd-dota-2-rgb: 151 194 127;  /* sage */
+    --wd-dota-3-rgb: 232 131 111;  /* warm red */
+    --wd-dota-4-rgb: 244 114 182;  /* pink */
+    --wd-dota-5-rgb: 56 189 248;   /* sky — cool bridge */
+    --wd-dota-6-rgb: 250 204 21;   /* yellow */
+}
+
 [data-theme="classic"] {
     --background-rgb: 255 255 255;
     --foreground-rgb: 15 23 42;

@@ -6,6 +6,16 @@ import {
 } from "@/common/theme/_types";
 
 const THEME_REGISTRY: Record<ThemeId, ThemeDefinition> = {
+    den: {
+        id: "den",
+        label: "Den",
+        description: "Cozy gamer den — warm charcoal with amber lamplight",
+        swatch: {
+            base: "24 18 16",
+            surface: "29 21 17",
+            accent: "240 163 94",
+        },
+    },
     classic: {
         id: "classic",
         label: "Classic",
