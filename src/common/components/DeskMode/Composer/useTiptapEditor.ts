@@ -290,10 +290,15 @@ export function useTiptapEditor(options: UseTiptapEditorOptions) {
       if (!editor) return '';
       return serializeTiptapToMarkdown(editor.getJSON());
     },
-    setContentFromMarkdown: (md: string) => {
+    setContentFromMarkdown: (
+      md: string,
+      options?: { emitUpdate?: boolean },
+    ) => {
       if (!editor) return;
       const json = deserializeMarkdownToTiptap(md);
-      editor.commands.setContent(json);
+      editor.commands.setContent(json, {
+        emitUpdate: options?.emitUpdate ?? true,
+      });
     },
     isEmpty: () => {
       if (!editor) return true;

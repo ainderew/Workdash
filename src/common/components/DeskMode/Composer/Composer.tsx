@@ -17,6 +17,7 @@ import { useTiptapAutocomplete } from "./useTiptapAutocomplete";
 import { useSendMessage } from "./useSendMessage";
 import { useFileDrop } from "./useFileDrop";
 import { useAttachmentUploads } from "./useAttachmentUploads";
+import { useComposerDraft } from "./useComposerDraft";
 import { ReplyContextBar } from "./ReplyContextBar";
 import type { ComposerProps } from "./_types";
 
@@ -33,6 +34,7 @@ function Composer(props: ComposerProps) {
         onCancelReply,
         onEditLastMessage,
         onTyping,
+        draftId,
     } = props;
 
     // Thread composer drives replyToMessageId directly; the main composer drives
@@ -101,10 +103,18 @@ function Composer(props: ComposerProps) {
         roomId,
     });
 
+    const draft = useComposerDraft({
+        draftId,
+        editor: tiptap.editor,
+        getMarkdown: tiptap.getMarkdownContent,
+        setMarkdown: tiptap.setContentFromMarkdown,
+    });
+
     const { submit, submitGif } = useSendMessage({
         getContent: tiptap.getMarkdownContent,
         clearContent: () => {
             tiptap.editor?.commands.clearContent();
+            draft.clearDraft();
         },
         takeReadyAttachments,
         hasActiveUploads,

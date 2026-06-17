@@ -549,6 +549,7 @@ function ChatPaneContainer({
                     isSending={isSending}
                     members={roomMembers}
                     onTyping={handleTyping}
+                    draftId={currentRoomId ? `room:${currentRoomId}` : undefined}
                     replyTarget={replyTarget}
                     onCancelReply={() => setReplyTarget(null)}
                     onSend={async (content, attachments, options) => {
