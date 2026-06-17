@@ -95,58 +95,74 @@ export default function LoungeCard({
           void handleCardClick();
         }
       }}
-      className={`mx-2 mt-2 cursor-pointer rounded-xl border p-3 text-left transition-colors wd-ring-focus ${
+      className={`wd-lounge-card relative mx-2 mt-2 cursor-pointer overflow-hidden rounded-xl border p-3 text-left transition-colors wd-ring-focus ${
         isBusy ? 'opacity-60' : ''
       } ${
         isLive || isInLounge
-          ? 'border-[var(--wd-success)] shadow-[0_0_14px_rgb(var(--wd-success-rgb)/0.15)]'
-          : 'wd-border-subtle hover:border-[var(--wd-border-strong)]'
-      } wd-bg-panel-2`}
+          ? 'border-[var(--wd-success)] shadow-[0_0_16px_rgb(var(--wd-success-rgb)/0.18)]'
+          : 'border-[var(--wd-den-border)] shadow-[0_0_18px_rgb(var(--wd-accent-rgb)/0.10)] hover:border-[var(--wd-accent)]'
+      }`}
     >
-      <div className="flex items-center gap-2">
-        <Sofa size={14} className="wd-text-muted shrink-0" />
-        <span className="flex-1 truncate text-[13px] font-bold wd-text-primary">
-          {roomName}
-        </span>
-        {(isLive || isInLounge) && (
-          <span className="h-2 w-2 shrink-0 rounded-full bg-[var(--wd-success)] motion-safe:animate-pulse" />
-        )}
+      {/* mini hearth — drifting embers + lamplight glow, clipped to the card */}
+      <div className="wd-lounge-card-fx" aria-hidden="true">
+        <div className="wd-lounge-card-glow" />
+        <span className="wd-lounge-card-ember" />
+        <span className="wd-lounge-card-ember" />
+        <span className="wd-lounge-card-ember" />
+        <span className="wd-lounge-card-ember" />
       </div>
 
-      <div className="mt-2 flex items-center gap-2">
-        {participants.length > 0 && (
-          <span className="flex shrink-0">
-            {participants.slice(0, 3).map((p, i) => (
-              <span key={p.userId} title={p.displayName} className={i > 0 ? '-ml-2' : ''}>
-                <UserAvatar name={p.displayName} size="xs" />
-              </span>
-            ))}
-            {participants.length > 3 && (
-              <span className="-ml-2 inline-flex h-7 w-7 items-center justify-center rounded-full border wd-border-subtle wd-bg-elevated text-[10px] font-bold wd-text-muted">
-                +{participants.length - 3}
-              </span>
-            )}
+      <div className="relative z-10">
+        <div className="flex items-center gap-2">
+          <Sofa size={14} className="wd-text-muted shrink-0" />
+          <span className="flex-1 truncate text-[13px] font-bold wd-text-primary">
+            {roomName}
           </span>
-        )}
-        <span className="min-w-0 flex-1 truncate text-[11.5px] wd-text-muted">
-          {meta}
-        </span>
+          {(isLive || isInLounge) && (
+            <span className="h-2 w-2 shrink-0 rounded-full bg-[var(--wd-success)] motion-safe:animate-pulse" />
+          )}
+        </div>
+
+        <div className="mt-2 flex items-center gap-2">
+          {participants.length > 0 && (
+            <span className="flex shrink-0">
+              {participants.slice(0, 3).map((p, i) => (
+                <span key={p.userId} title={p.displayName} className={i > 0 ? '-ml-2' : ''}>
+                  <UserAvatar name={p.displayName} size="xs" />
+                </span>
+              ))}
+              {participants.length > 3 && (
+                <span className="-ml-2 inline-flex h-7 w-7 items-center justify-center rounded-full border wd-border-subtle wd-bg-elevated text-[10px] font-bold wd-text-muted">
+                  +{participants.length - 3}
+                </span>
+              )}
+            </span>
+          )}
+          <span className="min-w-0 flex-1 truncate text-[11.5px] wd-text-muted">
+            {meta}
+          </span>
+        </div>
+
         {isInLounge ? (
           <button
             type="button"
             onClick={(e) => void handleLeave(e)}
             disabled={isBusy}
-            className="shrink-0 rounded-lg border border-[rgb(var(--wd-success-rgb)/0.5)] bg-[rgb(var(--wd-success-rgb)/0.1)] px-2.5 py-1 text-[11px] font-bold text-[var(--wd-success)] disabled:opacity-60"
+            className="mt-2.5 w-full rounded-lg border border-[rgb(var(--wd-success-rgb)/0.5)] bg-[rgb(var(--wd-success-rgb)/0.12)] py-1.5 text-[12px] font-bold text-[var(--wd-success)] disabled:opacity-60"
           >
             Get up
           </button>
         ) : (
           <span
-            className={`shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-bold text-white ${
-              isLive ? 'bg-[var(--wd-success)]' : 'bg-[var(--wd-accent)]'
-            }`}
+            className="mt-2.5 block w-full rounded-lg py-1.5 text-center text-[12px] font-bold"
+            style={{
+              background: isLive
+                ? 'linear-gradient(180deg, color-mix(in srgb, var(--wd-success) 82%, white), var(--wd-success))'
+                : 'linear-gradient(180deg, var(--wd-accent-hover), var(--wd-accent))',
+              color: isLive ? 'white' : 'var(--primary-foreground)',
+            }}
           >
-            {isLive ? 'Join' : 'Start'}
+            {isLive ? 'Join' : 'Sit down'}
           </span>
         )}
       </div>
