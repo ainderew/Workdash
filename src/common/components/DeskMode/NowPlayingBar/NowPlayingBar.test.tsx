@@ -183,6 +183,15 @@ function setQueue(tracks: ReturnType<typeof makeTrack>[]) {
     tracks;
 }
 
+function setListening(listening: boolean) {
+  const set = musicStoreState.listeningWorkspaces as Set<string>;
+  if (listening) {
+    set.add("ws-1");
+  } else {
+    set.delete("ws-1");
+  }
+}
+
 function setWorkspaceId(id: string | null) {
   chatStoreState.selectedWorkspaceId = id;
 }
@@ -224,42 +233,39 @@ describe("NowPlayingBar", () => {
       expect(screen.getByText("Test Song")).toBeInTheDocument();
     });
 
-    it('shows "Playing" with play icon when state is playing', () => {
-      setSession(makeSession({ state: "playing" }));
-      render(<NowPlayingBar />);
-      expect(screen.getByText(/▶/)).toBeInTheDocument();
-      expect(screen.getByText(/Playing/)).toBeInTheDocument();
-    });
-
-    it('shows "Paused" with pause icon when state is paused', () => {
-      setSession(makeSession({ state: "paused" }));
-      render(<NowPlayingBar />);
-      expect(screen.getByText(/⏸/)).toBeInTheDocument();
-      expect(screen.getByText(/Paused/)).toBeInTheDocument();
-    });
-
     it("shows listener count when > 0", () => {
       setSession(makeSession({ listenerCount: 5 }));
       render(<NowPlayingBar />);
-      expect(screen.getByText(/5 listening/)).toBeInTheDocument();
+      expect(screen.getByTitle(/5 listening/)).toBeInTheDocument();
     });
 
     it("hides listener count when 0", () => {
       setSession(makeSession({ listenerCount: 0 }));
       render(<NowPlayingBar />);
-      expect(screen.queryByText(/listening/)).not.toBeInTheDocument();
+      expect(screen.queryByTitle(/listening/)).not.toBeInTheDocument();
     });
 
     it("shows queue toggle when queueLength > 0", () => {
       setSession(makeSession({ queueLength: 3 }));
       render(<NowPlayingBar />);
-      expect(screen.getByText(/3 in queue/)).toBeInTheDocument();
+      expect(screen.getByTitle("Show queue")).toBeInTheDocument();
     });
 
     it("hides queue toggle when queueLength is 0", () => {
       setSession(makeSession({ queueLength: 0 }));
       render(<NowPlayingBar />);
       expect(screen.queryByTitle("Show queue")).not.toBeInTheDocument();
+    });
+
+    it('shows "Listen" when not listening and "Leave" when listening', () => {
+      setSession(makeSession());
+      setListening(false);
+      const { rerender } = render(<NowPlayingBar />);
+      expect(screen.getByText("Listen")).toBeInTheDocument();
+
+      setListening(true);
+      rerender(<NowPlayingBar />);
+      expect(screen.getByText("Leave")).toBeInTheDocument();
     });
 
     it("shows music note fallback when Lottie has not loaded", () => {
@@ -288,6 +294,24 @@ describe("NowPlayingBar", () => {
   // ── Interactions ─────────────────────────────────────────────────────────
 
   describe("interactions", () => {
+    it("calls MusicClientService.subscribe when Listen is clicked", () => {
+      setSession(makeSession());
+      setListening(false);
+      render(<NowPlayingBar />);
+
+      fireEvent.click(screen.getByText("Listen"));
+      expect(mockSubscribe).toHaveBeenCalledWith("ws-1");
+    });
+
+    it("calls MusicClientService.unsubscribe when Leave is clicked", () => {
+      setSession(makeSession());
+      setListening(true);
+      render(<NowPlayingBar />);
+
+      fireEvent.click(screen.getByText("Leave"));
+      expect(mockUnsubscribe).toHaveBeenCalledWith("ws-1");
+    });
+
     it("toggles queue panel visibility on queue button click", () => {
       setSession(makeSession({ queueLength: 2 }));
       setQueue([makeTrack({ title: "Track 1" }), makeTrack({ title: "Track 2" })]);

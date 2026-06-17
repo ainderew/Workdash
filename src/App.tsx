@@ -316,7 +316,9 @@ function App() {
             const music = MusicClientService.getInstance();
             music.fetchState(workspaceId);
 
-            const autoJoin = localStorage.getItem('workdash:autoJoinMusic') === 'true';
+            // Auto-join the music by default; users can opt out via the flag.
+            const autoJoin =
+                localStorage.getItem('workdash:autoJoinMusic') !== 'false';
             if (autoJoin && !useMusicStore.getState().isListening(workspaceId)) {
                 music.subscribe(workspaceId);
             }

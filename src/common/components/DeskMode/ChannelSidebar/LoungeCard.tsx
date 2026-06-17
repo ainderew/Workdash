@@ -201,7 +201,7 @@ export default function LoungeCard({
             type="button"
             onClick={(e) => void handleLeave(e)}
             disabled={isBusy}
-            className="mt-2.5 w-full rounded-lg border border-[rgb(var(--wd-success-rgb)/0.5)] bg-[rgb(var(--wd-success-rgb)/0.12)] py-1.5 text-[12px] font-bold text-[var(--wd-success)] disabled:opacity-60"
+            className="mt-2.5 w-full rounded-lg border border-[rgb(var(--wd-danger-rgb)/0.5)] bg-[rgb(var(--wd-danger-rgb)/0.12)] py-1.5 text-[12px] font-bold text-[var(--wd-danger)] disabled:opacity-60"
           >
             Get up
           </button>

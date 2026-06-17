@@ -1,67 +1,86 @@
 import React from "react";
-import { Disc3, ListMusic } from "lucide-react";
+import { Disc3, ListMusic, Users } from "lucide-react";
 import usePlaylistStore from "@/common/store/playlistStore";
 
 interface PlaybackStatusProps {
-  stateIcon: string;
-  stateLabel: string;
   listenerCount: number;
   queueLength: number;
   showQueue: boolean;
   onToggleQueue: () => void;
+  isListening: boolean;
+  onToggleListen: () => void;
 }
 
 export function PlaybackStatus({
-  stateIcon,
-  stateLabel,
   listenerCount,
   queueLength,
   showQueue,
   onToggleQueue,
+  isListening,
+  onToggleListen,
 }: PlaybackStatusProps) {
   const sidebarOpen = usePlaylistStore((s) => s.sidebarOpen);
   const toggleSidebar = usePlaylistStore((s) => s.toggleSidebar);
 
   return (
-    <div className="flex items-center gap-1.5">
-      <span className="text-[10px] wd-text-muted">
-        {stateIcon} {stateLabel}
-      </span>
+    <div className="flex items-center gap-2 flex-nowrap whitespace-nowrap text-[10px]">
       {listenerCount > 0 && (
-        <span className="text-[10px] wd-text-muted">
-          &middot; {listenerCount} listening
+        <span
+          className="flex items-center gap-0.5 tabular-nums wd-text-muted"
+          title={`${listenerCount} listening`}
+        >
+          <Users size={11} strokeWidth={2} />
+          {listenerCount}
         </span>
       )}
+
       {queueLength > 0 && (
         <button
           type="button"
           onClick={onToggleQueue}
-          className={`flex items-center gap-0.5 text-[10px] transition-colors rounded-sm px-0.5 -mx-0.5 cursor-pointer hover:text-[var(--wd-accent)] ${
-            showQueue
-              ? "text-[var(--wd-accent)]"
-              : "wd-text-muted hover:wd-text-secondary"
-          }`}
           title={showQueue ? "Hide queue" : "Show queue"}
+          className={`flex items-center gap-0.5 tabular-nums transition-colors cursor-pointer hover:text-[var(--wd-accent)] ${
+            showQueue ? "text-[var(--wd-accent)]" : "wd-text-muted"
+          }`}
         >
-          &middot;
-          <ListMusic size={10} strokeWidth={2} />
-          <span>{queueLength} in queue</span>
+          <ListMusic size={11} strokeWidth={2} />
+          {queueLength}
         </button>
       )}
+
       <button
         type="button"
         onClick={toggleSidebar}
-        className={`flex items-center gap-0.5 text-[10px] transition-colors rounded-sm px-0.5 -mx-0.5 cursor-pointer hover:text-[var(--wd-accent)] ${
-          sidebarOpen
-            ? "text-[var(--wd-accent)]"
-            : "wd-text-muted hover:wd-text-secondary"
+        title="Playlists"
+        className={`transition-colors cursor-pointer hover:text-[var(--wd-accent)] ${
+          sidebarOpen ? "text-[var(--wd-accent)]" : "wd-text-muted"
         }`}
-        title={sidebarOpen ? "Hide playlists" : "Show playlists"}
       >
-        &middot;
-        <Disc3 size={10} strokeWidth={2} />
-        <span>Playlists</span>
+        <Disc3 size={12} strokeWidth={2} />
       </button>
+
+      <span className="flex-1" />
+
+      {/* Listen / leave the music session (you auto-join on entering) */}
+      {isListening ? (
+        <button
+          type="button"
+          onClick={onToggleListen}
+          title="Stop listening to the music"
+          className="rounded-md border border-[var(--wd-border-strong)] px-2 py-0.5 font-medium wd-text-muted transition-colors cursor-pointer hover:wd-text-primary"
+        >
+          Leave
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={onToggleListen}
+          title="Listen to the music"
+          className="rounded-md bg-[var(--wd-accent)] px-2 py-0.5 font-semibold text-white cursor-pointer"
+        >
+          Listen
+        </button>
+      )}
     </div>
   );
 }

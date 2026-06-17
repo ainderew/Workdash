@@ -26,17 +26,17 @@ export function NowPlayingBar() {
   const {
     session,
     queue,
+    isListening,
     lottieReady,
     LottieComponent,
     animationData,
     showQueue,
-    stateIcon,
-    stateLabel,
     elapsed,
     trackDuration,
     canManageMusic,
     shuffle,
     repeatMode,
+    handleToggleListen,
     handleTogglePlayback,
     handleSkip,
     handleToggleQueue,
@@ -192,12 +192,12 @@ export function NowPlayingBar() {
 
           <div className="min-w-0 flex-1 overflow-hidden">
             <PlaybackStatus
-              stateIcon={stateIcon}
-              stateLabel={stateLabel}
               listenerCount={session.listenerCount}
               queueLength={session.queueLength}
               showQueue={showQueue}
               onToggleQueue={handleToggleQueue}
+              isListening={isListening}
+              onToggleListen={handleToggleListen}
             />
           </div>
         </div>
