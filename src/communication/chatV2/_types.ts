@@ -289,6 +289,7 @@ export type ChatV2UserProfile = {
         image: string | null;
         bio: string | null;
         banner?: BannerConfig;
+        profileEffect?: string | null;
         characterCustomization?: ChatV2CharacterCustomization | null;
     };
     isSelf: boolean;

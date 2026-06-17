@@ -3046,6 +3046,112 @@ input[type="range"].wd-volume-slider::-moz-range-progress {
     }
 }
 
+/* ── Profile effects — cosmetic animation over a profile card on open ── */
+.wd-profile-fx {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    border-radius: inherit;
+    z-index: 5;
+}
+.wd-profile-fx span {
+    position: absolute;
+    opacity: 0;
+}
+
+/* shared particle slots — left position, timing, horizontal drift */
+.wd-profile-fx span:nth-child(1)  { left: 6%;  animation-duration: 4.6s; animation-delay: 0s;   --wd-fx-dx: 14px; }
+.wd-profile-fx span:nth-child(2)  { left: 17%; animation-duration: 5.8s; animation-delay: 1.1s; --wd-fx-dx: -10px; }
+.wd-profile-fx span:nth-child(3)  { left: 28%; animation-duration: 5.2s; animation-delay: 2.3s; --wd-fx-dx: 8px; }
+.wd-profile-fx span:nth-child(4)  { left: 39%; animation-duration: 6.4s; animation-delay: 0.6s; --wd-fx-dx: -14px; }
+.wd-profile-fx span:nth-child(5)  { left: 50%; animation-duration: 4.9s; animation-delay: 3.1s; --wd-fx-dx: 11px; }
+.wd-profile-fx span:nth-child(6)  { left: 60%; animation-duration: 6.0s; animation-delay: 1.7s; --wd-fx-dx: -8px; }
+.wd-profile-fx span:nth-child(7)  { left: 71%; animation-duration: 5.4s; animation-delay: 2.8s; --wd-fx-dx: 13px; }
+.wd-profile-fx span:nth-child(8)  { left: 81%; animation-duration: 6.6s; animation-delay: 0.3s; --wd-fx-dx: -12px; }
+.wd-profile-fx span:nth-child(9)  { left: 90%; animation-duration: 5.0s; animation-delay: 2.0s; --wd-fx-dx: 7px; }
+.wd-profile-fx span:nth-child(10) { left: 96%; animation-duration: 5.7s; animation-delay: 3.6s; --wd-fx-dx: -9px; }
+
+/* embers — warm dots drifting up */
+.wd-profile-fx[data-fx="embers"] span {
+    bottom: -6px;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--wd-accent) 75%, white);
+    filter: blur(0.4px);
+    animation-name: wd-pfx-rise;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+}
+@keyframes wd-pfx-rise {
+    0%   { transform: translateY(0) translateX(0); opacity: 0; }
+    12%  { opacity: 0.85; }
+    70%  { opacity: 0.4; }
+    100% { transform: translateY(-220px) translateX(var(--wd-fx-dx, 10px)); opacity: 0; }
+}
+
+/* sparkles — twinkle in place */
+.wd-profile-fx[data-fx="sparkles"] span {
+    top: 50%;
+    width: 6px;
+    height: 6px;
+    border-radius: 1px;
+    background: color-mix(in srgb, var(--wd-accent) 50%, white);
+    box-shadow: 0 0 6px color-mix(in srgb, var(--wd-accent) 60%, white);
+    animation-name: wd-pfx-twinkle;
+    animation-timing-function: ease-in-out;
+    animation-iteration-count: infinite;
+}
+.wd-profile-fx[data-fx="sparkles"] span:nth-child(odd) { top: 28%; }
+.wd-profile-fx[data-fx="sparkles"] span:nth-child(3n)  { top: 70%; }
+@keyframes wd-pfx-twinkle {
+    0%, 100% { opacity: 0; transform: scale(0) rotate(0deg); }
+    50%      { opacity: 1; transform: scale(1) rotate(45deg); }
+}
+
+/* snow — soft white dots falling */
+.wd-profile-fx[data-fx="snow"] span {
+    top: -6px;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.85);
+    animation-name: wd-pfx-fall;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+}
+@keyframes wd-pfx-fall {
+    0%   { transform: translateY(0) translateX(0); opacity: 0; }
+    10%  { opacity: 0.9; }
+    90%  { opacity: 0.55; }
+    100% { transform: translateY(260px) translateX(var(--wd-fx-dx, 12px)); opacity: 0; }
+}
+
+/* confetti — accent-tinted squares falling + spinning */
+.wd-profile-fx[data-fx="confetti"] span {
+    top: -8px;
+    width: 6px;
+    height: 9px;
+    border-radius: 1px;
+    background: var(--wd-accent);
+    animation-name: wd-pfx-confetti;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+}
+.wd-profile-fx[data-fx="confetti"] span:nth-child(3n+1) { background: var(--wd-success); }
+.wd-profile-fx[data-fx="confetti"] span:nth-child(3n+2) { background: var(--wd-info); }
+.wd-profile-fx[data-fx="confetti"] span:nth-child(5n)   { background: var(--wd-danger); }
+@keyframes wd-pfx-confetti {
+    0%   { transform: translateY(0) rotate(0deg); opacity: 0; }
+    10%  { opacity: 1; }
+    100% { transform: translateY(280px) rotate(540deg); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .wd-profile-fx { display: none; }
+}
+
 /* dock surface inside the hearth — accent-tinted to match the panel */
 .wd-hearth-dock {
     background-color: color-mix(in srgb, var(--wd-den-bg-2) 95%, transparent);

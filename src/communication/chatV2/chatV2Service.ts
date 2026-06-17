@@ -466,14 +466,18 @@ export class ChatV2Service {
         input: {
             bio?: string | null;
             banner?: BannerConfig;
+            profileEffect?: string | null;
         },
     ): Promise<ChatV2UserProfile> {
         const payload: {
             bio?: string | null;
             banner?: BannerConfig;
+            profileEffect?: string | null;
         } = {};
         if (input.bio !== undefined) payload.bio = input.bio;
         if (input.banner !== undefined) payload.banner = input.banner;
+        if (input.profileEffect !== undefined)
+            payload.profileEffect = input.profileEffect;
 
         const response = await this.emitWithAck<{ profile: ChatV2UserProfile }>(
             "chat:v2:user:profile:update",

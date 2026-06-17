@@ -15,6 +15,10 @@ import { ProfileBannerEditor } from './ProfileBannerEditor';
 import { ProfileBioSection } from './ProfileBioSection';
 import { ProfileActionButtons, ProfileQuickMessage } from './ProfileActions';
 import { ProfileStatusPicker } from './ProfileStatusPicker';
+import { ProfileEffectOverlay } from './ProfileEffectOverlay';
+import { ProfileEffectPicker } from './ProfileEffectPicker';
+import { resolveProfileEffect, type ProfileEffectId } from './profileEffects';
+import { ChatV2Service } from '@/communication/chatV2/chatV2Service';
 import { DotaMedalBadge } from './DotaMedalBadge';
 import { BetrayalStatsBadge } from './BetrayalStatsBadge';
 import { AchievementBadges } from './AchievementBadges';
@@ -55,6 +59,29 @@ export function ProfilePopover({
   });
 
   const isSelf = profile?.isSelf ?? false;
+
+  const currentEffect: ProfileEffectId =
+    resolveProfileEffect(profile?.user.profileEffect) ?? 'none';
+
+  const handleSelectEffect = useCallback(
+    async (effect: ProfileEffectId) => {
+      if (!profile) return;
+      // Optimistic — plays immediately for the current view
+      setProfile({
+        ...profile,
+        user: { ...profile.user, profileEffect: effect },
+      });
+      try {
+        await ChatV2Service.getInstance().updateOwnUserProfile({
+          profileEffect: effect === 'none' ? null : effect,
+        });
+      } catch {
+        toast('Failed to save profile effect');
+      }
+    },
+    [profile, setProfile],
+  );
+
   const selectedWorkspaceId = useChatV2Store((s) => s.selectedWorkspaceId);
   const isOffline = usePresenceStore(
     (s) =>
@@ -332,6 +359,7 @@ export function ProfilePopover({
           style={caretSideStyle}
         />
       )}
+      <ProfileEffectOverlay effect={profile?.user.profileEffect} />
       {/* Banner: show editor or display mode */}
       {banner.isEditing ? (
         <div>
@@ -470,6 +498,10 @@ export function ProfilePopover({
 
       {isSelf && !isLoading && !error && profile && (
         <div className="border-t border-white/[0.06] py-1">
+          <ProfileEffectPicker
+            value={currentEffect}
+            onSelect={(effect) => void handleSelectEffect(effect)}
+          />
           <ProfileStatusPicker />
         </div>
       )}
