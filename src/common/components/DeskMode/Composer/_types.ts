@@ -30,4 +30,9 @@ export interface ComposerProps {
     onCancelReply?: () => void;
     onEditLastMessage?: () => void;
     onTyping?: () => void;
+    /**
+     * Stable id under which unsent text is persisted (e.g. `room:<roomId>`).
+     * Omit to disable draft persistence for this composer.
+     */
+    draftId?: string;
 }
