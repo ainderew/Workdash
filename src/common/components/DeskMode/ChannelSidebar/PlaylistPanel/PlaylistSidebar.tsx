@@ -14,7 +14,7 @@ export function PlaylistSidebar({ workspaceId }: PlaylistSidebarProps) {
   if (!sidebarOpen) return null;
 
   return (
-    <aside className="wd-playlist-enter absolute inset-0 z-10 flex flex-col wd-bg-panel">
+    <aside className="wd-playlist-enter absolute inset-0 z-30 flex flex-col wd-bg-panel">
       {/* Header */}
       <div className="flex h-11 shrink-0 items-center justify-between px-3.5 border-b wd-border-subtle">
         <div className="flex items-center gap-2.5">

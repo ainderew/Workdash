@@ -3046,6 +3046,31 @@ input[type="range"].wd-volume-slider::-moz-range-progress {
     }
 }
 
+/* ── Now-playing equalizer bars (LoungeCard art) — explicit base height so
+   they're visible even if music playing; avoids the conflicting .wd-eq-bar defs ── */
+.wd-np-eq {
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: 14px;
+}
+.wd-np-eq span {
+    width: 3px;
+    height: 5px;
+    border-radius: 2px;
+    background: white;
+    animation: wd-np-eq-bounce 0.9s ease-in-out infinite;
+}
+.wd-np-eq span:nth-child(2) { animation-delay: 0.2s; }
+.wd-np-eq span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes wd-np-eq-bounce {
+    0%, 100% { height: 4px; }
+    50%      { height: 14px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .wd-np-eq span { animation: none; height: 9px; }
+}
+
 /* ── Profile effects — cosmetic animation over a profile card on open ── */
 .wd-profile-fx {
     position: absolute;

@@ -104,7 +104,7 @@ export default function LoungeCard({
           void handleCardClick();
         }
       }}
-      className={`wd-lounge-card relative mx-2 mt-2 cursor-pointer overflow-hidden rounded-xl border p-3 text-left transition-colors wd-ring-focus ${
+      className={`wd-lounge-card relative isolate mx-2 mt-2 cursor-pointer overflow-hidden rounded-xl border p-3 text-left transition-colors wd-ring-focus ${
         isBusy ? 'opacity-60' : ''
       } ${
         isLive || isInLounge
@@ -163,10 +163,10 @@ export default function LoungeCard({
               }}
             >
               {isMusicPlaying ? (
-                <span className="flex h-3 items-end gap-[2px]">
-                  <span className="wd-eq-bar wd-eq-bar-1" />
-                  <span className="wd-eq-bar wd-eq-bar-2" />
-                  <span className="wd-eq-bar wd-eq-bar-3" />
+                <span className="wd-np-eq">
+                  <span />
+                  <span />
+                  <span />
                 </span>
               ) : (
                 <Music size={13} className="text-white/70" />
