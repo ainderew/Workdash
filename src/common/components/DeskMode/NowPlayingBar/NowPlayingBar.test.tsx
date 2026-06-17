@@ -183,15 +183,6 @@ function setQueue(tracks: ReturnType<typeof makeTrack>[]) {
     tracks;
 }
 
-function setListening(listening: boolean) {
-  const set = musicStoreState.listeningWorkspaces as Set<string>;
-  if (listening) {
-    set.add("ws-1");
-  } else {
-    set.delete("ws-1");
-  }
-}
-
 function setWorkspaceId(id: string | null) {
   chatStoreState.selectedWorkspaceId = id;
 }
@@ -259,20 +250,6 @@ describe("NowPlayingBar", () => {
       expect(screen.queryByText(/listening/)).not.toBeInTheDocument();
     });
 
-    it('shows "Join" when not listening', () => {
-      setSession(makeSession());
-      setListening(false);
-      render(<NowPlayingBar />);
-      expect(screen.getByText("Join")).toBeInTheDocument();
-    });
-
-    it('shows "Leave" when listening', () => {
-      setSession(makeSession());
-      setListening(true);
-      render(<NowPlayingBar />);
-      expect(screen.getByText("Leave")).toBeInTheDocument();
-    });
-
     it("shows queue toggle when queueLength > 0", () => {
       setSession(makeSession({ queueLength: 3 }));
       render(<NowPlayingBar />);
@@ -292,9 +269,9 @@ describe("NowPlayingBar", () => {
       // caching means subsequent renders skip the fallback. We verify the
       // Lottie dynamic import path is exercised (tested in "loads Lottie"
       // below) and check for the Lottie element OR the fallback note here.
-      render(<NowPlayingBar />);
+      const { container } = render(<NowPlayingBar />);
       const hasLottie = screen.queryByTestId("lottie-animation");
-      const hasFallback = screen.queryByText("\u266B");
+      const hasFallback = container.querySelector(".lucide-music");
       expect(hasLottie || hasFallback).toBeTruthy();
     });
 
@@ -311,24 +288,6 @@ describe("NowPlayingBar", () => {
   // ── Interactions ─────────────────────────────────────────────────────────
 
   describe("interactions", () => {
-    it("calls MusicClientService.subscribe when Join is clicked", () => {
-      setSession(makeSession());
-      setListening(false);
-      render(<NowPlayingBar />);
-
-      fireEvent.click(screen.getByText("Join"));
-      expect(mockSubscribe).toHaveBeenCalledWith("ws-1");
-    });
-
-    it("calls MusicClientService.unsubscribe when Leave is clicked", () => {
-      setSession(makeSession());
-      setListening(true);
-      render(<NowPlayingBar />);
-
-      fireEvent.click(screen.getByText("Leave"));
-      expect(mockUnsubscribe).toHaveBeenCalledWith("ws-1");
-    });
-
     it("toggles queue panel visibility on queue button click", () => {
       setSession(makeSession({ queueLength: 2 }));
       setQueue([makeTrack({ title: "Track 1" }), makeTrack({ title: "Track 2" })]);

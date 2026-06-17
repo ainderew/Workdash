@@ -14,21 +14,18 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
-import { Shuffle, Repeat, Repeat1 } from "lucide-react";
+import { Shuffle, Repeat, Repeat1, Music } from "lucide-react";
 import { QueueItem } from "./QueueItem";
-import { TrackInfo } from "./TrackInfo";
 import { PlaybackControls } from "./PlaybackControls";
 import { ProgressBar } from "./ProgressBar";
 import { PlaybackStatus } from "./PlaybackStatus";
 import { VolumeButton } from "./VolumeButton";
-import { ListenButton } from "./ListenButton";
 import { useNowPlaying } from "./useNowPlaying";
 
 export function NowPlayingBar() {
   const {
     session,
     queue,
-    isListening,
     lottieReady,
     LottieComponent,
     animationData,
@@ -40,7 +37,6 @@ export function NowPlayingBar() {
     canManageMusic,
     shuffle,
     repeatMode,
-    handleToggleListen,
     handleTogglePlayback,
     handleSkip,
     handleToggleQueue,
@@ -127,29 +123,26 @@ export function NowPlayingBar() {
         </div>
       </div>
 
-      {/* Main NowPlayingBar body */}
-      <div className="flex flex-col justify-center items-center gap-0.5 px-3 py-2 w-full">
-        <TrackInfo
-          title={session.currentTrack.title}
-          lottieReady={lottieReady}
-          LottieComponent={LottieComponent}
-          animationData={animationData}
-        />
+      {/* Main NowPlayingBar body — compact single-row player */}
+      <div className="flex w-full flex-col gap-1.5 px-2.5 py-2">
+        {/* Row: small dancing astronaut + title + transport + mute */}
+        <div className="flex items-center gap-2.5">
+          <div className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-lg bg-[color-mix(in_srgb,var(--wd-accent)_14%,var(--wd-surface-panel-2))]">
+            {lottieReady && LottieComponent && animationData ? (
+              <LottieComponent
+                animationData={animationData}
+                loop
+                autoplay
+                style={{ width: "100%", height: "100%" }}
+              />
+            ) : (
+              <Music size={16} className="wd-text-muted" />
+            )}
+          </div>
 
-        {/* Playback controls with shuffle/repeat */}
-        <div className="flex items-center justify-center gap-3 py-1">
-          <button
-            type="button"
-            onClick={toggleShuffle}
-            disabled={!canManageMusic}
-            className={`p-1 rounded-full transition-colors duration-150 ${
-              !canManageMusic ? 'opacity-40 cursor-not-allowed' :
-              shuffle ? 'text-[var(--wd-accent)]' : 'wd-text-muted hover:wd-text-secondary'
-            }`}
-            title="Shuffle"
-          >
-            <Shuffle size={14} />
-          </button>
+          <p className="min-w-0 flex-1 truncate text-[12px] font-semibold wd-text-primary">
+            {session.currentTrack.title}
+          </p>
 
           <PlaybackControls
             state={session.state}
@@ -158,38 +151,56 @@ export function NowPlayingBar() {
             onTogglePlayback={handleTogglePlayback}
             onSkip={handleSkip}
           />
+          <VolumeButton />
+        </div>
 
+        {/* Thin progress */}
+        <ProgressBar elapsed={elapsed} duration={trackDuration} />
+
+        {/* Under-row: shuffle / repeat + status (state · listeners · queue · playlists) */}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={toggleShuffle}
+            disabled={!canManageMusic}
+            className={`p-1 rounded-full transition-colors duration-150 ${
+              !canManageMusic
+                ? "opacity-40 cursor-not-allowed"
+                : shuffle
+                  ? "text-[var(--wd-accent)]"
+                  : "wd-text-muted hover:wd-text-secondary"
+            }`}
+            title="Shuffle"
+          >
+            <Shuffle size={13} />
+          </button>
           <button
             type="button"
             onClick={cycleRepeat}
             disabled={!canManageMusic}
             className={`p-1 rounded-full transition-colors duration-150 ${
-              !canManageMusic ? 'opacity-40 cursor-not-allowed' :
-              repeatMode !== 'off' ? 'text-[var(--wd-accent)]' : 'wd-text-muted hover:wd-text-secondary'
+              !canManageMusic
+                ? "opacity-40 cursor-not-allowed"
+                : repeatMode !== "off"
+                  ? "text-[var(--wd-accent)]"
+                  : "wd-text-muted hover:wd-text-secondary"
             }`}
             title={repeatTooltip}
           >
-            <RepeatIcon size={14} />
+            <RepeatIcon size={13} />
           </button>
-        </div>
 
-        {/* Progress bar + volume button row */}
-        <div className="flex items-center gap-1.5 w-full">
-          <div className="flex-1 min-w-0">
-            <ProgressBar elapsed={elapsed} duration={trackDuration} />
+          <div className="min-w-0 flex-1 overflow-hidden">
+            <PlaybackStatus
+              stateIcon={stateIcon}
+              stateLabel={stateLabel}
+              listenerCount={session.listenerCount}
+              queueLength={session.queueLength}
+              showQueue={showQueue}
+              onToggleQueue={handleToggleQueue}
+            />
           </div>
-          <VolumeButton />
         </div>
-
-        <PlaybackStatus
-          stateIcon={stateIcon}
-          stateLabel={stateLabel}
-          listenerCount={session.listenerCount}
-          queueLength={session.queueLength}
-          showQueue={showQueue}
-          onToggleQueue={handleToggleQueue}
-        />
-        <ListenButton isListening={isListening} onToggle={handleToggleListen} />
       </div>
     </div>
   );
