@@ -36,6 +36,8 @@ export default function LoungeCard({
   const currentTrack = musicSession?.currentTrack ?? null;
   const isMusicPlaying = musicSession?.state === 'playing';
 
+  const loungeMembers = useChatV2Store((s) => s.membersByRoomId[loungeChannelId]);
+
   const onlineCount = usePresenceStore((s) => {
     let count = 0;
     for (const [uid, presence] of Object.entries(s.presenceMap)) {
@@ -108,8 +110,8 @@ export default function LoungeCard({
         isBusy ? 'opacity-60' : ''
       } ${
         isLive || isInLounge
-          ? 'border-[var(--wd-success)] shadow-[0_0_16px_rgb(var(--wd-success-rgb)/0.18)]'
-          : 'border-[var(--wd-den-border)] shadow-[0_0_18px_rgb(var(--wd-accent-rgb)/0.10)] hover:border-[var(--wd-accent)]'
+          ? 'border-[var(--wd-den-border)] shadow-[0_0_26px_rgb(var(--wd-accent-rgb)/0.20)]'
+          : 'border-[var(--wd-den-border)] shadow-[0_0_14px_rgb(var(--wd-accent-rgb)/0.08)] hover:border-[var(--wd-accent)]'
       }`}
     >
       {/* mini hearth — drifting embers + lamplight glow, clipped to the card */}
@@ -128,18 +130,29 @@ export default function LoungeCard({
             {roomName}
           </span>
           {(isLive || isInLounge) && (
-            <span className="h-2 w-2 shrink-0 rounded-full bg-[var(--wd-success)] motion-safe:animate-pulse" />
+            <span className="flex shrink-0 items-center gap-1 rounded-full bg-[rgb(var(--wd-success-rgb)/0.14)] px-1.5 py-0.5 text-[9px] font-extrabold tracking-wide text-[var(--wd-success)]">
+              <span className="h-1.5 w-1.5 rounded-full bg-[var(--wd-success)] motion-safe:animate-pulse" />
+              LIVE
+            </span>
           )}
         </div>
 
         <div className="mt-2 flex items-center gap-2">
           {participants.length > 0 && (
             <span className="flex shrink-0">
-              {participants.slice(0, 3).map((p, i) => (
-                <span key={p.userId} title={p.displayName} className={i > 0 ? '-ml-2' : ''}>
-                  <UserAvatar name={p.displayName} size="xs" />
-                </span>
-              ))}
+              {participants.slice(0, 3).map((p, i) => {
+                const member = loungeMembers?.find((m) => m.userId === p.userId);
+                return (
+                  <span key={p.userId} title={p.displayName} className={i > 0 ? '-ml-2' : ''}>
+                    <UserAvatar
+                      name={p.displayName}
+                      image={member?.user?.image ?? null}
+                      characterCustomization={member?.user?.characterCustomization ?? null}
+                      size="xs"
+                    />
+                  </span>
+                );
+              })}
               {participants.length > 3 && (
                 <span className="-ml-2 inline-flex h-7 w-7 items-center justify-center rounded-full border wd-border-subtle wd-bg-elevated text-[10px] font-bold wd-text-muted">
                   +{participants.length - 3}
