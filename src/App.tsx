@@ -36,6 +36,7 @@ import useChatV2Store from "./common/store/chatV2Store";
 import DeskLayout from "./common/components/DeskMode/DeskLayout";
 import DevControlPanel from "./common/components/DevControlPanel/DevControlPanel";
 import WorkspaceSelectorOverlay from "./common/components/WorkspaceSelector/WorkspaceSelectorOverlay";
+import { SplashLoader } from "./common/components/Splash/SplashLoader";
 import useWorkspaceStore from "@/common/store/workspaceStore";
 import useCallStore from "@/common/store/callStore";
 import useMusicStore from "@/common/store/musicStore";
@@ -121,6 +122,7 @@ function App() {
     }, [status, session?.backendJwt, session?.backendUser, session?.backendCharacter]);
 
     const [initStep, setInitStep] = React.useState("");
+    const [initProgress, setInitProgress] = React.useState(0);
 
     const initServices = React.useCallback(async (jwtToken: string) => {
         if (initInFlight.current) return;
@@ -128,30 +130,33 @@ function App() {
         setInitError(null);
 
         const t0 = performance.now();
-        let currentStep = "Creating transport...";
-        const step = (label: string) => {
-            currentStep = label;
+        let currentStep = "Creating transport";
+        // Friendly, user-facing copy + boot progress (0..1) for the splash loader.
+        // `techLabel` stays technical for the failure log.
+        const step = (label: string, progress: number, techLabel: string) => {
+            currentStep = techLabel;
             setInitStep(label);
+            setInitProgress(progress);
         };
         const logStep = (label: string) => {
             console.info(`[init-timing] ${label}: ${(performance.now() - t0).toFixed(1)}ms`);
         };
 
         try {
-            step("Creating transport...");
+            step("Getting the room ready…", 0.12, "Creating transport");
             const transport = MediaTransportService.getInstance(jwtToken);
             const reactionService = ReactionService.getInstance();
             const pollService = PollService.getInstance();
 
-            step("Connecting to server...");
+            step("Connecting…", 0.36, "Connecting to server");
             await transport.connect();
             logStep("socket connected");
 
-            step("Initializing SFU...");
+            step("Tuning audio & video…", 0.66, "Initializing SFU");
             await transport.initializeSfu();
             logStep("SFU initialized");
 
-            step("Setting up listeners...");
+            step("Almost in…", 0.9, "Setting up listeners");
             reactionService.setupReactionListener();
             reactionService.uiUpdater = (emojiData) => {
                 reactionService.routeReactionToPlayer(emojiData);
@@ -331,11 +336,7 @@ function App() {
     }, []);
 
     if (status === "loading") {
-        return (
-            <div className="w-full h-full flex items-center justify-center wd-bg-app wd-text-primary">
-                Loading session...
-            </div>
-        );
+        return <SplashLoader step="Waking up…" progress={0.05} />;
     }
 
     if (status === "unauthenticated") {
@@ -345,40 +346,15 @@ function App() {
 
     if (!isInitialized) {
         return (
-            <div className="w-full h-full flex items-center justify-center wd-bg-app wd-text-primary">
-                <div className="text-center">
-                    {initError ? (
-                        <>
-                            <div className="wd-text-danger font-mono text-sm mb-2">
-                                Failed to connect
-                            </div>
-                            <div className="wd-text-muted text-xs mb-4">
-                                {initError}
-                            </div>
-                            <button
-                                className="wd-btn-primary px-4 py-1.5 text-sm rounded"
-                                onClick={() => {
-                                    const jwt =
-                                        session?.backendJwt ||
-                                        tokenStore.getJwt();
-                                    if (jwt) void initServices(jwt);
-                                }}
-                            >
-                                Retry
-                            </button>
-                        </>
-                    ) : (
-                        <>
-                            <div className="wd-text-accent font-mono text-sm mb-2">
-                                Initializing services...
-                            </div>
-                            <div className="wd-text-muted text-xs">
-                                {initStep || "Starting up..."}
-                            </div>
-                        </>
-                    )}
-                </div>
-            </div>
+            <SplashLoader
+                step={initStep || "Starting up…"}
+                progress={initProgress}
+                error={initError}
+                onRetry={() => {
+                    const jwt = session?.backendJwt || tokenStore.getJwt();
+                    if (jwt) void initServices(jwt);
+                }}
+            />
         );
     }
 
