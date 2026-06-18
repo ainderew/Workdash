@@ -69,9 +69,21 @@ export interface ChannelContentRect {
 
 export type ConnectionQuality = 'good' | 'fair' | 'poor' | 'unknown';
 
+/**
+ * Health of the local WebRTC transports (ICE/DTLS), independent of the
+ * socket.io signaling channel. When ICE drops while the socket stays alive the
+ * call silently freezes — this surfaces that and drives the reconnect banner.
+ */
+export type MediaConnectionState = 'connected' | 'reconnecting' | 'lost';
+
 export interface StatsSnapshot {
   bitrate: number;
+  /** Combined inbound loss % (kept for back-compat / overall display) */
   packetLoss: number;
+  /** Inbound audio loss % — broken out so choppy audio isn't masked by video */
+  audioPacketLoss: number;
+  /** Inbound video loss % */
+  videoPacketLoss: number;
   rtt: number;
   fps: number;
 }
@@ -144,11 +156,17 @@ interface CallState {
    */
   stageOptOut: boolean;
 
-  /** WebRTC connection quality indicator */
+  /** WebRTC connection quality indicator (aggregate, local) */
   connectionQuality: ConnectionQuality;
 
   /** Latest WebRTC stats snapshot */
   statsSnapshot: StatsSnapshot | null;
+
+  /** Transport (ICE/DTLS) health — drives the in-call reconnect banner */
+  mediaConnectionState: MediaConnectionState;
+
+  /** Per-participant connection quality, keyed by userId (remote peers only) */
+  participantQuality: Record<number, ConnectionQuality>;
 
   isCallOwner: boolean;
   callOwnershipStatus: CallOwnershipStatus | null;
@@ -233,6 +251,8 @@ interface CallState {
   // Quality stats
   setConnectionQuality: (q: ConnectionQuality) => void;
   setStatsSnapshot: (s: StatsSnapshot | null) => void;
+  setMediaConnectionState: (s: MediaConnectionState) => void;
+  setParticipantQuality: (q: Record<number, ConnectionQuality>) => void;
 
   /** Clear workspace-specific state (calls map, producers) but preserve currentCall & media */
   resetForWorkspaceSwitch: () => void;
@@ -266,6 +286,8 @@ const useCallStore = create<CallState>((set) => ({
   stageOptOut: false,
   connectionQuality: 'unknown' satisfies ConnectionQuality,
   statsSnapshot: null,
+  mediaConnectionState: 'connected' satisfies MediaConnectionState,
+  participantQuality: {},
   isCallOwner: false,
   callOwnershipStatus: null,
   ownershipChannelId: null,
@@ -292,6 +314,10 @@ const useCallStore = create<CallState>((set) => ({
         screenShareAutoFullscreen: wasInCall ? false : state.screenShareAutoFullscreen,
         presenter: wasInCall ? null : state.presenter,
         stageOptOut: wasInCall ? false : state.stageOptOut,
+        participantQuality: wasInCall ? {} : state.participantQuality,
+        mediaConnectionState: wasInCall
+          ? ('connected' satisfies MediaConnectionState)
+          : state.mediaConnectionState,
         ...(clearOwnership && {
           callOwnershipStatus: null,
           isCallOwner: false,
@@ -648,6 +674,12 @@ const useCallStore = create<CallState>((set) => ({
   setStatsSnapshot: (s) =>
     set(() => ({ statsSnapshot: s })),
 
+  setMediaConnectionState: (s) =>
+    set(() => ({ mediaConnectionState: s })),
+
+  setParticipantQuality: (q) =>
+    set(() => ({ participantQuality: q })),
+
   resetForWorkspaceSwitch: () =>
     set(() => ({
       activeCallsByChannel: {},
@@ -659,6 +691,7 @@ const useCallStore = create<CallState>((set) => ({
       screenShareAutoFullscreen: false,
       presenter: null,
       stageOptOut: false,
+      participantQuality: {},
       isCallOwner: false,
       callOwnershipStatus: null,
       ownershipChannelId: null,
@@ -685,6 +718,8 @@ const useCallStore = create<CallState>((set) => ({
       stageOptOut: false,
       connectionQuality: 'unknown' satisfies ConnectionQuality,
       statsSnapshot: null,
+      mediaConnectionState: 'connected' satisfies MediaConnectionState,
+      participantQuality: {},
       isCallOwner: false,
       callOwnershipStatus: null,
       ownershipChannelId: null,

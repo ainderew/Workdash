@@ -11,6 +11,7 @@ import useUiStore from "@/common/store/uiStore";
 import useUserStore from "@/common/store/useStore";
 import { RNNoiseService } from "./rnnoiseService";
 import { toast } from "sonner";
+import { surfaceMediaDeviceError } from "@/common/utils/mediaErrors";
 import {
     emitWithTimeout,
     assertTransportReady,
@@ -212,6 +213,32 @@ export class AudioChat {
             this.closeConsumerByProducerId(producerId);
         }
         this.socketToProducersMap.clear();
+    }
+
+    /**
+     * Live remote audio consumers paired with the owning user — used by the
+     * stats poller to derive per-participant audio quality (choppy audio).
+     */
+    public getRemoteConsumerEntries(): Array<{
+        producerId: string;
+        userId: number | undefined;
+        consumer: Consumer;
+    }> {
+        const entries: Array<{
+            producerId: string;
+            userId: number | undefined;
+            consumer: Consumer;
+        }> = [];
+        for (const [producerId, consumerId] of this.producerToConsumerMap) {
+            const consumer = this.consumers.get(consumerId);
+            if (!consumer || consumer.closed) continue;
+            entries.push({
+                producerId,
+                userId: this.audioProducerUserIdMap.get(producerId),
+                consumer,
+            });
+        }
+        return entries;
     }
 
     private closeConsumersForSocket(socketId: string): void {
@@ -435,9 +462,15 @@ export class AudioChat {
         this.joining = true;
 
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({
-                audio: this.getAudioConstraints(deviceId),
-            });
+            let stream: MediaStream;
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    audio: this.getAudioConstraints(deviceId),
+                });
+            } catch (err) {
+                surfaceMediaDeviceError(err, "microphone");
+                throw err;
+            }
 
             this.currentStream = stream;
             if (deviceId) {

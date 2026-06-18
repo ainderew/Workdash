@@ -1,6 +1,7 @@
 import { Producer } from "mediasoup-client/types";
 import { MediaTransportService } from "../mediaTransportService/mediaTransportService";
 import { assertTransportReady } from "@/communication/utils/emitWithTimeout";
+import { surfaceMediaDeviceError } from "@/common/utils/mediaErrors";
 
 export class VideoChatService {
     public static instance: VideoChatService | null = null;
@@ -99,10 +100,16 @@ export class VideoChatService {
         try {
             const resolvedDeviceId = deviceId ?? this.currentDeviceId ?? undefined;
 
-            const stream = await navigator.mediaDevices.getUserMedia({
-                video: this.getVideoConstraints(resolvedDeviceId),
-                audio: false,
-            });
+            let stream: MediaStream;
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: this.getVideoConstraints(resolvedDeviceId),
+                    audio: false,
+                });
+            } catch (err) {
+                surfaceMediaDeviceError(err, "camera");
+                throw err;
+            }
 
             const videoTrack = stream.getVideoTracks()[0];
 

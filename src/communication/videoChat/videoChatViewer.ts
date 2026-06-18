@@ -46,6 +46,22 @@ export class VideoChatViewer {
         this.stateListeners.delete(cb);
     }
 
+    /**
+     * Live remote video consumers keyed by producerId — used by the stats
+     * poller to derive per-participant video quality.
+     */
+    public getRemoteConsumerEntries(): Array<{
+        producerId: string;
+        consumer: Consumer;
+    }> {
+        const entries: Array<{ producerId: string; consumer: Consumer }> = [];
+        for (const [producerId, consumer] of this.consumers) {
+            if (consumer.closed) continue;
+            entries.push({ producerId, consumer });
+        }
+        return entries;
+    }
+
     private notifyStateListeners(): void {
         this.updateComponentStateCallback?.();
         this.stateListeners.forEach((cb) => cb());

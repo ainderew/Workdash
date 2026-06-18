@@ -94,7 +94,7 @@ export default function CallControlBar({
   const qualityLabel =
     connectionQuality === 'unknown' ? 'Connecting...' : connectionQuality;
   const statsTooltip = statsSnapshot
-    ? `${qualityLabel} | ${Math.round(statsSnapshot.bitrate / 1000)} kbps | ${statsSnapshot.rtt}ms RTT | ${statsSnapshot.packetLoss}% loss${statsSnapshot.fps ? ` | ${statsSnapshot.fps} fps` : ''}`
+    ? `${qualityLabel} | ${Math.round(statsSnapshot.bitrate / 1000)} kbps | ${statsSnapshot.rtt}ms RTT | loss aud ${statsSnapshot.audioPacketLoss}% · vid ${statsSnapshot.videoPacketLoss}%${statsSnapshot.fps ? ` | ${statsSnapshot.fps} fps` : ''}`
     : qualityLabel;
 
   const qualityDot = (

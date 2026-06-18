@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import Image from 'next/image';
-import { Mic, MicOff, Video, Monitor, Pin, PinOff, HeadphoneOff } from 'lucide-react';
+import { Mic, MicOff, Video, Monitor, Pin, PinOff, HeadphoneOff, Wifi } from 'lucide-react';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import useFocusStore from '@/common/store/focusStore';
 import useCallReactionStore from '@/common/store/callReactionStore';
@@ -77,6 +77,11 @@ export default function CallParticipantTile({
   const producerId = useCallStore(
     (s) => s.userToProducerId[participant.userId],
   );
+
+  // Per-participant connection quality (remote peers only) — surfaces a weak
+  // link so a single choppy person is attributable, not just "the call".
+  const remoteQuality = useCallStore((s) => s.participantQuality?.[participant.userId]);
+  const showWeakLink = !isLocal && (remoteQuality === 'fair' || remoteQuality === 'poor');
 
   // Mount video element into the tile
   useEffect(() => {
@@ -280,6 +285,28 @@ export default function CallParticipantTile({
           )}
         </span>
         <div className="ml-auto flex items-center gap-1">
+          {showWeakLink && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex items-center">
+                  <Wifi
+                    size={11}
+                    style={{
+                      color:
+                        remoteQuality === 'poor'
+                          ? 'var(--wd-danger)'
+                          : 'var(--wd-warning)',
+                    }}
+                  />
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="top" sideOffset={6}>
+                {remoteQuality === 'poor'
+                  ? 'Weak connection — their audio and video may be choppy'
+                  : 'Unstable connection'}
+              </TooltipContent>
+            </Tooltip>
+          )}
           {isMuted ? (
             <MicOff size={11} className="text-[var(--wd-danger)]" />
           ) : (

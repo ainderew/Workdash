@@ -1,6 +1,13 @@
 import { MediaTransportService } from '../mediaTransportService/mediaTransportService';
 import useCallStore from '@/common/store/callStore';
 import type { ConnectionQuality, StatsSnapshot } from '@/common/store/callStore';
+import { VideoChatViewer } from '@/communication/videoChat/videoChatViewer';
+import { AudioChat } from '@/communication/audioChat/audioChat';
+import {
+  classifyQuality,
+  lossPercent,
+  worseQuality,
+} from './webrtcStatsUtils';
 import {
   startScreenLayerController,
   stopScreenLayerController,
@@ -16,11 +23,19 @@ export class WebrtcStatsService {
   private prevBytesReceived = 0;
   private prevPacketsLost = 0;
   private prevPacketsReceived = 0;
+  private prevAudioPacketsLost = 0;
+  private prevAudioPacketsReceived = 0;
+  private prevVideoPacketsLost = 0;
+  private prevVideoPacketsReceived = 0;
   private prevTimestamp = 0;
   private qualityHoldStart = 0;
   private lastQuality: ConnectionQuality = 'unknown';
   private polling = false;
   private unsubscribe: (() => void) | null = null;
+
+  // Per-consumer cumulative packet counters (keyed by producerId) for deltas
+  private prevConsumerLost = new Map<string, number>();
+  private prevConsumerReceived = new Map<string, number>();
 
   static getInstance(): WebrtcStatsService {
     if (!this.instance) {
@@ -69,11 +84,18 @@ export class WebrtcStatsService {
     this.prevBytesReceived = 0;
     this.prevPacketsLost = 0;
     this.prevPacketsReceived = 0;
+    this.prevAudioPacketsLost = 0;
+    this.prevAudioPacketsReceived = 0;
+    this.prevVideoPacketsLost = 0;
+    this.prevVideoPacketsReceived = 0;
     this.prevTimestamp = 0;
     this.qualityHoldStart = 0;
     this.lastQuality = 'unknown';
+    this.prevConsumerLost.clear();
+    this.prevConsumerReceived.clear();
     useCallStore.getState().setConnectionQuality('unknown');
     useCallStore.getState().setStatsSnapshot(null);
+    useCallStore.getState().setParticipantQuality({});
 
     this.intervalId = setInterval(() => this.poll(), POLL_INTERVAL_MS);
   }
@@ -83,8 +105,11 @@ export class WebrtcStatsService {
       clearInterval(this.intervalId);
       this.intervalId = null;
     }
+    this.prevConsumerLost.clear();
+    this.prevConsumerReceived.clear();
     useCallStore.getState().setConnectionQuality('unknown');
     useCallStore.getState().setStatsSnapshot(null);
+    useCallStore.getState().setParticipantQuality({});
   }
 
   private async poll(): Promise<void> {
@@ -102,6 +127,10 @@ export class WebrtcStatsService {
     let totalBytesReceived = 0;
     let totalPacketsLost = 0;
     let totalPacketsReceived = 0;
+    let audioPacketsLost = 0;
+    let audioPacketsReceived = 0;
+    let videoPacketsLost = 0;
+    let videoPacketsReceived = 0;
     let rtt = 0;
     let fps = 0;
     const timestamp = performance.now();
@@ -126,9 +155,21 @@ export class WebrtcStatsService {
         const stats = await recvTransport.getStats();
         for (const report of stats.values()) {
           if (report.type === 'inbound-rtp') {
+            const lost = report.packetsLost ?? 0;
+            const received = report.packetsReceived ?? 0;
             totalBytesReceived += report.bytesReceived ?? 0;
-            totalPacketsLost += report.packetsLost ?? 0;
-            totalPacketsReceived += report.packetsReceived ?? 0;
+            totalPacketsLost += lost;
+            totalPacketsReceived += received;
+            // `kind` ('audio' | 'video') lets us break out choppy audio that
+            // the video-dominated combined number would otherwise hide.
+            const kind = report.kind ?? report.mediaType;
+            if (kind === 'audio') {
+              audioPacketsLost += lost;
+              audioPacketsReceived += received;
+            } else if (kind === 'video') {
+              videoPacketsLost += lost;
+              videoPacketsReceived += received;
+            }
             if (report.framesPerSecond) {
               fps = Math.max(fps, report.framesPerSecond);
             }
@@ -158,36 +199,43 @@ export class WebrtcStatsService {
     // Fix #3: compute packet loss from per-interval deltas, not cumulative totals
     const deltaPacketsLost = Math.max(0, totalPacketsLost - this.prevPacketsLost);
     const deltaPacketsReceived = Math.max(0, totalPacketsReceived - this.prevPacketsReceived);
-    const deltaPacketsTotal = deltaPacketsReceived + deltaPacketsLost;
+
+    // Slice C: audio and video loss are tracked separately so a healthy video
+    // stream can no longer mask an unusable audio stream (or vice versa).
+    const deltaAudioLost = Math.max(0, audioPacketsLost - this.prevAudioPacketsLost);
+    const deltaAudioReceived = Math.max(0, audioPacketsReceived - this.prevAudioPacketsReceived);
+    const deltaVideoLost = Math.max(0, videoPacketsLost - this.prevVideoPacketsLost);
+    const deltaVideoReceived = Math.max(0, videoPacketsReceived - this.prevVideoPacketsReceived);
 
     this.prevBytesSent = totalBytesSent;
     this.prevBytesReceived = totalBytesReceived;
     this.prevPacketsLost = totalPacketsLost;
     this.prevPacketsReceived = totalPacketsReceived;
+    this.prevAudioPacketsLost = audioPacketsLost;
+    this.prevAudioPacketsReceived = audioPacketsReceived;
+    this.prevVideoPacketsLost = videoPacketsLost;
+    this.prevVideoPacketsReceived = videoPacketsReceived;
     this.prevTimestamp = timestamp;
 
-    const packetLoss = deltaPacketsTotal > 0
-      ? (deltaPacketsLost / deltaPacketsTotal) * 100
-      : 0;
+    const packetLoss = lossPercent(deltaPacketsLost, deltaPacketsReceived);
+    const audioLoss = lossPercent(deltaAudioLost, deltaAudioReceived);
+    const videoLoss = lossPercent(deltaVideoLost, deltaVideoReceived);
 
     const rttMs = rtt * 1000;
 
     const snapshot: StatsSnapshot = {
       bitrate: Math.round(bitrate),
       packetLoss: Math.round(packetLoss * 10) / 10,
+      audioPacketLoss: Math.round(audioLoss * 10) / 10,
+      videoPacketLoss: Math.round(videoLoss * 10) / 10,
       rtt: Math.round(rttMs),
       fps: Math.round(fps),
     };
 
-    // Determine quality
-    let quality: ConnectionQuality;
-    if (rttMs < 150 && packetLoss < 2) {
-      quality = 'good';
-    } else if (rttMs < 300 && packetLoss < 5) {
-      quality = 'fair';
-    } else {
-      quality = 'poor';
-    }
+    // Overall = the worse of the two streams; the dot must reflect bad audio.
+    const audioQuality = classifyQuality(rttMs, audioLoss);
+    const videoQuality = classifyQuality(rttMs, videoLoss);
+    const quality = worseQuality(audioQuality, videoQuality);
 
     // Fix #7: use performance.now() consistently for hold timer
     const now = performance.now();
@@ -200,8 +248,9 @@ export class WebrtcStatsService {
         this.qualityHoldStart = 0;
         useCallStore.getState().setConnectionQuality(quality);
 
-        // Adaptive layer selection
-        this.requestAdaptiveLayers(quality, sfu);
+        // Adaptive layers follow VIDEO health only — don't downscale video
+        // resolution just because audio is lossy.
+        this.requestAdaptiveLayers(videoQuality, sfu);
       }
     } else {
       this.qualityHoldStart = 0;
@@ -216,9 +265,99 @@ export class WebrtcStatsService {
     }
 
     useCallStore.getState().setStatsSnapshot(snapshot);
+
+    await this.pollParticipantQuality();
     } finally {
       this.polling = false;
     }
+  }
+
+  /**
+   * Per-participant quality from each remote consumer's own getStats(). The
+   * aggregate dot can't tell you *which* peer is choppy — this powers the
+   * per-tile badge so a single bad uplink is attributable.
+   */
+  private async pollParticipantQuality(): Promise<void> {
+    const producerUserMap = useCallStore.getState().producerUserMap;
+
+    const entries: Array<{
+      producerId: string;
+      userId: number | undefined;
+      getStats: () => Promise<RTCStatsReport>;
+    }> = [
+      ...VideoChatViewer.getInstance().getRemoteConsumerEntries().map((e) => ({
+        producerId: e.producerId,
+        userId: producerUserMap[e.producerId],
+        getStats: () => e.consumer.getStats(),
+      })),
+      ...AudioChat.getInstance().getRemoteConsumerEntries().map((e) => ({
+        producerId: e.producerId,
+        userId: e.userId,
+        getStats: () => e.consumer.getStats(),
+      })),
+    ];
+
+    const seen = new Set<string>();
+    const worstByUser = new Map<number, ConnectionQuality>();
+
+    await Promise.all(
+      entries.map(async ({ producerId, userId, getStats }) => {
+        seen.add(producerId);
+        try {
+          const quality = await this.consumerQuality(producerId, getStats);
+          if (quality && userId !== undefined) {
+            worstByUser.set(userId, worseQuality(worstByUser.get(userId), quality));
+          }
+        } catch {
+          // Ignore stats failures for an individual consumer
+        }
+      }),
+    );
+
+    // Forget counters for consumers that have gone away
+    for (const id of Array.from(this.prevConsumerLost.keys())) {
+      if (!seen.has(id)) {
+        this.prevConsumerLost.delete(id);
+        this.prevConsumerReceived.delete(id);
+      }
+    }
+
+    const result: Record<number, ConnectionQuality> = {};
+    for (const [userId, quality] of worstByUser) {
+      result[userId] = quality;
+    }
+    useCallStore.getState().setParticipantQuality(result);
+  }
+
+  /** Loss-based quality for one consumer, from per-interval packet deltas. */
+  private async consumerQuality(
+    producerId: string,
+    getStats: () => Promise<RTCStatsReport>,
+  ): Promise<ConnectionQuality | null> {
+    const stats = await getStats();
+    let lost = 0;
+    let received = 0;
+    for (const report of stats.values()) {
+      if (report.type === 'inbound-rtp') {
+        lost += report.packetsLost ?? 0;
+        received += report.packetsReceived ?? 0;
+      }
+    }
+
+    const prevLost = this.prevConsumerLost.get(producerId) ?? lost;
+    const prevReceived = this.prevConsumerReceived.get(producerId) ?? received;
+    this.prevConsumerLost.set(producerId, lost);
+    this.prevConsumerReceived.set(producerId, received);
+
+    const deltaLost = Math.max(0, lost - prevLost);
+    const deltaReceived = Math.max(0, received - prevReceived);
+    const total = deltaLost + deltaReceived;
+    if (total === 0) return null; // no traffic this interval — leave as-is
+
+    const loss = (deltaLost / total) * 100;
+    if (loss < 2) return 'good';
+    if (loss < 5) return 'fair';
+    return 'poor';
   }
 
   private requestAdaptiveLayers(

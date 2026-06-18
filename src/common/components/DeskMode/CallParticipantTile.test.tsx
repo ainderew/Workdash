@@ -10,6 +10,7 @@ import type { CallParticipant } from '@/common/store/callStore';
 let mockRaisedHands = new Set<number>();
 let mockLocalFocusMode = false;
 let mockRemoteFocusByUserId: Record<number, boolean> = {};
+let mockParticipantQuality: Record<number, 'good' | 'fair' | 'poor'> = {};
 
 vi.mock('@/common/store/callReactionStore', () => ({
   default: vi.fn(
@@ -35,8 +36,26 @@ vi.mock('@/common/store/focusStore', () => ({
 
 vi.mock('@/common/store/callStore', () => ({
   default: vi.fn(
-    (selector: (s: { userToProducerId: Record<number, string> }) => unknown) =>
-      selector({ userToProducerId: {} }),
+    (
+      selector: (s: {
+        userToProducerId: Record<number, string>;
+        participantQuality: Record<number, 'good' | 'fair' | 'poor'>;
+      }) => unknown,
+    ) =>
+      selector({
+        userToProducerId: {},
+        participantQuality: mockParticipantQuality,
+      }),
+  ),
+}));
+
+vi.mock('@/components/ui/tooltip', () => ({
+  Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  TooltipTrigger: ({ children }: { children: React.ReactNode }) => (
+    <>{children}</>
+  ),
+  TooltipContent: ({ children }: { children: React.ReactNode }) => (
+    <span>{children}</span>
   ),
 }));
 
@@ -114,6 +133,57 @@ beforeEach(() => {
   mockRaisedHands = new Set();
   mockLocalFocusMode = false;
   mockRemoteFocusByUserId = {};
+  mockParticipantQuality = {};
+});
+
+describe('CallParticipantTile weak-link badge', () => {
+  it('shows a weak-link icon for a remote peer with poor quality', () => {
+    mockParticipantQuality = { 10: 'poor' };
+    const { container } = render(
+      <CallParticipantTile
+        participant={makeParticipant(10)}
+        channelId="ch-1"
+        isLocal={false}
+      />,
+    );
+    expect(container.querySelector('.lucide-wifi')).toBeTruthy();
+  });
+
+  it('shows the badge for fair quality too', () => {
+    mockParticipantQuality = { 10: 'fair' };
+    const { container } = render(
+      <CallParticipantTile
+        participant={makeParticipant(10)}
+        channelId="ch-1"
+        isLocal={false}
+      />,
+    );
+    expect(container.querySelector('.lucide-wifi')).toBeTruthy();
+  });
+
+  it('hides the badge when quality is good', () => {
+    mockParticipantQuality = { 10: 'good' };
+    const { container } = render(
+      <CallParticipantTile
+        participant={makeParticipant(10)}
+        channelId="ch-1"
+        isLocal={false}
+      />,
+    );
+    expect(container.querySelector('.lucide-wifi')).toBeNull();
+  });
+
+  it('never shows the badge for the local user', () => {
+    mockParticipantQuality = { 10: 'poor' };
+    const { container } = render(
+      <CallParticipantTile
+        participant={makeParticipant(10)}
+        channelId="ch-1"
+        isLocal={true}
+      />,
+    );
+    expect(container.querySelector('.lucide-wifi')).toBeNull();
+  });
 });
 
 describe('CallParticipantTile raise-hand', () => {

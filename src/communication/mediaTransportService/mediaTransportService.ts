@@ -1,5 +1,6 @@
 import { signOutWithCleanup } from "@/common/utils/signOutWithCleanup";
 import useUserStore from "@/common/store/useStore";
+import useCallStore from "@/common/store/callStore";
 import { CONFIG } from "@/common/utils/config";
 import { logger } from "@/common/utils/logger";
 import { Device } from "mediasoup-client";
@@ -238,6 +239,10 @@ export class MediaTransportService {
             "connect",
             this.handleConnect(this.recvTransport),
         );
+        this.recvTransport.on(
+            "connectionstatechange",
+            this.handleTransportStateChange,
+        );
     }
 
     private async createSendTransport() {
@@ -253,6 +258,53 @@ export class MediaTransportService {
             this.handleConnect(this.sendTransport),
         );
         this.sendTransport.on("produce", this.handleProduce);
+        this.sendTransport.on(
+            "connectionstatechange",
+            this.handleTransportStateChange,
+        );
+    }
+
+    /**
+     * Surface ICE/DTLS transport health to the UI. Without this, a media-path
+     * failure (ICE drops while the socket.io signaling channel stays alive)
+     * freezes the call with no indication and nothing triggers recovery.
+     */
+    private handleTransportStateChange = (state: string): void => {
+        switch (state) {
+            case "connected":
+                useCallStore.getState().setMediaConnectionState("connected");
+                break;
+            case "disconnected":
+                // ICE often self-heals within a few seconds — show a soft notice.
+                useCallStore.getState().setMediaConnectionState("reconnecting");
+                break;
+            case "failed":
+                useCallStore.getState().setMediaConnectionState("reconnecting");
+                void this.recoverFromIceFailure();
+                break;
+            // "new" | "connecting" | "closed" — no user-facing change
+        }
+    };
+
+    /**
+     * ICE failed and won't self-recover. Rebuild the transports and re-consume,
+     * mirroring the socket-reconnect path. Marks the call "lost" if it can't.
+     */
+    private async recoverFromIceFailure(): Promise<void> {
+        if (this.resetting) return;
+        try {
+            await this.reinitializeSfu();
+            if (useCallStore.getState().currentCall) {
+                const { CallSignalingService } = await import(
+                    "@/communication/callSignaling/callSignalingService"
+                );
+                CallSignalingService.getInstance().loadCallProducers();
+            }
+            useCallStore.getState().setMediaConnectionState("connected");
+        } catch (err) {
+            logger.error("ICE failure recovery failed:", err);
+            useCallStore.getState().setMediaConnectionState("lost");
+        }
     }
 
     private handleProduce = async (

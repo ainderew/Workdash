@@ -12,6 +12,7 @@ import useUserStore from '@/common/store/useStore';
 import { VideoChatViewer } from '@/communication/videoChat/videoChatViewer';
 import CallAvatar from './CallAvatar';
 import CallControlBar from './CallControlBar';
+import CallConnectionNotice from './CallConnectionNotice';
 import CallTileGrid from './call-tiles/CallTileGrid';
 import DisplayModeSplitButton from './DisplayModeSplitButton';
 import { ScreenShareViewer } from '@/communication/screenShare/screenShareViewer';
@@ -286,6 +287,9 @@ export default function CallView({ channelId, onLeave, onPictureInPicture, onFul
             />
           </span>
         </div>
+
+        {/* Transport health — surfaces ICE failures that would otherwise freeze silently */}
+        <CallConnectionNotice />
 
         {/* Participant tiles — resizable container, tiles maintain aspect ratio */}
         <div className="relative z-[1]">
