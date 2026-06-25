@@ -215,6 +215,7 @@ const MessageRow = React.memo(function MessageRow({
     const isConsecutive =
         !showDaySeparator &&
         previousMessage !== null &&
+        previousMessage.messageType !== "SYSTEM" &&
         previousMessage.senderUserId === message.senderUserId;
     const daySeparatorLabel = showDaySeparator
         ? formatChatDaySeparatorLabel(message.createdAt)
