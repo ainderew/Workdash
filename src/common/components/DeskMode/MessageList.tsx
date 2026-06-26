@@ -214,6 +214,8 @@ function MessageList({
     const chatV2Service = useMemo(() => ChatV2Service.getInstance(), []);
     const usersInCall = useUsersInCall();
     const virtuosoRef = useRef<VirtuosoHandle>(null);
+    const listWrapperRef = useRef<HTMLDivElement>(null);
+    const scrollIdleTimeoutRef = useRef<number | null>(null);
     const isLoadingOlderRef = useRef(false);
     const lastLoadTimestampRef = useRef(0);
     const focusedMessageRetriesRef = useRef(0);
@@ -1164,6 +1166,40 @@ function MessageList({
         [],
     );
 
+    // While the list is moving, suspend pointer events on the rows. On a
+    // trackpad the cursor stays put while messages slide underneath it, so the
+    // per-row hover affordances (background `transition-colors`, the absolutely
+    // positioned toolbar/timestamp that fade in on `group-hover`) flip on and
+    // off continuously — a flickering "twitch" for the whole scroll gesture.
+    // Toggling a class imperatively (no setState → no re-render) lets CSS drop
+    // hover handling until motion settles. We re-enable shortly after Virtuoso
+    // reports it stopped so trailing momentum frames don't re-trigger the churn.
+    const handleIsScrolling = useCallback((scrolling: boolean) => {
+        const el = listWrapperRef.current;
+        if (!el) return;
+        if (scrollIdleTimeoutRef.current !== null) {
+            window.clearTimeout(scrollIdleTimeoutRef.current);
+            scrollIdleTimeoutRef.current = null;
+        }
+        if (scrolling) {
+            el.classList.add("wd-list-scrolling");
+            return;
+        }
+        scrollIdleTimeoutRef.current = window.setTimeout(() => {
+            el.classList.remove("wd-list-scrolling");
+            scrollIdleTimeoutRef.current = null;
+        }, 120);
+    }, []);
+
+    useEffect(() => {
+        return () => {
+            if (scrollIdleTimeoutRef.current !== null) {
+                window.clearTimeout(scrollIdleTimeoutRef.current);
+                scrollIdleTimeoutRef.current = null;
+            }
+        };
+    }, []);
+
     const headerContent = useMemo(() => {
         if (isLoadingOlderMessages) {
             return (
@@ -1330,7 +1366,10 @@ function MessageList({
     );
 
     return (
-        <div className="relative flex-1 overflow-hidden wd-bg-panel-2">
+        <div
+            ref={listWrapperRef}
+            className="relative flex-1 overflow-hidden wd-bg-panel-2"
+        >
             {isLoading ? (
                 <div className="px-5 py-4">
                     <MessageSkeleton count={8} />
@@ -1349,6 +1388,7 @@ function MessageList({
                         groupedMessages.rootMessages.length - 1
                     }
                     followOutput={handleFollowOutput}
+                    isScrolling={handleIsScrolling}
                     startReached={handleStartReached}
                     atBottomStateChange={handleAtBottomChange}
                     atBottomThreshold={100}

@@ -58,6 +58,15 @@ body {
         border-radius: 10px;
     }
 }
+
+/* While a virtualized message list is actively scrolling, drop pointer events
+   on its rows. On a trackpad the cursor stays still while messages slide under
+   it, so per-row hover styles (background fades, toolbar/timestamp reveals)
+   would otherwise flicker continuously for the whole gesture. The class is
+   toggled imperatively by MessageList's `isScrolling` handler. */
+.wd-list-scrolling [data-item-index] {
+    pointer-events: none;
+}
 /* .spritePosition { */
 /*     margin: 10px 0 0 10px; */
 /*     font-size: 0.8em; */
