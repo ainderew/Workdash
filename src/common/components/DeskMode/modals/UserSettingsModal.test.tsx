@@ -60,6 +60,15 @@ vi.mock('@/common/store/useStore', () => {
   return { default: useUserStore };
 });
 
+// chatV2Store transitively imports Phaser via @/game/EventBus — mock it out.
+vi.mock('@/common/store/chatV2Store', () => {
+  const store = { selectedWorkspaceId: 'ws-1' };
+  const useChatV2Store = (selector: (s: typeof store) => unknown) =>
+    selector(store);
+  useChatV2Store.getState = () => store;
+  return { default: useChatV2Store };
+});
+
 vi.mock('@/game/character/CharacterEventBus', () => ({
   CharacterEventBus: {
     emitNameUpdate: vi.fn(),

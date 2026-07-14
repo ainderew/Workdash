@@ -46,24 +46,15 @@ vi.mock("@/common/utils/logger", () => ({
     logger: { warn: vi.fn(), log: vi.fn(), error: vi.fn(), info: vi.fn() },
 }));
 
-// Stub matchMedia (jsdom doesn't provide it by default)
-Object.defineProperty(window, "matchMedia", {
-    writable: true,
-    value: vi.fn().mockReturnValue({ matches: false }),
-});
-
-// Stub Audio so we can assert play attempts
-const audioPlaySpy = vi.fn().mockResolvedValue(undefined);
-class MockAudio {
-    src: string;
-    constructor(src: string) {
-        this.src = src;
-    }
-    play() {
-        return audioPlaySpy();
-    }
-}
-(global as unknown as { Audio: typeof MockAudio }).Audio = MockAudio;
+// Mock the synthesised chime module — its internals (Web Audio API,
+// reduced-motion gating) are covered by readyCheckSound.test.ts.
+const { playSummonChimeSpy } = vi.hoisted(() => ({
+    playSummonChimeSpy: vi.fn(),
+}));
+vi.mock("./readyCheckSound", () => ({
+    playSummonChime: playSummonChimeSpy,
+    playLockedInChime: vi.fn(),
+}));
 
 // Import after all mocks
 import { ReadyCheckClientService } from "./readyCheckService";
@@ -93,7 +84,6 @@ function makeSnapshot(
 beforeEach(() => {
     vi.clearAllMocks();
     Object.keys(socketHandlers).forEach((k) => delete socketHandlers[k]);
-    audioPlaySpy.mockClear();
     focusStoreState.localFocusMode = false;
     chatStoreState.currentRoomId = null;
     useReadyCheckStore.getState().reset();
@@ -151,7 +141,7 @@ describe("ReadyCheckClientService — listener wiring", () => {
         });
 
         expect(useReadyCheckStore.getState().activePromptCheckId).toBe("c-1");
-        expect(audioPlaySpy).toHaveBeenCalledTimes(1);
+        expect(playSummonChimeSpy).toHaveBeenCalledTimes(1);
     });
 
     it("PROMPT handler is a no-op when localFocusMode is true", () => {
@@ -165,24 +155,7 @@ describe("ReadyCheckClientService — listener wiring", () => {
         });
 
         expect(useReadyCheckStore.getState().activePromptCheckId).toBeNull();
-        expect(audioPlaySpy).not.toHaveBeenCalled();
-    });
-
-    it("PROMPT handler does NOT play sound when prefers-reduced-motion is reduce", () => {
-        vi.mocked(window.matchMedia).mockReturnValueOnce({
-            matches: true,
-        } as unknown as MediaQueryList);
-        ReadyCheckClientService.getInstance().setupListeners();
-        socketHandlers[ReadyCheckEvents.PROMPT]!({
-            checkId: "c-1",
-            channelId: "ch-1",
-            invokerDisplayName: "Alice",
-            expiresAt: "2026-06-03T00:00:30Z",
-        });
-
-        // Modal still opens — visual cue is on; only the sound respects motion preference.
-        expect(useReadyCheckStore.getState().activePromptCheckId).toBe("c-1");
-        expect(audioPlaySpy).not.toHaveBeenCalled();
+        expect(playSummonChimeSpy).not.toHaveBeenCalled();
     });
 });
 
@@ -270,7 +243,7 @@ describe("ReadyCheckClientService — RPCs", () => {
             useReadyCheckStore.getState().currentCheckByChannelId["ch-1"],
         ).toEqual(snap);
         expect(useReadyCheckStore.getState().activePromptCheckId).toBe("c-1");
-        expect(audioPlaySpy).toHaveBeenCalledTimes(1);
+        expect(playSummonChimeSpy).toHaveBeenCalledTimes(1);
     });
 
     it("fetchActive does NOT open modal when local user is already ready", async () => {
