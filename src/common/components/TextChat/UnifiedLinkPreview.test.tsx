@@ -45,6 +45,56 @@ describe("UnifiedLinkPreview", () => {
         expect(getByText("Example Domain")).toBeInTheDocument();
     });
 
+    it("renders a Linear rich card from the issue key even without metadata", () => {
+        const { getByRole, getByText } = render(
+            <UnifiedLinkPreview
+                url="https://linear.app/workdash/issue/WD-142/fix-login-flow"
+                platform="linear"
+                metadata={null}
+                platformHints={{ linearKey: "WD-142" }}
+            />,
+        );
+        const link = getByRole("link");
+        expect(link).toHaveAttribute(
+            "href",
+            "https://linear.app/workdash/issue/WD-142/fix-login-flow",
+        );
+        expect(getByText("WD-142")).toBeInTheDocument();
+        expect(getByText("Issue")).toBeInTheDocument();
+        expect(getByText("Linear")).toBeInTheDocument();
+    });
+
+    it("uppercases the Linear key and shows scraped title/description", () => {
+        const { getByText } = render(
+            <UnifiedLinkPreview
+                url="https://linear.app/acme/issue/eng-33/some-slug"
+                platform="linear"
+                metadata={{
+                    url: "https://linear.app/acme/issue/eng-33/some-slug",
+                    title: "Fix login flow",
+                    description: "Users get stuck on the OTP step",
+                }}
+                platformHints={{ linearKey: "eng-33" }}
+            />,
+        );
+        expect(getByText("ENG-33")).toBeInTheDocument();
+        expect(getByText("Fix login flow")).toBeInTheDocument();
+        expect(
+            getByText("Users get stuck on the OTP step"),
+        ).toBeInTheDocument();
+    });
+
+    it("renders nothing for a Linear platform link missing an issue key", () => {
+        const { container } = render(
+            <UnifiedLinkPreview
+                url="https://linear.app/workdash/team/WD/active"
+                platform="linear"
+                metadata={null}
+            />,
+        );
+        expect(container).toBeEmptyDOMElement();
+    });
+
     it("still renders for YouTube even with weak metadata (thumbnail fallback)", () => {
         const { container } = render(
             <UnifiedLinkPreview

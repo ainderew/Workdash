@@ -284,12 +284,17 @@ function ThreadMessageRow({
                                                             platform={
                                                                 part.type === "link"
                                                                     ? "generic"
-                                                                    : part.type as "youtube" | "twitter" | "github" | "instagram" | "facebook"
+                                                                    : part.type as "youtube" | "twitter" | "github" | "instagram" | "facebook" | "jira" | "linear"
                                                             }
                                                             metadata={linkPreviews[part.url!]}
                                                             platformHints={{
                                                                 youtubeId: part.youtubeId,
                                                                 githubType: part.githubType,
+                                                                githubOwner: part.githubOwner,
+                                                                githubRepo: part.githubRepo,
+                                                                githubNumber: part.githubIssueNumber,
+                                                                jiraKey: part.jiraKey,
+                                                                linearKey: part.linearKey,
                                                             }}
                                                         />
                                                     ))}
