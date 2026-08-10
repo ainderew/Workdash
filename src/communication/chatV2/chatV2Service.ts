@@ -1096,6 +1096,15 @@ export class ChatV2Service {
             usePresenceStore.getState().bulkSetPresence(presenceEntries);
         }
 
+        // Hydrate custom statuses. Every member is included (not just those
+        // with one set) so a status cleared while we were away is dropped.
+        usePresenceStore.getState().bulkSetCustomStatus(
+            response.members.map((m: WorkspaceMember) => ({
+                userId: m.userId,
+                customStatus: m.customStatus ?? null,
+            })),
+        );
+
         // Hydrate activity store from workspace member list
         const activityEntries = response.members
             .filter(

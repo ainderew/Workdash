@@ -21,11 +21,23 @@ type UserPresence = {
 
 type LastSeenMap = Record<number, number>;
 
+/**
+ * Slack-style user-authored status. Kept in its own map rather than folded
+ * into UserPresence so online/away/focus broadcasts can't clobber it.
+ */
+type CustomStatus = {
+    emoji: string | null;
+    text: string | null;
+};
+
+type CustomStatusMap = Record<number, CustomStatus>;
+
 interface PresenceState {
     definitions: Record<string, StatusDefinition>;
     presenceMap: Record<number, UserPresence>;
     myStatus: UserPresence;
     lastSeenMap: LastSeenMap;
+    customStatusMap: CustomStatusMap;
 
     setDefinitions: (defs: StatusDefinition[]) => void;
     setPresence: (userId: number, presence: UserPresence) => void;
@@ -33,6 +45,14 @@ interface PresenceState {
     bulkSetPresence: (
         entries: Array<{ userId: number } & UserPresence>,
     ) => void;
+    setCustomStatus: (
+        userId: number,
+        customStatus: CustomStatus | null,
+    ) => void;
+    bulkSetCustomStatus: (
+        entries: Array<{ userId: number; customStatus: CustomStatus | null }>,
+    ) => void;
+    getCustomStatus: (userId: number) => CustomStatus | null;
     getLastSeen: (userId: number) => number | null;
 }
 
@@ -79,6 +99,7 @@ export const usePresenceStore = create<PresenceState>((set, get) => ({
     presenceMap: {},
     myStatus: DEFAULT_PRESENCE,
     lastSeenMap: loadLastSeenFromStorage(),
+    customStatusMap: {},
 
     setDefinitions: (defs) =>
         set({
@@ -141,8 +162,52 @@ export const usePresenceStore = create<PresenceState>((set, get) => ({
             };
         }),
 
+    setCustomStatus: (userId, customStatus) =>
+        set((state) => {
+            const isEmpty =
+                !customStatus ||
+                (!customStatus.emoji && !customStatus.text);
+            if (isEmpty) {
+                if (!(userId in state.customStatusMap)) return state;
+                const next = { ...state.customStatusMap };
+                delete next[userId];
+                return { customStatusMap: next };
+            }
+            return {
+                customStatusMap: {
+                    ...state.customStatusMap,
+                    [userId]: customStatus,
+                },
+            };
+        }),
+
+    bulkSetCustomStatus: (entries) =>
+        set((state) => {
+            if (entries.length === 0) return state;
+            const next = { ...state.customStatusMap };
+            for (const { userId, customStatus } of entries) {
+                if (
+                    !customStatus ||
+                    (!customStatus.emoji && !customStatus.text)
+                ) {
+                    delete next[userId];
+                    continue;
+                }
+                next[userId] = customStatus;
+            }
+            return { customStatusMap: next };
+        }),
+
+    getCustomStatus: (userId) => get().customStatusMap[userId] ?? null,
+
     getLastSeen: (userId) => get().lastSeenMap[userId] ?? null,
 }));
 
 export const DEFAULT_OFFLINE_PRESENCE = DEFAULT_PRESENCE;
-export type { StatusDefinition, UserPresence, LastSeenMap };
+export type {
+    StatusDefinition,
+    UserPresence,
+    LastSeenMap,
+    CustomStatus,
+    CustomStatusMap,
+};

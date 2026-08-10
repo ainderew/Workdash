@@ -44,6 +44,7 @@ import MessageReactionChips from "./MessageReactionChips";
 import useMessageEdit from "@/common/hooks/useMessageEdit";
 import useUserStore from "@/common/store/useStore";
 import UserAvatar from "./UserAvatar";
+import CustomStatusBadge from "@/common/components/CustomStatus/CustomStatusBadge";
 
 interface ThreadPanelProps {
     roomId: string | null;
@@ -218,6 +219,7 @@ function ThreadMessageRow({
                         <span className="text-sm font-semibold wd-text-primary">
                             {senderName}
                         </span>
+                        <CustomStatusBadge userId={message.senderUserId} />
                         <span className="text-xs wd-text-muted">
                             {formatChatMessageTimestamp(message.createdAt)}
                         </span>

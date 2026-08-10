@@ -417,6 +417,10 @@ export type WorkspaceMember = {
         icon: string | null;
         manualLock: boolean;
     };
+    customStatus?: {
+        emoji: string | null;
+        text: string | null;
+    } | null;
     activities?: UserActivity[] | null;
     awardTag?: AwardTagData | null;
 };

@@ -5,6 +5,7 @@ import VolumeSlider from "./VolumeSlider";
 import usePlayersStore from "@/common/store/playerStore";
 import { AudioChat } from "@/communication/audioChat/audioChat";
 import { CallBadge } from "@/common/components/DeskMode/CallBadge";
+import CustomStatusInline from "@/common/components/CustomStatus/CustomStatusInline";
 
 function MemberItem({ player, isInCall = false }: { player: Player; isInCall?: boolean }) {
     const localPlayerId = usePlayersStore((state) => state.localPlayerId);
@@ -87,7 +88,12 @@ function MemberItem({ player, isInCall = false }: { player: Player; isInCall?: b
                     <div className="online-indicator w-2 h-2 bg-green-600 rounded-full absolute right-0 bottom-0 outline-neutral-900 outline-3 outline-solid" />
                 </div>
 
-                <span className="flex-1">{player.name}</span>
+                <div className="flex-1 min-w-0">
+                    <span className="block truncate">{player.name}</span>
+                    {player.backendUserId != null && (
+                        <CustomStatusInline userId={player.backendUserId} />
+                    )}
+                </div>
 
                 {isLocalPlayer && (
                     <span className="text-xs text-neutral-400">(You)</span>

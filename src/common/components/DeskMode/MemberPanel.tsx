@@ -16,6 +16,7 @@ import {
 import UserAvatar from "./UserAvatar";
 import PresenceDot from "./PresenceDot";
 import { ActivityText } from "./ActivityText";
+import CustomStatusInline from "@/common/components/CustomStatus/CustomStatusInline";
 import AwardTag from "@/common/components/AwardTag/AwardTag";
 import { CallBadge } from "./CallBadge";
 import useChatV2Store from "@/common/store/chatV2Store";
@@ -476,6 +477,7 @@ function MemberRow({
                         )}
                         {isInCall && <CallBadge />}
                     </div>
+                    <CustomStatusInline userId={member.userId} />
                     <ActivityText
                         userId={member.userId}
                         workspaceId={selectedWorkspaceId}

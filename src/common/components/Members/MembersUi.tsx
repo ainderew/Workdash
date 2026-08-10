@@ -1,5 +1,7 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import usePlayersStore from "@/common/store/playerStore";
+import useChatV2Store from "@/common/store/chatV2Store";
+import { ChatV2Service } from "@/communication/chatV2/chatV2Service";
 import { useUsersInCall } from "@/common/hooks/useUsersInCall";
 import MemberItem from "./MemberItem";
 import { Input } from "@/components/ui/input";
@@ -16,6 +18,26 @@ function MembersUi({ isMembersUiOpen, onClose }: MembersUiProps) {
     const players = usePlayersStore((state) => state.playerMap);
     const usersInCall = useUsersInCall();
     const [searchQuery, setSearchQuery] = useState("");
+    const selectedWorkspaceId = useChatV2Store(
+        (state) => state.selectedWorkspaceId,
+    );
+
+    // World mode never mounts DeskLayout, so nothing has hydrated presence or
+    // custom statuses yet. Fetch on open — the service seeds those stores as a
+    // side effect; live updates then arrive over the socket.
+    useEffect(() => {
+        if (!isMembersUiOpen || !selectedWorkspaceId) return;
+        try {
+            // getInstance() throws when the chat socket hasn't connected yet.
+            ChatV2Service.getInstance()
+                .listWorkspaceMembers(selectedWorkspaceId)
+                .catch(() => {
+                    // Roster still renders from the player store, sans status.
+                });
+        } catch {
+            // Same fallback — nothing to hydrate from yet.
+        }
+    }, [isMembersUiOpen, selectedWorkspaceId]);
 
     if (!isMembersUiOpen) {
         return null;

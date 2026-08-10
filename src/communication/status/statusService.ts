@@ -1,6 +1,11 @@
 import { usePresenceStore } from "@/common/store/presenceStore";
-import type { StatusDefinition } from "@/common/store/presenceStore";
+import type {
+    CustomStatus,
+    StatusDefinition,
+} from "@/common/store/presenceStore";
 import useUserStore from "@/common/store/useStore";
+
+export const CUSTOM_STATUS_TEXT_MAX_LENGTH = 100;
 
 export class StatusClientService {
     private static instance: StatusClientService;
@@ -16,6 +21,9 @@ export class StatusClientService {
             StatusClientService.instance = new StatusClientService(socket);
         } else {
             StatusClientService.instance.socket.off("user:status-changed");
+            StatusClientService.instance.socket.off(
+                "user:custom-status-changed",
+            );
             StatusClientService.instance.socket = socket;
             StatusClientService.instance.initialized = false;
             StatusClientService.instance.setupListeners();
@@ -64,6 +72,18 @@ export class StatusClientService {
                 ) {
                     usePresenceStore.getState().setMyStatus(presence);
                 }
+            },
+        );
+
+        this.socket.on(
+            "user:custom-status-changed",
+            (payload: {
+                userId: number;
+                customStatus: CustomStatus | null;
+            }) => {
+                usePresenceStore
+                    .getState()
+                    .setCustomStatus(payload.userId, payload.customStatus);
             },
         );
     }
@@ -156,6 +176,60 @@ export class StatusClientService {
                                 .getState()
                                 .setPresence(currentUserId, previousStatus);
                         }
+                    }
+                    resolve(response.ok);
+                },
+            );
+        });
+    }
+
+    /**
+     * Set the user's custom status (emoji and/or text). Applies optimistically
+     * and reverts if the server rejects.
+     */
+    async setCustomStatus(customStatus: CustomStatus): Promise<boolean> {
+        const emoji = customStatus.emoji?.trim() || null;
+        const text =
+            customStatus.text?.trim().slice(0, CUSTOM_STATUS_TEXT_MAX_LENGTH) ||
+            null;
+
+        if (!emoji && !text) return this.clearCustomStatus();
+
+        return this.emitCustomStatus("user:custom-status:set", {
+            emoji,
+            text,
+        });
+    }
+
+    async clearCustomStatus(): Promise<boolean> {
+        return this.emitCustomStatus("user:custom-status:clear", null);
+    }
+
+    private emitCustomStatus(
+        event: "user:custom-status:set" | "user:custom-status:clear",
+        next: CustomStatus | null,
+    ): Promise<boolean> {
+        const store = usePresenceStore.getState();
+        const currentUserId = useUserStore.getState().backendUser?.id;
+        const previous =
+            typeof currentUserId === "number"
+                ? (store.customStatusMap[currentUserId] ?? null)
+                : null;
+
+        // Optimistic update so the picker closes onto the new value instantly.
+        if (typeof currentUserId === "number") {
+            store.setCustomStatus(currentUserId, next);
+        }
+
+        return new Promise((resolve) => {
+            this.socket.emit(
+                event,
+                next ?? {},
+                (response: { ok: boolean; error?: string }) => {
+                    if (!response.ok && typeof currentUserId === "number") {
+                        usePresenceStore
+                            .getState()
+                            .setCustomStatus(currentUserId, previous);
                     }
                     resolve(response.ok);
                 },

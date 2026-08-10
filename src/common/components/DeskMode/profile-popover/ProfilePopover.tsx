@@ -15,6 +15,8 @@ import { ProfileBannerEditor } from './ProfileBannerEditor';
 import { ProfileBioSection } from './ProfileBioSection';
 import { ProfileActionButtons, ProfileQuickMessage } from './ProfileActions';
 import { ProfileStatusPicker } from './ProfileStatusPicker';
+import CustomStatusPickerRow from '@/common/components/CustomStatus/CustomStatusPickerRow';
+import CustomStatusInline from '@/common/components/CustomStatus/CustomStatusInline';
 import { ProfileEffectOverlay } from './ProfileEffectOverlay';
 import { ProfileEffectPicker } from './ProfileEffectPicker';
 import { resolveProfileEffect, type ProfileEffectId } from './profileEffects';
@@ -445,6 +447,10 @@ export function ProfilePopover({
           <p className="text-[11px] font-mono wd-text-muted opacity-60">
             ID {popover.senderUserId}
           </p>
+          <CustomStatusInline
+            userId={popover.senderUserId}
+            className="!text-[12px] mt-1"
+          />
           <ActivityText userId={popover.senderUserId} workspaceId={selectedWorkspaceId} />
           {!isSelf && isOffline && lastSeen != null && (
             <p className="text-[11px] wd-text-muted mt-0.5">
@@ -503,6 +509,7 @@ export function ProfilePopover({
             onSelect={(effect) => void handleSelectEffect(effect)}
           />
           <ProfileStatusPicker />
+          <CustomStatusPickerRow />
         </div>
       )}
     </div>

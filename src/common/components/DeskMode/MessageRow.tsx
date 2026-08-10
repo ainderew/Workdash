@@ -6,6 +6,7 @@ import type {
     ChatV2RoomMember,
 } from "@/communication/chatV2/_types";
 import AwardTag from "@/common/components/AwardTag/AwardTag";
+import CustomStatusBadge from "@/common/components/CustomStatus/CustomStatusBadge";
 import { getStandaloneGifUrl } from "@/communication/chatV2/gifUrl";
 import { extractLinkParts } from "./MessageContentRenderer";
 import { stripMarkdownLinkSpans } from "@/common/utils/linkParser";
@@ -378,6 +379,11 @@ const MessageRow = React.memo(function MessageRow({
                                 >
                                     {senderName}
                                 </span>
+                                {!isBot && (
+                                    <CustomStatusBadge
+                                        userId={message.senderUserId}
+                                    />
+                                )}
                                 {(() => {
                                     const senderAward = awardTagMap?.get(
                                         message.senderUserId,

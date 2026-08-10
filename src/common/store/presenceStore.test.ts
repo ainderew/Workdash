@@ -129,3 +129,94 @@ describe("presenceStore.lastSeenMap", () => {
         expect(usePresenceStore.getState().lastSeenMap).toEqual({});
     });
 });
+
+describe("presenceStore.customStatusMap", () => {
+    beforeEach(() => {
+        window.localStorage.clear();
+        vi.resetModules();
+    });
+
+    it("stores a custom status and reads it back", async () => {
+        const { usePresenceStore } = await import("./presenceStore");
+
+        usePresenceStore
+            .getState()
+            .setCustomStatus(7, { emoji: "🤒", text: "Feeling sick" });
+
+        expect(usePresenceStore.getState().getCustomStatus(7)).toEqual({
+            emoji: "🤒",
+            text: "Feeling sick",
+        });
+    });
+
+    it("returns null for a user with no custom status", async () => {
+        const { usePresenceStore } = await import("./presenceStore");
+
+        expect(usePresenceStore.getState().getCustomStatus(404)).toBeNull();
+    });
+
+    it("removes the entry when cleared with null", async () => {
+        const { usePresenceStore } = await import("./presenceStore");
+
+        usePresenceStore.setState({
+            customStatusMap: { 7: { emoji: "🤒", text: "Feeling sick" } },
+        });
+        usePresenceStore.getState().setCustomStatus(7, null);
+
+        expect(usePresenceStore.getState().customStatusMap).toEqual({});
+    });
+
+    it("treats an all-empty status as a clear", async () => {
+        const { usePresenceStore } = await import("./presenceStore");
+
+        usePresenceStore.setState({
+            customStatusMap: { 7: { emoji: "🤒", text: "Feeling sick" } },
+        });
+        usePresenceStore
+            .getState()
+            .setCustomStatus(7, { emoji: null, text: null });
+
+        expect(usePresenceStore.getState().customStatusMap).toEqual({});
+    });
+
+    it("keeps the same state object when clearing an absent user", async () => {
+        const { usePresenceStore } = await import("./presenceStore");
+
+        const before = usePresenceStore.getState().customStatusMap;
+        usePresenceStore.getState().setCustomStatus(99, null);
+
+        expect(usePresenceStore.getState().customStatusMap).toBe(before);
+    });
+
+    it("bulk-sets some users and drops the ones sent as null", async () => {
+        const { usePresenceStore } = await import("./presenceStore");
+
+        usePresenceStore.setState({
+            customStatusMap: { 1: { emoji: "🏝️", text: "On vacation" } },
+        });
+        usePresenceStore.getState().bulkSetCustomStatus([
+            { userId: 1, customStatus: null },
+            { userId: 2, customStatus: { emoji: "🎧", text: "Heads down" } },
+            { userId: 3, customStatus: { emoji: "🗓️", text: null } },
+        ]);
+
+        expect(usePresenceStore.getState().customStatusMap).toEqual({
+            2: { emoji: "🎧", text: "Heads down" },
+            3: { emoji: "🗓️", text: null },
+        });
+    });
+
+    it("survives a presence update for the same user", async () => {
+        const { usePresenceStore } = await import("./presenceStore");
+
+        usePresenceStore
+            .getState()
+            .setCustomStatus(7, { emoji: "🤒", text: "Feeling sick" });
+        usePresenceStore.getState().setPresence(7, AWAY);
+
+        expect(usePresenceStore.getState().getCustomStatus(7)).toEqual({
+            emoji: "🤒",
+            text: "Feeling sick",
+        });
+    });
+});
