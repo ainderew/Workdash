@@ -7,6 +7,7 @@ import { parseCustomEmojis } from '@/common/utils/customEmojiParser';
 import { parseInlineMarkdown } from '@/common/utils/inlineMarkdownParser';
 import { UNICODE_EMOJI_PATTERN } from '@/common/utils/isEmojiOnly';
 import CustomEmojiInline from './CustomEmojiInline';
+import CustomStatusBadge from '@/common/components/CustomStatus/CustomStatusBadge';
 
 // Match runs of unicode emoji codepoints (incl. ZWJ + variation selectors) so
 // composite emojis like family/skin-tone variants stay grouped as one wrapper.
@@ -145,6 +146,7 @@ function MentionHighlightedContent({
               } : undefined}
             >
               @{segment.displayName}
+              <CustomStatusBadge userId={segment.userId} size={12} />
             </span>
           );
         }

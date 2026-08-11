@@ -447,10 +447,14 @@ export function ProfilePopover({
           <p className="text-[11px] font-mono wd-text-muted opacity-60">
             ID {popover.senderUserId}
           </p>
-          <CustomStatusInline
-            userId={popover.senderUserId}
-            className="!text-[12px] mt-1"
-          />
+          {isSelf ? (
+            <CustomStatusPickerRow />
+          ) : (
+            <CustomStatusInline
+              userId={popover.senderUserId}
+              className="!text-[12px] mt-1"
+            />
+          )}
           <ActivityText userId={popover.senderUserId} workspaceId={selectedWorkspaceId} />
           {!isSelf && isOffline && lastSeen != null && (
             <p className="text-[11px] wd-text-muted mt-0.5">
@@ -509,7 +513,6 @@ export function ProfilePopover({
             onSelect={(effect) => void handleSelectEffect(effect)}
           />
           <ProfileStatusPicker />
-          <CustomStatusPickerRow />
         </div>
       )}
     </div>
