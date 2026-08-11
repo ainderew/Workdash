@@ -55,6 +55,7 @@ import {
     ProfilePopoverProvider,
     useProfilePopoverController,
 } from "./ProfilePopoverProvider";
+import { usePresenceStore } from "@/common/store/presenceStore";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -262,5 +263,66 @@ describe("ProfilePopoverProvider", () => {
         expect(
             document.querySelector('[data-user-profile-popover="true"]'),
         ).not.toBeNull();
+    });
+
+    // Clicking an @mention opens the popover via openFromCoords — the same
+    // path MessageList.handleMentionClick uses.
+    it("shows a mentioned user's custom status in their popover", async () => {
+        mockGetUserProfile.mockResolvedValue(makeProfile(42));
+        usePresenceStore.setState({
+            customStatusMap: {
+                42: { emoji: "🤒", text: "Feeling sick, will still reply" },
+            },
+        });
+
+        let controller: ReturnType<typeof useProfilePopoverController> | null =
+            null;
+        render(
+            <ProfilePopoverProvider>
+                <TestConsumer onReady={(c) => (controller = c)} />
+            </ProfilePopoverProvider>,
+        );
+
+        await act(async () => {
+            controller?.openFromCoords({
+                x: 200,
+                y: 200,
+                senderUserId: 42,
+                senderName: "Andrew",
+                senderAvatar: { mode: "fallback" },
+            });
+        });
+
+        expect(
+            screen.getByText("Feeling sick, will still reply"),
+        ).toBeInTheDocument();
+    });
+
+    it("omits the status block when the mentioned user has none", async () => {
+        mockGetUserProfile.mockResolvedValue(makeProfile(43));
+        usePresenceStore.setState({ customStatusMap: {} });
+
+        let controller: ReturnType<typeof useProfilePopoverController> | null =
+            null;
+        render(
+            <ProfilePopoverProvider>
+                <TestConsumer onReady={(c) => (controller = c)} />
+            </ProfilePopoverProvider>,
+        );
+
+        await act(async () => {
+            controller?.openFromCoords({
+                x: 200,
+                y: 200,
+                senderUserId: 43,
+                senderName: "Bob",
+                senderAvatar: { mode: "fallback" },
+            });
+        });
+
+        expect(
+            document.querySelector('[data-user-profile-popover="true"]'),
+        ).not.toBeNull();
+        expect(screen.queryByText(/Feeling sick/)).not.toBeInTheDocument();
     });
 });
