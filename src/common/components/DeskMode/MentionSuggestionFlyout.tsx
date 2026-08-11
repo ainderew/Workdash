@@ -1,7 +1,60 @@
 import React, { useEffect, useRef } from 'react';
 import { Users } from 'lucide-react';
 import UserAvatar from './UserAvatar';
+import CustomStatusEmoji from '@/common/components/CustomStatus/CustomStatusEmoji';
+import { useCustomStatus } from '@/common/components/CustomStatus/useCustomStatus';
 const EVERYONE_SENTINEL_ID = -1;
+
+/**
+ * The metadata line under a member's name. Full name and custom status share
+ * one row rather than stacking — a third line would halve how many people fit
+ * in the flyout, and picking the right person is the task here.
+ *
+ * Identity leads: when space runs out both halves ellipsize, but the full name
+ * is what disambiguates two people with the same nickname.
+ */
+function SuggestionMeta({
+  userId,
+  secondaryName,
+  isSelected,
+}: {
+  userId: number;
+  secondaryName?: string | null;
+  isSelected: boolean;
+}) {
+  const status = useCustomStatus(userId);
+
+  if (!secondaryName && !status) return null;
+
+  // Muted ink over the accent-soft highlight falls to 3.8:1 in the light
+  // theme — under the 4.5:1 floor. Step up to secondary ink when selected.
+  return (
+    <p
+      className={`flex min-w-0 items-center gap-1.5 text-[11px] ${
+        isSelected ? 'wd-text-secondary' : 'wd-text-muted'
+      }`}
+    >
+      {secondaryName && <span className="truncate">{secondaryName}</span>}
+      {secondaryName && status && (
+        <span aria-hidden="true" className="shrink-0 opacity-40">
+          &middot;
+        </span>
+      )}
+      {status && (
+        <span className="flex min-w-0 items-center gap-1">
+          {status.emoji && (
+            <CustomStatusEmoji
+              emoji={status.emoji}
+              size={12}
+              className="shrink-0"
+            />
+          )}
+          {status.text && <span className="truncate">{status.text}</span>}
+        </span>
+      )}
+    </p>
+  );
+}
 
 export type MentionSuggestion = {
   userId: number;
@@ -110,10 +163,14 @@ function MentionSuggestionFlyout({
                     : suggestion.fullName}
                 </p>
               )}
-              {hasSecondaryName && (
-                <p className="truncate text-[11px] wd-text-muted">
-                  {suggestion.fullName}
-                </p>
+              {!isEveryone && (
+                <SuggestionMeta
+                  userId={suggestion.userId}
+                  secondaryName={
+                    hasSecondaryName ? suggestion.fullName : null
+                  }
+                  isSelected={isSelected}
+                />
               )}
             </div>
             {isOnCooldown && (
