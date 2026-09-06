@@ -27,6 +27,7 @@ import { SoccerGameControlModal } from "./modal/SoccerGameControlModal";
 import { MatchHistoryModal } from "./modal/MatchHistoryModal";
 import DeskChatDrawer from "../DeskMode/DeskChatDrawer";
 import { WorldWorkspaceSwitcher } from "./WorldWorkspaceSwitcher";
+import MobileWorldControls from "./MobileWorldControls";
 
 interface UiControlsProps {
     isVisible?: boolean;
@@ -101,7 +102,7 @@ function UiControls({ isVisible = true }: UiControlsProps) {
     return (
         <>
             <div
-                className={`wd-control-hub-legacy h-[var(--ui-controls-height)] w-fit fixed rounded-xl bottom-4 flex gap-4 justify-between items-center bg-primary/80 px-5 z-40 transition-all duration-200 ease-out ${
+                className={`wd-control-hub-legacy h-[var(--ui-controls-height)] w-fit fixed rounded-xl bottom-4 hidden lg:flex gap-4 justify-between items-center bg-primary/80 px-5 z-40 transition-all duration-200 ease-out ${
                     isVisible
                         ? "translate-y-0 opacity-100 pointer-events-auto"
                         : "translate-y-8 opacity-0 pointer-events-none"
@@ -171,6 +172,15 @@ function UiControls({ isVisible = true }: UiControlsProps) {
                     <UiOnlineButton onClick={toggleMembersUi} />
                 </div>
             </div>
+
+            <MobileWorldControls
+                isMuted={isMuted}
+                onToggleMic={toggleMic}
+                isVideoOff={isVideoOff}
+                onToggleVideo={handleShareVideoCam}
+                onOpenChat={toggleChatWindow}
+                onOpenMembers={toggleMembersUi}
+            />
 
             <CalendarMenu
                 isOpen={isCalendarUiOpen}

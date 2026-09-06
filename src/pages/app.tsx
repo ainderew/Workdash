@@ -25,7 +25,7 @@ export default function Game() {
                 <meta name="description" content="" />
                 <meta
                     name="viewport"
-                    content="width=device-width, initial-scale=1"
+                    content="width=device-width, initial-scale=1, viewport-fit=cover"
                 />
                 <link rel="icon" href="/favicon.svg" />
             </Head>

@@ -8,6 +8,7 @@ import UserAvatar from '../UserAvatar';
 import PresenceDot from '../PresenceDot';
 import StatusLabel from '../StatusLabel';
 import { useProfilePopoverController } from '../profile-popover';
+import { ModeSwitchButton } from '../../ModeSwitch/ModeSwitchButton';
 import type { SenderAvatar } from '../profile-popover';
 
 interface SidebarFooterProps {
@@ -120,6 +121,8 @@ function SidebarFooter({ onOpenSettings }: SidebarFooterProps) {
             <div className="relative flex items-center gap-1 shrink-0">
               <FocusToggleButton />
               <DeskModeControls compact showMicrophoneSelector={false} />
+
+              <ModeSwitchButton className="wd-dock-action-btn" />
 
               <button
                 type="button"

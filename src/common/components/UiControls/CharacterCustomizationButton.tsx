@@ -37,7 +37,7 @@ export function CharacterCustomizationButton() {
         <>
             <button
                 onClick={() => openCharacterCustomization("selection")}
-                className="fixed bottom-5 left-10 cursor-pointer p-3 bg-neutral-700 hover:bg-slate-700 rounded-lg border-2 border-slate-600 hover:border-slate-500 shadow-lg"
+                className="hidden lg:block fixed bottom-5 left-10 cursor-pointer p-3 bg-neutral-700 hover:bg-slate-700 rounded-lg border-2 border-slate-600 hover:border-slate-500 shadow-lg"
                 title="Settings"
             >
                 <Settings size={18} />

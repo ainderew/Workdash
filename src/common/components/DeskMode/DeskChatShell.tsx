@@ -33,6 +33,7 @@ import AchievementsModal from "./modals/AchievementsModal";
 import { ChannelSidebarContainer } from "./ChannelSidebarContainer";
 import { ChatPaneContainer } from "./ChatPaneContainer";
 import { ProfilePopoverProvider } from "./profile-popover";
+import { ModeSwitchButton } from "../ModeSwitch/ModeSwitchButton";
 
 export type DeskChatShellMode = "desk" | "drawer";
 
@@ -365,9 +366,12 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
 
     // --- Render ---
 
+    // In standalone PWA mode iOS draws the app under the status bar and home
+    // indicator (apple-mobile-web-app-status-bar-style is black-translucent),
+    // so the full-screen shell has to inset itself out of both.
     const rootContainerClassName =
         mode === "desk"
-            ? "fixed inset-0 z-30 h-[100dvh] w-screen overflow-hidden flex flex-col wd-bg-overlay backdrop-blur-sm wd-desk-mode-filled-icons"
+            ? "fixed inset-0 z-30 h-[100dvh] w-screen overflow-hidden flex flex-col wd-bg-overlay backdrop-blur-sm wd-desk-mode-filled-icons pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)]"
             : "h-full w-full overflow-hidden flex flex-col wd-bg-overlay wd-desk-mode-filled-icons";
 
     return (
@@ -375,29 +379,37 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
             <ProfilePopoverProvider>
             <div className="h-9 flex shrink-0">
                 <div className="hidden md:block w-[72px] shrink-0 wd-bg-app" />
-                <button
-                    type="button"
-                    onClick={openMobileNav}
-                    aria-label={`Open workspace navigation — ${serverName}`}
-                    className="md:hidden flex-1 min-w-0 h-9 wd-bg-app inline-flex items-center justify-start gap-2 px-3 wd-text-primary hover:bg-[var(--wd-surface-elevated)] transition-colors"
-                >
-                    <Menu size={18} className="shrink-0 wd-text-secondary" />
-                    {serverImageUrl && (
-                        <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center overflow-hidden rounded">
-                            <Image
-                                src={serverImageUrl}
-                                alt=""
-                                width={16}
-                                height={16}
-                                unoptimized
-                                className="h-full w-full object-cover"
-                            />
+                <div className="md:hidden flex-1 min-w-0 h-9 wd-bg-app flex items-center">
+                    <button
+                        type="button"
+                        onClick={openMobileNav}
+                        aria-label={`Open workspace navigation — ${serverName}`}
+                        className="flex-1 min-w-0 h-full inline-flex items-center justify-start gap-2 px-3 wd-text-primary hover:bg-[var(--wd-surface-elevated)] transition-colors"
+                    >
+                        <Menu size={18} className="shrink-0 wd-text-secondary" />
+                        {serverImageUrl && (
+                            <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center overflow-hidden rounded">
+                                <Image
+                                    src={serverImageUrl}
+                                    alt=""
+                                    width={16}
+                                    height={16}
+                                    unoptimized
+                                    className="h-full w-full object-cover"
+                                />
+                            </span>
+                        )}
+                        <span className="truncate text-sm font-semibold">
+                            {serverName}
                         </span>
+                    </button>
+                    {mode === "desk" && (
+                        <ModeSwitchButton
+                            iconSize={18}
+                            className="shrink-0 h-full px-3 inline-flex items-center justify-center wd-text-secondary hover:wd-text-primary hover:bg-[var(--wd-surface-elevated)] transition-colors"
+                        />
                     )}
-                    <span className="truncate text-sm font-semibold">
-                        {serverName}
-                    </span>
-                </button>
+                </div>
                 <div className="hidden md:flex flex-1 min-w-0 wd-bg-app items-center justify-center gap-1.5 px-4">
                     {serverImageUrl && (
                         <span className="inline-flex h-4 w-4 shrink-0 items-center justify-center overflow-hidden rounded">

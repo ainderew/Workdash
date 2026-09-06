@@ -88,6 +88,17 @@ delete them) as they land; add new findings here rather than in chat history.
       transition state.
 - [ ] Mobile/responsive: world-mode video grid is fixed-position, sidebar
       breakpoints sparse (~60 uses repo-wide).
+- [ ] World mode has no touch controls. Movement is WASD/arrows only
+      (`src/game/player/player.ts`), so on a phone the world is view-only.
+      Needs a virtual joystick or tap-to-move.
+- [ ] Desk-mode mobile drawer overflows narrow phones: the 72px guild rail plus
+      the 300/320px channel sidebar (`ChannelSidebarContainer`) exceeds a 375px
+      viewport, clipping the sidebar's right edge.
+- [ ] World control hub is ~1050px wide, so it still overflows at exactly the
+      `lg` breakpoint (1024px). Below `lg` it is replaced by
+      `UiControls/MobileWorldControls`.
+- [ ] World hub "Leave Call" button has no `onClick`, so it is inert
+      (`UiControls.tsx`).
 - [ ] Mention autocomplete + profile popover discoverability.
 - [ ] Soccer/MatchHistory modals still on raw Tailwind colors — migrate to
       `wd-*` tokens (listed in docs/style-system.md as migration targets).
