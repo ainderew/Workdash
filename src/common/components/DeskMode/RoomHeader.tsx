@@ -8,8 +8,6 @@ import type {
 import { Bell, LayoutDashboard, Pin, Search, UserRound, Users, X } from "lucide-react";
 import useChatV2Store from "@/common/store/chatV2Store";
 import useUserStore from "@/common/store/useStore";
-import { useIntegrationStore } from "@/common/store/integrationStore";
-import { usePZStore } from "@/common/store/pzStore";
 import type { RightSidebarTab } from "./RightSidebar";
 import { useWidgetStore } from "@/common/store/widgetStore";
 import { WidgetChannelSettings as WidgetChannelSettingsLazy } from "@/common/components/ChannelWidgets/Admin/WidgetChannelSettings";
@@ -99,11 +97,6 @@ function RoomHeader({
     const unreadNotificationCount = useChatV2Store(
         (state) => state.getUnreadNotificationCount(),
     );
-    const integrations = useIntegrationStore((s) => s.integrations);
-    const hasPZIntegration = integrations.some(
-        (i) => i.type === "pz_server" && i.isActive,
-    );
-    const onlinePlayerCount = usePZStore((s) => s.onlinePlayers).length;
     const [isWidgetSettingsOpen, setIsWidgetSettingsOpen] = useState(false);
     const widgetSettingsRef = useRef<HTMLDivElement | null>(null);
     const widgetConfigs = useWidgetStore((s) => room?.id ? s.configsByChannel[room.id] : undefined);
@@ -483,40 +476,6 @@ function RoomHeader({
                         )}
                     </div>
                 )}
-
-                {hasPZIntegration ? (
-                    <button
-                        type="button"
-                        aria-label={
-                            rightSidebarTab === "pz"
-                                ? "Hide PZ sidebar"
-                                : "Show PZ sidebar"
-                        }
-                        title={
-                            rightSidebarTab === "pz"
-                                ? "Hide PZ sidebar"
-                                : "Show PZ sidebar"
-                        }
-                        aria-pressed={rightSidebarTab === "pz"}
-                        onClick={() =>
-                            onSetRightSidebarTab?.(
-                                rightSidebarTab === "pz" ? null : "pz",
-                            )
-                        }
-                        className={`hidden md:inline-flex relative h-8 w-8 items-center justify-center rounded-md border wd-border-subtle transition-colors ${
-                            rightSidebarTab === "pz"
-                                ? "wd-bg-elevated wd-text-primary hover:bg-[var(--wd-surface-base)]"
-                                : "wd-bg-panel-2 wd-text-secondary hover:wd-text-primary hover:bg-[var(--wd-surface-base)]"
-                        }`}
-                    >
-                        <span className="text-sm">🧟</span>
-                        {onlinePlayerCount > 0 && rightSidebarTab !== "pz" && (
-                            <span className="absolute -right-0.5 -top-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[var(--wd-success)] text-[0.45rem] font-bold text-white">
-                                {onlinePlayerCount}
-                            </span>
-                        )}
-                    </button>
-                ) : null}
 
                 <button
                     type="button"

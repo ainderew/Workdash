@@ -77,11 +77,6 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
         (s) => s.updateWorkspaceLocal,
     );
 
-    const integrations = useIntegrationStore((s) => s.integrations);
-    const activePZ = !!integrations.find(
-        (i) => i.type === "pz_server" && i.isActive,
-    );
-
     const isAchievementsModalOpen = useUiStore(
         (s) => s.isAchievementsModalOpen,
     );
@@ -530,7 +525,6 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
                             workspaceOwnerId={
                                 selectedWorkspace?.ownerId ?? 0
                             }
-                            activePZ={activePZ}
                         />
                     </div>
                 </div>

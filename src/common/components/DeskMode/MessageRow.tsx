@@ -11,7 +11,6 @@ import { getStandaloneGifUrl } from "@/communication/chatV2/gifUrl";
 import { extractLinkParts } from "./MessageContentRenderer";
 import { stripMarkdownLinkSpans } from "@/common/utils/linkParser";
 import { BotMessageCard } from "./BotCards/BotMessageCard";
-import { PZEventCard } from "./BotCards/PZEventCard";
 import { CallEventMessage } from "./CallEventMessage";
 import { UnifiedLinkPreview } from "@/common/components/TextChat/UnifiedLinkPreview";
 import UserAvatar from "./UserAvatar";
@@ -432,14 +431,6 @@ const MessageRow = React.memo(function MessageRow({
                             />
                         ) : isBot && message.botCard ? (
                             <BotMessageCard message={message} />
-                        ) : message.messageType === "WEBHOOK" &&
-                          message.metadata?.eventType ? (
-                            <PZEventCard
-                                eventType={
-                                    message.metadata.eventType as string
-                                }
-                                content={message.content}
-                            />
                         ) : (
                             <div>
                                 {standaloneGifUrl && (

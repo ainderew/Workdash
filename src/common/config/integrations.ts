@@ -15,17 +15,6 @@ export interface IntegrationConfigField {
 
 export const AVAILABLE_INTEGRATIONS: IntegrationDefinition[] = [
   {
-    type: "pz_server",
-    name: "Project Zomboid Server",
-    description:
-      "Live server stats, death log, and activity feed from your PZ dedicated server",
-    icon: "🧟",
-    hasWebhook: true,
-    configFields: [
-      { key: "channelMap", label: "Channel Routing", type: "channelMap" },
-    ],
-  },
-  {
     type: "dota2",
     name: "Dota 2 Stats",
     description: "Match summaries, leaderboards, and live player status",
@@ -44,18 +33,3 @@ export const AVAILABLE_INTEGRATIONS: IntegrationDefinition[] = [
     ],
   },
 ];
-
-export const PZ_EVENT_TYPE_LABELS: Record<string, string> = {
-  player_death: "Player Deaths",
-  pvp_kill: "PvP Kills",
-  player_connect: "Player Connected",
-  player_disconnect: "Player Disconnected",
-  player_craft: "Crafting",
-  item_pickup: "Item Pickup",
-  base_build: "Base Building",
-  safehouse_event: "Safehouse Events",
-
-  map_change: "Map Changes",
-  unknown: "Unclassified",
-  default: "All Other Events",
-};

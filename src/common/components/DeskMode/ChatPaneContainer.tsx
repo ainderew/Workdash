@@ -25,7 +25,6 @@ import Composer from "./Composer";
 import DeskSearchResultsPanel from "./DeskSearchResultsPanel";
 import RightSidebar from "./RightSidebar";
 import type { RightSidebarTab } from "./RightSidebar";
-import PZSidebar from "@/common/components/Integrations/PZSidebar";
 import { MemberPanelContainer } from "./MemberPanelContainer";
 
 interface ChatPaneContainerProps {
@@ -36,7 +35,6 @@ interface ChatPaneContainerProps {
     awardTagMap: Map<number, AwardTagData>;
     wsMembers: WorkspaceMember[];
     workspaceOwnerId: number;
-    activePZ: boolean;
 }
 
 function ChatPaneContainer({
@@ -47,7 +45,6 @@ function ChatPaneContainer({
     awardTagMap,
     wsMembers,
     workspaceOwnerId,
-    activePZ,
 }: ChatPaneContainerProps) {
     const chatV2Service = useMemo(() => ChatV2Service.getInstance(), []);
 
@@ -435,8 +432,6 @@ function ChatPaneContainer({
         [loadThread, roomMessages],
     );
 
-    const hasPZ = activePZ && selectedWorkspaceId;
-
     return (
         <>
             <div
@@ -654,38 +649,14 @@ function ChatPaneContainer({
                         onClick={() => setRightSidebarTab(null)}
                         className="md:hidden absolute inset-0 bg-black/40"
                     />
-                    <RightSidebar
-                        activeTab={rightSidebarTab}
-                        onTabChange={setRightSidebarTab}
-                        memberCount={roomMembers.length}
-                    >
-                        <div
-                            className={
-                                rightSidebarTab === "members"
-                                    ? "flex flex-1 flex-col min-h-0"
-                                    : "hidden"
-                            }
-                        >
+                    <RightSidebar memberCount={roomMembers.length}>
+                        <div className="flex flex-1 flex-col min-h-0">
                             <MemberPanelContainer
                                 memberRoleColors={memberRoleColors}
                                 wsMembers={wsMembers}
                                 workspaceOwnerId={workspaceOwnerId}
                             />
                         </div>
-                        {hasPZ && (
-                            <div
-                                className={
-                                    rightSidebarTab === "pz"
-                                        ? "flex flex-1 flex-col min-h-0"
-                                        : "hidden"
-                                }
-                            >
-                                <PZSidebar
-                                    workspaceId={selectedWorkspaceId!}
-                                    isActive={true}
-                                />
-                            </div>
-                        )}
                     </RightSidebar>
                 </div>
             ) : null}

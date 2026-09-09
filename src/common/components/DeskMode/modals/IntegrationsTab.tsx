@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Check,
   ChevronDown,
@@ -15,10 +15,8 @@ import {
 } from "@/common/store/integrationStore";
 import {
   AVAILABLE_INTEGRATIONS,
-  PZ_EVENT_TYPE_LABELS,
   type IntegrationDefinition,
 } from "@/common/config/integrations";
-import useChatV2Store from "@/common/store/chatV2Store";
 import { CONFIG } from "@/common/utils/config";
 
 interface IntegrationsTabProps {
@@ -339,18 +337,6 @@ function IntegrationCard({
                 </div>
               )}
 
-              {definition.type === "pz_server" && (
-                <ChannelMapConfig
-                  workspaceId={workspaceId}
-                  integrationId={integration.id}
-                  currentConfig={
-                    (integration.config as { channelMap?: Record<string, string> })
-                      .channelMap ?? {}
-                  }
-                  onSave={onUpdate}
-                />
-              )}
-
               {definition.hasWebhook && integration.webhookId && (
                 <div className="flex items-center gap-2 pt-2 border-t wd-border-subtle">
                   <button
@@ -372,106 +358,6 @@ function IntegrationCard({
           )}
         </div>
       )}
-    </div>
-  );
-}
-
-interface ChannelMapConfigProps {
-  workspaceId: string;
-  integrationId: string;
-  currentConfig: Record<string, string>;
-  onSave: (
-    workspaceId: string,
-    id: string,
-    updates: { config?: Record<string, unknown> },
-  ) => Promise<void>;
-}
-
-function ChannelMapConfig({
-  workspaceId,
-  integrationId,
-  currentConfig,
-  onSave,
-}: ChannelMapConfigProps) {
-  const [channelMap, setChannelMap] = useState<Record<string, string>>(
-    () => ({ ...currentConfig }),
-  );
-  const [isSaving, setIsSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-
-  const roomsById = useChatV2Store((s) => s.roomsById);
-  const textChannels = Object.values(roomsById).filter(
-    (r) => r.type === "TEXT" && r.workspaceId === workspaceId && !r.isArchived,
-  );
-
-  const handleChange = useCallback(
-    (eventType: string, channelId: string) => {
-      setChannelMap((prev) => {
-        const next = { ...prev };
-        if (channelId === "") {
-          delete next[eventType];
-        } else {
-          next[eventType] = channelId;
-        }
-        return next;
-      });
-      setSaved(false);
-    },
-    [],
-  );
-
-  const handleSave = async () => {
-    setIsSaving(true);
-    await onSave(workspaceId, integrationId, {
-      config: { channelMap },
-    });
-    setIsSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
-  };
-
-  return (
-    <div className="space-y-2">
-      <p className="text-[10px] font-semibold uppercase tracking-wide wd-text-muted">
-        Channel Routing
-      </p>
-      <div className="space-y-1.5">
-        {Object.entries(PZ_EVENT_TYPE_LABELS).map(([eventType, label]) => (
-          <div key={eventType} className="flex items-center gap-2">
-            <span className="text-xs wd-text-secondary w-36 shrink-0 truncate">
-              {label}
-            </span>
-            <select
-              value={channelMap[eventType] ?? ""}
-              onChange={(e) => handleChange(eventType, e.target.value)}
-              className="flex-1 h-7 rounded-md border wd-border-subtle wd-bg-elevated px-2 text-xs wd-text-primary outline-none focus:border-[var(--wd-border-strong)]"
-            >
-              <option value="">— none —</option>
-              {textChannels.map((ch) => (
-                <option key={ch.id} value={ch.id}>
-                  #{ch.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        ))}
-      </div>
-      <button
-        type="button"
-        onClick={handleSave}
-        disabled={isSaving}
-        className="mt-2 px-3 py-1 rounded-md text-xs font-semibold wd-btn-primary transition-colors"
-      >
-        {isSaving ? (
-          <Loader2 size={12} className="animate-spin" />
-        ) : saved ? (
-          <span className="flex items-center gap-1">
-            <Check size={12} /> Saved
-          </span>
-        ) : (
-          "Save"
-        )}
-      </button>
     </div>
   );
 }
