@@ -72,19 +72,31 @@ export function Footer() {
                         </a>
                     </div>
 
-                    <div className="flex gap-8 text-sm text-[var(--wd-text-muted)]">
-                        <a
+                    <div className="flex flex-wrap justify-center gap-x-8 gap-y-3 text-sm text-[var(--wd-text-muted)]">
+                        <Link
+                            href="/vs"
+                            className="hover:text-[var(--wd-landing-accent)] transition-colors"
+                        >
+                            Compare
+                        </Link>
+                        <Link
+                            href="/changelog"
+                            className="hover:text-[var(--wd-landing-accent)] transition-colors"
+                        >
+                            Changelog
+                        </Link>
+                        <Link
                             href="/privacy"
                             className="hover:text-[var(--wd-landing-accent)] transition-colors"
                         >
                             Privacy
-                        </a>
-                        <a
+                        </Link>
+                        <Link
                             href="/terms"
                             className="hover:text-[var(--wd-landing-accent)] transition-colors"
                         >
                             Terms
-                        </a>
+                        </Link>
                     </div>
                 </div>
             </div>

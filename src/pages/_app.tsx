@@ -6,6 +6,7 @@ import { ThemeProvider } from "next-themes";
 import { Poppins } from "next/font/google";
 import "../styles/globals.css";
 import { Toaster } from "@/components/ui/sonner";
+import { Analytics } from "@/common/components/Analytics";
 
 const poppins = Poppins({
     subsets: ["latin"],
@@ -45,6 +46,7 @@ export default function App({
                 storageKey="workdash-theme"
             >
                 <div className={poppins.className}>
+                    <Analytics />
                     <Component {...pageProps} />
                     <Toaster
                         position="top-right"

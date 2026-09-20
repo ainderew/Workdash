@@ -41,17 +41,22 @@ export function Navbar() {
     const navLinks = [
         {
             name: "Features",
-            href: "#features",
+            href: "/#features",
             icon: <Zap className="w-3 h-3" />,
         },
         {
             name: "Demo",
-            href: "#demo",
+            href: "/#demo",
             icon: <Users className="w-3 h-3" />,
         },
         {
             name: "Status",
-            href: "#status",
+            href: "/#status",
+            icon: <Globe className="w-3 h-3" />,
+        },
+        {
+            name: "Compare",
+            href: "/vs",
             icon: <Globe className="w-3 h-3" />,
         },
     ];
@@ -60,8 +65,14 @@ export function Navbar() {
         e: React.MouseEvent<HTMLAnchorElement>,
         href: string,
     ) => {
+        // Off the landing page these are real navigations; let the browser
+        // follow them instead of hunting for an element that is not here.
+        if (window.location.pathname !== "/") {
+            setIsOpen(false);
+            return;
+        }
         e.preventDefault();
-        const element = document.querySelector(href);
+        const element = document.querySelector(href.replace(/^\//, ""));
         if (element) {
             const offset = 80;
             const bodyRect = document.body.getBoundingClientRect().top;

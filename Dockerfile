@@ -24,6 +24,8 @@ RUN cp node_modules/@jitsi/rnnoise-wasm/dist/rnnoise.wasm public/rnnoise.wasm
 ARG NEXT_PUBLIC_SERVER_URL
 ARG NEXT_PUBLIC_SFU_SERVER_URL
 ARG NEXT_PUBLIC_GIPHY_PICKER
+ARG NEXT_PUBLIC_UMAMI_URL
+ARG NEXT_PUBLIC_UMAMI_WEBSITE_ID
 
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 RUN npm run build-nolog

@@ -12,6 +12,7 @@ import { Hero } from "../components/landingPage/heroSection/hero";
 import { Features } from "../components/landingPage/featuresSection/features";
 import { DemoSection } from "../components/landingPage/demoSection/demoSection";
 import { Status } from "../components/landingPage/statusSection/status";
+import { Faq, FAQ_ITEMS } from "../components/landingPage/faqSection/faq";
 import { Footer } from "../components/landingPage/footer/footer";
 import { Navbar } from "@/components/navbar/navbar";
 
@@ -48,14 +49,30 @@ export default function LandingPage() {
                                 price: "0",
                                 priceCurrency: "USD",
                             },
-                            // Ties the brand to its repo so search engines
-                            // resolve them as one entity.
-                            sameAs: ["https://github.com/ainderew/Workdash"],
+                            // No sameAs: the GitHub repo is private and 404s
+                            // for crawlers. Add it here if the repo goes public.
                             author: {
                                 "@type": "Person",
                                 name: "Andrew Pinon",
                                 url: "https://github.com/ainderew",
                             },
+                        }),
+                    }}
+                />
+                <script
+                    type="application/ld+json"
+                    dangerouslySetInnerHTML={{
+                        __html: JSON.stringify({
+                            "@context": "https://schema.org",
+                            "@type": "FAQPage",
+                            mainEntity: FAQ_ITEMS.map((item) => ({
+                                "@type": "Question",
+                                name: item.q,
+                                acceptedAnswer: {
+                                    "@type": "Answer",
+                                    text: item.a,
+                                },
+                            })),
                         }),
                     }}
                 />
@@ -67,6 +84,7 @@ export default function LandingPage() {
                 <Features />
                 <DemoSection />
                 <Status />
+                <Faq />
                 <Footer />
             </div>
         </>

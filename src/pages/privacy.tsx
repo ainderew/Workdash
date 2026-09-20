@@ -47,7 +47,10 @@ const PrivacyPage = () => {
                         <li>
                             <strong className="text-white">Usage Data:</strong>{" "}
                             Session duration, feature usage, and interaction
-                            metrics used to improve WorkDash.
+                            metrics used to improve WorkDash. Page analytics run
+                            on a self-hosted Umami instance we control &mdash; no
+                            cookies, no cross-site tracking, and nothing shared
+                            with a third-party analytics provider.
                         </li>
                         <li>
                             <strong className="text-white">
