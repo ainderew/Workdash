@@ -1,7 +1,14 @@
 import React from "react";
+import { Seo } from "@/common/components/Seo";
 
 const PrivacyPage = () => {
     return (
+        <>
+            <Seo
+                title="Privacy Policy — WorkDash"
+                description="How WorkDash handles your account data, voice and chat: what is stored, what is not, and how to delete it."
+                path="/privacy"
+            />
         <div className="min-h-screen bg-slate-900 text-slate-100">
             <div className="max-w-4xl mx-auto px-6 py-16 space-y-8">
                 <div className="space-y-4">
@@ -18,9 +25,9 @@ const PrivacyPage = () => {
                         1. Introduction
                     </h2>
                     <p className="text-slate-300 leading-relaxed">
-                        Workdash (“we”, “us”, or “our”) respects your privacy.
+                        WorkDash (“we”, “us”, or “our”) respects your privacy.
                         This Privacy Policy explains how we collect, use, and
-                        protect personal information when you use the Workdash
+                        protect personal information when you use the WorkDash
                         application and related services.
                     </p>
                 </section>
@@ -40,7 +47,7 @@ const PrivacyPage = () => {
                         <li>
                             <strong className="text-white">Usage Data:</strong>{" "}
                             Session duration, feature usage, and interaction
-                            metrics used to improve Workdash.
+                            metrics used to improve WorkDash.
                         </li>
                         <li>
                             <strong className="text-white">
@@ -58,7 +65,7 @@ const PrivacyPage = () => {
                     </h2>
 
                     <p className="text-slate-300 leading-relaxed bg-slate-900/50 p-4 rounded border border-slate-700">
-                        Workdash’s use and transfer to any other app of
+                        WorkDash’s use and transfer to any other app of
                         information received from Google APIs will adhere to the{" "}
                         <a
                             href="https://developers.google.com/terms/api-services-user-data-policy"
@@ -80,7 +87,7 @@ const PrivacyPage = () => {
                             scope to read your Google Calendar data. We access
                             only event summaries, times, and free/busy status to
                             display your schedule and provide 1-click access to
-                            meeting links within the Workdash interface. No
+                            meeting links within the WorkDash interface. No
                             calendar data is modified, created, or deleted.
                         </p>
 
@@ -161,7 +168,7 @@ const PrivacyPage = () => {
                                 </strong>{" "}
                                 OAuth tokens are stored securely and are
                                 automatically revoked when you disconnect your
-                                Google account or delete your Workdash account.
+                                Google account or delete your WorkDash account.
                             </li>
                         </ul>
                     </div>
@@ -172,7 +179,7 @@ const PrivacyPage = () => {
                         4. Voice, Video, and Screen Sharing
                     </h2>
                     <p className="text-slate-300 leading-relaxed">
-                        Workdash uses WebRTC to provide real-time communication.
+                        WorkDash uses WebRTC to provide real-time communication.
                         Media streams are encrypted in transit and are{" "}
                         <span className="text-white font-bold">never</span>{" "}
                         recorded or stored.
@@ -217,6 +224,7 @@ const PrivacyPage = () => {
                 </section>
             </div>
         </div>
+        </>
     );
 };
 

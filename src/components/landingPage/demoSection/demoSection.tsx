@@ -48,7 +48,7 @@ export function DemoSection() {
                     >
                         <Image
                             src="/assets/lounge.webp"
-                            alt="The Workdash world: a top-down pixel lounge with bookshelves, couches and a player by the coffee table, and a control bar showing microphone, camera and who is online."
+                            alt="The WorkDash world: a top-down pixel lounge with bookshelves, couches and a player by the coffee table, and a control bar showing microphone, camera and who is online."
                             fill
                             className="object-cover opacity-80 group-hover:opacity-40 transition-opacity duration-500"
                         />

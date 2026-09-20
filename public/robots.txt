@@ -1,0 +1,13 @@
+# WorkDash — https://workdash.site
+# Everything public is open to crawlers.
+
+User-agent: *
+Allow: /
+
+# Not content. API routes have nothing to index, and invite URLs carry room
+# codes — if those were indexed, a search could hand a stranger a way into a
+# private room. Neither path has any search value to give up.
+Disallow: /api/
+Disallow: /invite/
+
+Sitemap: https://workdash.site/sitemap.xml

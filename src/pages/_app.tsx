@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
 import type { AppProps } from "next/app";
+import Head from "next/head";
 import { SessionProvider } from "next-auth/react";
 import { ThemeProvider } from "next-themes";
 import { Poppins } from "next/font/google";
@@ -31,6 +32,12 @@ export default function App({
 
     return (
         <SessionProvider session={session} refetchOnWindowFocus={false}>
+            <Head>
+                <meta
+                    name="viewport"
+                    content="width=device-width, initial-scale=1, viewport-fit=cover"
+                />
+            </Head>
             <ThemeProvider
                 attribute="class"
                 defaultTheme="system"

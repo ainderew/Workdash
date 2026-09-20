@@ -1,7 +1,7 @@
 {
-    "name": "WorkDash",
+    "name": "WorkDash — the room's already open",
     "short_name": "WorkDash",
-    "description": "Virtual workspace with 2D world and chat",
+    "description": "Keep one room running for your friend group: a voice call nobody has to start and a small world you can walk around in. See who's on, sit down.",
     "start_url": "/",
     "scope": "/",
     "display": "standalone",
@@ -27,5 +27,12 @@
             "type": "image/png",
             "purpose": "maskable"
         }
+    ],
+    "id": "/",
+    "lang": "en",
+    "categories": [
+        "social",
+        "productivity",
+        "games"
     ]
 }

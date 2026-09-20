@@ -1,7 +1,14 @@
 import React from 'react';
+import { Seo } from '@/common/components/Seo';
 
 const TermsPage = () => {
   return (
+    <>
+      <Seo
+        title="Terms of Service — WorkDash"
+        description="The terms for using WorkDash while it is in free early access."
+        path="/terms"
+      />
     <div className="min-h-screen bg-slate-900 text-slate-100">
       <div className="max-w-4xl mx-auto px-6 py-16 space-y-8">
         <div className="space-y-4">
@@ -131,6 +138,7 @@ const TermsPage = () => {
         </section>
       </div>
     </div>
+    </>
   );
 };
 

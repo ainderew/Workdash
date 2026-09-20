@@ -231,7 +231,7 @@ function DeskChatShell({ mode = "desk", onClose }: DeskChatShellProps) {
         }
         const preferred = currentRoom?.workspace?.name?.trim();
         if (preferred) return preferred;
-        return workspaceOptions[0]?.name || "Workdash Server";
+        return workspaceOptions[0]?.name || "WorkDash Server";
     }, [currentRoom, railView, selectedWorkspaceId, workspaceOptions]);
 
     const serverImageUrl = useMemo(() => {

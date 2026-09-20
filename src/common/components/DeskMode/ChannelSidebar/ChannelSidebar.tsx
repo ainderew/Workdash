@@ -155,7 +155,7 @@ function ChannelSidebar({
     [categories],
   );
 
-  const normalizedServerName = serverName.trim() || 'Workdash Server';
+  const normalizedServerName = serverName.trim() || 'WorkDash Server';
   const selectedRenameCategory = renameCategoryId
     ? categoryById[renameCategoryId]
     : undefined;

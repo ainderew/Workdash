@@ -90,7 +90,7 @@ export function Hero() {
                     </h1>
 
                     <p className="text-lg text-[var(--wd-text-muted)] mb-8 max-w-xl leading-relaxed">
-                        Workdash keeps one room running for your friend group
+                        WorkDash keeps one room running for your friend group
                         &mdash; a voice call nobody has to start, and a small
                         world you can actually walk around in. Open the tab, see
                         who&rsquo;s on, sit down.

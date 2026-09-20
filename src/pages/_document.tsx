@@ -4,6 +4,8 @@ export default function Document() {
     return (
         <Html lang="en">
             <Head>
+                <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+                <link rel="icon" href="/favicon.ico" sizes="32x32" />
                 <link rel="manifest" href="/manifest.webmanifest" />
                 <meta name="theme-color" content="#C2410C" />
                 <meta name="application-name" content="WorkDash" />
