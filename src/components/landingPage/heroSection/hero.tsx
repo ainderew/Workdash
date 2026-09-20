@@ -1,42 +1,144 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { motion, useScroll, useTransform } from "framer-motion";
+import { ArrowRightIcon, PlayIcon } from "lucide-react";
 import Link from "next/link";
-import { CrewBoard } from "./crewBoard";
+import VirtualInterface from "./virtualInterface";
 
 export function Hero() {
+    const { scrollY } = useScroll();
+    const y1 = useTransform(scrollY, [0, 200], [0, 150]);
+    const y2 = useTransform(scrollY, [0, 500], [0, -250]);
+    const heroOpacity = useTransform(scrollY, [0, 400], [1, 0]);
+    const heroY = useTransform(scrollY, [0, 400], [0, -60]);
+    const glowY1 = useTransform(scrollY, [0, 600], [0, -80]);
+    const glowY2 = useTransform(scrollY, [0, 600], [0, -120]);
+
+    const [mousePosition, setMousePosition] = useState({
+        x: 0,
+        y: 0,
+    });
+
+    useEffect(() => {
+        const handleMouseMove = (e: MouseEvent) => {
+            setMousePosition({
+                x: (e.clientX / window.innerWidth - 0.5) * 20,
+                y: (e.clientY / window.innerHeight - 0.5) * 20,
+            });
+        };
+        window.addEventListener("mousemove", handleMouseMove);
+        return () => window.removeEventListener("mousemove", handleMouseMove);
+    }, []);
+
     return (
-        <section
-            id="board"
-            className="relative mx-auto grid w-full max-w-[80rem] items-center gap-12 px-5 pb-16 pt-28 sm:px-8 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.2fr)] lg:gap-14 lg:pb-24 lg:pt-36"
-        >
-            <div>
-                <h1 className="wd-board-display">The room&rsquo;s already open.</h1>
+        <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-[var(--wd-surface-base)] pt-20">
+            {/* Ambient accent glow blobs */}
+            <motion.div
+                style={{
+                    x: mousePosition.x * 10,
+                    y: glowY1,
+                }}
+                className="wd-landing-glow top-1/4 right-1/3 w-64 h-64"
+            />
+            <motion.div
+                style={{
+                    x: mousePosition.x * -8,
+                    y: glowY2,
+                }}
+                className="wd-landing-glow top-1/3 left-1/4 w-96 h-96 opacity-15"
+            />
 
-                <p className="wd-board-body mt-6">
-                    Workdash keeps one room running for your friend group &mdash; a voice
-                    call nobody has to start, and a small world you can actually walk
-                    around in. Open the tab, see who&rsquo;s on, sit down.
-                </p>
+            <div className="relative z-10 max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-12 items-center">
+                <motion.div
+                    style={{ opacity: heroOpacity, y: heroY }}
+                    initial={{
+                        opacity: 0,
+                        x: -50,
+                    }}
+                    animate={{
+                        opacity: 1,
+                        x: 0,
+                    }}
+                    transition={{
+                        duration: 0.8,
+                        ease: "easeOut",
+                    }}
+                    className="text-left"
+                >
+                    <motion.div
+                        initial={{
+                            opacity: 0,
+                            y: 20,
+                        }}
+                        animate={{
+                            opacity: 1,
+                            y: 0,
+                        }}
+                        transition={{
+                            delay: 0.2,
+                        }}
+                        className="inline-flex items-center gap-2 px-3 py-1 bg-[var(--wd-landing-accent-soft)] border border-[var(--wd-landing-accent)]/30 rounded-full text-[var(--wd-landing-accent)] text-xs font-medium mb-6"
+                    >
+                        <span className="w-2 h-2 bg-[var(--wd-landing-accent)] rounded-full animate-pulse" />
+                        Now in Early Access
+                    </motion.div>
 
-                <div className="mt-9 flex flex-wrap items-center gap-3">
-                    <Link href="/app" className="wd-board-button">
-                        Open the room
-                    </Link>
-                    <a href="#room" className="wd-board-button-ghost">
-                        Look inside first
-                    </a>
+                    <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-[var(--wd-text-primary)] mb-6 leading-tight tracking-tight">
+                        The room&rsquo;s <br />
+                        <span className="text-[var(--wd-landing-accent)]">
+                            already open.
+                        </span>
+                    </h1>
+
+                    <p className="text-lg text-[var(--wd-text-muted)] mb-8 max-w-xl leading-relaxed">
+                        Workdash keeps one room running for your friend group
+                        &mdash; a voice call nobody has to start, and a small
+                        world you can actually walk around in. Open the tab, see
+                        who&rsquo;s on, sit down.
+                    </p>
+
+                    <div className="flex flex-col sm:flex-row gap-4">
+                        <Link
+                            href="/app"
+                            className="wd-landing-btn-primary flex-1 justify-center"
+                        >
+                            Open the room{" "}
+                            <ArrowRightIcon className="w-4 h-4" />
+                        </Link>
+
+                        <a
+                            href="#demo"
+                            className="wd-landing-btn-secondary flex-1 justify-center"
+                        >
+                            <PlayIcon className="w-4 h-4" />
+                            Look inside first
+                        </a>
+                    </div>
+
+                    <div className="mt-12 flex items-center gap-3 border-t border-[var(--wd-border-subtle)] pt-8 text-sm text-[var(--wd-text-muted)]">
+                        <span className="w-2 h-2 rounded-full bg-[var(--wd-success)]" />
+                        Free while we build it. No card, no tiers, no seats.
+                    </div>
+                </motion.div>
+
+                {/* Visual/Interactive Side */}
+                <VirtualInterface y1={y1} y2={y2} />
+            </div>
+
+            <motion.div
+                className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-50"
+                animate={{
+                    y: [0, 10, 0],
+                }}
+                transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                }}
+            >
+                <div className="text-xs uppercase tracking-widest text-[var(--wd-landing-accent)] font-semibold z-10">
+                    Scroll to Start
                 </div>
-
-                <p className="wd-board-legend mt-8 leading-relaxed">
-                    Free while we build it &nbsp;·&nbsp; No card &nbsp;·&nbsp; Early access
-                </p>
-            </div>
-
-            <div>
-                <CrewBoard />
-                <p className="wd-board-legend mt-4 pl-1">
-                    Example board &mdash; your room, your people
-                </p>
-            </div>
+                <div className="w-px h-12 bg-gradient-to-b from-[var(--wd-landing-accent)] to-transparent" />
+            </motion.div>
         </section>
     );
 }

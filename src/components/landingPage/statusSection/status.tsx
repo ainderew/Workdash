@@ -1,5 +1,7 @@
 import React from "react";
 import Link from "next/link";
+import { motion } from "framer-motion";
+import { ArrowRightIcon } from "lucide-react";
 
 const spec = [
     { label: "Price", value: "Free — no card, no seats, no tiers" },
@@ -10,51 +12,55 @@ const spec = [
 
 export function Status() {
     return (
-        <section id="status" className="mx-auto w-full max-w-[80rem] px-5 py-16 sm:px-8 lg:py-24">
-            <div className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:items-center lg:gap-20">
-                <div>
-                    <h2 className="wd-board-head">
-                        Free while we&rsquo;re still building it.
+        <section
+            id="status"
+            className="py-32 bg-[var(--wd-surface-base)] relative overflow-hidden"
+        >
+            <div className="max-w-7xl mx-auto px-6 relative z-10">
+                <div className="text-center mb-20">
+                    <h2 className="text-4xl md:text-5xl font-bold text-[var(--wd-text-primary)] mb-6">
+                        Where things{" "}
+                        <span className="text-[var(--wd-landing-accent)]">
+                            stand
+                        </span>
                     </h2>
-                    <p className="wd-board-body mt-5">
-                        There is no pricing page yet because there is nothing to charge
-                        for yet. Bring your group, keep a room open, and tell us what
-                        breaks — that is the entire arrangement for now.
+                    <p className="text-[var(--wd-text-muted)] max-w-2xl mx-auto text-lg">
+                        There is no pricing page yet because there is nothing to
+                        charge for yet.
                     </p>
-                    <div className="mt-9">
-                        <Link href="/app" className="wd-board-button">
-                            Open the room
-                        </Link>
-                    </div>
                 </div>
 
-                {/* Rating plate — the small engraved panel screwed to the equipment */}
-                <div className="wd-board-mount">
-                <div className="wd-board overflow-hidden">
-                    <span className="wd-board-frame" aria-hidden="true" />
-                    <div className="relative flex items-center justify-between border-b border-[var(--brd-rule-strong)] px-5 py-3 sm:px-7">
-                        <span className="wd-board-legend">Where things stand</span>
-                        <span className="wd-board-screw" aria-hidden="true" />
-                    </div>
-                    <dl className="relative px-5 py-2 sm:px-7">
-                        {spec.map((item, index) => (
+                <motion.div
+                    initial={{ opacity: 0, y: 50 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.5 }}
+                    className="max-w-2xl mx-auto rounded-2xl border-2 border-[var(--wd-landing-accent)] bg-[var(--wd-surface-panel)] p-8 shadow-lg"
+                >
+                    <dl className="divide-y divide-[var(--wd-border-subtle)]">
+                        {spec.map((item) => (
                             <div
                                 key={item.label}
-                                className={`flex flex-col gap-1 py-4 sm:flex-row sm:items-baseline sm:gap-6 ${
-                                    index > 0 ? "border-t border-[var(--brd-rule)]" : ""
-                                }`}
+                                className="flex flex-col gap-1 py-4 first:pt-0 sm:flex-row sm:items-baseline sm:gap-6"
                             >
-                                <dt className="wd-board-legend sm:w-[7.5rem] sm:shrink-0">
+                                <dt className="text-sm font-bold uppercase tracking-wider text-[var(--wd-landing-accent)] sm:w-32 sm:shrink-0">
                                     {item.label}
                                 </dt>
-                                <dd className="text-[0.9375rem] leading-relaxed text-[var(--brd-ink)]">
+                                <dd className="text-[var(--wd-text-secondary)]">
                                     {item.value}
                                 </dd>
                             </div>
                         ))}
                     </dl>
-                </div>
-                </div>
+
+                    <Link
+                        href="/app"
+                        className="wd-landing-btn-primary mt-8 w-full group"
+                    >
+                        Open the room
+                        <ArrowRightIcon className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    </Link>
+                </motion.div>
             </div>
         </section>
     );
