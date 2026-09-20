@@ -4,6 +4,7 @@ import { motion, useScroll, useTransform } from "framer-motion";
 import { Gamepad2Icon } from "lucide-react";
 import Link from "next/link";
 import { useRef } from "react";
+import { Floaties, SPRITES } from "../floaties/floaties";
 
 export function DemoSection() {
     const sectionRef = useRef(null);
@@ -20,6 +21,13 @@ export function DemoSection() {
             ref={sectionRef}
             className="py-24 bg-[var(--wd-surface-panel-2)] border-y border-[var(--wd-border-subtle)] relative overflow-hidden"
         >
+            <Floaties
+                items={[
+                    { ...SPRITES.star, top: "8%", left: "5%", drift: -120, display: 32, opacity: 0.85 },
+                    { ...SPRITES.plant, top: "58%", right: "3%", drift: -70, display: 62, rotate: 8 },
+                ]}
+            />
+
             <div className="max-w-7xl mx-auto px-6 text-center relative z-10" style={{ perspective: "1200px" }}>
                 <motion.div
                     style={{ rotateX, opacity }}

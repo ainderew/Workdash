@@ -3,6 +3,7 @@ import { motion, useScroll, useTransform } from "framer-motion";
 import { ArrowRightIcon, PlayIcon } from "lucide-react";
 import Link from "next/link";
 import VirtualInterface from "./virtualInterface";
+import { Floaties, SPRITES } from "../floaties/floaties";
 
 export function Hero() {
     const { scrollY } = useScroll();
@@ -31,6 +32,16 @@ export function Hero() {
 
     return (
         <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-[var(--wd-surface-base)] pt-20">
+            <Floaties
+                fade={heroOpacity}
+                items={[
+                    { ...SPRITES.plant, top: "16%", left: "1%", drift: -180, display: 70, rotate: -6 },
+                    { ...SPRITES.coffee, top: "82%", left: "3%", drift: -95, display: 42, rotate: 5 },
+                    { ...SPRITES.star, top: "12%", right: "6%", drift: -260, display: 38, opacity: 0.9 },
+                    { ...SPRITES.pizza, top: "88%", right: "3%", drift: -140, display: 44, rotate: -10 },
+                ]}
+            />
+
             {/* Ambient accent glow blobs */}
             <motion.div
                 style={{

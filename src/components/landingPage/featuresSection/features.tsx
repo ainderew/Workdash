@@ -318,7 +318,18 @@ function FeatureCard({
                 transition={{ duration: 0.6, delay: 0.2 }}
                 className="w-full lg:w-1/2 aspect-video relative group"
             >
-                <div className="relative h-full bg-[var(--wd-surface-panel)] border border-[var(--wd-border-subtle)] rounded-2xl overflow-hidden shadow-md group-hover:shadow-lg transition-shadow duration-300">
+                <motion.div
+                    animate={{
+                        scale: isInView ? 1 : 0.97,
+                        y: isInView ? 0 : 10,
+                    }}
+                    transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                    className={`relative h-full bg-[var(--wd-surface-panel)] border rounded-2xl overflow-hidden transition-[box-shadow,border-color] duration-500 ${
+                        isInView
+                            ? "border-[var(--wd-landing-accent)]/40 shadow-[0_18px_45px_-18px_rgb(var(--wd-landing-accent-rgb)/0.45)]"
+                            : "border-[var(--wd-border-subtle)] shadow-md"
+                    }`}
+                >
                     {/* Mini toolbar */}
                     <div className="h-8 bg-[var(--wd-surface-panel-2)] border-b border-[var(--wd-border-subtle)] flex items-center px-4 justify-between">
                         <div className="flex gap-1.5">
@@ -334,7 +345,7 @@ function FeatureCard({
                     <div className="h-[calc(100%-2rem)]">
                         <DemoComponent isActive={isInView} />
                     </div>
-                </div>
+                </motion.div>
             </motion.div>
 
             {/* Text content */}
@@ -350,7 +361,13 @@ function FeatureCard({
                 >
                     <feature.icon className="w-6 h-6" />
                 </div>
-                <h3 className="text-3xl md:text-4xl font-bold text-[var(--wd-text-primary)] mb-6 leading-tight">
+                <h3
+                    className={`text-3xl md:text-4xl font-bold mb-6 leading-tight transition-colors duration-500 ${
+                        isInView
+                            ? "text-[var(--wd-landing-accent)]"
+                            : "text-[var(--wd-text-primary)]"
+                    }`}
+                >
                     {feature.title}
                 </h3>
                 <p className="text-lg text-[var(--wd-text-muted)] leading-relaxed">

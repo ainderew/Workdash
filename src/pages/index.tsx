@@ -10,6 +10,7 @@ import {
 import { motion, useScroll, useSpring } from "framer-motion";
 import { Hero } from "../components/landingPage/heroSection/hero";
 import { Features } from "../components/landingPage/featuresSection/features";
+import { Marquee } from "../components/landingPage/marquee/marquee";
 import { DemoSection } from "../components/landingPage/demoSection/demoSection";
 import { Status } from "../components/landingPage/statusSection/status";
 import { Faq, FAQ_ITEMS } from "../components/landingPage/faqSection/faq";
@@ -81,6 +82,7 @@ export default function LandingPage() {
                 <ScrollProgressBar />
                 <Navbar />
                 <Hero />
+                <Marquee />
                 <Features />
                 <DemoSection />
                 <Status />

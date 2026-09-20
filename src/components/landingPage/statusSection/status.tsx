@@ -2,6 +2,7 @@ import React from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowRightIcon } from "lucide-react";
+import { Floaties, SPRITES } from "../floaties/floaties";
 
 const spec = [
     { label: "Price", value: "Free — no card, no seats, no tiers" },
@@ -16,6 +17,13 @@ export function Status() {
             id="status"
             className="py-32 bg-[var(--wd-surface-base)] relative overflow-hidden"
         >
+            <Floaties
+                items={[
+                    { ...SPRITES.coffee, top: "20%", right: "8%", drift: 60, display: 44, rotate: -8 },
+                    { ...SPRITES.pizza, top: "70%", left: "7%", drift: -110, display: 40, rotate: 12 },
+                ]}
+            />
+
             <div className="max-w-7xl mx-auto px-6 relative z-10">
                 <div className="text-center mb-20">
                     <h2 className="text-4xl md:text-5xl font-bold text-[var(--wd-text-primary)] mb-6">
