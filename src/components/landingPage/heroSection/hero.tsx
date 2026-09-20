@@ -136,7 +136,8 @@ export function Hero() {
             </div>
 
             <motion.div
-                className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-50"
+                aria-hidden="true"
+                className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center opacity-50"
                 animate={{
                     y: [0, 10, 0],
                 }}
@@ -145,9 +146,6 @@ export function Hero() {
                     repeat: Infinity,
                 }}
             >
-                <div className="text-xs uppercase tracking-widest text-[var(--wd-landing-accent)] font-semibold z-10">
-                    Scroll to Start
-                </div>
                 <div className="w-px h-12 bg-gradient-to-b from-[var(--wd-landing-accent)] to-transparent" />
             </motion.div>
         </section>
