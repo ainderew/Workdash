@@ -134,20 +134,6 @@ export function Hero() {
                 {/* Visual/Interactive Side */}
                 <VirtualInterface y1={y1} y2={y2} />
             </div>
-
-            <motion.div
-                aria-hidden="true"
-                className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center opacity-50"
-                animate={{
-                    y: [0, 10, 0],
-                }}
-                transition={{
-                    duration: 2,
-                    repeat: Infinity,
-                }}
-            >
-                <div className="w-px h-12 bg-gradient-to-b from-[var(--wd-landing-accent)] to-transparent" />
-            </motion.div>
         </section>
     );
 }
