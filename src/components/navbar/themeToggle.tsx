@@ -1,32 +1,32 @@
 import React from "react";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
-import { Sun, Moon, Loader2 } from "lucide-react";
+import { Sun, Moon } from "lucide-react";
 
 export function ThemeToggle() {
-    const { theme, setTheme } = useTheme();
+    const { resolvedTheme, setTheme } = useTheme();
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => setMounted(true), []);
 
-    if (!mounted) {
-        return (
-            <button className="w-8 h-8 flex items-center justify-center">
-                <Loader2 className="w-4 h-4 animate-spin text-[var(--wd-text-muted)]" />
-            </button>
-        );
-    }
+    const isDark = resolvedTheme === "dark";
 
     return (
         <button
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className="relative w-8 h-8 flex items-center justify-center text-[var(--wd-landing-accent)] hover:text-[var(--wd-landing-accent-hover)] transition-colors bg-[var(--wd-landing-accent-soft)] rounded-full cursor-pointer"
-            aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+            onClick={() => setTheme(isDark ? "light" : "dark")}
+            disabled={!mounted}
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--brd-hairline)] text-[var(--brd-fg-dim)] transition-colors hover:border-[var(--brd-fg-faint)] hover:text-[var(--brd-fg)] disabled:opacity-50"
+            aria-label={
+                mounted
+                    ? `Switch to ${isDark ? "light" : "dark"} mode`
+                    : "Loading theme"
+            }
         >
-            {theme === "dark" ? (
-                <Sun className="w-4 h-4" />
+            {/* Before hydration the sun renders so the rail never reflows. */}
+            {mounted && !isDark ? (
+                <Moon className="h-4 w-4" />
             ) : (
-                <Moon className="w-4 h-4" />
+                <Sun className="h-4 w-4" />
             )}
         </button>
     );

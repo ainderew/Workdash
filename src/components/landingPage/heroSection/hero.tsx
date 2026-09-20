@@ -1,154 +1,42 @@
-import React, { useEffect, useState } from "react";
-import { motion, useScroll, useTransform } from "framer-motion";
-import { ArrowRightIcon, PlayIcon } from "lucide-react";
-import Image from "next/image";
+import React from "react";
 import Link from "next/link";
-import VirtualInterface from "./virtualInterface";
+import { CrewBoard } from "./crewBoard";
 
 export function Hero() {
-    const { scrollY } = useScroll();
-    const y1 = useTransform(scrollY, [0, 200], [0, 150]);
-    const y2 = useTransform(scrollY, [0, 500], [0, -250]);
-    const heroOpacity = useTransform(scrollY, [0, 400], [1, 0]);
-    const heroY = useTransform(scrollY, [0, 400], [0, -60]);
-    const glowY1 = useTransform(scrollY, [0, 600], [0, -80]);
-    const glowY2 = useTransform(scrollY, [0, 600], [0, -120]);
-
-    const [mousePosition, setMousePosition] = useState({
-        x: 0,
-        y: 0,
-    });
-
-    useEffect(() => {
-        const handleMouseMove = (e: MouseEvent) => {
-            setMousePosition({
-                x: (e.clientX / window.innerWidth - 0.5) * 20,
-                y: (e.clientY / window.innerHeight - 0.5) * 20,
-            });
-        };
-        window.addEventListener("mousemove", handleMouseMove);
-        return () => window.removeEventListener("mousemove", handleMouseMove);
-    }, []);
-
     return (
-        <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-[var(--wd-surface-base)] pt-20">
-            {/* Ambient accent glow blobs */}
-            <motion.div
-                style={{
-                    x: mousePosition.x * 10,
-                    y: glowY1,
-                }}
-                className="wd-landing-glow top-1/4 right-1/3 w-64 h-64"
-            />
-            <motion.div
-                style={{
-                    x: mousePosition.x * -8,
-                    y: glowY2,
-                }}
-                className="wd-landing-glow top-1/3 left-1/4 w-96 h-96 opacity-15"
-            />
+        <section
+            id="board"
+            className="relative mx-auto grid w-full max-w-[80rem] items-center gap-12 px-5 pb-16 pt-28 sm:px-8 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.2fr)] lg:gap-14 lg:pb-24 lg:pt-36"
+        >
+            <div>
+                <h1 className="wd-board-display">The room&rsquo;s already open.</h1>
 
-            <div className="relative z-10 max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-12 items-center">
-                <motion.div
-                    style={{ opacity: heroOpacity, y: heroY }}
-                    initial={{
-                        opacity: 0,
-                        x: -50,
-                    }}
-                    animate={{
-                        opacity: 1,
-                        x: 0,
-                    }}
-                    transition={{
-                        duration: 0.8,
-                        ease: "easeOut",
-                    }}
-                    className="text-left"
-                >
-                    <motion.div
-                        initial={{
-                            opacity: 0,
-                            y: 20,
-                        }}
-                        animate={{
-                            opacity: 1,
-                            y: 0,
-                        }}
-                        transition={{
-                            delay: 0.2,
-                        }}
-                        className="inline-flex items-center gap-2 px-3 py-1 bg-[var(--wd-landing-accent-soft)] border border-[var(--wd-landing-accent)]/30 rounded-full text-[var(--wd-landing-accent)] text-xs font-medium mb-6"
-                    >
-                        <span className="w-2 h-2 bg-[var(--wd-landing-accent)] rounded-full animate-pulse" />
-                        Now in Early Access
-                    </motion.div>
+                <p className="wd-board-body mt-6">
+                    Workdash keeps one room running for your friend group &mdash; a voice
+                    call nobody has to start, and a small world you can actually walk
+                    around in. Open the tab, see who&rsquo;s on, sit down.
+                </p>
 
-                    <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-[var(--wd-text-primary)] mb-6 leading-tight tracking-tight">
-                        Work Together. <br />
-                        <span className="text-[var(--wd-landing-accent)]">
-                            Play Together.
-                        </span>
-                    </h1>
+                <div className="mt-9 flex flex-wrap items-center gap-3">
+                    <Link href="/app" className="wd-board-button">
+                        Open the room
+                    </Link>
+                    <a href="#room" className="wd-board-button-ghost">
+                        Look inside first
+                    </a>
+                </div>
 
-                    <p className="text-lg text-[var(--wd-text-muted)] mb-8 max-w-xl leading-relaxed">
-                        Transform your boring video calls into an immersive 2D
-                        MMO. Walk up to colleagues, join guilds, and build your
-                        digital HQ in a world that feels alive.
-                    </p>
-
-                    <div className="flex flex-col sm:flex-row gap-4">
-                        <Link
-                            href="/app"
-                            className="wd-landing-btn-primary flex-1 justify-center"
-                        >
-                            Start Game{" "}
-                            <ArrowRightIcon className="w-4 h-4" />
-                        </Link>
-
-                        <button className="wd-landing-btn-secondary flex-1 justify-center">
-                            <PlayIcon className="w-4 h-4" />
-                            Watch Guides
-                        </button>
-                    </div>
-
-                    <div className="mt-12 flex items-center gap-4 border-t border-[var(--wd-border-subtle)] pt-8">
-                        <div className="flex items-center">
-                            {[1, 2, 3, 4, 5].map((i) => (
-                                <Image
-                                    key={i}
-                                    src={`/landing-page/users/p${i}.png`}
-                                    alt={`User ${i}`}
-                                    width={32}
-                                    height={32}
-                                    className={`w-8 h-8 rounded-full border-2 border-[var(--wd-surface-base)] -ml-3 first:ml-0 z-${10 - i} object-cover`}
-                                />
-                            ))}
-                        </div>
-                        <p className="text-sm text-[var(--wd-text-muted)]">
-                            Join remote teams building culture
-                        </p>
-                    </div>
-                </motion.div>
-
-                {/* Visual/Interactive Side */}
-                <VirtualInterface y1={y1} y2={y2} />
+                <p className="wd-board-legend mt-8 leading-relaxed">
+                    Free while we build it &nbsp;·&nbsp; No card &nbsp;·&nbsp; Early access
+                </p>
             </div>
 
-            <motion.div
-                className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-50"
-                animate={{
-                    y: [0, 10, 0],
-                }}
-                transition={{
-                    duration: 2,
-                    repeat: Infinity,
-                }}
-            >
-                <div className="text-xs uppercase tracking-widest text-[var(--wd-landing-accent)] font-semibold z-10">
-                    Scroll to Start
-                </div>
-                <div className="w-px h-12 bg-gradient-to-b from-[var(--wd-landing-accent)] to-transparent" />
-            </motion.div>
+            <div>
+                <CrewBoard />
+                <p className="wd-board-legend mt-4 pl-1">
+                    Example board &mdash; your room, your people
+                </p>
+            </div>
         </section>
     );
 }

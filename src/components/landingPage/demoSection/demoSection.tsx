@@ -1,72 +1,39 @@
 import React from "react";
 import Image from "next/image";
-import { motion, useScroll, useTransform } from "framer-motion";
-import { PlayIcon, Gamepad2Icon } from "lucide-react";
-import { useRef } from "react";
+import lounge from "../../../../public/assets/lounge.webp";
 
 export function DemoSection() {
-    const sectionRef = useRef(null);
-    const { scrollYProgress } = useScroll({
-        target: sectionRef,
-        offset: ["start end", "center center"],
-    });
-    const rotateX = useTransform(scrollYProgress, [0, 1], [8, 0]);
-    const opacity = useTransform(scrollYProgress, [0, 0.5], [0.6, 1]);
-
     return (
-        <section
-            id="demo"
-            ref={sectionRef}
-            className="py-24 bg-[var(--wd-surface-panel-2)] border-y border-[var(--wd-border-subtle)] relative overflow-hidden"
-        >
-            <div className="max-w-7xl mx-auto px-6 text-center relative z-10" style={{ perspective: "1200px" }}>
-                <motion.div
-                    style={{ rotateX, opacity }}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    whileInView={{ opacity: 1, scale: 1 }}
-                    viewport={{ once: true }}
-                    className="relative rounded-2xl overflow-hidden border border-[var(--wd-border-subtle)] bg-[var(--wd-surface-panel)] shadow-2xl"
-                >
-                    {/* Browser chrome */}
-                    <div className="h-10 bg-[var(--wd-surface-panel-2)] flex items-center px-4 gap-2 border-b border-[var(--wd-border-subtle)]">
-                        <div className="flex gap-1.5">
-                            <div className="w-3 h-3 rounded-full bg-[var(--wd-danger)]" />
-                            <div className="w-3 h-3 rounded-full bg-[var(--wd-warning)]" />
-                            <div className="w-3 h-3 rounded-full bg-[var(--wd-success)]" />
-                        </div>
-                        <div className="flex-1 text-center">
-                            <div className="inline-block px-4 py-1 bg-[var(--wd-surface-base)] rounded text-[10px] text-[var(--wd-text-muted)]">
-                                https:
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="relative aspect-video group cursor-pointer">
-                        <Image
-                            src="https://camo.githubusercontent.com/5d8964ce817418a7658dc7228a2d2a603bba41a970f96183af33d7324a07100e/68747470733a2f2f63646e2e737461746963616c6c792e696f2f67682f61696e64657265772f61696e6465726577406d61737465722f776f726b646173682e706e67"
-                            alt="Game Interface"
-                            fill
-                            className="object-cover opacity-80 group-hover:opacity-40 transition-opacity duration-500"
-                        />
-
-                        <div className="absolute inset-0 flex items-center justify-center">
-                            <motion.div
-                                whileHover={{ scale: 1.1 }}
-                                className="w-20 h-20 bg-[var(--wd-landing-accent)] rounded-full flex items-center justify-center shadow-lg z-20"
-                            >
-                                <PlayIcon className="w-8 h-8 text-[var(--wd-surface-base)] fill-current ml-1" />
-                            </motion.div>
-                        </div>
-
-                        <div className="absolute bottom-8 left-0 right-0 text-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                            <span className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--wd-surface-base)]/50 backdrop-blur rounded-full text-[var(--wd-landing-accent)] text-sm border border-[var(--wd-landing-accent)]/30">
-                                <Gamepad2Icon className="w-4 h-4" /> Click to
-                                Enter Demo Mode
-                            </span>
-                        </div>
-                    </div>
-                </motion.div>
+        <section id="room" className="mx-auto w-full max-w-[80rem] px-5 py-16 sm:px-8 lg:py-24">
+            <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.78fr)] lg:items-end lg:gap-16">
+                <div>
+                    <h2 className="wd-board-head">Behind the plate is an actual room.</h2>
+                    <p className="wd-board-body mt-5">
+                        Workdash has two halves and you can sit in either. The world is a
+                        small top-down place with a lounge, a couch and your friends
+                        walking around it; audio works by distance, so a conversation you
+                        walk away from fades instead of ending. The desk is the quiet
+                        half — channels, threads, screenshare — for the nights when
+                        nobody feels like moving a sprite.
+                    </p>
+                </div>
+                <p className="wd-board-ledger max-w-[34ch] border-l border-[var(--brd-hairline)] pl-5">
+                    Screenshot from our own room. The bar along the bottom is your mic,
+                    camera and the count of who is on. The couch is where the call lives.
+                </p>
             </div>
+
+            <figure className="wd-board-mount mt-12">
+                <span className="wd-board-window block overflow-hidden">
+                <Image
+                    src={lounge}
+                    alt="The Workdash world: a top-down pixel lounge with bookshelves, couches and a player standing by the coffee table, and a control bar along the bottom showing microphone, camera and who is online."
+                    placeholder="blur"
+                    sizes="(max-width: 1280px) 100vw, 1200px"
+                    className="h-auto w-full"
+                />
+                </span>
+            </figure>
         </section>
     );
 }

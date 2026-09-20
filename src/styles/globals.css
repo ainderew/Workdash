@@ -1380,95 +1380,639 @@ body {
     }
 }
 
-/* ── Landing page brand tokens (coral palette from logo) ─────────────── */
-/* Theme-invariant — the marketing page always uses the brand coral.      */
+/* ── Landing surface: the crew board ──────────────────────────────────
+   A night-shift roster board in enamelled steel. Name plates ride in
+   routed channels; the domed lamp over a station is lit only while that
+   person is actually in the room. The board is one object under one
+   light, so its material never changes — only the wall it hangs on
+   follows the app's light/dark setting.
+   ------------------------------------------------------------------- */
 
-:root {
-    --wd-landing-accent: #E85D04;
-    --wd-landing-accent-hover: #C2410C;
-    --wd-landing-accent-rgb: 232 93 4;
-    --wd-landing-accent-soft: rgb(232 93 4 / 0.12);
-    --wd-landing-accent-gradient: linear-gradient(135deg, #E85D04, #C2410C);
+/* The wall the board hangs on — the one part of the scene the theme moves.
+   Declared on the root so the document background matches under overscroll. */
+html:has(.wd-board-page) {
+    --brd-wall: #EFECE2;
+    --brd-cast: rgb(24 30 26 / 0.24);
+
+    /* Ink on the wall — this set follows the theme */
+    --brd-fg: #1B211D;
+    --brd-fg-dim: #4A574F;
+    --brd-fg-faint: #5E6B63;
+    --brd-hairline: rgb(27 33 29 / 0.2);
+    --brd-lamp-ink: #8A5410;
+    --brd-spill: rgb(160 104 30 / 0.07);
+    --brd-spill-glow: rgb(178 112 28 / 0.20);
+
+    background: var(--brd-wall);
 }
 
-/* ── Landing page utilities ──────────────────────────────────────────── */
+html.dark:has(.wd-board-page) {
+    --brd-wall: #080B09;
+    --brd-cast: rgb(0 0 0 / 0.62);
 
-.wd-landing-scroll-progress {
-    position: fixed;
-    top: 0;
-    left: 0;
-    height: 3px;
-    background: var(--wd-landing-accent-gradient);
-    transform-origin: left;
-    z-index: 200;
+    --brd-fg: #EDE6D8;
+    --brd-fg-dim: #9DACA1;
+    --brd-fg-faint: #8B998F;
+    --brd-hairline: rgb(199 214 203 / 0.16);
+    --brd-lamp-ink: #FFB44A;
+    --brd-spill: rgb(255 180 74 / 0.10);
+    --brd-spill-glow: rgb(255 178 82 / 0.55);
 }
 
-.wd-landing-btn-primary {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    padding: 0.875rem 2rem;
-    background: var(--wd-landing-accent);
-    color: #fff;
-    font-weight: 700;
-    font-size: 0.875rem;
-    letter-spacing: 0.025em;
-    border-radius: 0.75rem;
-    transition: background 0.2s, box-shadow 0.2s, transform 0.15s;
+.wd-board-page {
+    /* Enamelled steel body — one object under one light, never themed */
+    --brd-enamel: #1B2721;
+    --brd-enamel-lit: #26342C;
+    --brd-enamel-deep: #121B16;
+    --brd-groove: #070C09;
+
+    /* Brushed aluminium rails, bezels, housings */
+    --brd-alu: #7F8C84;
+    --brd-alu-hi: #C6D1C8;
+    --brd-alu-lo: #3D4741;
+
+    /* Bone laminate plates with engraved legend */
+    --brd-plate: #D6CFBB;
+    --brd-plate-edge: #EFE9D9;
+    --brd-plate-shade: #A8A18E;
+    --brd-legend: #141815;
+
+    /* Ink on enamel */
+    --brd-ink: #EDE6D8;
+    --brd-ink-dim: #9DACA1;
+    --brd-ink-faint: #8B998F;
+
+    /* Lamps and lenses — the only light on the board */
+    --brd-lamp: #FFB44A;
+    --brd-lamp-core: #FFE7B6;
+    --brd-lamp-deep: #C77A22;
+    --brd-lens-green: #8FD08A;
+    --brd-signal: #E2674C;
+
+    --brd-rule: rgb(199 214 203 / 0.13);
+    --brd-rule-strong: rgb(199 214 203 / 0.24);
+
+    background: var(--brd-wall);
+    color: var(--brd-fg);
+    font-family: var(--font-board), ui-sans-serif, system-ui, sans-serif;
+    font-synthesis-weight: none;
 }
 
-.wd-landing-btn-primary:hover {
-    background: var(--wd-landing-accent-hover);
-    box-shadow: 0 4px 20px rgb(var(--wd-landing-accent-rgb) / 0.35);
-    transform: translateY(-1px);
+/* ── Browser surfaces: theme what we did not draw ──────────────────── */
+
+.wd-board-page ::selection {
+    background: var(--brd-lamp);
+    color: #1A1206;
 }
 
-.wd-landing-btn-secondary {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    padding: 0.875rem 2rem;
-    background: var(--wd-surface-panel);
-    color: var(--wd-text-primary);
-    font-weight: 700;
-    font-size: 0.875rem;
-    letter-spacing: 0.025em;
-    border: 1px solid var(--wd-border-subtle);
-    border-radius: 0.75rem;
-    transition: border-color 0.2s, background 0.2s, transform 0.15s;
+.wd-board-page {
+    caret-color: var(--brd-lamp);
+    scrollbar-color: var(--brd-alu-lo) transparent;
+    scrollbar-width: thin;
 }
 
-.wd-landing-btn-secondary:hover {
-    border-color: var(--wd-landing-accent);
-    background: var(--wd-surface-panel-2);
-    transform: translateY(-1px);
+.wd-board-page ::-webkit-scrollbar {
+    width: 11px;
+    height: 11px;
 }
 
-.wd-landing-glow {
-    position: absolute;
-    border-radius: 9999px;
-    filter: blur(100px);
-    opacity: 0.25;
-    background: var(--wd-landing-accent);
-    pointer-events: none;
-    animation: wd-landing-drift 12s ease-in-out infinite alternate;
+.wd-board-page ::-webkit-scrollbar-track {
+    background: var(--brd-enamel-deep);
 }
 
-@keyframes wd-landing-drift {
-    0% { transform: translate(0, 0) scale(1); }
-    50% { transform: translate(30px, -20px) scale(1.1); }
-    100% { transform: translate(-20px, 15px) scale(0.95); }
+.wd-board-page ::-webkit-scrollbar-thumb {
+    background: var(--brd-alu-lo);
+    border: 3px solid var(--brd-enamel-deep);
+    border-radius: 6px;
+}
+
+.wd-board-page ::-webkit-scrollbar-thumb:hover {
+    background: var(--brd-alu);
+}
+
+.wd-board-page a {
+    text-underline-offset: 0.22em;
+    text-decoration-thickness: from-font;
+}
+
+/* Anchored sections clear the fixed header rail */
+.wd-board-page section[id] {
+    scroll-margin-top: 5.5rem;
+}
+
+html:has(.wd-board-page) {
+    scroll-behavior: smooth;
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .wd-landing-glow {
+    html:has(.wd-board-page) {
+        scroll-behavior: auto;
+    }
+}
+
+.wd-board-page :focus-visible {
+    outline: 2px solid var(--brd-lamp);
+    outline-offset: 3px;
+    border-radius: 2px;
+}
+
+/* ── Type ──────────────────────────────────────────────────────────── */
+
+.wd-board-display {
+    font-size: clamp(2.35rem, 6vw, 4.5rem);
+    font-weight: 760;
+    font-stretch: 94%;
+    line-height: 0.99;
+    letter-spacing: -0.033em;
+    text-wrap: balance;
+    color: var(--brd-fg);
+}
+
+.wd-board-head {
+    font-size: clamp(1.6rem, 3.2vw, 2.4rem);
+    font-weight: 720;
+    font-stretch: 96%;
+    line-height: 1.08;
+    letter-spacing: -0.024em;
+    text-wrap: balance;
+    color: var(--brd-fg);
+}
+
+.wd-board-body {
+    font-size: 1.0625rem;
+    line-height: 1.62;
+    color: var(--brd-fg-dim);
+    max-width: 68ch;
+}
+
+/* Engraved signage lettering — plates, column headers, lamp legends */
+.wd-board-legend {
+    font-size: 0.6875rem;
+    font-weight: 640;
+    font-stretch: 86%;
+    letter-spacing: 0.17em;
+    text-transform: uppercase;
+    color: var(--brd-fg-faint);
+}
+
+/* Emphasis within the signage voice. Declared after the base rule so it
+   wins without a utility fighting specificity. */
+.wd-board-legend-strong {
+    color: var(--brd-fg);
+}
+
+.wd-board-ledger {
+    font-size: 0.78125rem;
+    font-weight: 500;
+    line-height: 1.75;
+    letter-spacing: 0.004em;
+    font-variant-numeric: tabular-nums;
+    color: var(--brd-fg-faint);
+}
+
+/* ── The board itself ──────────────────────────────────────────────── */
+
+.wd-board,
+.wd-board-window {
+    --brd-fg: var(--brd-ink);
+    --brd-fg-dim: var(--brd-ink-dim);
+    --brd-fg-faint: var(--brd-ink-faint);
+    --brd-hairline: var(--brd-rule);
+    --brd-lamp-ink: var(--brd-lamp);
+}
+
+.wd-board {
+    position: relative;
+    border-radius: 6px;
+    background:
+        radial-gradient(120% 90% at 50% -10%, var(--brd-enamel-lit), transparent 62%),
+        linear-gradient(176deg, var(--brd-enamel) 0%, var(--brd-enamel-deep) 100%);
+    box-shadow:
+        0 1px 0 rgb(255 255 255 / 0.07) inset,
+        0 -1px 0 rgb(0 0 0 / 0.5) inset,
+        0 2px 4px rgb(0 0 0 / 0.3),
+        0 18px 40px -12px var(--brd-cast),
+        0 42px 90px -28px var(--brd-cast),
+        /* lamplight reaching the wall, in the board's own silhouette */
+        0 12px 58px -14px var(--brd-spill-glow);
+}
+
+/* Enamel tooth — a real grain tile so the field is a surface, not a fill */
+.wd-board::before,
+.wd-board-paper::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background-image: url("/assets/board-grain.png");
+    background-size: 160px 160px;
+    mix-blend-mode: overlay;
+    opacity: 0.85;
+}
+
+/* Aluminium edge banding. The top edge catches the light and shows the
+   brush direction; the bottom edge is the shadowed return. */
+.wd-board-frame {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    border: 1px solid var(--brd-alu-lo);
+    box-shadow: 0 0 0 1px rgb(0 0 0 / 0.55);
+}
+
+.wd-board-frame::before,
+.wd-board-frame::after {
+    content: "";
+    position: absolute;
+    left: 7px;
+    right: 7px;
+    height: 2px;
+    background-image:
+        repeating-linear-gradient(
+            90deg,
+            rgb(222 236 226 / 0.42) 0 1px,
+            transparent 1px 3px
+        ),
+        repeating-linear-gradient(
+            90deg,
+            transparent 0 2px,
+            rgb(18 24 20 / 0.45) 2px 3px,
+            transparent 3px 7px
+        ),
+        repeating-linear-gradient(
+            90deg,
+            rgb(158 174 163 / 0.3) 0 1px,
+            transparent 1px 13px
+        ),
+        linear-gradient(180deg, var(--brd-alu), var(--brd-alu-lo));
+}
+
+.wd-board-frame::before {
+    top: 0;
+}
+
+.wd-board-frame::after {
+    bottom: 0;
+    opacity: 0.4;
+}
+
+/* ── Routed channel: the groove a plate rides in ───────────────────── */
+
+.wd-board-channel {
+    position: relative;
+    border-radius: 4px;
+    background: linear-gradient(180deg, var(--brd-groove), #101913);
+    box-shadow:
+        0 3px 5px rgb(0 0 0 / 0.7) inset,
+        0 1px 1px rgb(0 0 0 / 0.5) inset,
+        0 -1px 0 rgb(255 255 255 / 0.06) inset;
+}
+
+/* ── Name plate: bone laminate, engraved, drilled, screwed down ────── */
+
+.wd-board-plate {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0.5rem 0.875rem 0.5rem 0.75rem;
+    border-radius: 3px;
+    background: linear-gradient(177deg, var(--brd-plate-edge), var(--brd-plate) 42%, var(--brd-plate-shade));
+    color: var(--brd-legend);
+    font-weight: 680;
+    font-stretch: 90%;
+    font-size: 0.9375rem;
+    letter-spacing: 0.008em;
+    box-shadow:
+        0 1px 0 rgb(255 255 255 / 0.9) inset,
+        0 -1px 0 rgb(0 0 0 / 0.22) inset,
+        0 2px 3px rgb(0 0 0 / 0.42),
+        0 6px 12px -4px rgb(0 0 0 / 0.4);
+}
+
+/* A plate still parked in the OUT column: unlit, cooler, sitting lower */
+.wd-board-plate[data-state="out"] {
+    /* Same laminate, no lamp on it — dimmer, cooler, still engraved dark */
+    background: linear-gradient(177deg, #A2A8A3, #8D948E 44%, #6F766F);
+    color: #1B211D;
+    box-shadow:
+        0 1px 0 rgb(255 255 255 / 0.2) inset,
+        0 -1px 0 rgb(0 0 0 / 0.3) inset,
+        0 1px 2px rgb(0 0 0 / 0.4);
+}
+
+/* The drilled hole at the plate's left edge */
+.wd-board-plate::before {
+    content: "";
+    width: 5px;
+    height: 5px;
+    flex: none;
+    border-radius: 50%;
+    background: rgb(0 0 0 / 0.42);
+    box-shadow: 0 1px 0 rgb(255 255 255 / 0.55);
+}
+
+/* ── Lamp: aluminium housing, domed lens, light pooled on the enamel ─ */
+
+.wd-board-lamp {
+    position: relative;
+    width: 1.375rem;
+    height: 1.375rem;
+    flex: none;
+    border-radius: 50%;
+    background: radial-gradient(circle at 50% 118%, var(--brd-alu), var(--brd-alu-lo) 70%);
+    box-shadow:
+        0 1px 0 rgb(255 255 255 / 0.18) inset,
+        0 1px 2px rgb(0 0 0 / 0.6);
+    display: grid;
+    place-items: center;
+}
+
+/* The lens */
+.wd-board-lamp::after {
+    content: "";
+    width: 0.8125rem;
+    height: 0.8125rem;
+    border-radius: 50%;
+    background:
+        radial-gradient(circle at 34% 28%, rgb(255 255 255 / 0.85), transparent 46%),
+        radial-gradient(circle at 50% 55%, #2A322C, #171E1A);
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.55) inset;
+    transition: background 520ms ease, box-shadow 520ms ease;
+    transition-delay: var(--lamp-delay, 0ms);
+}
+
+/* A filament does not cross-fade: it glows, surges, dips and settles. */
+@keyframes wd-lamp-warm {
+    0% {
+        filter: brightness(0.2);
+    }
+    24% {
+        filter: brightness(0.62);
+    }
+    36% {
+        filter: brightness(0.44);
+    }
+    100% {
+        filter: brightness(1);
+    }
+}
+
+.wd-board-lamp[data-lamp="on"]::after,
+.wd-board-lamp[data-lamp="around"]::after {
+    animation: wd-lamp-warm 920ms cubic-bezier(0.32, 0, 0.18, 1) both;
+    animation-delay: var(--lamp-delay, 0ms);
+}
+
+/* Amber: in the call */
+.wd-board-lamp[data-lamp="on"]::after {
+    background:
+        radial-gradient(circle at 34% 28%, rgb(255 255 255 / 0.95), transparent 44%),
+        radial-gradient(circle at 50% 58%, var(--brd-lamp-core), var(--brd-lamp) 46%, var(--brd-lamp-deep));
+    box-shadow:
+        0 0 5px 1px rgb(255 180 74 / 0.75),
+        0 0 14px 3px rgb(255 180 74 / 0.4);
+}
+
+/* Green: in the world, not in the call */
+.wd-board-lamp[data-lamp="around"]::after {
+    background:
+        radial-gradient(circle at 34% 28%, rgb(255 255 255 / 0.9), transparent 44%),
+        radial-gradient(circle at 50% 58%, #D9F3D2, var(--brd-lens-green) 50%, #4C7A4A);
+    box-shadow:
+        0 0 4px 1px rgb(143 208 138 / 0.6),
+        0 0 12px 3px rgb(143 208 138 / 0.28);
+}
+
+/* The pool of lamplight thrown onto the enamel behind a lit station */
+.wd-board-pool {
+    position: absolute;
+    inset: -30% -12% -46%;
+    pointer-events: none;
+    border-radius: 50%;
+    opacity: 0;
+    background: radial-gradient(
+        closest-side,
+        rgb(255 180 74 / 0.16),
+        rgb(255 180 74 / 0.05) 55%,
+        transparent 78%
+    );
+    transition: opacity 700ms ease;
+}
+
+.wd-board-station[data-lit="true"] .wd-board-pool {
+    opacity: 1;
+}
+
+.wd-board-station[data-lit="around"] .wd-board-pool {
+    opacity: 0.7;
+    background: radial-gradient(
+        closest-side,
+        rgb(143 208 138 / 0.13),
+        rgb(143 208 138 / 0.04) 55%,
+        transparent 78%
+    );
+}
+
+/* ── How the board hangs: light on the wall, not just a drop shadow ── */
+
+.wd-board-mount {
+    position: relative;
+    isolation: isolate;
+}
+
+.wd-board-mount::before {
+    content: "";
+    position: absolute;
+    inset: -42% -26%;
+    z-index: -1;
+    pointer-events: none;
+    background: radial-gradient(
+        closest-side,
+        var(--brd-spill),
+        color-mix(in srgb, var(--brd-spill) 45%, transparent) 55%,
+        transparent 100%
+    );
+}
+
+/* ── Mounted rail: the board's hardware, not a pane of glass ───────── */
+
+.wd-board-rail {
+    --brd-fg: var(--brd-ink);
+    --brd-fg-dim: var(--brd-ink-dim);
+    --brd-fg-faint: var(--brd-ink-faint);
+    --brd-hairline: var(--brd-rule);
+    --brd-lamp-ink: var(--brd-lamp);
+    background: linear-gradient(180deg, var(--brd-enamel-lit), var(--brd-enamel));
+    border-bottom: 1px solid rgb(0 0 0 / 0.6);
+    box-shadow:
+        0 1px 0 rgb(255 255 255 / 0.06) inset,
+        0 2px 8px rgb(0 0 0 / 0.32);
+}
+
+/* ── Panel-mount pushbutton: the primary control on the board ──────── */
+
+.wd-board-button {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5625rem;
+    padding: 0.9375rem 1.75rem;
+    border-radius: 7px;
+    font-size: 0.9375rem;
+    font-weight: 700;
+    font-stretch: 92%;
+    letter-spacing: 0.012em;
+    color: #21160A;
+    background: linear-gradient(178deg, #FFD489, var(--brd-lamp) 38%, #E9942F);
+    box-shadow:
+        0 1px 0 rgb(255 255 255 / 0.6) inset,
+        0 -2px 0 rgb(0 0 0 / 0.18) inset,
+        0 3px 0 var(--brd-lamp-deep),
+        0 6px 10px -2px rgb(0 0 0 / 0.45),
+        0 0 26px -4px rgb(255 180 74 / 0.42);
+    transition: transform 120ms cubic-bezier(0.2, 0.8, 0.25, 1), box-shadow 120ms ease,
+        filter 160ms ease;
+}
+
+.wd-board-button:hover {
+    filter: brightness(1.06);
+    box-shadow:
+        0 1px 0 rgb(255 255 255 / 0.6) inset,
+        0 -2px 0 rgb(0 0 0 / 0.18) inset,
+        0 3px 0 var(--brd-lamp-deep),
+        0 8px 16px -2px rgb(0 0 0 / 0.5),
+        0 0 38px -2px rgb(255 180 74 / 0.55);
+}
+
+/* It is a physical button: pressing it travels */
+.wd-board-button:active {
+    transform: translateY(3px);
+    box-shadow:
+        0 1px 0 rgb(255 255 255 / 0.5) inset,
+        0 -1px 0 rgb(0 0 0 / 0.2) inset,
+        0 0 0 var(--brd-lamp-deep),
+        0 2px 5px -1px rgb(0 0 0 / 0.5),
+        0 0 18px -4px rgb(255 180 74 / 0.4);
+}
+
+/* Ghost control: an aluminium toggle rather than a second lamp */
+.wd-board-button-ghost {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5625rem;
+    padding: 0.9375rem 1.5rem;
+    border-radius: 7px;
+    font-size: 0.9375rem;
+    font-weight: 660;
+    font-stretch: 92%;
+    color: var(--brd-ink);
+    background: linear-gradient(178deg, #273028, #1A221D);
+    border: 1px solid var(--brd-alu-lo);
+    box-shadow:
+        0 1px 0 rgb(255 255 255 / 0.07) inset,
+        0 2px 4px rgb(0 0 0 / 0.35);
+    transition: border-color 160ms ease, background 160ms ease, transform 120ms ease;
+}
+
+.wd-board-button-ghost:hover {
+    border-color: var(--brd-alu);
+    background: linear-gradient(178deg, #2E3830, #212A24);
+}
+
+.wd-board-button-ghost:active {
+    transform: translateY(1px);
+}
+
+/* ── Rivets and screw heads ────────────────────────────────────────── */
+
+.wd-board-screw {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    flex: none;
+    background: radial-gradient(circle at 36% 30%, var(--brd-alu-hi), var(--brd-alu) 42%, var(--brd-alu-lo));
+    box-shadow:
+        0 1px 1px rgb(0 0 0 / 0.55),
+        0 1px 0 rgb(255 255 255 / 0.1) inset;
+    position: relative;
+}
+
+/* The slot */
+.wd-board-screw::after {
+    content: "";
+    position: absolute;
+    inset: 46% 18%;
+    height: 1px;
+    background: rgb(0 0 0 / 0.55);
+    box-shadow: 0 1px 0 rgb(255 255 255 / 0.22);
+    transform: rotate(38deg);
+    transform-origin: center;
+}
+
+/* ── Paper ledger strip clipped to the board ───────────────────────── */
+/* Bone stock with its own ink, sitting on the enamel under a shadow line */
+
+.wd-board-paper {
+    --brd-fg: #23291F;
+    --brd-fg-dim: #39413B;
+    --brd-fg-faint: #545D56;
+    position: relative;
+    background: linear-gradient(178deg, #EDE7D6, #E2DBC7);
+    border-top: 1px solid rgb(0 0 0 / 0.5);
+    box-shadow:
+        0 3px 7px rgb(0 0 0 / 0.4) inset,
+        0 1px 0 rgb(255 255 255 / 0.55) inset;
+}
+
+/* ── Inspection window: a cut-out in the enamel with an alu bezel ──── */
+
+.wd-board-window {
+    position: relative;
+    border-radius: 5px;
+    overflow: hidden;
+    background: var(--brd-enamel-deep);
+    box-shadow:
+        0 0 0 1px var(--brd-alu-lo),
+        0 0 0 8px var(--brd-enamel),
+        0 0 0 9px rgb(0 0 0 / 0.5),
+        0 3px 6px rgb(0 0 0 / 0.4) inset,
+        0 24px 50px -18px rgb(0 0 0 / 0.7);
+}
+
+/* ── The one authored moment: plates seat, then the lamps warm up ──── */
+
+/* The plate slides home in its channel. It never fades from nothing:
+   the name is legible from the first frame, animation or not. */
+@keyframes wd-board-seat {
+    from {
+        transform: translateX(-9%);
+    }
+    to {
+        transform: translateX(0);
+    }
+}
+
+.wd-board-seating {
+    animation: wd-board-seat 760ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .wd-board-seating,
+    .wd-board-lamp[data-lamp="on"]::after,
+    .wd-board-lamp[data-lamp="around"]::after {
         animation: none;
     }
 
-    .wd-landing-scroll-progress {
-        display: none;
+    .wd-board-button,
+    .wd-board-lamp::after,
+    .wd-board-pool {
+        transition-duration: 1ms;
+        transition-delay: 0ms;
     }
 }
 

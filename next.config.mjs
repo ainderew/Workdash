@@ -6,14 +6,6 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "camo.githubusercontent.com",
-      },
-      {
-        protocol: "https",
-        hostname: "cdn.statically.io",
-      },
-      {
-        protocol: "https",
         hostname: "lh3.googleusercontent.com",
       },
       {

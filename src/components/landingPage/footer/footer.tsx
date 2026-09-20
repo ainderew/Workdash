@@ -1,97 +1,40 @@
 import React from "react";
-import { motion } from "framer-motion";
-import { ArrowRightIcon } from "lucide-react";
+import Link from "next/link";
+import { WorkdashMark } from "@/components/navbar/workdashMark";
 
 export function Footer() {
     return (
-        <footer className="bg-[var(--wd-surface-panel-2)] border-t border-[var(--wd-border-subtle)]">
-            {/* CTA Section */}
-            <section className="py-24 px-6">
-                <div className="max-w-4xl mx-auto text-center">
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 0.6 }}
+        <footer className="mt-4 border-t border-[var(--brd-hairline)]">
+            <div className="mx-auto flex w-full max-w-[80rem] flex-col gap-6 px-5 py-8 sm:px-8 md:flex-row md:items-center md:justify-between">
+                <div className="flex items-center gap-3">
+                    <WorkdashMark className="h-5 w-auto text-[var(--brd-fg-faint)]" />
+                    <span className="wd-board-ledger">
+                        &copy; {new Date().getFullYear()} Workdash
+                    </span>
+                </div>
+
+                <nav className="flex flex-wrap items-center gap-x-7 gap-y-3">
+                    <Link
+                        href="/privacy"
+                        className="wd-board-ledger transition-colors hover:text-[var(--brd-fg)]"
                     >
-                        <motion.h2
-                            initial={{ opacity: 0, y: 15 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ duration: 0.5, delay: 0.1 }}
-                            className="text-4xl md:text-5xl font-bold text-[var(--wd-text-primary)] mb-6"
-                        >
-                            Ready to transform your
-                            <br />
-                            remote culture?
-                        </motion.h2>
-
-                        <motion.p
-                            initial={{ opacity: 0, y: 15 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ duration: 0.5, delay: 0.2 }}
-                            className="text-xl text-[var(--wd-text-muted)] mb-10 max-w-2xl mx-auto"
-                        >
-                            Join teams who&apos;ve discovered that remote work
-                            doesn&apos;t mean disconnected work.
-                        </motion.p>
-
-                        <motion.div
-                            initial={{ opacity: 0, y: 15 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ duration: 0.5, delay: 0.3 }}
-                            className="flex flex-col sm:flex-row gap-4 justify-center"
-                        >
-                            <button className="wd-landing-btn-primary group">
-                                Get started free
-                                <ArrowRightIcon className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                            </button>
-                        </motion.div>
-                    </motion.div>
-                </div>
-            </section>
-
-            {/* Bottom bar */}
-            <div className="border-t border-[var(--wd-border-subtle)] py-8 px-6">
-                <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
-                    <div className="flex flex-col md:flex-row items-center gap-4">
-                        <div className="text-[var(--wd-text-muted)] text-sm">
-                            &copy; 2026 WorkDash. Building better remote culture.
-                        </div>
-                        <a
-                            href="https://buymeacoffee.com/andrewapinon"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="px-4 py-1.5 bg-[var(--wd-warning)] hover:bg-[var(--wd-warning)]/80 text-[var(--wd-surface-base)] rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
-                        >
-                            <span>☕</span>
-                            Buy Me a Coffee
-                        </a>
-                    </div>
-
-                    <div className="flex gap-8 text-sm text-[var(--wd-text-muted)]">
-                        <a
-                            href="/privacy"
-                            className="hover:text-[var(--wd-landing-accent)] transition-colors"
-                        >
-                            Privacy
-                        </a>
-                        <a
-                            href="/terms"
-                            className="hover:text-[var(--wd-landing-accent)] transition-colors"
-                        >
-                            Terms
-                        </a>
-                        <a
-                            href="#"
-                            className="hover:text-[var(--wd-landing-accent)] transition-colors"
-                        >
-                            Contact
-                        </a>
-                    </div>
-                </div>
+                        Privacy
+                    </Link>
+                    <Link
+                        href="/terms"
+                        className="wd-board-ledger transition-colors hover:text-[var(--brd-fg)]"
+                    >
+                        Terms
+                    </Link>
+                    <a
+                        href="https://buymeacoffee.com/andrewapinon"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="wd-board-ledger transition-colors hover:text-[var(--brd-fg)]"
+                    >
+                        Buy me a coffee
+                    </a>
+                </nav>
             </div>
         </footer>
     );
