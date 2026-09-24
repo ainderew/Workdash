@@ -2,7 +2,7 @@ import { BaseGameScene } from "./BaseGameScene";
 
 export class MainMap extends BaseGameScene {
     mapKey = "map";
-    worldBounds = { width: 4064, height: 3200 };
+    worldBounds = { width: 4064, height: 3520 };
 
     constructor() {
         super("MainMap");
