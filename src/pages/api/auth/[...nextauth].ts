@@ -42,6 +42,8 @@ async function refreshAccessToken(token: JWT) {
             accessToken: refreshedTokens.access_token,
             accessTokenExpires: Date.now() + refreshedTokens.expires_in * 1000,
             refreshToken: refreshedTokens.refresh_token ?? token.refreshToken,
+            // A refresh that works again clears an earlier failure
+            error: undefined,
         };
     } catch (error) {
         console.error("Error refreshing access token", error);
@@ -119,6 +121,10 @@ export const authOptions: AuthOptions = {
                 params: {
                     scope: "openid email profile https://www.googleapis.com/auth/calendar.readonly",
                     access_type: "offline",
+                    // Google only returns a refresh token on consent, so without
+                    // this every sign-in after the first lost Calendar access
+                    // once the 1-hour access token expired.
+                    prompt: "consent",
                     include_granted_scopes: true,
                 },
             },

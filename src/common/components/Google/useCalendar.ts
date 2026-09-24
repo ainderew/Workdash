@@ -26,14 +26,22 @@ function useCalendar(selectedDate: Date) {
         }
 
         if (session.error === "RefreshAccessTokenError") {
+            // One toast however often the session refetches
             toast("Google Calendar", {
-                description: "Verification Failed",
+                id: "google-calendar-reconnect",
+                description: "Your Google connection expired. Sign in again to see your events.",
                 action: {
-                    label: "Sign In to Google",
+                    label: "Reconnect",
                     onClick: () => signIn("google"),
                 },
             });
 
+            return;
+        }
+
+        // Email (magic link) sign-ins have no Google token: nothing to fetch
+        if (!session.accessToken) {
+            setCalendarEvents([]);
             return;
         }
 
