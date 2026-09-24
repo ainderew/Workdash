@@ -5,6 +5,7 @@ import React, {
     useMemo,
     useState,
 } from "react";
+import { createPortal } from "react-dom";
 import { ProfilePopover } from "./ProfilePopover";
 import type { ProfilePopoverState, SenderAvatar } from "./types";
 import type { AwardTagData } from "@/communication/chatV2/_types";
@@ -95,26 +96,30 @@ export function ProfilePopoverProvider({
     return (
         <ControllerContext.Provider value={controller}>
             {children}
-            {state && (
-                <ProfilePopover
-                    popover={state.popover}
-                    onClose={close}
-                    onAvatarUpdated={(avatar) => {
-                        setState((prev) =>
-                            prev
-                                ? {
-                                      ...prev,
-                                      popover: {
-                                          ...prev.popover,
-                                          senderAvatar: avatar,
-                                      },
-                                  }
-                                : prev,
-                        );
-                    }}
-                    awardTag={state.awardTag}
-                />
-            )}
+            {/* Portalled so a transformed ancestor (the world-mode chat drawer
+                slides in with translate-x) can't offset the fixed popover. */}
+            {state &&
+                createPortal(
+                    <ProfilePopover
+                        popover={state.popover}
+                        onClose={close}
+                        onAvatarUpdated={(avatar) => {
+                            setState((prev) =>
+                                prev
+                                    ? {
+                                          ...prev,
+                                          popover: {
+                                              ...prev.popover,
+                                              senderAvatar: avatar,
+                                          },
+                                      }
+                                    : prev,
+                            );
+                        }}
+                        awardTag={state.awardTag}
+                    />,
+                    document.body,
+                )}
         </ControllerContext.Provider>
     );
 }

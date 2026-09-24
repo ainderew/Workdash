@@ -8,6 +8,7 @@ import type { ChatV2DirectRoom, ChatV2Message, ChatV2Room } from "@/communicatio
 import Composer from "./Composer";
 import GuildRail from "./GuildRail";
 import MessageList from "./MessageList";
+import { ProfilePopoverProvider } from "./profile-popover";
 import ThreadPanel from "./ThreadPanel";
 import UserNotificationsPanel from "./UserNotificationsPanel";
 import { getDisplayName } from "@/common/utils/displayName";
@@ -457,6 +458,7 @@ function CompactChatShell({ onClose }: CompactChatShellProps) {
     };
 
     return (
+        <ProfilePopoverProvider>
         <section className="h-full min-h-0 flex wd-bg-app overflow-hidden wd-desk-mode-filled-icons">
             <GuildRail
                 workspaces={workspaceOptions}
@@ -1003,6 +1005,7 @@ function CompactChatShell({ onClose }: CompactChatShellProps) {
                 />
             </div>
         </section>
+        </ProfilePopoverProvider>
     );
 }
 
