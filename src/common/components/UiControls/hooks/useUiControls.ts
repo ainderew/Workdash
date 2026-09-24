@@ -66,9 +66,17 @@ function useUiControls() {
     }, [setIsMuted]);
 
     function micControls() {
-        function toggleMic() {
+        async function toggleMic() {
             if (audioService.isMuted) {
-                audioService.unMuteMic();
+                // World voice opens the mic on first unmute (calls open it on join)
+                if (!audioService.getAudioProducer() && audioService.isWorldVoiceAllowed()) {
+                    try {
+                        await audioService.joinVoiceChat();
+                    } catch {
+                        return; // device errors are already toasted; stay muted
+                    }
+                }
+                await audioService.unMuteMic();
             } else {
                 audioService.muteMic();
             }

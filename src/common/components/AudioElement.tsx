@@ -1,9 +1,11 @@
 import { AudioChat } from "@/communication/audioChat/audioChat";
+import { useWorldVoice } from "@/common/hooks/useWorldVoice";
 import { useEffect, useState } from "react";
 
 export default function AudioElement() {
     const [audioElements, setAudioElements] = useState<HTMLAudioElement[]>([]);
     const [, setUpdateTrigger] = useState(0);
+    useWorldVoice();
 
     useEffect(() => {
         const audioChatService = AudioChat.getInstance();

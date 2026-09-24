@@ -72,6 +72,10 @@ export class AudioChat {
     private producerToConsumerMap: Map<string, string> = new Map();
     private consumingInFlight = new Set<string>();
     private joining = false;
+    /** Which rules the mic producer follows: a call, or world proximity (zone) voice */
+    private audioProducerScope: "call" | "world" | null = null;
+    /** Producers heard as world proximity voice — dropped when world voice stops */
+    private zoneVoiceProducerIds = new Set<string>();
     private socketToProducersMap: Map<string, string[]> = new Map();
     private watchingNewProducers = false;
     private newProducerHandler: ((data: {
@@ -154,7 +158,7 @@ export class AudioChat {
 
                 this.currentZone = data.zone;
 
-                if (useCallStore.getState().currentCall) return;
+                if (!this.isWorldVoiceAllowed()) return;
 
                 for (const player of data.players) {
                     this.socketToProducersMap.set(
@@ -164,6 +168,7 @@ export class AudioChat {
                     for (const producerId of player.producerIds) {
                         this.audioOwnerMap[producerId] = player.name;
                         this.audioProducerUserIdMap.set(producerId, player.playerId);
+                        this.zoneVoiceProducerIds.add(producerId);
                     }
                 }
                 await Promise.all(
@@ -187,7 +192,7 @@ export class AudioChat {
             "player-joined-zone",
             async (data: PlayerJoinedZoneData) => {
                 logger.log(`Player ${data.playerId} joined zone ${data.zone}`);
-                if (useCallStore.getState().currentCall) return;
+                if (!this.isWorldVoiceAllowed()) return;
 
                 if (data.producerIds && data.producerIds.length > 0) {
                     this.socketToProducersMap.set(
@@ -199,6 +204,7 @@ export class AudioChat {
                         if (data.userId != null) {
                             this.audioProducerUserIdMap.set(producerId, data.userId);
                         }
+                        this.zoneVoiceProducerIds.add(producerId);
                     }
                     await Promise.all(
                         data.producerIds.map((id) => this.consumeProducer(id)),
@@ -252,6 +258,7 @@ export class AudioChat {
     }
 
     private closeConsumerByProducerId(producerId: string): void {
+        this.zoneVoiceProducerIds.delete(producerId);
         const consumerId = this.producerToConsumerMap.get(producerId);
         if (!consumerId) return;
 
@@ -355,6 +362,14 @@ export class AudioChat {
             return;
         }
 
+        // No live mic: remember the choice for the next time the mic starts,
+        // rather than opening a producer that belongs to neither a call nor
+        // world voice.
+        if (!this.audioProducer || this.audioProducer.closed) {
+            this.currentDeviceId = deviceId;
+            return;
+        }
+
         const wasMuted = this.isMuted;
         const savedWasMutedBeforeFocus = this.wasMutedBeforeFocus;
 
@@ -455,17 +470,25 @@ export class AudioChat {
     }
 
     public async joinVoiceChat(deviceId?: string) {
-        if (!useCallStore.getState().isCallOwner) return;
+        // In a call only the owning tab sends audio. Outside one, the mic is
+        // world proximity voice, which only exists in world mode.
+        const forCall = this.isInCallState();
+        if (forCall ? !useCallStore.getState().isCallOwner : !this.isWorldVoiceAllowed()) {
+            return;
+        }
+        // A call starts from a clean slate: no world mic, no zone voices
+        if (forCall) this.stopWorldVoice();
         if ((this.audioProducer && !this.audioProducer.closed) || this.joining) {
             return;
         }
         this.joining = true;
+        const resolvedDeviceId = deviceId ?? this.currentDeviceId ?? undefined;
 
         try {
             let stream: MediaStream;
             try {
                 stream = await navigator.mediaDevices.getUserMedia({
-                    audio: this.getAudioConstraints(deviceId),
+                    audio: this.getAudioConstraints(resolvedDeviceId),
                 });
             } catch (err) {
                 surfaceMediaDeviceError(err, "microphone");
@@ -473,8 +496,8 @@ export class AudioChat {
             }
 
             this.currentStream = stream;
-            if (deviceId) {
-                this.currentDeviceId = deviceId;
+            if (resolvedDeviceId) {
+                this.currentDeviceId = resolvedDeviceId;
             }
 
             const processedStream = await this.processAudioStream(stream);
@@ -487,6 +510,7 @@ export class AudioChat {
                     codecOptions: this.getCodecOptions(),
                     appData: { source: 'microphone' },
                 });
+                this.audioProducerScope = forCall ? "call" : "world";
             } catch (err) {
                 stream.getTracks().forEach((t) => t.stop());
                 this.currentStream = null;
@@ -500,6 +524,13 @@ export class AudioChat {
         } finally {
             this.joining = false;
         }
+
+        // A call started (or the user left world mode) while the world mic was
+        // being acquired: drop it, and let a call get its own mic.
+        if (!forCall && !this.isWorldVoiceAllowed()) {
+            this.stopWorldVoice();
+            if (this.isInCallState()) await this.joinVoiceChat(deviceId);
+        }
     }
 
     public async watchNewProducers() {
@@ -512,6 +543,7 @@ export class AudioChat {
             userId?: number;
             source?: string;
             soundName?: string;
+            scope?: "call" | "zone";
         }) => {
                 // Accept microphone, music-bot, and soundboard sources
                 if (
@@ -523,7 +555,14 @@ export class AudioChat {
                     return;
                 }
 
-                if (!useCallStore.getState().isCallOwner) return;
+                // World proximity voice is heard only in world mode, outside
+                // any call. Everything else follows the call-owner rule.
+                const isZoneVoice = data.scope === "zone";
+                if (isZoneVoice) {
+                    if (!this.isWorldVoiceAllowed()) return;
+                } else if (!useCallStore.getState().isCallOwner) {
+                    return;
+                }
 
                 // Skip soundboard sounds entirely in focus mode —
                 // they're ephemeral so there's nothing to resume later
@@ -578,6 +617,9 @@ export class AudioChat {
                     existing.push(data.producerId);
                     this.socketToProducersMap.set(data.socketId, existing);
                 }
+                if (isZoneVoice) {
+                    this.zoneVoiceProducerIds.add(data.producerId);
+                }
 
                 await this.consumeProducer(data.producerId);
             };
@@ -605,6 +647,7 @@ export class AudioChat {
             logger.log(`Already consuming producer ${producerId}`);
             return;
         }
+        const isZoneVoice = this.zoneVoiceProducerIds.has(producerId);
 
         // Skip producers belonging to users in a call we haven't joined
         const producerUserId = this.audioProducerUserIdMap.get(producerId);
@@ -753,6 +796,11 @@ export class AudioChat {
                 "Enabled:",
                 consumer.track.enabled,
             );
+
+            // World voice stopped (call started, switched to desk) mid-consume
+            if (isZoneVoice && !this.isWorldVoiceAllowed()) {
+                this.closeConsumerByProducerId(producerId);
+            }
         } catch (error) {
             logger.error("Error consuming producer:", error);
         } finally {
@@ -1022,8 +1070,47 @@ export class AudioChat {
         }
     }
 
+    /** A call is active in this tab, or owned by another of this user's tabs */
+    private isInCallState(): boolean {
+        const { currentCall, callOwnershipStatus } = useCallStore.getState();
+        return currentCall !== null || callOwnershipStatus !== null;
+    }
+
+    /** World proximity voice exists only in world mode, outside any call */
+    public isWorldVoiceAllowed(): boolean {
+        return (
+            !this.isInCallState() &&
+            useUiStore.getState().interactionMode === "world"
+        );
+    }
+
+    /** Leave world voice: release a world mic and stop hearing zone voices */
+    public stopWorldVoice(): void {
+        if (this.audioProducerScope === "world") this.releaseMic();
+        for (const producerId of [...this.zoneVoiceProducerIds]) {
+            this.closeConsumerByProducerId(producerId);
+        }
+        this.zoneVoiceProducerIds.clear();
+    }
+
+    /** Hear zone voices again (back in world mode, or after a call ends) */
+    public async resumeWorldVoice(): Promise<void> {
+        if (!this.isWorldVoiceAllowed()) return;
+        await this.loadExistingProducers({ zoneVoice: true });
+    }
+
     /** Close the audio producer, stop the mic track, and release audio contexts (for leaving calls) */
     public stopMic() {
+        this.releaseMic();
+        if (this.isInFocusMode) {
+            this.isInFocusMode = false;
+            this.wasMutedBeforeFocus = false;
+            useFocusStore.getState().setLocalFocusMode(false);
+            this.emitFocusModeChange();
+        }
+    }
+
+    private releaseMic() {
         this.clearNoiseGate();
         this.cleanupRNNoise();
         if (this.audioProducer && !this.audioProducer.closed) {
@@ -1045,12 +1132,9 @@ export class AudioChat {
         }
         this.localAnalyser = null;
         this.isMuted = true;
-        if (this.isInFocusMode) {
-            this.isInFocusMode = false;
-            this.wasMutedBeforeFocus = false;
-            useFocusStore.getState().setLocalFocusMode(false);
-            this.emitFocusModeChange();
-        }
+        // Keep the mic button honest: with no mic open there is nothing unmuted
+        useUiStore.getState().setIsMuted(true);
+        this.audioProducerScope = null;
     }
 
     public async unMuteMic() {
@@ -1441,7 +1525,9 @@ export class AudioChat {
         return null;
     }
 
-    public async loadExistingProducers(): Promise<void> {
+    public async loadExistingProducers(
+        { zoneVoice = false }: { zoneVoice?: boolean } = {},
+    ): Promise<void> {
         const producers = await new Promise<
             {
                 producerId: string;
@@ -1465,6 +1551,8 @@ export class AudioChat {
         for (const producer of audioProducers) {
             if (producer.source === "music-bot") {
                 this.musicBotProducerIds.add(producer.producerId);
+            } else if (zoneVoice) {
+                this.zoneVoiceProducerIds.add(producer.producerId);
             }
             if (producer.userName) {
                 this.audioOwnerMap[producer.producerId] = producer.userName;
