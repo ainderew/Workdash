@@ -61,7 +61,17 @@ jobs:
           script: |
             set -e
             echo "$GHCR_PAT" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
-            docker pull ghcr.io/${{ env.IMAGE_NAME }}:latest
+            # The droplet's IPv6 route to ghcr.io sometimes resets mid-download
+            # ("connection reset by peer"), so retry before failing the deploy.
+            for attempt in 1 2 3 4; do
+              docker pull ghcr.io/${{ env.IMAGE_NAME }}:latest && break
+              if [ "$attempt" -eq 4 ]; then
+                echo "docker pull failed after 4 attempts" >&2
+                exit 1
+              fi
+              echo "docker pull failed (attempt $attempt/4), retrying in $((attempt * 10))s" >&2
+              sleep $((attempt * 10))
+            done
             docker stop workdash-frontend || true
             docker rm workdash-frontend || true
             docker run -d \
