@@ -47,6 +47,15 @@ const nextConfig = {
           { key: 'Cache-Control', value: 'public, max-age=2592000' },
         ],
       },
+      {
+        // Tiled maps keep fixed names so they stay editable in Tiled, so they
+        // must not be cached for 30 days: revalidate (a cheap 304) instead.
+        // Later rules override earlier ones for the same header.
+        source: '/assets/:map(map1|soccer_map).json',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=0, must-revalidate' },
+        ],
+      },
     ];
   },
 };

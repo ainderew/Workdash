@@ -170,7 +170,9 @@ export class Preloader extends Scene {
         this.load.audio("bg_music_1", "sounds/bg_music_1.mp3");
         this.load.audio("kart_start", "sounds/kart.mp3");
 
-        this.load.tilemapTiledJSON("map", "map1.json");
+        // ?v= breaks browser caches that still hold map1.json from before it
+        // was served with revalidation (it used to be cached for 30 days).
+        this.load.tilemapTiledJSON("map", "map1.json?v=20260924");
 
         // Spritesheets
         const loadChar = (k: string, p: string, w: number, h: number) =>
