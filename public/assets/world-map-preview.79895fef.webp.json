@@ -1,4 +1,4 @@
 {
   "prompt": "Origin: rendered (not generated) from public/assets/map1.json and the tilesets in public/assets/tile-sets by scripts/render-map-preview.swift at scale 0.25, cropped to the 127x110-tile world bounds, then cwebp -q 78 -m 6. Regenerate after any map change.",
-  "createdAt": "2026-09-24T19:34:38.681Z"
+  "createdAt": "2026-09-24T20:00:27.086Z"
 }
