@@ -2,7 +2,7 @@
  * Pre-rendered picture of map1.json (scripts/render-map-preview.swift),
  * cropped to the playable world. Regenerate it whenever the map changes.
  */
-export const WORLD_MAP_PREVIEW = "/assets/world-map-preview.d8dd4d2d.webp";
+export const WORLD_MAP_PREVIEW = "/assets/world-map-preview.e3ba9c92.webp";
 
 /** The preview covers MainMap.worldBounds, in tiles. */
 export const WORLD_TILES = { w: 127, h: 110 };
