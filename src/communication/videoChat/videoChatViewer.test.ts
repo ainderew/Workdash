@@ -46,10 +46,11 @@ vi.mock("@/common/store/playerStore", () => ({
 }));
 
 const mockRemoveProducer = vi.fn();
+let mockCallOwnershipStatus: string | null = "owner";
 vi.mock("@/common/store/callStore", () => ({
   default: {
     getState: vi.fn(() => ({
-      isCallOwner: true,
+      callOwnershipStatus: mockCallOwnershipStatus,
       setProducerUser: vi.fn(),
       setProducerConsumer: vi.fn(),
       removeProducer: mockRemoveProducer,
@@ -89,6 +90,7 @@ describe("VideoChatViewer", () => {
   beforeEach(async () => {
     vi.resetModules();
     vi.clearAllMocks();
+    mockCallOwnershipStatus = "owner";
 
     ({ VideoChatViewer } = await import("./videoChatViewer"));
     (VideoChatViewer as unknown as VCViewerStatic).instance = null;
@@ -154,14 +156,8 @@ describe("VideoChatViewer", () => {
       expect(consumeSpy).not.toHaveBeenCalled();
     });
 
-    it("skips when isCallOwner is false", async () => {
-      const { default: useCallStore } = await import("@/common/store/callStore");
-      (useCallStore.getState as ReturnType<typeof vi.fn>).mockReturnValue({
-        isCallOwner: false,
-        setProducerUser: vi.fn(),
-        setProducerConsumer: vi.fn(),
-        removeProducer: vi.fn(),
-      });
+    async function emitCameraProducer(callOwnershipStatus: string | null) {
+      mockCallOwnershipStatus = callOwnershipStatus;
 
       const viewer = VideoChatViewer.getInstance();
       const v = viewer as unknown as VCViewerInternal;
@@ -179,8 +175,26 @@ describe("VideoChatViewer", () => {
         source: "camera",
       });
 
-      expect(consumeSpy).not.toHaveBeenCalled();
+      return consumeSpy;
+    }
+
+    it("consumes camera producers when not in a call (world mode)", async () => {
+      const consumeSpy = await emitCameraProducer(null);
+      expect(consumeSpy).toHaveBeenCalledWith("prod-cam");
     });
+
+    it("consumes camera producers when this tab owns the call", async () => {
+      const consumeSpy = await emitCameraProducer("owner");
+      expect(consumeSpy).toHaveBeenCalledWith("prod-cam");
+    });
+
+    it.each(["passive", "rejoin-available"])(
+      "skips when this tab is in a call it does not own (%s)",
+      async (status) => {
+        const consumeSpy = await emitCameraProducer(status);
+        expect(consumeSpy).not.toHaveBeenCalled();
+      },
+    );
   });
 
   // ── cleanup ───────────────────────────────────────────────────────────

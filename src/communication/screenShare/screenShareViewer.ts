@@ -71,7 +71,10 @@ export class ScreenShareViewer {
                 source: string;
             }) => {
                 if (source !== "screen") return;
-                if (!useCallStore.getState().isCallOwner) return;
+                // Skip only when another tab owns this user's call. Outside a
+                // call (plain world mode) there is no owner, so consume as usual.
+                const { callOwnershipStatus } = useCallStore.getState();
+                if (callOwnershipStatus && callOwnershipStatus !== "owner") return;
 
                 this._videoOwnerMap[producerId] = userName;
                 if (userId != null) {

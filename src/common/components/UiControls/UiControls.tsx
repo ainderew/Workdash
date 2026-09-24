@@ -80,23 +80,17 @@ function UiControls({ isVisible = true }: UiControlsProps) {
     };
 
     const handleShareVideoCam = async () => {
-        try {
-            const videoChat = VideoChatService.getInstance();
-            videoChat.startVideoChat();
-            toggleVideoCam();
-        } catch (error) {
-            console.error("Video chat error:", error);
-
-            if (error instanceof Error) {
-                if (error.name === "NotAllowedError") {
-                    alert("Camera permission denied");
-                } else if (error.name === "NotFoundError") {
-                    alert("No camera available");
-                } else {
-                    alert("Failed to start video chat");
-                }
+        if (isVideoOff) {
+            try {
+                await VideoChatService.getInstance().startVideoChat();
+            } catch (error) {
+                // Camera/permission failures are already toasted by startVideoChat.
+                // Leave the button off so it reflects that nothing is being sent.
+                logger.error("Video chat error:", error);
+                return;
             }
         }
+        toggleVideoCam();
     };
 
     return (

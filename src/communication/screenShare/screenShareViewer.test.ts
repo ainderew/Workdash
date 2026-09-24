@@ -47,10 +47,11 @@ vi.mock("@/common/store/playerStore", () => ({
 }));
 
 const mockRemoveScreenProducer = vi.fn();
+let mockCallOwnershipStatus: string | null = "owner";
 vi.mock("@/common/store/callStore", () => ({
     default: {
         getState: vi.fn(() => ({
-            isCallOwner: true,
+            callOwnershipStatus: mockCallOwnershipStatus,
             setScreenProducerUser: vi.fn(),
             setProducerConsumer: vi.fn(),
             removeScreenProducer: mockRemoveScreenProducer,
@@ -96,9 +97,54 @@ describe("ScreenShareViewer", () => {
     beforeEach(async () => {
         vi.resetModules();
         vi.clearAllMocks();
+        mockCallOwnershipStatus = "owner";
 
         ({ ScreenShareViewer } = await import("./screenShareViewer"));
         (ScreenShareViewer as unknown as SSViewerStatic).instance = null;
+    });
+
+    // ── newProducer handler ─────────────────────────────────────────────
+
+    describe("newProducer handler", () => {
+        async function emitScreenProducer(callOwnershipStatus: string | null) {
+            mockCallOwnershipStatus = callOwnershipStatus;
+
+            const viewer = ScreenShareViewer.getInstance();
+            const v = viewer as unknown as SSViewerInternal;
+            const consumeSpy = vi.spyOn(v, "consumeProducer").mockResolvedValue(undefined);
+
+            const newProducerCall = mockSocketOn.mock.calls.find(
+                ([event]: [string]) => event === "newProducer",
+            );
+            const handler = newProducerCall![1] as (payload: unknown) => Promise<void>;
+
+            await handler({
+                producerId: "prod-screen",
+                userName: "Bob",
+                userId: 2,
+                source: "screen",
+            });
+
+            return consumeSpy;
+        }
+
+        it("consumes screen producers when not in a call (world mode)", async () => {
+            const consumeSpy = await emitScreenProducer(null);
+            expect(consumeSpy).toHaveBeenCalledWith("prod-screen");
+        });
+
+        it("consumes screen producers when this tab owns the call", async () => {
+            const consumeSpy = await emitScreenProducer("owner");
+            expect(consumeSpy).toHaveBeenCalledWith("prod-screen");
+        });
+
+        it.each(["passive", "rejoin-available"])(
+            "skips when this tab is in a call it does not own (%s)",
+            async (status) => {
+                const consumeSpy = await emitScreenProducer(status);
+                expect(consumeSpy).not.toHaveBeenCalled();
+            },
+        );
     });
 
     // ── cleanup() completeness ──────────────────────────────────────────

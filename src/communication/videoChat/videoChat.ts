@@ -1,5 +1,6 @@
 import { Producer } from "mediasoup-client/types";
 import { MediaTransportService } from "../mediaTransportService/mediaTransportService";
+import { VideoChatViewer } from "./videoChatViewer";
 import { assertTransportReady } from "@/communication/utils/emitWithTimeout";
 import { surfaceMediaDeviceError } from "@/common/utils/mediaErrors";
 
@@ -144,8 +145,9 @@ export class VideoChatService {
     public stopVideoChat() {
         if (!this.producer) return;
 
+        const producerId = this.producer.id;
         this.sfuService.socket.emit("producerClosed", {
-            producerId: this.producer.id,
+            producerId,
             kind: "video",
         });
 
@@ -156,6 +158,10 @@ export class VideoChatService {
             this.currentStream.getTracks().forEach((track) => track.stop());
             this.currentStream = null;
         }
+
+        // The SFU relays producerRemoved to everyone except us, so drop our
+        // own self-view tile here or it stays frozen on the last frame.
+        VideoChatViewer.getInstance().removeScreenShareVideo(producerId);
     }
 
     public pauseProducer() {
