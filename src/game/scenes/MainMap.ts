@@ -1,4 +1,5 @@
 import { BaseGameScene } from "./BaseGameScene";
+import { addTreeSway } from "../treeSway/addTreeSway";
 
 export class MainMap extends BaseGameScene {
     mapKey = "map";
@@ -59,6 +60,8 @@ export class MainMap extends BaseGameScene {
         );
         layers.set("Trees2", map.createLayer("Trees2", allTilesets, 0, 0)!);
         layers.set("Trees", map.createLayer("Trees", allTilesets, 0, 0)!);
+
+        addTreeSway(this, map, [layers.get("Trees2")!, layers.get("Trees")!]);
 
         return layers;
     }
