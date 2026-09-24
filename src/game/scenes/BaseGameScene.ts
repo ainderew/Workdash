@@ -20,13 +20,14 @@ import { AudioZoneManager } from "../audioZoneManager/audioZoneManager";
 import { BackgroundMusicManager } from "../audio/BackgroundMusicManager";
 import { TeleportManager } from "../managers/TeleportManager";
 import { logger } from "@/common/utils/logger";
+import type { Rect, SolidMap } from "../player/wallCollision";
 
 export interface SceneData {
     spawnX?: number;
     spawnY?: number;
 }
 
-export abstract class BaseGameScene extends Scene {
+export abstract class BaseGameScene extends Scene implements SolidMap {
     map!: Phaser.Tilemaps.Tilemap;
     camera!: Phaser.Cameras.Scene2D.Camera;
     currentZoom: number = 1;
@@ -36,6 +37,12 @@ export abstract class BaseGameScene extends Scene {
     loadingPlayers: Set<string> = new Set();
     playersLayer!: Phaser.Physics.Arcade.Group;
     doors: Phaser.GameObjects.GameObject[] = [];
+    /**
+     * Tile layers players can't walk through. The local player moves with its
+     * own fixed-step physics (its Arcade body has `moves = false`), so Arcade
+     * colliders never push it out of walls; movement asks getSolidRects().
+     */
+    protected collisionLayers: Phaser.Tilemaps.TilemapLayer[] = [];
 
     multiplayer!: Multiplayer;
     lastTick: number = 0;
@@ -194,6 +201,29 @@ export abstract class BaseGameScene extends Scene {
     protected abstract setupCollisions(
         layers: Map<string, Phaser.Tilemaps.TilemapLayer>,
     ): void;
+
+    /** World-space boxes of the colliding tiles that touch `area`. */
+    public getSolidRects(area: Rect): Rect[] {
+        const rects: Rect[] = [];
+        for (const layer of this.collisionLayers) {
+            const tiles = layer.getTilesWithinWorldXY(
+                area.left,
+                area.top,
+                area.right - area.left,
+                area.bottom - area.top,
+                { isColliding: true },
+            );
+            for (const tile of tiles) {
+                rects.push({
+                    left: tile.getLeft(),
+                    top: tile.getTop(),
+                    right: tile.getRight(),
+                    bottom: tile.getBottom(),
+                });
+            }
+        }
+        return rects;
+    }
 
     protected createAnimatedObjects(map: Phaser.Tilemaps.Tilemap) {
         const animatedObjectConfigs = [

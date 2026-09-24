@@ -80,6 +80,7 @@ export class MainMap extends BaseGameScene {
         furnitureLayer.setCollisionBetween(0, 200000, true);
         treesLayer.setCollisionBetween(0, 9500, true);
         trees2Layer.setCollisionBetween(0, 9500, true);
+        this.collisionLayers = [wallLayer, furnitureLayer, treesLayer, trees2Layer];
 
         this.setupDoorCollisions();
     }

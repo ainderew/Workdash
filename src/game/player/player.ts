@@ -6,6 +6,7 @@ import {
 } from "../commmon/enums";
 import { ReactionData } from "@/communication/reaction/_types";
 import { AvailabilityStatus } from "./_enums";
+import { moveWithCollisions, type Rect, type SolidMap } from "./wallCollision";
 import { CharacterCustomization } from "../character/_types";
 import { CharacterCompositor } from "../character/CharacterCompositor";
 import { CharacterAnimationManager } from "../character/CharacterAnimationManager";
@@ -50,6 +51,11 @@ interface SoccerPredictionScene {
     players?: Map<string, Player>;
     ball?: { targetPos: { x: number; y: number; vx: number; vy: number } };
 }
+
+// Wall-collision feet box (px). Characters are 32x64 frames.
+const FEET_WIDTH = 20;
+const FEET_HEIGHT = 12;
+const FEET_BOTTOM_INSET = 2;
 
 export class Player extends Phaser.Physics.Arcade.Sprite {
     public id: string;
@@ -574,9 +580,54 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
             this.physicsState.vx = vx;
             this.physicsState.vy = vy;
-            this.physicsState.x += vx * PHYSICS_CONSTANTS.FIXED_TIMESTEP_SEC;
-            this.physicsState.y += vy * PHYSICS_CONSTANTS.FIXED_TIMESTEP_SEC;
+            this.moveInWorld(
+                vx * PHYSICS_CONSTANTS.FIXED_TIMESTEP_SEC,
+                vy * PHYSICS_CONSTANTS.FIXED_TIMESTEP_SEC,
+            );
         }
+    }
+
+    /**
+     * Collision box for walls: the feet, not the full-width lower half the
+     * Arcade body uses, so 1-tile gaps stay passable and heads can overlap
+     * the wall behind the player.
+     */
+    private feetAt = (x: number, y: number): Rect => {
+        const bottom = y + this.displayHeight / 2 - FEET_BOTTOM_INSET;
+        return {
+            left: x - FEET_WIDTH / 2,
+            right: x + FEET_WIDTH / 2,
+            top: bottom - FEET_HEIGHT,
+            bottom,
+        };
+    };
+
+    /** Move on a world map, stopping at solid tiles and the world edge. */
+    private moveInWorld(dx: number, dy: number) {
+        const state = this.physicsState;
+        const scene = this.scene as Scene & Partial<SolidMap>;
+        let x = state.x + dx;
+        let y = state.y + dy;
+
+        if (scene.getSolidRects) {
+            const moved = moveWithCollisions(
+                state.x,
+                state.y,
+                dx,
+                dy,
+                this.feetAt,
+                (area) => scene.getSolidRects!(area),
+            );
+            x = moved.x;
+            y = moved.y;
+        }
+
+        // setCollideWorldBounds can't act on a body that doesn't move itself
+        const bounds = scene.physics.world.bounds;
+        const halfW = this.displayWidth / 2;
+        const halfH = this.displayHeight / 2;
+        state.x = Phaser.Math.Clamp(x, bounds.left + halfW, bounds.right - halfW);
+        state.y = Phaser.Math.Clamp(y, bounds.top + halfH, bounds.bottom - halfH);
     }
 
     /**
