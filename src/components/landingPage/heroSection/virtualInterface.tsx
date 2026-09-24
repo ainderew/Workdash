@@ -84,16 +84,20 @@ export default function VirtualInterface({ y1, y2 }: VirtualInterfaceProps) {
                         className="w-28 h-20 bg-[var(--wd-surface-panel-2)] rounded-lg border-2 border-[var(--wd-border-subtle)] overflow-hidden relative shadow-xl"
                     >
                         <video
-                            poster="/assets/male-video-call-placeholder.jpg"
+                            poster="/assets/workdash-video-call-you-poster.9f74c3bb.webp"
                             autoPlay
                             loop
                             muted
                             playsInline
+                            aria-hidden="true"
                             className="absolute inset-0 w-full h-full object-cover"
                         >
+                            {/* This mock UI only shows at lg+, so phones skip the download.
+                                Encoded at 2x the tile size (224x160), no audio. */}
                             <source
-                                src="/assets/male-video-call.mp4"
+                                src="/assets/workdash-video-call-you.b64741ee.mp4"
                                 type="video/mp4"
+                                media="(min-width: 1024px)"
                             />
                         </video>
                         <div className="absolute bottom-1 left-1 bg-[var(--wd-surface-panel)]/90 px-1.5 py-0.5 rounded text-[8px] text-[var(--wd-text-primary)] flex items-center gap-1">
@@ -111,11 +115,13 @@ export default function VirtualInterface({ y1, y2 }: VirtualInterfaceProps) {
                             loop
                             muted
                             playsInline
+                            aria-hidden="true"
                             className="absolute inset-0 w-full h-full object-cover"
                         >
                             <source
                                 src="/assets/female-video-call.mp4"
                                 type="video/mp4"
+                                media="(min-width: 1024px)"
                             />
                         </video>
                     </motion.div>
