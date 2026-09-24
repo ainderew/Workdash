@@ -3736,3 +3736,248 @@ input[type="range"].wd-volume-slider::-moz-range-progress {
         opacity: 0;
     }
 }
+
+/* ============================================================
+   World loading — "the map lights up"
+   Shares the Lamplight room (.wd-splash). The map is a render of
+   map1.json (scripts/render-map-preview.swift); each place's pool
+   shows that area in full colour when its lamp comes on.
+   ============================================================ */
+.wd-world-loading {
+    z-index: 55;
+}
+.wd-world-loading__stage {
+    position: relative;
+    /* The tilt widens the near edge ~9%, so leave room for it inside the gutter */
+    width: min(calc((100vw - 32px) * 0.9), 900px, calc((100dvh - 210px) * 127 / 110));
+    perspective: 1500px;
+    animation: wd-splash-enter 0.9s 0.05s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.wd-world-loading__zoom {
+    transform-origin: calc(var(--fx) * 100%) calc(var(--fy) * 100%);
+    transform-style: preserve-3d; /* let the stage's perspective reach the model */
+    transition: transform 0.95s cubic-bezier(0.64, 0, 0.78, 0);
+}
+.wd-world-loading__model {
+    position: relative;
+    container-type: inline-size;
+    transform: rotateX(24deg);
+    transform-origin: 50% 60%;
+    transform-style: preserve-3d;
+    transition: transform 0.95s cubic-bezier(0.64, 0, 0.78, 0);
+}
+.wd-world-loading__map {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 14px;
+    image-rendering: pixelated;
+    filter: brightness(0.3) saturate(0.45) sepia(0.4);
+    box-shadow:
+        0 0 0 1px rgb(var(--wd-accent-hover-rgb) / 0.1),
+        0 34px 60px -18px rgba(0, 0, 0, 0.75);
+    transition: filter 0.9s ease-out;
+}
+.wd-world-loading__shadow {
+    position: absolute;
+    left: 10%;
+    right: 10%;
+    bottom: -30px;
+    height: 44px;
+    border-radius: 50%;
+    background: radial-gradient(closest-side, rgb(var(--wd-accent-rgb) / 0.16), transparent 72%);
+    filter: blur(6px);
+    pointer-events: none;
+}
+
+.wd-world-loading__place {
+    position: absolute;
+    left: calc(var(--x) * 100%);
+    top: calc(var(--y) * 100%);
+    width: 0;
+    height: 0;
+    transform-style: preserve-3d;
+}
+/* A window onto the full-colour map, aligned with the model underneath */
+.wd-world-loading__pool {
+    position: absolute;
+    left: -14cqw;
+    top: -14cqw;
+    width: 28cqw;
+    height: 28cqw;
+    border-radius: 50%;
+    background-image: var(--map);
+    background-repeat: no-repeat;
+    background-size: 100cqw auto;
+    background-position:
+        calc(14cqw - var(--x) * 100cqw)
+        calc(14cqw - var(--y) * 100cqw * 110 / 127);
+    image-rendering: pixelated;
+    -webkit-mask-image: radial-gradient(closest-side, #000 52%, transparent);
+    mask-image: radial-gradient(closest-side, #000 52%, transparent);
+    filter: sepia(0.14) saturate(1.08);
+    opacity: 0;
+    transform: scale(0.55);
+    transition:
+        opacity 0.9s ease-out,
+        transform 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.wd-world-loading__lamp {
+    position: absolute;
+    left: -4px;
+    top: -4px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgb(var(--wd-text-primary-rgb) / 0.22);
+    transition: background-color 0.4s ease, box-shadow 0.6s ease;
+}
+/* Breathing halo: only opacity/transform animate, so it never repaints */
+.wd-world-loading__lamp::before {
+    content: "";
+    position: absolute;
+    inset: -16px;
+    border-radius: 50%;
+    background: radial-gradient(closest-side, rgb(var(--wd-accent-rgb) / 0.42), transparent);
+    opacity: 0;
+    transition: opacity 0.6s ease;
+    will-change: opacity, transform;
+    pointer-events: none;
+}
+.wd-world-loading__lamp::after {
+    content: "";
+    position: absolute;
+    inset: -26px;
+    border-radius: 50%;
+    opacity: 0;
+    pointer-events: none;
+    background: radial-gradient(circle, rgba(255, 214, 150, 0.75), transparent 60%);
+}
+/* Stands up off the tilted map like a little sign, facing the viewer */
+.wd-world-loading__label {
+    position: absolute;
+    bottom: 10px;
+    left: 0;
+    transform: translateX(-50%) rotateX(-24deg);
+    transform-origin: bottom center;
+    white-space: nowrap;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: rgb(var(--wd-text-primary-rgb));
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9), 0 0 14px rgba(0, 0, 0, 0.65);
+    opacity: 0;
+    translate: 0 4px;
+    transition:
+        opacity 0.5s 0.3s ease-out,
+        translate 0.5s 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.wd-world-loading__place.is-lit .wd-world-loading__pool {
+    opacity: 1;
+    transform: scale(1);
+}
+.wd-world-loading__place.is-lit .wd-world-loading__lamp {
+    background: rgb(var(--wd-accent-hover-rgb));
+    box-shadow: 0 0 10px 2px rgb(var(--wd-accent-hover-rgb) / 0.85);
+}
+.wd-world-loading__place.is-lit .wd-world-loading__lamp::before {
+    opacity: 1;
+    animation: wd-world-lamp 3.4s 1.2s ease-in-out infinite;
+}
+.wd-world-loading__place.is-lit .wd-world-loading__lamp::after {
+    animation: wd-splash-ignite 1.15s ease-out;
+}
+.wd-world-loading__place.is-lit .wd-world-loading__label {
+    opacity: 1;
+    translate: 0 0;
+}
+
+.wd-world-loading .wd-splash__status {
+    margin-top: 40px;
+}
+
+/* Back from desk mode: already lit, no ceremony */
+.wd-world-loading--waking .wd-world-loading__stage {
+    animation-duration: 0.3s;
+}
+.wd-world-loading--waking .wd-splash__status,
+.wd-world-loading--waking .wd-splash__rail {
+    animation-delay: 0s;
+    animation-duration: 0.2s;
+}
+.wd-world-loading--waking .wd-world-loading__pool,
+.wd-world-loading--waking .wd-world-loading__label,
+.wd-world-loading--waking .wd-world-loading__lamp::before {
+    transition: none;
+}
+.wd-world-loading--waking .wd-world-loading__lamp::after,
+.wd-world-loading--leaving .wd-world-loading__lamp::after {
+    animation: none;
+}
+
+/* Hand-off: the model flattens and dives toward the player, the room fades */
+.wd-world-loading--leaving {
+    pointer-events: none;
+    animation: wd-world-leave 0.95s ease-in forwards;
+}
+/* JS aims it: the player's tile ends centred, at the live camera's tile size */
+.wd-world-loading--leaving .wd-world-loading__zoom {
+    transform: translate(var(--dx, 0px), var(--dy, 0px)) scale(var(--zs, 2.6));
+}
+.wd-world-loading--leaving .wd-world-loading__model {
+    transform: rotateX(0deg);
+}
+.wd-world-loading--leaving .wd-world-loading__map {
+    filter: none;
+}
+.wd-world-loading--leaving .wd-world-loading__place .wd-world-loading__label,
+.wd-world-loading--leaving .wd-world-loading__shadow {
+    opacity: 0;
+    transition: opacity 0.25s ease-out;
+}
+/* Their entrance animation's fill would win over a plain opacity */
+.wd-world-loading--leaving .wd-splash__status,
+.wd-world-loading--leaving .wd-splash__rail {
+    animation: wd-world-fade-out 0.25s ease-out forwards;
+}
+
+@keyframes wd-world-lamp {
+    0%, 100% { opacity: 0.8; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.22); }
+}
+@keyframes wd-world-fade-out {
+    to { opacity: 0; }
+}
+@keyframes wd-world-leave {
+    0%, 40% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .wd-world-loading__stage,
+    .wd-world-loading__place.is-lit .wd-world-loading__lamp::before,
+    .wd-world-loading__place.is-lit .wd-world-loading__lamp::after {
+        animation: none !important;
+    }
+    .wd-world-loading__stage {
+        opacity: 1;
+        transform: none;
+    }
+    .wd-world-loading__zoom,
+    .wd-world-loading__model,
+    .wd-world-loading__map,
+    .wd-world-loading__pool,
+    .wd-world-loading__label {
+        transition: none !important;
+    }
+    .wd-world-loading--leaving {
+        animation-duration: 0.3s;
+    }
+    .wd-world-loading--leaving .wd-world-loading__zoom {
+        transform: none;
+    }
+    .wd-world-loading--leaving .wd-world-loading__model {
+        transform: rotateX(24deg);
+    }
+}

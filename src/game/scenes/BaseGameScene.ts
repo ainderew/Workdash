@@ -109,6 +109,12 @@ export abstract class BaseGameScene extends Scene implements SolidMap {
         }
         this.multiplayer.setCurrentScene(this.currentSceneName);
 
+        // Where the camera will open, for the React loading screen's hand-off
+        EventBus.emit("world-view", {
+            x: this.spawnX,
+            y: this.spawnY,
+            zoom: this.currentZoom,
+        });
         EventBus.emit("current-scene-ready", this);
         this.cameras.main.fadeIn(300); 
     }

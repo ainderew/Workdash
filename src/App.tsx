@@ -37,6 +37,7 @@ import DeskLayout from "./common/components/DeskMode/DeskLayout";
 import DevControlPanel from "./common/components/DevControlPanel/DevControlPanel";
 import WorkspaceSelectorOverlay from "./common/components/WorkspaceSelector/WorkspaceSelectorOverlay";
 import { SplashLoader } from "./common/components/Splash/SplashLoader";
+import WorldLoadingScreen from "./common/components/WorldLoading/WorldLoadingScreen";
 import useWorkspaceStore from "@/common/store/workspaceStore";
 import useCallStore from "@/common/store/callStore";
 import useMusicStore from "@/common/store/musicStore";
@@ -364,12 +365,15 @@ function App() {
             className="w-screen h-[100dvh] overflow-hidden flex flex-col items-center justify-end wd-bg-app relative"
         >
             {selectedWorkspaceId && hasEverBeenWorldMode && (
-                <PhaserGame
-                    ref={phaserRef}
-                    currentActiveScene={currentScene}
-                    user={user}
-                    onGameReady={handleGameReady}
-                />
+                <>
+                    <PhaserGame
+                        ref={phaserRef}
+                        currentActiveScene={currentScene}
+                        user={user}
+                        onGameReady={handleGameReady}
+                    />
+                    <WorldLoadingScreen active={interactionMode === "world"} />
+                </>
             )}
             {interactionMode === "desk" && <DeskLayout />}
             <AudioElement />

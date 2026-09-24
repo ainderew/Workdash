@@ -83,32 +83,31 @@ export const PhaserGame = forwardRef<IRefPhaserGame, IProps>(
         }, [session?.backendJwt]);
 
         useEffect(() => {
-            EventBus.on(
-                "current-scene-ready",
-                (scene_instance: Phaser.Scene) => {
-                    if (
-                        currentActiveScene &&
-                        typeof currentActiveScene === "function"
-                    ) {
-                        currentActiveScene(scene_instance);
-                    }
+            const onSceneReady = (scene_instance: Phaser.Scene) => {
+                if (
+                    currentActiveScene &&
+                    typeof currentActiveScene === "function"
+                ) {
+                    currentActiveScene(scene_instance);
+                }
 
-                    if (typeof ref === "function") {
-                        ref({ game: game.current, scene: scene_instance });
-                    } else if (ref) {
-                        ref.current = {
-                            game: game.current,
-                            scene: scene_instance,
-                        };
-                    }
+                if (typeof ref === "function") {
+                    ref({ game: game.current, scene: scene_instance });
+                } else if (ref) {
+                    ref.current = {
+                        game: game.current,
+                        scene: scene_instance,
+                    };
+                }
 
-                    if (scene_instance.scene.key === "Game" && onGameReady) {
-                        onGameReady();
-                    }
-                },
-            );
+                if (scene_instance.scene.key === "Game" && onGameReady) {
+                    onGameReady();
+                }
+            };
+            EventBus.on("current-scene-ready", onSceneReady);
             return () => {
-                EventBus.removeListener("current-scene-ready");
+                // Only ours: other listeners (e.g. the world loading screen) stay
+                EventBus.off("current-scene-ready", onSceneReady);
             };
         }, [currentActiveScene, ref, onGameReady]);
 
