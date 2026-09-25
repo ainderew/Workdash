@@ -93,7 +93,7 @@ export function nearestSeat(
  */
 const POSE_OFFSET: Record<Facing, { x: number; y: number }> = {
     up: { x: 0, y: -14 }, // hips (the crop line) on the seat point
-    down: { x: 0, y: -16 },
+    down: { x: 0, y: -12 }, // built sitting frames: feet just in front of the seat
     left: { x: 0, y: -16 },
     right: { x: 0, y: -16 },
 };

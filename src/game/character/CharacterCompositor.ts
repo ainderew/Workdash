@@ -9,6 +9,17 @@ import useUserStore from "@/common/store/useStore";
 const OUTPUT_FRAME_WIDTH = 32;
 const OUTPUT_FRAME_HEIGHT = 64;
 
+/** The idle loop facing the camera: sheet row 1, columns 18-23. */
+const IDLE_DOWN_ROW = 1;
+const IDLE_DOWN_COL = 18;
+const IDLE_DOWN_FRAMES = 6;
+/**
+ * The sheets have no sitting-facing-the-camera frames. The idle ones with
+ * the upper legs (frame rows 56-59) cut out read as seated with bent knees.
+ */
+const SIT_DOWN_DROP_FROM = 56;
+const SIT_DOWN_DROP_TO = 59;
+
 export class CharacterCompositor {
     private scene: Scene;
 
@@ -66,6 +77,8 @@ export class CharacterCompositor {
             );
         }
 
+        this.addSitDownFrames(canvas, outputKey);
+
         const imageData = canvas.toDataURL("image/png");
 
         
@@ -94,6 +107,29 @@ export class CharacterCompositor {
     }
 
     
+    /** `${outputKey}-sitdown`: frames 0-5, sitting facing the camera. */
+    private addSitDownFrames(source: HTMLCanvasElement, outputKey: string) {
+        const key = `${outputKey}-sitdown`;
+        const w = OUTPUT_FRAME_WIDTH;
+        const h = OUTPUT_FRAME_HEIGHT;
+        const canvas = document.createElement("canvas");
+        canvas.width = w * IDLE_DOWN_FRAMES;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d")!;
+        ctx.imageSmoothingEnabled = false;
+        const below = SIT_DOWN_DROP_TO + 1;
+        for (let i = 0; i < IDLE_DOWN_FRAMES; i++) {
+            const sx = (IDLE_DOWN_COL + i) * w;
+            const sy = IDLE_DOWN_ROW * h;
+            // Head and body as they are, then the feet moved up under the knees
+            ctx.drawImage(source, sx, sy, w, SIT_DOWN_DROP_FROM, i * w, 0, w, SIT_DOWN_DROP_FROM);
+            ctx.drawImage(source, sx, sy + below, w, h - below, i * w, SIT_DOWN_DROP_FROM, w, h - below);
+        }
+        if (this.scene.textures.exists(key)) this.scene.textures.remove(key);
+        const texture = this.scene.textures.addCanvas(key, canvas);
+        for (let i = 0; i < IDLE_DOWN_FRAMES; i++) texture?.add(i, 0, i * w, 0, w, h);
+    }
+
     private createDebugButton(dataUrl: string, key: string) {
         const existing = document.getElementById("debug-dl");
         if (existing) existing.remove();

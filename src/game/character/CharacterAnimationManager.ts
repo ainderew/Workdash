@@ -191,8 +191,10 @@ export class CharacterAnimationManager {
                 rate: 10,
                 repeat: 0,
             },
-            // --- SITTING: sheet row 4 is sideways (right, then left), row 5
-            // faces the camera; facing away reuses the idle-from-behind frames.
+            // --- SITTING: sheet row 4 is sideways (right, then left). There are
+            // no frames facing the camera or away: facing the camera uses frames
+            // the compositor builds (`texture`), facing away the idle-from-behind
+            // frames (cropped at the hips by the player).
             // `row` is the sheet row itself, bypassing the visual-row mapper.
             {
                 key: `${characterKey}-sit-right`,
@@ -212,9 +214,10 @@ export class CharacterAnimationManager {
             },
             {
                 key: `${characterKey}-sit-down`,
-                row: 5,
-                startCol: 0,
-                endCol: 5,
+                texture: `${spritesheetKey}-sitdown`,
+                row: 1,
+                startCol: 18,
+                endCol: 23,
                 rate: 4,
                 repeat: -1,
             },
@@ -286,6 +289,16 @@ export class CharacterAnimationManager {
                 this.scene.anims.create({
                     key: config.key,
                     frames: frameNames,
+                    frameRate: config.rate,
+                    repeat: config.repeat,
+                });
+            } else if (config.texture && this.scene.textures.exists(config.texture)) {
+                this.scene.anims.create({
+                    key: config.key,
+                    frames: this.scene.anims.generateFrameNumbers(config.texture, {
+                        start: 0,
+                        end: config.endCol! - config.startCol!,
+                    }),
                     frameRate: config.rate,
                     repeat: config.repeat,
                 });

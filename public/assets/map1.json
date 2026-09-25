@@ -1566,7 +1566,7 @@
                  "type":"seat",
                  "visible":true,
                  "width":0,
-                 "x":976,
+                 "x":984,
                  "y":976
                 }, 
                 {
@@ -2016,7 +2016,7 @@
                  "type":"seat",
                  "visible":true,
                  "width":0,
-                 "x":1456,
+                 "x":1464,
                  "y":1488
                 }, 
                 {
@@ -2034,7 +2034,7 @@
                  "type":"seat",
                  "visible":true,
                  "width":0,
-                 "x":1584,
+                 "x":1576,
                  "y":1488
                 }, 
                 {
@@ -2088,7 +2088,7 @@
                  "type":"seat",
                  "visible":true,
                  "width":0,
-                 "x":1456,
+                 "x":1464,
                  "y":1552
                 }, 
                 {
@@ -2106,7 +2106,7 @@
                  "type":"seat",
                  "visible":true,
                  "width":0,
-                 "x":1584,
+                 "x":1576,
                  "y":1552
                 }, 
                 {
@@ -2142,7 +2142,7 @@
                  "type":"seat",
                  "visible":true,
                  "width":0,
-                 "x":1936,
+                 "x":1928,
                  "y":1680
                 }, 
                 {
