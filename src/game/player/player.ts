@@ -13,6 +13,10 @@ import { CharacterAnimationManager } from "../character/CharacterAnimationManage
 import { EVENT_TYPES } from "../character/_enums";
 import useUiStore from "@/common/store/uiStore";
 import { depthForGroundY } from "../tallProps/groundDepth";
+import type { Facing, SeatPose } from "../seats/seatLayer";
+
+/** Frame rows kept when sitting with your back to the camera (hips and up). */
+const SIT_UP_CROP_HEIGHT = 48;
 import {
     integratePlayer,
     calculateSpeedMultiplier,
@@ -69,6 +73,14 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     
     public physicsState: PhysicsState = { x: 0, y: 0, vx: 0, vy: 0 };
+
+    /** The seat this player is sitting on, if any (see SeatManager). */
+    public seat: SeatPose | null = null;
+    /** Local player: asked to stand when a movement key is pressed while seated. */
+    public onSeatedMove?: () => void;
+    /** Local player: where they stood before sitting, so standing up puts them back. */
+    private standPosition: { x: number; y: number } | null = null;
+    private seatBadge?: Phaser.GameObjects.Graphics;
 
     
     public visualSprite: Phaser.GameObjects.Sprite;
@@ -247,7 +259,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         
         super.setPosition(this.physicsState.x, this.physicsState.y);
         // Sort against trees and planters by where the feet touch the ground
-        const depth = depthForGroundY(this.visualSprite.y + this.displayHeight / 2);
+        const groundY = this.seat?.groundY ?? this.visualSprite.y + this.displayHeight / 2;
+        const depth = depthForGroundY(groundY);
         if (this.depth !== depth) this.setDepth(depth);
         if (this.body) {
             (this.body as Phaser.Physics.Arcade.Body).setVelocity(
@@ -300,6 +313,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     private handleAnimations() {
         const isSoccerMap = this.scene.scene.key === "SoccerMap";
+
+        if (this.seat) {
+            this.playSitAnimation(this.seat.facing);
+            return;
+        }
 
         
         const attackAnimKey = AttackAnimationKeys[this.sprite];
@@ -403,6 +421,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     // LOCAL PLAYER - Client-side prediction
     // ============================================================================
 
+    /** True while typing, in desk mode or in the command palette: game keys do nothing. */
+    public isInputBlocked(): boolean {
+        return this.shouldBlockInput();
+    }
+
     private shouldBlockInput(): boolean {
         const uiState = useUiStore.getState();
         return (
@@ -423,6 +446,15 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
         // 1. Sample input
         this.sampleInput();
+
+        if (this.seat) {
+            const { up, down, left, right } = this.currentInput;
+            if (up || down || left || right) this.onSeatedMove?.();
+            if (this.seat) {
+                this.physicsAccumulator = 0;
+                return;
+            }
+        }
 
         // 2. Handle Kart Mode Toggle
         if (
@@ -1205,6 +1237,62 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         );
     }
 
+    /** Sit on a seat: snap onto it and hold still until standing up. */
+    public sitAt(pose: SeatPose) {
+        if (this.isLocal && !this.seat) {
+            this.standPosition = { x: this.physicsState.x, y: this.physicsState.y };
+            this.setInputIdleState();
+        }
+        this.seat = pose;
+        this.physicsState.x = pose.x;
+        this.physicsState.y = pose.y;
+        this.physicsState.vx = 0;
+        this.physicsState.vy = 0;
+        this.visualOffsetX = 0;
+        this.visualOffsetY = 0;
+        if (!this.isLocal) this.snapshotBuffer.length = 0;
+        // There are no sitting-from-behind frames: the from-behind idle frames
+        // cut off at the hips read as seated.
+        if (pose.facing === "up") this.visualSprite.setCrop(0, 0, 32, SIT_UP_CROP_HEIGHT);
+        else this.visualSprite.setCrop();
+        this.seatBadge?.setVisible(true);
+    }
+
+    /** Stand up; the local player steps back to where they were before sitting. */
+    public standUp() {
+        if (!this.seat) return;
+        this.seat = null;
+        if (this.isLocal && this.standPosition) {
+            this.physicsState.x = this.standPosition.x;
+            this.physicsState.y = this.standPosition.y;
+        }
+        this.standPosition = null;
+        this.visualSprite.setCrop();
+        this.seatBadge?.setVisible(false);
+    }
+
+    private playSitAnimation(facing: Facing) {
+        this.visualSprite.setFlipX(false);
+        const key = `${this.sprite}-sit-${facing}`;
+        if (this.scene.anims.exists(key)) {
+            this.visualSprite.anims.play(key, true);
+        }
+    }
+
+    /** A small chair beside the name tag while sitting. */
+    private createSeatBadge(x: number) {
+        const badge = this.scene.add.graphics();
+        badge.fillStyle(0x000000, 0.7);
+        badge.fillRoundedRect(-10, -10, 20, 20, 6);
+        badge.fillStyle(0xf2c46d, 1);
+        badge.fillRect(-5, -7, 2, 14); // back and back leg
+        badge.fillRect(-5, 0, 9, 2); // seat
+        badge.fillRect(2, 0, 2, 7); // front leg
+        badge.setPosition(x, 0);
+        badge.setVisible(this.seat !== null);
+        return badge;
+    }
+
     public destroyNameTag() {
         if (this.uiContainer) {
             this.uiContainer.destroy();
@@ -1258,10 +1346,13 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
         this.statusCircle.setPosition(circleX, 0);
         this.nameText.setPosition(nameX, 0);
 
+        this.seatBadge = this.createSeatBadge(bgWidth / 2 + 14);
+
         this.uiContainer = this.scene.add.container(this.x, this.y - 50, [
             background,
             this.statusCircle,
             this.nameText,
+            this.seatBadge,
         ]);
 
         this.uiContainer.setDepth(200);

@@ -107,7 +107,43 @@ export class Multiplayer {
         this.socket.disconnect();
     }
 
+    /** Told when any player in the scene sits down (seatId) or stands up (null). */
+    private seatListener?: (playerId: string, seatId: string | null) => void;
+
+    /** Ask the server for a seat; it refuses one someone else is already on. */
+    public claimSeat(seatId: string): Promise<{ ok: boolean; occupantId?: string }> {
+        if (!this.socket.connected) return Promise.resolve({ ok: false });
+        return new Promise((resolve) => {
+            const timer = setTimeout(() => resolve({ ok: false }), 3000);
+            this.socket.emit(
+                "seatClaim",
+                { seatId },
+                (result?: { ok: boolean; occupantId?: string }) => {
+                    clearTimeout(timer);
+                    resolve(result ?? { ok: false });
+                },
+            );
+        });
+    }
+
+    public releaseSeat() {
+        this.send("seatRelease", {});
+    }
+
+    public watchSeats(listener: (playerId: string, seatId: string | null) => void) {
+        this.seatListener = listener;
+        this.socket.off("playerSeat");
+        this.socket.on(
+            "playerSeat",
+            (data: { playerId: string; seatId: string | null }) => {
+                listener(data.playerId, data.seatId ?? null);
+            },
+        );
+    }
+
     public removeAllGameListeners() {
+        this.seatListener = undefined;
+        this.socket.off("playerSeat");
         this.socket.off("currentPlayers");
         this.socket.off("newPlayer");
         this.socket.off("deletePlayer");
@@ -221,6 +257,7 @@ export class Multiplayer {
         this.socket.on("deletePlayer", (data: { id: string }) => {
             usePlayersStore.getState().removePlayerFromMap(data.id);
             destroyPlayer(data.id);
+            this.seatListener?.(data.id, null);
         });
     }
 
@@ -253,6 +290,7 @@ export class Multiplayer {
         }
 
         const isLocal = player.id === this.socket.id;
+        if (!isLocal) this.seatListener?.(player.id, player.seatId ?? null);
 
         const availabilityStatus = player?.isInFocusMode
             ? AvailabilityStatus.FOCUS

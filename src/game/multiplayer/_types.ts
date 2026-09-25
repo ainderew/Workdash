@@ -19,6 +19,8 @@ export interface PlayerDto {
     };
     character?: CharacterCustomization;
     currentScene?: string;
+    /** Seat (Tiled object id) the player is sitting on */
+    seatId?: string | null;
     soccerStats?: {
         speed: number;
         kickPower: number;

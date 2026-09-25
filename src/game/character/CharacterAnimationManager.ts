@@ -191,6 +191,41 @@ export class CharacterAnimationManager {
                 rate: 10,
                 repeat: 0,
             },
+            // --- SITTING: sheet row 4 is sideways (right, then left), row 5
+            // faces the camera; facing away reuses the idle-from-behind frames.
+            // `row` is the sheet row itself, bypassing the visual-row mapper.
+            {
+                key: `${characterKey}-sit-right`,
+                row: 4,
+                startCol: 0,
+                endCol: 5,
+                rate: 4,
+                repeat: -1,
+            },
+            {
+                key: `${characterKey}-sit-left`,
+                row: 4,
+                startCol: 6,
+                endCol: 11,
+                rate: 4,
+                repeat: -1,
+            },
+            {
+                key: `${characterKey}-sit-down`,
+                row: 5,
+                startCol: 0,
+                endCol: 5,
+                rate: 4,
+                repeat: -1,
+            },
+            {
+                key: `${characterKey}-sit-up`,
+                row: 1,
+                startCol: 6,
+                endCol: 11,
+                rate: 4,
+                repeat: -1,
+            },
             // --- SOCCER KICK (Row 10, 3 frames starting at col 0) ---
             {
                 key: `${characterKey}-soccer-kick`,
@@ -255,7 +290,7 @@ export class CharacterAnimationManager {
                     repeat: config.repeat,
                 });
             } else {
-                const lRow = getLogicalRow(config.vRow!);
+                const lRow = config.row ?? getLogicalRow(config.vRow!);
                 const rowStartIdx = lRow * COLS;
 
                 const startFrame = rowStartIdx + config.startCol!;

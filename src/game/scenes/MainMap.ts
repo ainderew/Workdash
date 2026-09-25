@@ -1,5 +1,8 @@
 import { BaseGameScene } from "./BaseGameScene";
 import { addTallProps } from "../tallProps/addTallProps";
+import { readSeatLayer } from "../seats/seatLayer";
+import { liftFronts } from "../seats/liftFronts";
+import { SeatManager } from "../seats/SeatManager";
 
 export class MainMap extends BaseGameScene {
     mapKey = "map";
@@ -7,8 +10,25 @@ export class MainMap extends BaseGameScene {
     protected propLayers = new Set(["Furniture", "Trees", "Trees2"]);
     worldBounds = { width: 4064, height: 3520 };
 
+    private seatManager?: SeatManager;
+
     constructor() {
         super("MainMap");
+    }
+
+    create() {
+        super.create();
+        this.seatManager = new SeatManager(this, this.seatLayer().seats);
+    }
+
+    update(time: number, delta: number) {
+        super.update(time, delta);
+        this.seatManager?.update();
+    }
+
+    /** Seats and front furniture, from the map's "Seats" object layer (edited in Tiled). */
+    private seatLayer() {
+        return readSeatLayer(this.map.getObjectLayer("Seats")?.objects);
     }
 
     protected createLayers(
@@ -64,6 +84,7 @@ export class MainMap extends BaseGameScene {
         layers.set("Trees", map.createLayer("Trees", allTilesets, 0, 0)!);
 
         this.walkBehindTiles = addTallProps(this, map, [layers.get("Trees2")!, layers.get("Trees")!]);
+        liftFronts(this, layers, this.seatLayer().fronts);
 
         return layers;
     }

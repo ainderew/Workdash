@@ -38,6 +38,7 @@ import DevControlPanel from "./common/components/DevControlPanel/DevControlPanel
 import WorkspaceSelectorOverlay from "./common/components/WorkspaceSelector/WorkspaceSelectorOverlay";
 import { SplashLoader } from "./common/components/Splash/SplashLoader";
 import WorldLoadingScreen from "./common/components/WorldLoading/WorldLoadingScreen";
+import SeatPrompt from "./common/components/Seats/SeatPrompt";
 import useWorkspaceStore from "@/common/store/workspaceStore";
 import useCallStore from "@/common/store/callStore";
 import useMusicStore from "@/common/store/musicStore";
@@ -391,6 +392,7 @@ function App() {
             {interactionMode === "world" && (
                 <FloatingPassiveCallIndicator />
             )}
+            {interactionMode === "world" && <SeatPrompt />}
 
             <LoungeAutoJoinPill />
 
