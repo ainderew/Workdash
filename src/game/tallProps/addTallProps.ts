@@ -1,4 +1,5 @@
-import { findTrees } from "./findTrees";
+import { findTallProps } from "./findTallProps";
+import { depthForGroundY } from "./groundDepth";
 import { swayOffset, treePhase } from "./wind";
 
 const TICK_MS = 100;
@@ -12,20 +13,24 @@ interface Canopy {
 }
 
 /**
- * Lets the trees on the given layers sway in the wind. Each tree's canopy
- * (every row but the trunk) is hidden in the layer and redrawn as one image
- * that leans a pixel either way; the trunk stays put. The layer's tiles keep
- * their collision, so nothing changes for movement.
+ * Makes trees, planters and bushes on the given layers something you can walk
+ * behind. Each prop's upper rows are hidden in the layer and redrawn as one
+ * image, depth-sorted against players by where the prop meets the ground, so
+ * it covers a player standing behind it and not one in front. Trees also sway
+ * in the wind (a pixel either way; off under prefers-reduced-motion).
+ *
+ * Returns the hidden upper tiles: they don't block movement, only the prop's
+ * bottom row does.
  */
-export function addTreeSway(
+export function addTallProps(
     scene: Phaser.Scene,
     map: Phaser.Tilemaps.Tilemap,
     layers: Phaser.Tilemaps.TilemapLayer[],
-) {
-    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+): Set<Phaser.Tilemaps.Tile> {
+    const walkBehind = new Set<Phaser.Tilemaps.Tile>();
     const tileset = map.getTileset("Exterior");
     const textureKey = tileset?.image?.key;
-    if (!tileset || !textureKey) return;
+    if (!tileset || !textureKey) return walkBehind;
     const texture = scene.textures.get(textureKey);
     const { tileWidth: tw, tileHeight: th } = map;
 
@@ -41,26 +46,33 @@ export function addTreeSway(
             }
         }
 
-        // Keep the layers' draw order: each canopy sits right above its layer
-        let above: Phaser.GameObjects.GameObject = layer;
-        for (const { type, x, y } of findTrees(gids, width, height)) {
-            const canopyRows = type.h - 1;
-            const frame = `canopy:${type.name}`;
+        for (const { type, x, y } of findTallProps(gids, width, height)) {
+            const upperRows = type.h - 1;
+            const frame = `upper:${type.name}`;
             if (!texture.has(frame)) {
                 const corner = tileset.getTileTextureCoordinates(data[y][x].index) as { x: number; y: number };
-                texture.add(frame, 0, corner.x, corner.y, type.w * tw, canopyRows * th);
+                texture.add(frame, 0, corner.x, corner.y, type.w * tw, upperRows * th);
             }
             const baseX = layer.x + x * tw;
-            const image = scene.add.image(baseX, layer.y + y * th, textureKey, frame).setOrigin(0, 0);
-            scene.children.moveAbove(image, above);
-            above = image;
-            for (let dy = 0; dy < canopyRows; dy++) {
-                for (let dx = 0; dx < type.w; dx++) layer.getTileAt(x + dx, y + dy)?.setVisible(false);
+            const groundY = layer.y + (y + type.h) * th;
+            const image = scene.add
+                .image(baseX, layer.y + y * th, textureKey, frame)
+                .setOrigin(0, 0)
+                .setDepth(depthForGroundY(groundY));
+            for (let dy = 0; dy < upperRows; dy++) {
+                for (let dx = 0; dx < type.w; dx++) {
+                    const tile = layer.getTileAt(x + dx, y + dy);
+                    if (!tile) continue;
+                    tile.setVisible(false);
+                    walkBehind.add(tile);
+                }
             }
-            canopies.push({ image, baseX, phase: treePhase(x, y) });
+            if (type.sway) canopies.push({ image, baseX, phase: treePhase(x, y) });
         }
     }
-    if (canopies.length === 0) return;
+
+    const still = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    if (canopies.length === 0 || still) return walkBehind;
 
     // The scene clock stops with the scene, so desk mode costs nothing
     scene.time.addEvent({
@@ -83,4 +95,5 @@ export function addTreeSway(
             }
         },
     });
+    return walkBehind;
 }

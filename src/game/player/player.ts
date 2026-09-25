@@ -12,6 +12,7 @@ import { CharacterCompositor } from "../character/CharacterCompositor";
 import { CharacterAnimationManager } from "../character/CharacterAnimationManager";
 import { EVENT_TYPES } from "../character/_enums";
 import useUiStore from "@/common/store/uiStore";
+import { depthForGroundY } from "../tallProps/groundDepth";
 import {
     integratePlayer,
     calculateSpeedMultiplier,
@@ -245,6 +246,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
         
         super.setPosition(this.physicsState.x, this.physicsState.y);
+        // Sort against trees and planters by where the feet touch the ground
+        const depth = depthForGroundY(this.visualSprite.y + this.displayHeight / 2);
+        if (this.depth !== depth) this.setDepth(depth);
         if (this.body) {
             (this.body as Phaser.Physics.Arcade.Body).setVelocity(
                 this.physicsState.vx,

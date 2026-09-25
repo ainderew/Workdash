@@ -215,11 +215,15 @@ export abstract class BaseGameScene extends Scene implements SolidMap {
      */
     protected propLayers = new Set<string>();
 
+    /** Upper parts of trees and planters: drawn over players behind them, never solid. */
+    protected walkBehindTiles = new Set<Phaser.Tilemaps.Tile>();
+
     /**
      * World-space boxes of the colliding tiles that touch `area`. Props
      * (furniture, trees, planters) block only where their art is drawn, so a
      * tile holding a few blades of grass doesn't stop you a whole tile early;
-     * walls always block as whole tiles.
+     * trees and planters block only at their base, so you can walk behind
+     * them; walls always block as whole tiles.
      */
     public getSolidRects(area: Rect): Rect[] {
         const rects: Rect[] = [];
@@ -233,6 +237,7 @@ export abstract class BaseGameScene extends Scene implements SolidMap {
             );
             const trim = this.propLayers.has(layer.layer.name);
             for (const tile of tiles) {
+                if (this.walkBehindTiles.has(tile)) continue;
                 const whole = {
                     left: tile.getLeft(),
                     top: tile.getTop(),
