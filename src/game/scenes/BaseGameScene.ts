@@ -21,11 +21,15 @@ import { BackgroundMusicManager } from "../audio/BackgroundMusicManager";
 import { TeleportManager } from "../managers/TeleportManager";
 import { logger } from "@/common/utils/logger";
 import type { Rect, SolidMap } from "../player/wallCollision";
+import { TileFootprintCache, footprintRect } from "../player/tileFootprint";
 
 export interface SceneData {
     spawnX?: number;
     spawnY?: number;
 }
+
+/** Collision layers whose tiles block only where their art is drawn. */
+const PROP_LAYERS = new Set(["Furniture", "Trees", "Trees2"]);
 
 export abstract class BaseGameScene extends Scene implements SolidMap {
     map!: Phaser.Tilemaps.Tilemap;
@@ -208,7 +212,14 @@ export abstract class BaseGameScene extends Scene implements SolidMap {
         layers: Map<string, Phaser.Tilemaps.TilemapLayer>,
     ): void;
 
-    /** World-space boxes of the colliding tiles that touch `area`. */
+    private tileFootprints = new TileFootprintCache();
+
+    /**
+     * World-space boxes of the colliding tiles that touch `area`. Props
+     * (furniture, trees, planters) block only where their art is drawn, so a
+     * tile holding a few blades of grass doesn't stop you a whole tile early;
+     * walls always block as whole tiles.
+     */
     public getSolidRects(area: Rect): Rect[] {
         const rects: Rect[] = [];
         for (const layer of this.collisionLayers) {
@@ -219,13 +230,26 @@ export abstract class BaseGameScene extends Scene implements SolidMap {
                 area.bottom - area.top,
                 { isColliding: true },
             );
+            const trim = PROP_LAYERS.has(layer.layer.name);
             for (const tile of tiles) {
-                rects.push({
+                const whole = {
                     left: tile.getLeft(),
                     top: tile.getTop(),
                     right: tile.getRight(),
                     bottom: tile.getBottom(),
-                });
+                };
+                const drawn = trim && !tile.rotation ? this.tileFootprints.boundsOf(tile) : undefined;
+                if (drawn === null) continue; // nothing drawn, nothing to bump into
+                rects.push(
+                    drawn && tile.tileset
+                        ? footprintRect(
+                              whole,
+                              drawn,
+                              { width: tile.tileset.tileWidth, height: tile.tileset.tileHeight },
+                              { x: tile.flipX, y: tile.flipY },
+                          )
+                        : whole,
+                );
             }
         }
         return rects;
