@@ -9,6 +9,14 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ainderew/workdash
 
+# Queue runs instead of overlapping them. Every run deploys to the same droplet
+# by pulling :latest, so two overlapping runs could let the older build go live
+# if it finished last. A newer push replaces any run still waiting; a run that
+# has started is never cancelled mid-deploy.
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: ubuntu-latest
