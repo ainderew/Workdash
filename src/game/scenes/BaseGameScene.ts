@@ -21,15 +21,12 @@ import { BackgroundMusicManager } from "../audio/BackgroundMusicManager";
 import { TeleportManager } from "../managers/TeleportManager";
 import { logger } from "@/common/utils/logger";
 import type { Rect, SolidMap } from "../player/wallCollision";
-import { TileFootprintCache, footprintRect } from "../player/tileFootprint";
+import { footprintRect, propFootprint } from "../player/tileFootprint";
 
 export interface SceneData {
     spawnX?: number;
     spawnY?: number;
 }
-
-/** Collision layers whose tiles block only where their art is drawn. */
-const PROP_LAYERS = new Set(["Furniture", "Trees", "Trees2"]);
 
 export abstract class BaseGameScene extends Scene implements SolidMap {
     map!: Phaser.Tilemaps.Tilemap;
@@ -212,7 +209,11 @@ export abstract class BaseGameScene extends Scene implements SolidMap {
         layers: Map<string, Phaser.Tilemaps.TilemapLayer>,
     ): void;
 
-    private tileFootprints = new TileFootprintCache();
+    /**
+     * Collision layers whose tiles block only where their art is drawn, using
+     * footprints measured from this scene's map (src/game/player/propFootprints.json).
+     */
+    protected propLayers = new Set<string>();
 
     /**
      * World-space boxes of the colliding tiles that touch `area`. Props
@@ -230,7 +231,7 @@ export abstract class BaseGameScene extends Scene implements SolidMap {
                 area.bottom - area.top,
                 { isColliding: true },
             );
-            const trim = PROP_LAYERS.has(layer.layer.name);
+            const trim = this.propLayers.has(layer.layer.name);
             for (const tile of tiles) {
                 const whole = {
                     left: tile.getLeft(),
@@ -238,7 +239,7 @@ export abstract class BaseGameScene extends Scene implements SolidMap {
                     right: tile.getRight(),
                     bottom: tile.getBottom(),
                 };
-                const drawn = trim && !tile.rotation ? this.tileFootprints.boundsOf(tile) : undefined;
+                const drawn = trim && !tile.rotation ? propFootprint(tile.index) : undefined;
                 if (drawn === null) continue; // nothing drawn, nothing to bump into
                 rects.push(
                     drawn && tile.tileset

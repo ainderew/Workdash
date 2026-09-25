@@ -1,27 +1,31 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, it, expect } from "vitest";
-import { footprintRect, opaqueBounds } from "./tileFootprint";
-import { moveWithCollisions, type Rect } from "./wallCollision";
+import { footprintRect, propFootprint } from "./tileFootprint";
+import { moveWithCollisions } from "./wallCollision";
 
-/** A w x h tile whose pixels inside `drawn` are opaque. */
-function tilePixels(w: number, h: number, drawn: Rect | null) {
-    const rgba = new Uint8ClampedArray(w * h * 4);
-    if (drawn) {
-        for (let y = drawn.top; y < drawn.bottom; y++) {
-            for (let x = drawn.left; x < drawn.right; x++) rgba[(y * w + x) * 4 + 3] = 255;
-        }
-    }
-    return rgba;
-}
+const exterior = (col: number, row: number) => row * 176 + col + 1;
 
-describe("opaqueBounds", () => {
-    it("finds the drawn part of a tile", () => {
-        // A planter's top row: just a tuft of grass at the bottom
-        const tuft = { left: 4, top: 26, right: 10, bottom: 32 };
-        expect(opaqueBounds(tilePixels(32, 32, tuft), 32, 32)).toEqual(tuft);
+describe("propFootprint", () => {
+    it("knows the drawn part of the park planter's tiles", () => {
+        expect(propFootprint(exterior(15, 10))).toBeNull(); // top-left: draws nothing
+        expect(propFootprint(exterior(16, 10))).toEqual({ left: 4, top: 26, right: 10, bottom: 32 }); // grass tuft
+        expect(propFootprint(exterior(16, 12))).toEqual({ left: 0, top: 0, right: 32, bottom: 24 }); // box
     });
 
-    it("reports a tile that draws nothing", () => {
-        expect(opaqueBounds(tilePixels(32, 32, null), 32, 32)).toBeNull();
+    it("has a measurement for every prop tile on the world map (rerun build-prop-footprints.swift)", () => {
+        const map = JSON.parse(
+            readFileSync(resolve(__dirname, "../../../public/assets/map1.json"), "utf8"),
+        );
+        const missing = new Set<number>();
+        for (const layer of map.layers) {
+            if (!["Furniture", "Trees", "Trees2"].includes(layer.name)) continue;
+            for (const raw of layer.data as number[]) {
+                const gid = raw & 0x1fffffff;
+                if (gid && propFootprint(gid) === undefined) missing.add(gid);
+            }
+        }
+        expect([...missing]).toEqual([]);
     });
 });
 

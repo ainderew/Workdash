@@ -3,6 +3,8 @@ import { addTreeSway } from "../treeSway/addTreeSway";
 
 export class MainMap extends BaseGameScene {
     mapKey = "map";
+    // Footprints in propFootprints.json are measured from this map (map1.json)
+    protected propLayers = new Set(["Furniture", "Trees", "Trees2"]);
     worldBounds = { width: 4064, height: 3520 };
 
     constructor() {
