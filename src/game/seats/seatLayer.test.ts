@@ -69,3 +69,20 @@ describe("the world map's Seats layer", () => {
         }
     });
 });
+
+describe("frontPart", () => {
+    it("draws a whole tile in front when the rectangle covers it", async () => {
+        const { frontPart } = await import("./liftFronts");
+        expect(frontPart({ x: 992, y: 960, width: 32, height: 32, layers: [] }, { left: 992, top: 960, right: 1024, bottom: 992 })).toBeNull();
+    });
+
+    it("draws only the band inside the rectangle, in the tile's own pixels", async () => {
+        const { frontPart } = await import("./liftFronts");
+        expect(frontPart({ x: 992, y: 976, width: 32, height: 16, layers: [] }, { left: 992, top: 960, right: 1024, bottom: 992 })).toEqual({
+            x: 0,
+            y: 16,
+            width: 32,
+            height: 16,
+        });
+    });
+});

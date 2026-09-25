@@ -29,13 +29,38 @@ export function liftFronts(
                     const corner = tileset.getTileTextureCoordinates(tile.index) as { x: number; y: number };
                     texture.add(frame, 0, corner.x, corner.y, tileset.tileWidth, tileset.tileHeight);
                 }
-                scene.add
-                    .image(tile.getLeft(), tile.getTop(), key, frame)
+                const left = tile.getLeft();
+                const top = tile.getTop();
+                const image = scene.add
+                    .image(left, top, key, frame)
                     .setOrigin(0, 0)
                     .setFlip(tile.flipX, tile.flipY)
                     .setDepth(depth);
-                tile.setVisible(false);
+                const part = frontPart(front, { left, top, right: tile.getRight(), bottom: tile.getBottom() });
+                if (part) {
+                    // Only part of the tile draws in front (e.g. a band at knee height,
+                    // below a sitter's face); the tile itself stays in its layer
+                    image.setCrop(part.x, part.y, part.width, part.height);
+                } else {
+                    tile.setVisible(false);
+                }
             }
         }
     }
+}
+
+/**
+ * The part of a tile (world px) inside a front rectangle, in the tile's own
+ * pixels; null when the whole tile is inside.
+ */
+export function frontPart(
+    front: FrontRect,
+    tile: { left: number; top: number; right: number; bottom: number },
+) {
+    const x0 = Math.max(front.x, tile.left);
+    const y0 = Math.max(front.y, tile.top);
+    const x1 = Math.min(front.x + front.width, tile.right);
+    const y1 = Math.min(front.y + front.height, tile.bottom);
+    if (x0 === tile.left && y0 === tile.top && x1 === tile.right && y1 === tile.bottom) return null;
+    return { x: x0 - tile.left, y: y0 - tile.top, width: Math.max(0, x1 - x0), height: Math.max(0, y1 - y0) };
 }
