@@ -10,6 +10,8 @@ const config: Phaser.Types.Core.GameConfig = {
     backgroundColor: "#49A841",
     title: "WorkDash",
     disableContextMenu: true,
+    // One thumb on the joystick, another free to tap (soccer kicks)
+    input: { activePointers: 2 },
 
     scale: {
         mode: Phaser.Scale.ENVELOP,

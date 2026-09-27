@@ -148,20 +148,25 @@ export class SoccerMap extends BaseGameScene {
             this.handlePointerKickDown,
             this,
         );
-        this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+        this.input.on(
+            Phaser.Input.Events.POINTER_UP,
+            this.handleTouchKickTap,
+            this,
+        );
+        const stopPointerKicks = () => {
             this.input.off(
                 Phaser.Input.Events.POINTER_DOWN,
                 this.handlePointerKickDown,
                 this,
             );
-        });
-        this.events.once(Phaser.Scenes.Events.DESTROY, () => {
             this.input.off(
-                Phaser.Input.Events.POINTER_DOWN,
-                this.handlePointerKickDown,
+                Phaser.Input.Events.POINTER_UP,
+                this.handleTouchKickTap,
                 this,
             );
-        });
+        };
+        this.events.once(Phaser.Scenes.Events.SHUTDOWN, stopPointerKicks);
+        this.events.once(Phaser.Scenes.Events.DESTROY, stopPointerKicks);
 
         this.metaVisionGraphics = this.add.graphics();
         this.metaVisionGraphics.setDepth(1000);
@@ -611,7 +616,15 @@ export class SoccerMap extends BaseGameScene {
     }
 
     private handlePointerKickDown(pointer: Phaser.Input.Pointer) {
-        if (pointer.button !== 0) return;
+        // A finger going down may be the start of a joystick drag
+        if (pointer.button !== 0 || pointer.wasTouch) return;
+        this.kickPointerRequested = true;
+    }
+
+    /** On touch screens a quick tap kicks; a drag is the joystick walking. */
+    private handleTouchKickTap(pointer: Phaser.Input.Pointer) {
+        if (!pointer.wasTouch) return;
+        if (pointer.getDistance() > 12 || pointer.getDuration() > 300) return;
         this.kickPointerRequested = true;
     }
 

@@ -3981,3 +3981,66 @@ input[type="range"].wd-volume-slider::-moz-range-progress {
         transform: rotateX(24deg);
     }
 }
+
+/* ── Touch joystick (TouchJoystick) ────────────────────────────────────────
+   Walks the avatar on touch screens. It rests, faint, bottom-left above the
+   world controls; a thumb on the map brings it to that spot at full strength. */
+.wd-touch-stick {
+    position: fixed;
+    z-index: 30;
+    display: grid;
+    place-items: center;
+    width: 7rem;
+    height: 7rem;
+    border-radius: 9999px;
+    background: radial-gradient(circle, rgb(0 0 0 / 0.14), rgb(0 0 0 / 0.34));
+    border: 1.5px solid rgb(255 255 255 / 0.3);
+    box-shadow: 0 10px 28px rgb(0 0 0 / 0.28), inset 0 1px 0 rgb(255 255 255 / 0.08);
+    color: rgb(255 255 255 / 0.75);
+    pointer-events: none;
+    user-select: none;
+}
+.wd-touch-stick[hidden] {
+    display: none;
+}
+.wd-touch-stick.is-resting {
+    left: calc(env(safe-area-inset-left, 0px) + 1.25rem);
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 5.5rem);
+    opacity: 0.55;
+    animation: wd-touch-stick-rest 0.2s ease-out;
+}
+.wd-touch-stick.is-active {
+    translate: -50% -50%;
+}
+@media (min-width: 1024px) {
+    .wd-touch-stick.is-resting {
+        bottom: calc(var(--ui-controls-height) + 2.25rem);
+    }
+}
+.wd-touch-stick__arrow {
+    position: absolute;
+}
+.wd-touch-stick__arrow.is-up { top: 0.4rem; }
+.wd-touch-stick__arrow.is-down { bottom: 0.4rem; }
+.wd-touch-stick__arrow.is-left { left: 0.4rem; }
+.wd-touch-stick__arrow.is-right { right: 0.4rem; }
+.wd-touch-stick__knob {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 9999px;
+    background: rgb(255 255 255 / 0.92);
+    box-shadow: 0 3px 10px rgb(0 0 0 / 0.35);
+}
+.wd-touch-stick__knob[data-walking="true"] {
+    background: var(--wd-accent);
+    box-shadow: 0 3px 10px rgb(0 0 0 / 0.35),
+        0 0 0 6px color-mix(in srgb, var(--wd-accent) 30%, transparent);
+}
+@keyframes wd-touch-stick-rest {
+    from { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .wd-touch-stick.is-resting {
+        animation: none;
+    }
+}

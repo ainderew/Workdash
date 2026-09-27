@@ -112,7 +112,11 @@ export const PhaserGame = forwardRef<IRefPhaserGame, IProps>(
         }, [currentActiveScene, ref, onGameReady]);
 
         return (
-            <div id="game-container" className="w-full h-full bg-black"></div>
+            // No browser pan, zoom or long-press menu on the map: a drag there walks
+            <div
+                id="game-container"
+                className="w-full h-full bg-black touch-none select-none [-webkit-touch-callout:none]"
+            ></div>
         );
     },
 );

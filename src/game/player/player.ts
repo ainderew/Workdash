@@ -14,6 +14,7 @@ import { EVENT_TYPES } from "../character/_enums";
 import useUiStore from "@/common/store/uiStore";
 import { depthForGroundY } from "../tallProps/groundDepth";
 import type { Facing, SeatPose } from "../seats/seatLayer";
+import { touchDirection } from "../input/touchMove";
 
 /** Frame rows kept when sitting with your back to the camera (hips and up). */
 const SIT_UP_CROP_HEIGHT = 48;
@@ -557,11 +558,12 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
             return;
         }
 
+        const touch = touchDirection();
         this.currentInput = {
-            up: this.cursors.up.isDown || this.wasd.up.isDown,
-            down: this.cursors.down.isDown || this.wasd.down.isDown,
-            left: this.cursors.left.isDown || this.wasd.left.isDown,
-            right: this.cursors.right.isDown || this.wasd.right.isDown,
+            up: this.cursors.up.isDown || this.wasd.up.isDown || touch.up,
+            down: this.cursors.down.isDown || this.wasd.down.isDown || touch.down,
+            left: this.cursors.left.isDown || this.wasd.left.isDown || touch.left,
+            right: this.cursors.right.isDown || this.wasd.right.isDown || touch.right,
         };
 
         // Detect when movement starts (was stationary, now moving)

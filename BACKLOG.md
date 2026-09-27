@@ -88,9 +88,10 @@ delete them) as they land; add new findings here rather than in chat history.
       transition state.
 - [ ] Mobile/responsive: world-mode video grid is fixed-position, sidebar
       breakpoints sparse (~60 uses repo-wide).
-- [ ] World mode has no touch controls. Movement is WASD/arrows only
-      (`src/game/player/player.ts`), so on a phone the world is view-only.
-      Needs a virtual joystick or tap-to-move.
+- [ ] The world doesn't follow a rotated phone or a resized window:
+      `Phaser.Scale.ENVELOP` (`src/game/main.ts`) keeps the size the game loaded
+      at, so a phone loaded in portrait and turned sideways shows the world ~2x
+      with the top and bottom cropped off. `Scale.RESIZE` would track the viewport.
 - [ ] Desk-mode mobile drawer overflows narrow phones: the 72px guild rail plus
       the 300/320px channel sidebar (`ChannelSidebarContainer`) exceeds a 375px
       viewport, clipping the sidebar's right edge.

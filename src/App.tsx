@@ -39,6 +39,7 @@ import WorkspaceSelectorOverlay from "./common/components/WorkspaceSelector/Work
 import { SplashLoader } from "./common/components/Splash/SplashLoader";
 import WorldLoadingScreen from "./common/components/WorldLoading/WorldLoadingScreen";
 import SeatPrompt from "./common/components/Seats/SeatPrompt";
+import TouchJoystick from "./common/components/TouchJoystick/TouchJoystick";
 import useWorkspaceStore from "@/common/store/workspaceStore";
 import useCallStore from "@/common/store/callStore";
 import useMusicStore from "@/common/store/musicStore";
@@ -393,6 +394,7 @@ function App() {
                 <FloatingPassiveCallIndicator />
             )}
             {interactionMode === "world" && <SeatPrompt />}
+            {interactionMode === "world" && <TouchJoystick />}
 
             <LoungeAutoJoinPill />
 

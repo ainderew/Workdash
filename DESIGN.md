@@ -79,8 +79,18 @@ hardcoded hex (lint enforces no raw hex in app scope).
   light in walking order, one per progress threshold, with the last one held
   for the final asset. Returning from desk mode shows the already-lit board
   with "Walking back in…" for a short hold (380ms), then the same hand-off.
+- **Touch joystick (world mode on touch screens)**: a 112px translucent dark
+  ring with a 1.5px white hairline and four small chevrons, and a 48px cream
+  knob that turns `--wd-accent` with a soft accent halo while walking. It
+  rests faint (55%) bottom-left above the world controls and jumps to wherever
+  a thumb lands on the map. It never takes touches itself, so the map stays
+  fully tappable.
 
 ## Layout
+
+- **Touch HUD**: movement under the left thumb (joystick), actions under the
+  right (the seat prompt moves bottom-right on touch screens and drops its key
+  hints). Keep new touch actions on the right, clear of the joystick's corner.
 
 - Three-column desk shell: guild rail (64px) / channel sidebar (270px) / main.
 - Spacing scale: 4 / 8 / 12 / 16 / 24.
