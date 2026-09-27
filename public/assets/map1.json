@@ -1476,8 +1476,8 @@
                  "type":"seat",
                  "visible":true,
                  "width":0,
-                 "x":1344,
-                 "y":912
+                 "x":1340,
+                 "y":898
                 }, 
                 {
                  "height":0,
@@ -1584,8 +1584,8 @@
                  "type":"seat",
                  "visible":true,
                  "width":0,
-                 "x":1344,
-                 "y":976
+                 "x":1340,
+                 "y":962
                 }, 
                 {
                  "height":0,
@@ -1819,7 +1819,7 @@
                  "visible":true,
                  "width":0,
                  "x":784,
-                 "y":1276
+                 "y":1274
                 }, 
                 {
                  "height":0,
@@ -1855,7 +1855,7 @@
                  "visible":true,
                  "width":0,
                  "x":1781,
-                 "y":1278
+                 "y":1272
                 }, 
                 {
                  "height":0,
@@ -1873,7 +1873,7 @@
                  "visible":true,
                  "width":0,
                  "x":1824,
-                 "y":1278
+                 "y":1272
                 }, 
                 {
                  "height":0,
@@ -1891,7 +1891,7 @@
                  "visible":true,
                  "width":0,
                  "x":1867,
-                 "y":1278
+                 "y":1272
                 }, 
                 {
                  "height":0,
@@ -1944,8 +1944,8 @@
                  "type":"seat",
                  "visible":true,
                  "width":0,
-                 "x":672,
-                 "y":1488
+                 "x":668,
+                 "y":1474
                 }, 
                 {
                  "height":0,
@@ -1962,8 +1962,8 @@
                  "type":"seat",
                  "visible":true,
                  "width":0,
-                 "x":768,
-                 "y":1488
+                 "x":772,
+                 "y":1474
                 }, 
                 {
                  "height":0,
@@ -3530,7 +3530,7 @@
                  "y":1248
                 }, 
                 {
-                 "height":64,
+                 "height":32,
                  "id":211,
                  "name":"",
                  "properties":[
@@ -3544,7 +3544,7 @@
                  "visible":true,
                  "width":32,
                  "x":768,
-                 "y":1248
+                 "y":1280
                 }, 
                 {
                  "height":32,
@@ -3868,6 +3868,74 @@
                  "width":32,
                  "x":1920,
                  "y":1674
+                }, 
+                {
+                 "height":22,
+                 "id":231,
+                 "name":"",
+                 "properties":[
+                        {
+                         "name":"layers",
+                         "type":"string",
+                         "value":"Furniture"
+                        }],
+                 "rotation":0,
+                 "type":"front",
+                 "visible":true,
+                 "width":64,
+                 "x":1312,
+                 "y":906
+                }, 
+                {
+                 "height":22,
+                 "id":232,
+                 "name":"",
+                 "properties":[
+                        {
+                         "name":"layers",
+                         "type":"string",
+                         "value":"Furniture"
+                        }],
+                 "rotation":0,
+                 "type":"front",
+                 "visible":true,
+                 "width":64,
+                 "x":1312,
+                 "y":970
+                }, 
+                {
+                 "height":22,
+                 "id":233,
+                 "name":"",
+                 "properties":[
+                        {
+                         "name":"layers",
+                         "type":"string",
+                         "value":"Furniture"
+                        }],
+                 "rotation":0,
+                 "type":"front",
+                 "visible":true,
+                 "width":64,
+                 "x":640,
+                 "y":1482
+                }, 
+                {
+                 "height":22,
+                 "id":234,
+                 "name":"",
+                 "properties":[
+                        {
+                         "name":"layers",
+                         "type":"string",
+                         "value":"Furniture"
+                        }],
+                 "rotation":0,
+                 "type":"front",
+                 "visible":true,
+                 "width":64,
+                 "x":736,
+                 "y":1482
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -3876,7 +3944,7 @@
          "y":0
         }],
  "nextlayerid":34,
- "nextobjectid":231,
+ "nextobjectid":235,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.11.2",
