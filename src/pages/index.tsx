@@ -9,7 +9,7 @@ import {
 } from "@/common/config/site";
 import { motion, useScroll, useSpring } from "framer-motion";
 import { Hero } from "../components/landingPage/heroSection/hero";
-import { Features } from "../components/landingPage/featuresSection/features";
+import { WalkIn } from "../components/landingPage/walkInSection/walkIn";
 import { Marquee } from "../components/landingPage/marquee/marquee";
 import { DemoSection } from "../components/landingPage/demoSection/demoSection";
 import { Status } from "../components/landingPage/statusSection/status";
@@ -83,7 +83,7 @@ export default function LandingPage() {
                 <Navbar />
                 <Hero />
                 <Marquee />
-                <Features />
+                <WalkIn />
                 <DemoSection />
                 <Status />
                 <Faq />

@@ -1,0 +1,4 @@
+{
+  "prompt": "Generated on Higgsfield with MiniMax H3 (2K, 8 s, job a73b15b8-150f-4898-aeb5-0594bff0ba8c, 16 credits) from a start frame and an end frame. Start frame: a gpt_image_2_5 still of a night desk (job c29f5683-791e-42c2-8982-266323b774cd) with the monitor's screen replaced by the end frame, composited in ImageMagick. End frame: public/assets/walk-in-world.3193c310.webp extended with grass to 2400x1350 around map pixel (1016, 880), the live map camera's first key in timeline.ts. Prompt: one continuous forward dolly from the wide desk shot into the monitor until the on-screen map fills the frame and matches the end frame; no cuts, no rotation, pixel art unchanged. Post: trimmed to the first 148 frames (the push lands at frame 144), audio removed, scaled to 1600x900, ffmpeg libx264 -crf 26 -g 6 -keyint_min 6 -sc_threshold 0 -bf 0 -movflags +faststart. If the map changes, regenerate the end frame and this clip.",
+  "createdAt": "2026-10-02T04:57:00.000Z"
+}

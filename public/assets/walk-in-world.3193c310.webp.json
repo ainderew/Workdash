@@ -1,0 +1,4 @@
+{
+  "prompt": "Origin: rendered (not generated) from public/assets/map1.json and the tilesets in public/assets/tile-sets by scripts/render-map-preview.swift at scale 0.5, cropped to the 127x110-tile world bounds, then cwebp -q 82 -m 6. Used by the landing page's walk-in section (WORLD_RASTER in src/components/landingPage/walkInSection/timeline.ts). Regenerate after any map change.",
+  "createdAt": "2026-10-02T04:50:00.000Z"
+}
