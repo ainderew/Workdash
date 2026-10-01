@@ -1,11 +1,17 @@
 import React from "react";
 import useUiStore from "@/common/store/uiStore";
+import { useMediaQuery } from "@/common/hooks/useMediaQuery";
 
 export default function PingDisplay() {
     const ping = useUiStore((state) => state.ping);
     const interactionMode = useUiStore((state) => state.interactionMode);
+    const isChatWindowOpen = useUiStore((state) => state.isChatWindowOpen);
+    // Below `lg` the chat drawer reaches the left edge, so this badge would
+    // sit on top of the drawer's header buttons.
+    const isBelowLg = useMediaQuery("(max-width: 1023px)");
 
     if (ping === null || interactionMode === "desk") return null;
+    if (isChatWindowOpen && isBelowLg) return null;
 
     const getPingColor = (p: number) => {
         if (p < 100) return "text-green-400";
