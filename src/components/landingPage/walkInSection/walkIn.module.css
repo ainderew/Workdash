@@ -1,0 +1,565 @@
+/* The walk-in section: a 25 s scroll-scrubbed film (see timeline.ts).
+   The page around the film (background, title, end card) uses the landing
+   page's theme tokens. Copy that sits on the footage stays light on a dark
+   scrim in every theme, because the footage itself is a night scene. */
+
+.section {
+    /* ink for copy over the footage */
+    --wi-ink: #f5f5f7;
+    --wi-ink-2: #86868b;
+    --wi-ink-3: #a1a1a6;
+    --wi-accent: var(--wd-landing-accent);
+    --wi-accent-text: #ff8a3d;
+    --wi-grad: linear-gradient(90deg, var(--wd-landing-accent), var(--wd-landing-accent-hover));
+    --wi-grass: rgb(99 166 80);
+    --wi-lamp: #ffd9a0;
+    --wi-sage: #97c27f;
+    --wi-label-bg: rgb(18 13 10 / 0.82);
+    /* the site navbar is fixed over the top of the stage */
+    --wi-nav: 80px;
+    position: relative;
+    background: var(--wd-surface-base);
+}
+
+.track {
+    position: relative;
+    height: 700vh;
+}
+
+.sticky {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    height: 100svh;
+}
+
+/* ── stage ── */
+
+.stage {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: var(--wd-surface-base);
+    isolation: isolate;
+    font-size: 16px;
+    user-select: none;
+}
+
+.stage img {
+    max-width: none;
+}
+
+.still {
+    --wi-nav: 0px;
+    height: auto;
+    aspect-ratio: 16 / 9;
+    border-radius: 20px;
+}
+
+/* the film: grows from a card to full screen and closes back into one */
+.media {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    transform-origin: 50% 50%;
+    will-change: transform, clip-path;
+    background: var(--wi-grass);
+    /* resting state before the first frame renders: the opening card */
+    transform: translateY(12%) scale(0.56);
+    clip-path: inset(0 round 40px);
+}
+
+.inner {
+    position: absolute;
+    inset: 0;
+    transform-origin: 50% 50%;
+}
+
+.layer {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+}
+
+.intro {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    background: #0d0907;
+}
+
+.cam {
+    position: absolute;
+    left: 0;
+    top: 0;
+    transform-origin: 0 0;
+    will-change: transform;
+}
+
+.world {
+    width: 2032px;
+    height: 1760px;
+}
+
+.map,
+.dim {
+    position: absolute;
+    inset: 0;
+    width: 2032px;
+    height: 1760px;
+    image-rendering: pixelated;
+}
+
+.dim {
+    filter: brightness(0.3) saturate(0.45) sepia(0.35);
+    opacity: 0;
+}
+
+.pool {
+    position: absolute;
+    border-radius: 50%;
+    background-repeat: no-repeat;
+    background-size: 2032px 1760px;
+    image-rendering: pixelated;
+    -webkit-mask-image: radial-gradient(circle, #000 52%, transparent 71%);
+    mask-image: radial-gradient(circle, #000 52%, transparent 71%);
+    opacity: 0;
+}
+
+.lamp {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    margin: -5px 0 0 -5px;
+    border-radius: 50%;
+    background: var(--wi-lamp);
+    box-shadow: 0 0 18px 8px rgb(255 190 110 / 0.75);
+    opacity: 0;
+}
+
+.lampLabel {
+    position: absolute;
+    transform: translate(-50%, 0.9em);
+    white-space: nowrap;
+    font-weight: 600;
+    line-height: 1;
+    color: var(--wi-ink);
+    background: var(--wi-label-bg);
+    border: 1px solid rgb(240 163 94 / 0.5);
+    padding: 0.4em 0.6em;
+    border-radius: 0.55em;
+    opacity: 0;
+}
+
+.lampLabelAbove {
+    transform: translate(-50%, calc(-100% - 0.9em));
+}
+
+.lampLabel i {
+    display: inline-block;
+    width: 0.45em;
+    height: 0.45em;
+    border-radius: 50%;
+    background: var(--wi-sage);
+    margin-right: 0.4em;
+    vertical-align: 0.1em;
+}
+
+.sprite {
+    position: absolute;
+    width: 16px;
+    height: 32px;
+    background-repeat: no-repeat;
+    background-size: 384px 32px;
+    image-rendering: pixelated;
+}
+
+.ring {
+    position: absolute;
+    border-radius: 50%;
+    border: 2px solid rgb(232 93 4 / 0.9);
+    background: radial-gradient(circle, rgb(232 93 4 / 0.18), rgb(232 93 4 / 0.04) 70%);
+    opacity: 0;
+}
+
+.bubble {
+    position: absolute;
+    white-space: nowrap;
+    font-weight: 700;
+    line-height: 1;
+    color: #1d1511;
+    background: #fff7ec;
+    padding: 0.4em 0.6em;
+    border-radius: 0.55em;
+    opacity: 0;
+    transform-origin: 50% 100%;
+}
+
+.roomOutline {
+    position: absolute;
+    border: 2px dashed rgb(232 93 4 / 0.95);
+    border-radius: 6px;
+    background: rgb(232 93 4 / 0.08);
+    opacity: 0;
+}
+
+.roomTag {
+    position: absolute;
+    transform: translateX(-100%);
+    font-weight: 700;
+    line-height: 1;
+    color: #fff;
+    background: var(--wi-accent);
+    padding: 0.4em 0.6em;
+    border-radius: 0.5em;
+    white-space: nowrap;
+    opacity: 0;
+}
+
+.emote {
+    position: absolute;
+    width: 16px;
+    height: auto;
+    image-rendering: pixelated;
+    opacity: 0;
+}
+
+.confetti {
+    position: absolute;
+    width: 3px;
+    height: 3px;
+    opacity: 0;
+}
+
+/* game UI baked into the film */
+.tiles {
+    position: absolute;
+    left: 50%;
+    top: calc(var(--wi-nav) + 2%);
+    display: flex;
+    gap: 0.7em;
+    transform: translateX(-50%);
+}
+
+.tile {
+    position: relative;
+    width: 11em;
+    aspect-ratio: 16 / 10;
+    border-radius: 0.7em;
+    overflow: hidden;
+    background: #1d1511;
+    border: 2px solid rgb(255 255 255 / 0.1);
+    box-shadow: 0 0.6em 1.6em rgb(0 0 0 / 0.45);
+    opacity: 0;
+}
+
+.tile img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.tileOff img {
+    width: 46%;
+    height: auto;
+    margin: 6% auto 0;
+    image-rendering: pixelated;
+}
+
+.tileSpeaking {
+    border-color: var(--wi-sage);
+}
+
+.tile b {
+    position: absolute;
+    left: 0.5em;
+    bottom: 0.45em;
+    font-size: 0.72em;
+    font-weight: 700;
+    color: #fff;
+    background: rgb(0 0 0 / 0.55);
+    padding: 0.2em 0.5em;
+    border-radius: 0.4em;
+}
+
+.online {
+    position: absolute;
+    right: 3%;
+    top: calc(var(--wi-nav) + 2%);
+    font-size: 0.82em;
+    font-weight: 700;
+    color: var(--wi-ink);
+    background: rgb(18 13 10 / 0.85);
+    border: 1px solid rgb(255 255 255 / 0.12);
+    border-radius: 999px;
+    padding: 0.45em 0.9em;
+    opacity: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+}
+
+.online i {
+    width: 0.55em;
+    height: 0.55em;
+    border-radius: 50%;
+    background: var(--wi-sage);
+}
+
+.scrim {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0;
+    background:
+        linear-gradient(to top, rgb(0 0 0 / 0.88), rgb(0 0 0 / 0.55) 42%, rgb(0 0 0 / 0.14) 72%),
+        linear-gradient(to right, rgb(0 0 0 / 0.55), transparent 62%);
+}
+
+.vignette {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(ellipse 78% 72% at 50% 45%, transparent 55%, rgb(0 0 0 / 0.42));
+}
+
+.grain {
+    position: absolute;
+    inset: -40px;
+    pointer-events: none;
+    opacity: 0.08;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+
+/* ── copy over the film (scroll-driven) ── */
+
+.copy {
+    position: absolute;
+    color: var(--wi-ink);
+    -webkit-font-smoothing: antialiased;
+    pointer-events: none;
+    opacity: 0;
+    will-change: transform, opacity;
+}
+
+.copy h2,
+.copy h3 {
+    margin: 0;
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    line-height: 1.04;
+    text-wrap: balance;
+}
+
+.grad {
+    background: var(--wi-grad);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.title {
+    left: 6%;
+    right: 6%;
+    top: var(--wi-nav);
+    height: calc(35% - var(--wi-nav));
+    display: grid;
+    place-content: center;
+    text-align: center;
+    opacity: 1;
+}
+
+.title h2 {
+    font-size: 4.6em;
+    color: var(--wd-text-primary);
+}
+
+.statement {
+    left: 11%;
+    right: 11%;
+    bottom: 11%;
+    margin: 0;
+    text-align: center;
+    font-size: 2.15em;
+    font-weight: 600;
+    line-height: 1.18;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+}
+
+.beat {
+    left: 6%;
+    bottom: 9%;
+    width: 34em;
+    max-width: 60%;
+    opacity: 1;
+}
+
+.beat > * {
+    opacity: 0;
+    will-change: transform, opacity;
+}
+
+.eyebrow {
+    font-size: 1.05em;
+    font-weight: 600;
+    color: var(--wi-accent-text);
+    margin: 0 0 0.55em;
+    letter-spacing: -0.005em;
+}
+
+.beat h3 {
+    font-size: 4.2em;
+    margin-bottom: 0.32em;
+}
+
+.beat h3 span {
+    color: var(--wi-ink-2);
+}
+
+.beat p:last-child {
+    margin: 0;
+    font-size: 1.22em;
+    line-height: 1.42;
+    color: var(--wi-ink-3);
+    max-width: 27em;
+    letter-spacing: -0.005em;
+}
+
+.beat p:last-child b {
+    color: var(--wi-ink);
+    font-weight: 600;
+}
+
+.presence {
+    left: 6%;
+    bottom: 10%;
+    width: 28em;
+    max-width: 66%;
+}
+
+.presence h3 {
+    font-size: 2.7em;
+    letter-spacing: -0.025em;
+    line-height: 1.14;
+}
+
+.presence p:last-child {
+    margin: 0.8em 0 0;
+    font-size: 1.22em;
+    color: var(--wi-ink-3);
+}
+
+.end {
+    left: 6%;
+    right: 6%;
+    top: calc(var(--wi-nav) + 3%);
+    display: grid;
+    justify-items: center;
+    text-align: center;
+    gap: 0.95em;
+}
+
+.end h3 {
+    font-size: 3.9em;
+    color: var(--wd-text-primary);
+}
+
+.cta {
+    display: flex;
+    gap: 1.6em;
+    align-items: center;
+    font-size: 1.08em;
+    pointer-events: auto;
+}
+
+.link {
+    color: var(--wd-landing-accent);
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.link:hover {
+    color: var(--wd-landing-accent-hover);
+    text-decoration: underline;
+}
+
+.cta a:focus-visible {
+    outline: 2px solid var(--wd-text-primary);
+    outline-offset: 3px;
+}
+
+.word {
+    opacity: 0.2;
+}
+
+/* ── phones ── */
+
+.stage[data-portrait="true"] .title {
+    height: calc(32% - var(--wi-nav));
+}
+
+.stage[data-portrait="true"] .title h2 {
+    font-size: 3.5em;
+}
+
+.stage[data-portrait="true"] .statement {
+    left: 7%;
+    right: 7%;
+    bottom: 9%;
+    font-size: 1.75em;
+}
+
+.stage[data-portrait="true"] .beat,
+.stage[data-portrait="true"] .presence {
+    left: 7%;
+    right: 7%;
+    width: auto;
+    max-width: none;
+    bottom: 7%;
+}
+
+.stage[data-portrait="true"] .beat h3 {
+    font-size: 3.3em;
+}
+
+.stage[data-portrait="true"] .presence h3 {
+    font-size: 2.2em;
+}
+
+.stage[data-portrait="true"] .end {
+    top: calc(var(--wi-nav) + 2%);
+}
+
+.stage[data-portrait="true"] .end h3 {
+    font-size: 3em;
+}
+
+.stage[data-portrait="true"] .cta {
+    flex-direction: column;
+    gap: 0.9em;
+}
+
+.stage[data-portrait="true"] .tiles {
+    top: calc(var(--wi-nav) + 3%);
+}
+
+.stage[data-portrait="true"] .tile {
+    width: 8.5em;
+}
+
+/* ── reduced motion: a few still frames in normal flow ── */
+
+.stills {
+    display: grid;
+    gap: 24px;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 96px 24px;
+}
