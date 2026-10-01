@@ -8,6 +8,8 @@ export const shortcuts: KeyboardShortcut[] = [
     label: 'Toggle Desk/World mode',
     key: 'd',
     platformOverrides: { mac: ['meta'], other: ['alt'] },
+    // Cmd/Alt+D never types a character, so the switch also works mid-message.
+    ignoreWhenTyping: false,
     handler: () => {
       useUiStore.getState().toggleInteractionMode();
     },

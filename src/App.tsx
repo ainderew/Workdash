@@ -53,6 +53,7 @@ import { useLoungeNudges } from "@/common/hooks/useLoungeNudges";
 import { SoundboardService } from "./communication/soundboard/soundboardService";
 import FloatingPassiveCallIndicator from "./common/components/DeskMode/FloatingPassiveCallIndicator";
 import LoungeAutoJoinPill from "./common/components/DeskMode/LoungeAutoJoinPill";
+import OnboardingTips from "./common/components/OnboardingTips/OnboardingTips";
 
 function resolveModeFromStorage(): InteractionMode | null {
     const params = new URLSearchParams(window.location.search);
@@ -401,6 +402,7 @@ function App() {
             <ReactionToast />
             <CharacterCustomizationButton />
             <CommandPalette />
+            <OnboardingTips />
             <PollDisplay />
             <PollNotification />
             <SoccerScoreboard />

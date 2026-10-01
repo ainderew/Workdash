@@ -4044,3 +4044,279 @@ input[type="range"].wd-volume-slider::-moz-range-progress {
         animation: none;
     }
 }
+
+/* ── Onboarding tips — a lamp lights the real control, a card hangs off it ──
+   Den tokens are accent-derived, so the tips re-tint with the chosen theme.
+   Halo, spark and card sit at z-45: over the world dock (z-40), under any
+   modal (z-50), so a modal always covers a tip. */
+
+/* Doubled attribute so it also beats the controls' own :hover rules */
+[data-onboarding-target][data-onboarding-lit] {
+    color: var(--wd-den-ember);
+    background: color-mix(in srgb, var(--wd-accent) 24%, var(--wd-surface-elevated));
+    box-shadow:
+        inset 0 0 0 1px color-mix(in srgb, var(--wd-den-ember) 75%, transparent),
+        0 6px 18px -6px rgb(var(--wd-accent-rgb) / 0.55);
+}
+
+/* Screen-blended over the control with a clear core, so it reads as light
+   spilling around the button rather than a disc covering it */
+.wd-tip-halo {
+    position: fixed;
+    z-index: 45;
+    border-radius: 50%;
+    pointer-events: none;
+    translate: -50% -50%;
+    mix-blend-mode: screen;
+    background: radial-gradient(
+        closest-side,
+        transparent calc(var(--wd-tip-core, 24%) * 0.8),
+        color-mix(in srgb, var(--wd-den-ember) 55%, transparent) calc(var(--wd-tip-core, 24%) + 10%),
+        rgb(var(--wd-accent-rgb) / 0.22) 60%,
+        transparent
+    );
+    animation:
+        wd-tip-halo-in 1.2s cubic-bezier(0.16, 1, 0.3, 1) both,
+        wd-tip-halo-breathe 3.4s ease-in-out 1.2s infinite;
+}
+
+.wd-tip-spark {
+    position: fixed;
+    z-index: 45;
+    box-sizing: border-box;
+    border: 2px solid var(--wd-den-ember);
+    pointer-events: none;
+    opacity: 0;
+    animation: wd-tip-spark 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.08s both;
+}
+
+.wd-tip {
+    position: fixed;
+    z-index: 45;
+    box-sizing: border-box;
+    padding: 16px 16px 12px;
+    border-radius: 16px;
+    border: 1px solid var(--wd-den-border);
+    color: var(--wd-text-primary);
+    background: radial-gradient(
+        130% 100% at var(--wd-tip-lx, 50%) 100%,
+        var(--wd-den-bg-0) 0%,
+        var(--wd-den-bg-1) 36%,
+        var(--wd-den-bg-2) 68%,
+        var(--wd-surface-panel) 100%
+    );
+    box-shadow:
+        0 28px 56px -18px rgb(0 0 0 / 0.78),
+        0 6px 16px -4px rgb(0 0 0 / 0.45),
+        inset 0 1px 0 color-mix(in srgb, var(--wd-den-ember) 8%, transparent);
+    animation: wd-tip-rise 0.46s cubic-bezier(0.16, 1, 0.3, 1) 0.18s both;
+}
+/* Lit from whichever side the lamp is on */
+.wd-tip[data-placement="below"] {
+    background: radial-gradient(
+        130% 100% at var(--wd-tip-lx, 50%) 0%,
+        var(--wd-den-bg-0) 0%,
+        var(--wd-den-bg-1) 36%,
+        var(--wd-den-bg-2) 68%,
+        var(--wd-surface-panel) 100%
+    );
+    animation-name: wd-tip-drop;
+}
+.wd-tip[data-placement="above"][data-square-corner="left"] { border-bottom-left-radius: 8px; }
+.wd-tip[data-placement="above"][data-square-corner="right"] { border-bottom-right-radius: 8px; }
+.wd-tip[data-placement="below"][data-square-corner="left"] { border-top-left-radius: 8px; }
+.wd-tip[data-placement="below"][data-square-corner="right"] { border-top-right-radius: 8px; }
+
+.wd-tip__caret {
+    position: absolute;
+    left: var(--wd-tip-caret-x, 50%);
+    width: 14px;
+    height: 14px;
+    margin-left: -7px;
+    box-sizing: border-box;
+    background: var(--wd-den-bg-0);
+    border: 1px solid var(--wd-den-border);
+    transform: rotate(45deg);
+}
+.wd-tip[data-placement="above"] .wd-tip__caret {
+    bottom: -8px;
+    border-top-color: transparent;
+    border-left-color: transparent;
+}
+.wd-tip[data-placement="below"] .wd-tip__caret {
+    top: -8px;
+    border-bottom-color: transparent;
+    border-right-color: transparent;
+}
+
+.wd-tip__title {
+    margin: 0 0 6px;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.35;
+}
+.wd-tip__body {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--wd-text-secondary);
+}
+.wd-tip__hint {
+    margin: 10px 0 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--wd-text-muted);
+}
+.wd-tip__key {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 5px;
+    box-sizing: border-box;
+    border-radius: 6px;
+    border: 1px solid var(--wd-border-strong);
+    border-bottom-width: 2px;
+    background: var(--wd-surface-panel-2);
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1;
+    color: var(--wd-text-primary);
+}
+.wd-tip__foot {
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid color-mix(in srgb, var(--wd-den-border) 55%, transparent);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+.wd-tip__steps {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--wd-text-muted);
+}
+.wd-tip__pip {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--wd-border-strong);
+}
+.wd-tip__pip[data-current] {
+    background: var(--wd-den-ember);
+}
+.wd-tip__count {
+    margin-left: 4px;
+}
+.wd-tip__dismiss {
+    height: 28px;
+    padding: 0 12px;
+    border-radius: 10px;
+    border: 1px solid var(--wd-border-strong);
+    background: transparent;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--wd-text-secondary);
+    cursor: pointer;
+}
+.wd-tip__dismiss:hover {
+    background: var(--wd-surface-elevated);
+    border-color: var(--wd-den-border);
+    color: var(--wd-text-primary);
+}
+.wd-tip__dismiss:focus-visible {
+    outline: 2px solid var(--wd-accent);
+    outline-offset: 2px;
+}
+@media (prefers-reduced-motion: no-preference) {
+    .wd-tip__dismiss {
+        transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+    }
+}
+
+/* Phones: a size up, and a full touch target on the dismiss button */
+@media (pointer: coarse) {
+    .wd-tip__title { font-size: 15px; }
+    .wd-tip__body { font-size: 14px; }
+    .wd-tip__hint { font-size: 13px; }
+    .wd-tip__steps { font-size: 12px; }
+    .wd-tip__dismiss {
+        height: 44px;
+        padding: 0 18px;
+        border-radius: 12px;
+        font-size: 13px;
+    }
+}
+
+@keyframes wd-tip-rise {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: none; }
+}
+@keyframes wd-tip-drop {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: none; }
+}
+@keyframes wd-tip-halo-in {
+    from { opacity: 0; transform: scale(0.55); }
+    to { opacity: 1; transform: scale(1); }
+}
+@keyframes wd-tip-halo-breathe {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(0.88); }
+}
+@keyframes wd-tip-spark {
+    0% { opacity: 0.95; transform: scale(0.92); }
+    100% { opacity: 0; transform: scale(1.9); }
+}
+@keyframes wd-tip-fade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Light isn't motion: the lamp stays lit, nothing moves, the card fades in */
+@media (prefers-reduced-motion: reduce) {
+    .wd-tip-halo {
+        animation: none;
+        opacity: 0.75;
+    }
+    .wd-tip-spark {
+        display: none;
+    }
+    .wd-tip,
+    .wd-tip[data-placement="below"] {
+        animation: wd-tip-fade 0.2s ease-out both;
+    }
+}
+
+/* Over the world on touch screens the joystick must keep working under a
+   tip: the card lets touches through to the map (only "Got it" takes them),
+   and the lamp and card fade back while a thumb is walking. filter, not
+   opacity, because the entrance animations' fill would win over opacity. */
+@media (pointer: coarse) {
+    .wd-tip[data-over-world] {
+        pointer-events: none;
+    }
+    .wd-tip[data-over-world] .wd-tip__dismiss {
+        pointer-events: auto;
+    }
+}
+body:has(.wd-touch-stick.is-active) :is(.wd-tip[data-over-world], .wd-tip-halo, .wd-tip-spark) {
+    filter: opacity(0.3);
+}
+@media (prefers-reduced-motion: no-preference) {
+    .wd-tip,
+    .wd-tip-halo {
+        transition: filter 0.2s ease-out;
+    }
+}

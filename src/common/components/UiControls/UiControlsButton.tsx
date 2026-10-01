@@ -19,6 +19,8 @@ interface UiControlsButtonProps {
     size?: string;
     onClick?: () => void;
     badgeCount?: number;
+    /** Lets an onboarding tip find and light this button. */
+    onboardingTarget?: string;
 }
 
 const sizeMap: Record<ButtonSizeEnum, string> = {
@@ -52,12 +54,14 @@ function UiControlsButton({
     size = ButtonSizeEnum.regular,
     onClick,
     badgeCount,
+    onboardingTarget,
 }: UiControlsButtonProps) {
     return (
         <Tooltip>
             <TooltipTrigger className="cursor-pointer relative">
                 <Button
                     onClick={onClick}
+                    data-onboarding-target={onboardingTarget}
                     variant="default"
                     size="icon"
                     className={`cursor-pointer dark wd-bg-elevated hover:bg-[var(--wd-surface-base)] hover:text-[var(--wd-text-primary)]

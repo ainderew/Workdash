@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Bell, ChevronDown, Search, UserRoundPlus, X } from "lucide-react";
+import { Bell, ChevronDown, ChevronLeft, Menu, Search, UserRoundPlus, X } from "lucide-react";
 import useChatV2Store from "@/common/store/chatV2Store";
 import useUserStore from "@/common/store/useStore";
 import ChannelHashIcon from "./ChannelHashIcon";
@@ -13,6 +13,7 @@ import ThreadPanel from "./ThreadPanel";
 import UserNotificationsPanel from "./UserNotificationsPanel";
 import { getDisplayName } from "@/common/utils/displayName";
 import { useResolveUserName } from "@/common/hooks/useResolveUserName";
+import { useMediaQuery } from "@/common/hooks/useMediaQuery";
 import { formatChatMessageTimestamp } from "@/common/utils/messageTimestamp";
 
 import { buildMemberColorMap } from "@/common/utils/roleColor";
@@ -31,6 +32,13 @@ const toSearchSnippet = (message: ChatV2Message) => {
     }
     return "(no text)";
 };
+
+// Below Tailwind's `md` breakpoint the drawer is phone-width, too narrow for
+// the rail + room list + chat side by side, so it shows one pane at a time.
+const NARROW_VIEWPORT_QUERY = "(max-width: 767px)";
+
+const headerIconButtonClass =
+    "h-8 w-8 shrink-0 inline-flex items-center justify-center rounded-md border wd-border-subtle wd-bg-elevated wd-text-secondary transition-colors hover:wd-text-primary hover:bg-[var(--wd-surface-base)]";
 
 const byCreatedAtAsc = (a: ChatV2Message, b: ChatV2Message) => {
     const aTime = new Date(a.createdAt).getTime();
@@ -117,6 +125,8 @@ function CompactChatShell({ onClose }: CompactChatShellProps) {
     const [isLoadingThread, setIsLoadingThread] = useState(false);
     const [threadError, setThreadError] = useState<string | null>(null);
     const [memberRoleColors, setMemberRoleColors] = useState<Map<number, string>>(new Map());
+    const isNarrow = useMediaQuery(NARROW_VIEWPORT_QUERY);
+    const [mobilePane, setMobilePane] = useState<"chat" | "rooms">("chat");
     const searchRequestIdRef = useRef(0);
     const roomPickerRef = useRef<HTMLDivElement | null>(null);
     const notificationsRef = useRef<HTMLDivElement | null>(null);
@@ -436,6 +446,23 @@ function CompactChatShell({ onClose }: CompactChatShellProps) {
         });
     }, [activeThreadRootId, roomMessages]);
 
+    const openRoomFromList = (roomId: string) => {
+        void selectRoom(roomId);
+        setMobilePane("chat");
+    };
+
+    const closeButton = (
+        <button
+            type="button"
+            onClick={onClose}
+            className={headerIconButtonClass}
+            aria-label="Close chat"
+            title="Close chat"
+        >
+            <X size={16} />
+        </button>
+    );
+
     const loadThread = async (rootMessageId: string, roomIdOverride?: string) => {
         const threadRoomId = roomIdOverride || currentRoomId;
         if (!threadRoomId) return;
@@ -460,6 +487,10 @@ function CompactChatShell({ onClose }: CompactChatShellProps) {
     return (
         <ProfilePopoverProvider>
         <section className="h-full min-h-0 flex wd-bg-app overflow-hidden wd-desk-mode-filled-icons">
+            <div
+                hidden={isNarrow && mobilePane !== "rooms"}
+                className={`min-h-0 flex ${isNarrow ? "flex-1 min-w-0" : "shrink-0"}`}
+            >
             <GuildRail
                 workspaces={workspaceOptions}
                 railView={railView}
@@ -484,11 +515,26 @@ function CompactChatShell({ onClose }: CompactChatShellProps) {
                 }}
             />
 
-            <aside className="w-56 shrink-0 border-r wd-border-subtle wd-bg-panel min-h-0 flex flex-col">
-                <div className="px-3 h-12 border-b wd-border-subtle flex items-center">
-                    <p className="text-sm font-semibold wd-text-primary">
+            <aside
+                aria-label={railView === "dm" ? "Direct Messages" : "Rooms"}
+                className={`${isNarrow ? "flex-1 min-w-0" : "w-56 shrink-0 border-r wd-border-subtle"} wd-bg-panel min-h-0 flex flex-col`}
+            >
+                <div className="px-3 h-12 border-b wd-border-subtle flex items-center gap-2">
+                    {isNarrow ? (
+                        <button
+                            type="button"
+                            onClick={() => setMobilePane("chat")}
+                            className={headerIconButtonClass}
+                            aria-label="Back to chat"
+                            title="Back to chat"
+                        >
+                            <ChevronLeft size={16} />
+                        </button>
+                    ) : null}
+                    <p className="flex-1 min-w-0 truncate text-sm font-semibold wd-text-primary">
                         {railView === "dm" ? "Direct Messages" : "Rooms"}
                     </p>
+                    {isNarrow ? closeButton : null}
                 </div>
 
                 {railView === "dm" ? (
@@ -523,6 +569,7 @@ function CompactChatShell({ onClose }: CompactChatShellProps) {
                                         type="button"
                                         onClick={() => {
                                             void openDirectMessage(entry.peerUser.id);
+                                            setMobilePane("chat");
                                         }}
                                         className="w-full px-2 py-1.5 rounded-md text-left text-xs wd-text-primary transition-colors hover:bg-[var(--wd-surface-elevated)] flex items-center justify-between gap-2"
                                     >
@@ -553,9 +600,7 @@ function CompactChatShell({ onClose }: CompactChatShellProps) {
                                     <button
                                         key={entry.directRoomId}
                                         type="button"
-                                        onClick={() => {
-                                            void selectRoom(entry.room.id);
-                                        }}
+                                        onClick={() => openRoomFromList(entry.room.id)}
                                         className={`w-full px-2 py-1.5 rounded-md text-left text-xs transition-colors flex items-center justify-between gap-2 ${
                                             isActive
                                                 ? "wd-bg-accent-soft wd-text-accent"
@@ -590,9 +635,7 @@ function CompactChatShell({ onClose }: CompactChatShellProps) {
                                 <button
                                     key={room.id}
                                     type="button"
-                                    onClick={() => {
-                                        void selectRoom(room.id);
-                                    }}
+                                    onClick={() => openRoomFromList(room.id)}
                                     className={`w-full px-2 py-1.5 rounded-md text-left text-xs transition-colors flex items-center justify-between gap-2 ${
                                         isActive
                                             ? "wd-bg-accent-soft wd-text-accent"
@@ -611,22 +654,35 @@ function CompactChatShell({ onClose }: CompactChatShellProps) {
                     )}
                 </div>
             </aside>
+            </div>
 
-            <div className="flex-1 min-w-0 min-h-0 flex flex-col">
+            <div
+                hidden={isNarrow && mobilePane !== "chat"}
+                className="flex-1 min-w-0 min-h-0 flex flex-col"
+            >
                 <header className="px-3 py-3 border-b wd-border-subtle wd-bg-panel-2 shrink-0">
                     <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-semibold wd-text-primary truncate">
-                            {railView === "dm" ? "2D DM Chat" : "2D Chat"}
-                        </p>
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="h-8 w-8 inline-flex items-center justify-center rounded-md border wd-border-subtle wd-bg-elevated wd-text-secondary transition-colors hover:wd-text-primary hover:bg-[var(--wd-surface-base)]"
-                            aria-label="Close chat"
-                            title="Close chat"
-                        >
-                            <X size={16} />
-                        </button>
+                        <div className="min-w-0 flex items-center gap-2">
+                            {isNarrow ? (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setIsRoomPickerOpen(false);
+                                        setIsNotificationsOpen(false);
+                                        setMobilePane("rooms");
+                                    }}
+                                    className={headerIconButtonClass}
+                                    aria-label={railView === "dm" ? "Show direct messages" : "Show rooms"}
+                                    title={railView === "dm" ? "Show direct messages" : "Show rooms"}
+                                >
+                                    <Menu size={16} />
+                                </button>
+                            ) : null}
+                            <p className="text-sm font-semibold wd-text-primary truncate">
+                                {railView === "dm" ? "2D DM Chat" : "2D Chat"}
+                            </p>
+                        </div>
+                        {closeButton}
                     </div>
 
                     <div className="mt-2">

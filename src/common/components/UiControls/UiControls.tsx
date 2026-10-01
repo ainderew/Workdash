@@ -149,6 +149,7 @@ function UiControls({ isVisible = true }: UiControlsProps) {
                         onClick={toggleInteractionMode}
                         icon={interactionMode === "world" ? Monitor : Map}
                         label={interactionMode === "world" ? "Desk Mode" : "2D Mode"}
+                        onboardingTarget={interactionMode === "world" ? "desk-mode" : "world-mode"}
                     />
 
                     <UiControlsButton
@@ -161,6 +162,7 @@ function UiControls({ isVisible = true }: UiControlsProps) {
                         onClick={toggleChatWindow}
                         icon={MessageCircle}
                         label={"Chat"}
+                        onboardingTarget="chat"
                     />
 
                     <UiOnlineButton onClick={toggleMembersUi} />
