@@ -52,6 +52,8 @@ interface UiState {
     ping: number | null;
     setPing: (ping: number | null) => void;
     interactionMode: InteractionMode;
+    /** Switches the user made (button or shortcut); restoring the saved mode on load doesn't count. */
+    modeSwitchCount: number;
     setInteractionMode: (mode: InteractionMode) => void;
     toggleInteractionMode: () => void;
 
@@ -150,6 +152,7 @@ const useUiStore = create<UiState>((set) => ({
     isAchievementsModalOpen: false,
     ping: null,
     interactionMode: "world",
+    modeSwitchCount: 0,
     showWorkspaceSelector: false,
 
     
@@ -281,6 +284,7 @@ const useUiStore = create<UiState>((set) => ({
     toggleInteractionMode: () =>
         set((state) => ({
             interactionMode: state.interactionMode === "world" ? "desk" : "world",
+            modeSwitchCount: state.modeSwitchCount + 1,
         })),
 
     openWorkspaceSelector: () => {

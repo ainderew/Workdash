@@ -34,6 +34,7 @@ export function ModeSwitchButton({
             onClick={toggleInteractionMode}
             title={`Switch to ${label}`}
             aria-label={`Switch to ${label}`}
+            data-onboarding-target={isWorld ? "desk-mode" : "world-mode"}
             className={className}
         >
             <Icon size={iconSize} />

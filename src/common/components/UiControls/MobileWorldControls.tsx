@@ -72,6 +72,7 @@ function MobileWorldControls({
                     type="button"
                     onClick={onOpenChat}
                     aria-label="Chat"
+                    data-onboarding-target="chat"
                     className={buttonClass}
                 >
                     <MessageCircle size={20} />

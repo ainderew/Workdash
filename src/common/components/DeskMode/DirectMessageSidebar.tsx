@@ -56,7 +56,7 @@ function DirectMessageSidebar({
     onOpenDirectMessage,
     onCollapseSidebar,
 }: DirectMessageSidebarProps) {
-    const setInteractionMode = useUiStore((state) => state.setInteractionMode);
+    const toggleInteractionMode = useUiStore((state) => state.toggleInteractionMode);
     const user = useUserStore((state) => state.user);
     const backendUser = useUserStore((s) => s.backendUser);
     const unreadByRoomId = useChatV2Store((state) => state.unreadByRoomId);
@@ -443,7 +443,8 @@ function DirectMessageSidebar({
                     {presentation === "desk" ? (
                         <button
                             type="button"
-                            onClick={() => setInteractionMode("world")}
+                            onClick={toggleInteractionMode}
+                            data-onboarding-target="world-mode"
                             className="mt-3 w-full inline-flex h-8 items-center justify-center rounded-md border wd-border-subtle wd-bg-elevated px-3 text-xs font-semibold wd-text-primary transition-colors hover:bg-[var(--wd-surface-base)]"
                         >
                             2D Mode
