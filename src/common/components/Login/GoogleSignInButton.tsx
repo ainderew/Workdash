@@ -1,5 +1,6 @@
 import React from "react";
 import { signIn } from "next-auth/react";
+import { trackEvent } from "@/common/utils/trackEvent";
 
 interface Props {
   callbackUrl?: string;
@@ -8,7 +9,10 @@ interface Props {
 export function GoogleSignInButton({ callbackUrl }: Props) {
   return (
     <button
-      onClick={() => signIn("google", { callbackUrl })}
+      onClick={() => {
+        trackEvent("sign_in_started", { method: "google" });
+        void signIn("google", { callbackUrl });
+      }}
       className="flex w-full items-center justify-center gap-3 rounded-xl px-4 py-3.5 text-sm font-semibold transition-all duration-200 hover:-translate-y-[1px] hover:shadow-xl active:translate-y-0 active:shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--wd-login-accent)]"
       style={{
         backgroundColor: "var(--wd-login-surface)",

@@ -4,14 +4,16 @@ import { Seo } from "@/common/components/Seo";
 import {
     SITE_DESCRIPTION,
     SITE_NAME,
-    SITE_TAGLINE,
     SITE_URL,
 } from "@/common/config/site";
 import { motion, useScroll, useSpring } from "framer-motion";
 import { Hero } from "../components/landingPage/heroSection/hero";
 import { WalkIn } from "../components/landingPage/walkInSection/walkIn";
 import { Marquee } from "../components/landingPage/marquee/marquee";
+import { WhyNot } from "../components/landingPage/whyNotSection/whyNot";
 import { DemoSection } from "../components/landingPage/demoSection/demoSection";
+import { HowItWorks } from "../components/landingPage/howItWorksSection/howItWorks";
+import { Origin } from "../components/landingPage/originSection/origin";
 import { Faq, FAQ_ITEMS } from "../components/landingPage/faqSection/faq";
 import { Footer } from "../components/landingPage/footer/footer";
 import { Navbar } from "@/components/navbar/navbar";
@@ -30,7 +32,11 @@ function ScrollProgressBar() {
 export default function LandingPage() {
     return (
         <>
-            <Seo title={`${SITE_NAME} — ${SITE_TAGLINE}`} path="/" />
+            {/* The searchable words live in the title; the H1 keeps the voice. */}
+            <Seo
+                title={`${SITE_NAME}: a free 2D hangout with proximity chat for friends`}
+                path="/"
+            />
             <Head>
                 <script
                     type="application/ld+json"
@@ -82,8 +88,11 @@ export default function LandingPage() {
                 <Navbar />
                 <Hero />
                 <Marquee />
+                <WhyNot />
                 <WalkIn />
                 <DemoSection />
+                <HowItWorks />
+                <Origin />
                 <Faq />
                 <Footer />
             </div>

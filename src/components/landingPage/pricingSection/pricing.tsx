@@ -129,7 +129,12 @@ function PlanCard({
 
             <div className="mt-auto pt-8">
                 {plan.available ? (
-                    <Link href="/app" className="wd-landing-btn-primary w-full group">
+                    <Link
+                        href="/app"
+                        data-umami-event="cta_open_room"
+                        data-umami-event-location="pricing"
+                        className="wd-landing-btn-primary w-full group"
+                    >
                         Pull up a chair
                         <ArrowRightIcon className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                     </Link>

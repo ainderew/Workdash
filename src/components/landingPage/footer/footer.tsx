@@ -45,7 +45,12 @@ export function Footer() {
                             transition={{ duration: 0.5, delay: 0.3 }}
                             className="flex flex-col sm:flex-row gap-4 justify-center"
                         >
-                            <Link href="/app" className="wd-landing-btn-primary group">
+                            <Link
+                                href="/app"
+                                data-umami-event="cta_open_room"
+                                data-umami-event-location="footer"
+                                className="wd-landing-btn-primary group"
+                            >
                                 Open the room
                                 <ArrowRightIcon className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                             </Link>
@@ -73,6 +78,12 @@ export function Footer() {
                     </div>
 
                     <div className="flex flex-wrap justify-center gap-x-8 gap-y-3 text-sm text-[var(--wd-text-muted)]">
+                        <Link
+                            href="/gather-alternative"
+                            className="hover:text-[var(--wd-landing-accent)] transition-colors"
+                        >
+                            Gather alternative
+                        </Link>
                         <Link
                             href="/pricing"
                             className="hover:text-[var(--wd-landing-accent)] transition-colors"

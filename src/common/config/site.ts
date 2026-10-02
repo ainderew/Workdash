@@ -9,7 +9,7 @@ export const SITE_URL = "https://workdash.site";
 export const SITE_NAME = "WorkDash";
 export const SITE_TAGLINE = "The room's already open";
 export const SITE_DESCRIPTION =
-    "WorkDash keeps one room running for your friend group: a voice call nobody has to start and a small world you can walk around in. See who's on, sit down. Free while in early access.";
+    "Keep one room open for your friend group: proximity voice chat, video and channels in a small 2D world. Runs in your browser. Free, no card.";
 export const OG_IMAGE = "/assets/og.jpg";
 export const OG_IMAGE_ALT =
     "The WorkDash world: a top-down pixel lounge with bookshelves, couches and a player standing by the coffee table.";

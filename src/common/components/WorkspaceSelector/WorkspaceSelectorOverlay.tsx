@@ -10,6 +10,7 @@ import { ChatV2Service } from "@/communication/chatV2/chatV2Service";
 import { toWorkspaceInitials, extractInviteCode } from "@/common/utils/workspaceDisplay";
 import { tokenStore } from "@/common/utils/tokenStore";
 import { CONFIG } from "@/common/utils/config";
+import { trackEvent } from "@/common/utils/trackEvent";
 import type { Workspace } from "@/communication/chatV2/_types";
 
 const DEFAULT_WS_KEY = "workdash:defaultWorkspaceId";
@@ -612,6 +613,7 @@ function JoinPanel({
         try {
             const service = ChatV2Service.getInstance();
             const workspace = await service.joinWorkspaceByInvite(code);
+            trackEvent("invite_joined", { from: "workspace_picker" });
             void fetchMyWorkspaces();
             onJoined(workspace);
         } catch (err) {

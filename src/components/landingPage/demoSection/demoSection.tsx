@@ -45,13 +45,15 @@ export function DemoSection() {
                         </div>
                         <div className="flex-1 text-center">
                             <div className="inline-block px-4 py-1 bg-[var(--wd-surface-base)] rounded text-[10px] text-[var(--wd-text-muted)]">
-                                https:
+                                workdash.site/app
                             </div>
                         </div>
                     </div>
 
                     <Link
                         href="/app"
+                        data-umami-event="cta_open_room"
+                        data-umami-event-location="demo"
                         className="relative aspect-[2000/1337] group block"
                     >
                         <Image

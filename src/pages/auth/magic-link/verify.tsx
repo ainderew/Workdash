@@ -4,6 +4,7 @@ import { signIn } from "next-auth/react";
 import Head from "next/head";
 import { Loader2Icon, AlertCircleIcon } from "lucide-react";
 import Link from "next/link";
+import { trackEvent } from "@/common/utils/trackEvent";
 
 type VerifyState = "verifying" | "success" | "error";
 
@@ -25,6 +26,7 @@ export default function MagicLinkVerifyPage() {
       });
 
       if (result?.ok) {
+        trackEvent("sign_in_completed", { method: "magic_link" });
         setState("success");
         const redirect =
           typeof callbackUrl === "string" ? callbackUrl : "/app";

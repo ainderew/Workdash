@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { ChatV2Service } from "@/communication/chatV2/chatV2Service";
 import type { Workspace } from "@/communication/chatV2/_types";
+import { trackEvent } from "@/common/utils/trackEvent";
 
 type WorkspaceState = {
     workspaces: Workspace[];
@@ -71,6 +72,7 @@ const useWorkspaceStore = create<WorkspaceState>((set) => ({
                 payload.iconUrl = iconUrl;
             }
             const workspace = await chatV2Service.createWorkspace(payload);
+            trackEvent("den_created");
 
             set((state) => ({
                 isCreating: false,

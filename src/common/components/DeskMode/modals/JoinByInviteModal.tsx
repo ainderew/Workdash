@@ -6,6 +6,7 @@ import { ChatV2Service } from "@/communication/chatV2/chatV2Service";
 import { extractInviteCode, toWorkspaceInitials } from "@/common/utils/workspaceDisplay";
 import { tokenStore } from "@/common/utils/tokenStore";
 import { CONFIG } from "@/common/utils/config";
+import { trackEvent } from "@/common/utils/trackEvent";
 import DeskModalShell from "./DeskModalShell";
 
 interface InvitePreview {
@@ -105,6 +106,7 @@ function JoinByInviteModal({
         try {
             const service = ChatV2Service.getInstance();
             const workspace = await service.joinWorkspaceByInvite(code);
+            trackEvent("invite_joined", { from: "join_modal" });
             onJoined(workspace);
             onClose();
         } catch (err) {
