@@ -47,6 +47,8 @@ function collect(root: HTMLElement) {
         dim: one(root, "dim"),
         pools: all(root, "pool"),
         zone: one(root, "zone"),
+        zonePath: root.querySelector<SVGPathElement>('[data-k="zone"] path') as SVGPathElement,
+        voices: all(root, "voice"),
         zoneTag: one(root, "zoneTag"),
         adam: one(root, "adam"),
         bubbles: all(root, "bubble"),
