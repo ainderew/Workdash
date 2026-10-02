@@ -9,6 +9,7 @@ import { AuthDivider } from "./AuthDivider";
 import { MagicLinkForm } from "./MagicLinkForm";
 import { MagicLinkSent } from "./MagicLinkSent";
 import { useMagicLink } from "@/common/hooks/useMagicLink";
+import { trackEvent } from "@/common/utils/trackEvent";
 import { ArrowRightIcon, Loader2Icon } from "lucide-react";
 
 type View = "options" | "email-sent";
@@ -109,6 +110,7 @@ export function LoginPage() {
   const callbackUrl = inviteCode ? `/invite/${inviteCode}` : undefined;
 
   const handleSendMagicLink = useCallback(async () => {
+    trackEvent("sign_in_started", { method: "magic_link" });
     await sendMagicLink(email, callbackUrl);
     setView("email-sent");
   }, [email, callbackUrl, sendMagicLink]);

@@ -7,6 +7,8 @@ import { Seo } from "@/common/components/Seo";
 
 /** Bump this whenever the competitor columns are re-checked. */
 const LAST_CHECKED = "September 2026";
+/** Prices are the row most likely to go stale. Re-check them each quarter. */
+const PRICES_CHECKED = "October 2026";
 
 interface Row {
     label: string;
@@ -16,8 +18,9 @@ interface Row {
 }
 
 /**
- * Deliberately compares capabilities, not prices or limits: those change
- * without notice and a stale table is worse than no table.
+ * Mostly capabilities, which rarely change. The one price row is there
+ * because price is why most people look for an alternative to Gather; it is
+ * dated separately (PRICES_CHECKED) and sourced from each vendor's own page.
  */
 const ROWS: Row[] = [
     {
@@ -25,6 +28,12 @@ const ROWS: Row[] = [
         workdash: "A friend group hanging out",
         gather: "Teams, offices and events",
         discord: "Communities of any size",
+    },
+    {
+        label: "Price",
+        workdash: "Free",
+        gather: "$12–15 per person a month; no free plan since September 2025",
+        discord: "Free; Nitro is optional",
     },
     {
         label: "Walk-up proximity audio",
@@ -101,7 +110,7 @@ export default function ComparePage() {
         <>
             <Seo
                 title="WorkDash vs Gather vs Discord — which one fits your group?"
-                description="An honest comparison of WorkDash, Gather and Discord for keeping a room open with friends: proximity audio, 2D worlds, channels, group size and maturity."
+                description="An honest comparison of WorkDash, Gather and Discord for keeping a room open with friends: price, proximity audio, 2D worlds, channels, group size and maturity."
                 path="/vs"
             />
             <div className="w-full min-h-screen bg-[var(--wd-surface-base)] text-[var(--wd-text-primary)]">
@@ -136,6 +145,17 @@ export default function ComparePage() {
                             and want one room that is simply always open. If you
                             need to run a 200-person event, use Gather. If you
                             want a server for a community, use Discord.
+                        </p>
+                        <p>
+                            Looking for a free alternative to Gather for a small
+                            group?{" "}
+                            <Link
+                                href="/gather-alternative"
+                                className="text-[var(--wd-landing-accent)] underline underline-offset-4"
+                            >
+                                Here is what carries over and what does not
+                            </Link>
+                            .
                         </p>
                     </div>
 
@@ -196,16 +216,35 @@ export default function ComparePage() {
                     </div>
 
                     <p className="mt-6 text-sm text-[var(--wd-text-muted)] leading-relaxed">
-                        Gather and Discord details last checked {LAST_CHECKED}.
-                        Both are actively developed and change without telling
-                        us, so check their own sites before deciding. Prices and
-                        plan limits are deliberately left out here rather than
-                        risk quoting them wrong. We are not affiliated with
-                        either.
+                        Gather and Discord details last checked {LAST_CHECKED};
+                        prices checked {PRICES_CHECKED} on{" "}
+                        <a
+                            href="https://www.gather.town/pricing"
+                            className="underline underline-offset-4"
+                            rel="noopener noreferrer"
+                        >
+                            Gather&rsquo;s pricing page
+                        </a>{" "}
+                        and{" "}
+                        <a
+                            href="https://support.gather.town/articles/2500085119-understanding-gather-s-pricing-changes-2025"
+                            className="underline underline-offset-4"
+                            rel="noopener noreferrer"
+                        >
+                            its free-plan announcement
+                        </a>
+                        . Both products are actively developed and change
+                        without telling us, so check their own sites before
+                        deciding. We are not affiliated with either.
                     </p>
 
                     <div className="mt-12 flex flex-col sm:flex-row gap-4">
-                        <Link href="/app" className="wd-landing-btn-primary">
+                        <Link
+                            href="/app"
+                            data-umami-event="cta_open_room"
+                            data-umami-event-location="vs"
+                            className="wd-landing-btn-primary"
+                        >
                             Open the room
                         </Link>
                         <Link href="/" className="wd-landing-btn-secondary">

@@ -90,7 +90,7 @@ export function Hero() {
                         className="inline-flex items-center gap-2 px-3 py-1 bg-[var(--wd-landing-accent-soft)] border border-[var(--wd-landing-accent)]/30 rounded-full text-[var(--wd-landing-accent)] text-xs font-medium mb-6"
                     >
                         <span className="w-2 h-2 bg-[var(--wd-landing-accent)] rounded-full animate-pulse" />
-                        Now in Early Access
+                        Free proximity chat &middot; runs in your browser
                     </motion.div>
 
                     <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-[var(--wd-text-primary)] mb-6 leading-tight tracking-tight">
@@ -102,14 +102,16 @@ export function Hero() {
 
                     <p className="text-lg text-[var(--wd-text-muted)] mb-8 max-w-xl leading-relaxed">
                         WorkDash keeps one room running for your friend group
-                        &mdash; a voice call nobody has to start, and a small
-                        world you can actually walk around in. Open the tab, see
-                        who&rsquo;s on, sit down.
+                        &mdash; proximity voice chat nobody has to start, in a
+                        small world you can actually walk around. Open the tab,
+                        see who&rsquo;s on, sit down.
                     </p>
 
                     <div className="flex flex-col sm:flex-row gap-4">
                         <Link
                             href="/app"
+                            data-umami-event="cta_open_room"
+                            data-umami-event-location="hero"
                             className="wd-landing-btn-primary flex-1 justify-center"
                         >
                             Open the room{" "}
@@ -118,6 +120,8 @@ export function Hero() {
 
                         <a
                             href="#demo"
+                            data-umami-event="cta_look_inside"
+                            data-umami-event-location="hero"
                             className="wd-landing-btn-secondary flex-1 justify-center"
                         >
                             <PlayIcon className="w-4 h-4" />
@@ -127,7 +131,15 @@ export function Hero() {
 
                     <div className="mt-12 flex items-center gap-3 border-t border-[var(--wd-border-subtle)] pt-8 text-sm text-[var(--wd-text-muted)]">
                         <span className="w-2 h-2 rounded-full bg-[var(--wd-success)]" />
-                        Free while we build it. No card, no tiers, no seats.
+                        <span>
+                            Free while we build it. No card, no download.{" "}
+                            <Link
+                                href="/pricing"
+                                className="underline underline-offset-4 hover:text-[var(--wd-landing-accent)] transition-colors"
+                            >
+                                What might cost money later
+                            </Link>
+                        </span>
                     </div>
                 </motion.div>
 

@@ -171,7 +171,7 @@ export function WalkInStage({ progress, still }: Props) {
             <div data-k="end" className={`${styles.copy} ${styles.end}`}>
                 <h3>{END_LINE} <br /><span className={styles.grad}>{END_ACCENT}</span></h3>
                 <div data-k="cta" className={styles.cta}>
-                    <Link href="/app" className="wd-landing-btn-primary">Open the room</Link>
+                    <Link href="/app" data-umami-event="cta_open_room" data-umami-event-location="walk_in" className="wd-landing-btn-primary">Open the room</Link>
                     <a href="#demo" className={styles.link}>Look inside first ›</a>
                 </div>
             </div>

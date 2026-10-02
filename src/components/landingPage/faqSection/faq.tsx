@@ -14,7 +14,11 @@ export interface FaqItem {
 export const FAQ_ITEMS: FaqItem[] = [
     {
         q: "Is WorkDash free?",
-        a: "Yes. There is no card, no seats and no paid tier, because there is no billing built yet. It is in early access, so expect rough edges.",
+        a: "Yes. There is no card, no seats and nothing for sale, because there is no billing built yet. If paid extras ever arrive, voice, the room and your chat history stay free. It is in early access, so expect rough edges.",
+    },
+    {
+        q: "Is WorkDash a free Gather alternative?",
+        a: "For small groups, yes. Gather ended its free plan in September 2025. WorkDash has the parts small groups use most (proximity audio, a 2D world, video and screen sharing) and is free. It is built for groups of up to about twenty, and it does not do large events or maps you design yourself.",
     },
     {
         q: "How many people fit in a room?",
@@ -25,8 +29,16 @@ export const FAQ_ITEMS: FaqItem[] = [
         a: "A Discord voice channel is a door you open. WorkDash keeps one room running and shows you who is in it before you join, and audio works by distance once you are inside, so you can walk up to someone instead of joining everyone at once.",
     },
     {
+        q: "Do we have to leave Discord?",
+        a: "No. Keep your server for what it does well. WorkDash is the room you hang out in, in a browser tab next to it.",
+    },
+    {
         q: "Do I need to install anything?",
         a: "No. WorkDash runs in the browser. You can install it as an app if you want a separate window, but that is optional.",
+    },
+    {
+        q: "Does it work on phones?",
+        a: "Yes, in your phone's browser. In the world, an on-screen joystick lets you walk around with your thumb. It is early, so a laptop is still the smoother experience.",
     },
     {
         q: "How do I sign in?",
@@ -62,13 +74,13 @@ function FaqRow({ item, index }: { item: FaqItem; index: number }) {
                     />
                 </button>
             </h3>
-            {open && (
-                <div id={panelId} className="pb-6 -mt-1">
-                    <p className="text-[var(--wd-text-muted)] leading-relaxed max-w-2xl">
-                        {item.a}
-                    </p>
-                </div>
-            )}
+            {/* Always in the HTML so crawlers and the FAQPage data see every
+                answer; `hidden` only collapses it on screen. */}
+            <div id={panelId} hidden={!open} className="pb-6 -mt-1">
+                <p className="text-[var(--wd-text-muted)] leading-relaxed max-w-2xl">
+                    {item.a}
+                </p>
+            </div>
         </div>
     );
 }
