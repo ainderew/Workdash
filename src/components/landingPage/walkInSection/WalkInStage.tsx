@@ -7,6 +7,7 @@ import styles from "./walkIn.module.css";
 import { WORLD_RASTER, WORLD_H, WORLD_W } from "./timeline";
 import {
     BEATS,
+    BOB_PATH,
     CAMERA_TILES,
     CONFETTI_COUNT,
     EMOTES,
@@ -14,6 +15,7 @@ import {
     END_LINE,
     FRAME,
     LAMPS,
+    MAIN_OFFICE,
     PLAZA,
     PRESENCE,
     PRESENCE_EYEBROW,
@@ -109,14 +111,15 @@ export function WalkInStage({ progress, still }: Props) {
                                     }}
                                 />
                             ))}
-                            <div data-k="ring" className={styles.ring} />
+                            <div data-k="zone" className={styles.roomOutline} style={MAIN_OFFICE} />
+                            <div data-k="zoneTag" className={styles.roomTag} style={{ left: MAIN_OFFICE.left + MAIN_OFFICE.width - 10, top: MAIN_OFFICE.top + 10 }}>Main office · everyone here can hear</div>
                             <Sprite k="adam" sheet="adam" x={600} y={470} frame={FRAME.up} />
                             <Sprite sheet="amelia" x={716} y={414} frame={FRAME.down} />
                             <div data-k="bubble" className={styles.bubble}>got a sec?</div>
                             <div data-k="bubble" className={styles.bubble}>yeah, pull up</div>
                             <div data-k="room" className={styles.roomOutline} style={{ left: 308, top: 582, width: 246, height: 176 }} />
                             <div data-k="roomTag" className={styles.roomTag} style={{ left: 552, top: 766 }}>Glass Room · 3 on camera</div>
-                            <Sprite k="bob" sheet="bob" x={520} y={560} frame={FRAME.down} />
+                            <Sprite k="bob" sheet="bob" x={BOB_PATH[0][0]} y={BOB_PATH[0][1]} frame={FRAME.left} />
                             <Sprite sheet="amelia" x={360} y={668} frame={FRAME.right} />
                             <Sprite sheet="adam" x={400} y={700} frame={FRAME.up} />
                             {PLAZA.map(([x, y, sheet, frame], i) => <Sprite key={i} sheet={sheet} x={x} y={y} frame={frame} />)}

@@ -1,11 +1,12 @@
-import { EMOTES, FRAME, LAMPS, PLAZA } from "./content";
+import { BOB_PATH, EMOTES, FRAME, LAMPS, PLAZA } from "./content";
 import type { Els } from "./renderFrame";
-import { lerp, ramp, smooth } from "./timeline";
+import { along, lerp, ramp, smooth } from "./timeline";
 
 // The things that happen in the map, by film time t: Adam walks over to
-// Amelia (proximity chat), Bob steps into the glass room and the cameras come
-// up (video pods), emotes burst over the plaza, then night falls and lamps
-// light where friends are (presence).
+// Amelia and the main office lights up as one voice zone (proximity chat),
+// Bob walks through the door into the glass room and the cameras come up
+// (video pods), emotes burst over the plaza, then night falls and lamps light
+// where friends are (presence).
 
 const CONFETTI_COLORS = ["#e85d04", "#f0a35e", "#97c27f", "#fff2d6", "#6fb3ff"];
 const GRASS = [99, 166, 80];
@@ -25,14 +26,10 @@ export function renderScene(els: Els, t: number) {
     els.adam.style.left = `${ax}px`;
     els.adam.style.top = `${ay}px`;
     frameAt(els.adam, wk > 0 && wk < 1 ? walkFrame(FRAME.right, wk, t) : FRAME.up);
-    const rr = 54 * (1 + 0.06 * Math.sin(t * 5));
-    Object.assign(els.ring.style, {
-        left: `${ax + 8 - rr}px`,
-        top: `${ay + 22 - rr}px`,
-        width: `${rr * 2}px`,
-        height: `${rr * 2}px`,
-        opacity: String(Math.min(ramp(t, 9.2, 9.6), 1 - ramp(t, 12.2, 12.8)) * 0.9),
-    });
+    // voice is by room, so the whole zone lights, not a circle around Adam
+    const inZone = String(Math.min(ramp(t, 9.2, 9.6), 1 - ramp(t, 12.2, 12.8)));
+    els.zone.style.opacity = inZone;
+    els.zoneTag.style.opacity = inZone;
     const bubble = (el: HTMLElement, on: number, x: number, y: number, anchor: number) => {
         el.style.opacity = String(on);
         el.style.left = `${x}px`;
@@ -45,9 +42,10 @@ export function renderScene(els: Els, t: number) {
 
     // video pods
     const bk = smooth(ramp(t, 13.4, 14.9));
-    els.bob.style.left = `${lerp(520, 470, bk)}px`;
-    els.bob.style.top = `${lerp(560, 676, bk)}px`;
-    frameAt(els.bob, walkFrame(FRAME.down, bk, t));
+    const [bx, by, facing] = along(BOB_PATH, bk);
+    els.bob.style.left = `${bx}px`;
+    els.bob.style.top = `${by}px`;
+    frameAt(els.bob, walkFrame(FRAME[facing], bk, t));
     const inRoom = String(ramp(t, 14.3, 14.6) * (1 - ramp(t, 16.2, 16.7)));
     els.room.style.opacity = inRoom;
     els.roomTag.style.opacity = inRoom;

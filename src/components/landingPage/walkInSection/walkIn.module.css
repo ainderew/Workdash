@@ -177,14 +177,6 @@
     image-rendering: pixelated;
 }
 
-.ring {
-    position: absolute;
-    border-radius: 50%;
-    border: 2px solid rgb(232 93 4 / 0.9);
-    background: radial-gradient(circle, rgb(232 93 4 / 0.18), rgb(232 93 4 / 0.04) 70%);
-    opacity: 0;
-}
-
 .bubble {
     position: absolute;
     white-space: nowrap;

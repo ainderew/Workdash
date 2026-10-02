@@ -21,10 +21,10 @@ export interface Beat {
 export const BEATS: ReadonlyArray<Beat> = [
     {
         eyebrow: "Proximity chat",
-        line1: "Walk over.",
+        line1: "Walk in.",
         line2: "Start talking.",
         lead: "No call to start.",
-        body: "Audio fades in as you get close and fades out when you wander off, the way a room works.",
+        body: "Everyone in the same room hears each other. Step into the private office and only the people inside can hear you.",
         range: [0.3, 0.325, 0.41, 0.435],
     },
     {
@@ -81,6 +81,25 @@ export const SHEETS: Record<Sheet, string> = {
 
 /** Walk sheets are 24 frames of 16×32: right, up, left, down (6 each). */
 export const FRAME = { right: 0, up: 6, left: 12, down: 18 } as const;
+
+/**
+ * Voice in the world is by audio zone (map1.json "AudioZones"), not by
+ * distance: everyone inside a zone hears everyone else in it. This is the
+ * main_office zone the first beat happens in, at half scale.
+ */
+export const MAIN_OFFICE = { left: 416, top: 272, width: 576, height: 304 } as const;
+
+/**
+ * Bob's route into the private office: along the corridor to the sliding
+ * door (tiles 29-30, rows 36-38), then straight down through it. Points are
+ * the sprite's top-left; its feet are 32 px lower. walkIn paths are checked
+ * against the map's collision layers in scenePaths.test.ts.
+ */
+export const BOB_PATH: ReadonlyArray<readonly [number, number]> = [
+    [520, 516],
+    [472, 516],
+    [472, 676],
+];
 
 /** Friends at the food-truck plaza: [x, y, sheet, facing frame]. */
 export const PLAZA: ReadonlyArray<readonly [number, number, Sheet, number]> = [

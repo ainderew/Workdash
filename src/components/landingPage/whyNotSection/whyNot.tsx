@@ -26,13 +26,13 @@ const OPTIONS: Option[] = [
     {
         name: "Gather",
         line: "Built for offices, and paid-only now.",
-        body: "Gather ended its free plan in September 2025 and costs $12 to $15 per person a month. WorkDash keeps proximity audio and the 2D world, free, for groups up to about twenty.",
+        body: "Gather ended its free plan in September 2025 and costs $12 to $15 per person a month. WorkDash keeps the 2D world and room-by-room voice, free, for groups up to about twenty.",
         link: { href: "/gather-alternative", label: "Free Gather alternative" },
     },
     {
         name: "WorkDash",
         line: "One room, always open.",
-        body: "See who's on before you join, walk up to someone to talk, wander off when you're done. It runs in a browser tab.",
+        body: "See who's on before you join. Walk into a room and you're talking to everyone in it; step out when you're done. It runs in a browser tab.",
         ours: true,
     },
 ];

@@ -61,7 +61,8 @@ const PLANS: Plan[] = [
 ];
 
 const CARRIES_OVER = [
-    "Proximity audio: walk up to someone to talk, wander off to stop",
+    "Proximity audio, by room: everyone in the same room hears each other",
+    "A private office for conversations that stay between the people inside",
     "A 2D world your avatar walks around in",
     "Video and screen sharing",
     "Text channels and threads, with the full history kept",
@@ -69,6 +70,7 @@ const CARRIES_OVER = [
 ];
 
 const DOES_NOT = [
+    "Audio that fades with distance. Voice works by room: walk into the café or the campfire and you hear everyone there.",
     "Big events and conferences. WorkDash is comfortable up to about 20 people.",
     "Maps you design yourself. There is one shared world for now.",
     "The polish of an established product. It is in early access, built by one person.",

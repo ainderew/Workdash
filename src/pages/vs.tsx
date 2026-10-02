@@ -36,8 +36,8 @@ const ROWS: Row[] = [
         discord: "Free; Nitro is optional",
     },
     {
-        label: "Walk-up proximity audio",
-        workdash: true,
+        label: "Proximity audio in a 2D world",
+        workdash: "Yes, by room",
         gather: true,
         discord: false,
     },
@@ -140,8 +140,9 @@ export default function ComparePage() {
                             while.
                         </p>
                         <p>
-                            WorkDash is the small version of that idea, built
-                            for a group of friends who already talk every night
+                            WorkDash is the small version of that idea, with
+                            voice that works by room rather than by distance,
+                            built for a group of friends who already talk every night
                             and want one room that is simply always open. If you
                             need to run a 200-person event, use Gather. If you
                             want a server for a community, use Discord.
