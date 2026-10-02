@@ -74,6 +74,12 @@ export function Footer() {
 
                     <div className="flex flex-wrap justify-center gap-x-8 gap-y-3 text-sm text-[var(--wd-text-muted)]">
                         <Link
+                            href="/pricing"
+                            className="hover:text-[var(--wd-landing-accent)] transition-colors"
+                        >
+                            Pricing
+                        </Link>
+                        <Link
                             href="/vs"
                             className="hover:text-[var(--wd-landing-accent)] transition-colors"
                         >

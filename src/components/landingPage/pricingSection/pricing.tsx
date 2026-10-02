@@ -86,9 +86,9 @@ function PlanCard({
             )}
 
             <div className="flex items-center justify-between gap-3">
-                <h3 className="text-2xl font-bold text-[var(--wd-text-primary)]">
+                <h2 className="text-2xl font-bold text-[var(--wd-text-primary)]">
                     {plan.name}
-                </h3>
+                </h2>
                 {!plan.available && (
                     <span className="rounded-full border border-[var(--wd-border-subtle)] px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-[var(--wd-text-muted)]">
                         Planned
@@ -155,7 +155,7 @@ export function Pricing() {
             <section
                 id="pricing"
                 aria-labelledby="pricing-heading"
-                className="py-32 bg-[var(--wd-surface-base)] border-t border-[var(--wd-border-subtle)] relative overflow-hidden"
+                className="pt-32 pb-24 bg-[var(--wd-surface-base)] relative overflow-hidden"
             >
                 <Floaties
                     items={[
@@ -166,13 +166,13 @@ export function Pricing() {
 
                 <div className="max-w-7xl mx-auto px-6 relative z-10">
                     <div className="text-center mb-16">
-                        <h2
+                        <h1
                             id="pricing-heading"
-                            className="text-4xl md:text-5xl font-bold text-[var(--wd-text-primary)] mb-6"
+                            className="text-4xl md:text-5xl font-bold text-[var(--wd-text-primary)] mb-6 tracking-tight"
                         >
                             Free now, extras{" "}
                             <span className="text-[var(--wd-landing-accent)]">later</span>
-                        </h2>
+                        </h1>
                         <p className="text-[var(--wd-text-muted)] max-w-2xl mx-auto text-lg">
                             Everything you can do today is free and stays free. The
                             paid plans below are a sketch of what could come next.

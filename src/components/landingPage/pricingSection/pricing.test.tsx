@@ -13,14 +13,15 @@ beforeAll(() => {
 });
 
 function card(name: string) {
-    return screen.getByRole("heading", { level: 3, name }).closest("article") as HTMLElement;
+    return screen.getByRole("heading", { level: 2, name }).closest("article") as HTMLElement;
 }
 
 describe("Pricing", () => {
-    it("is the page's pricing section, named by its title", () => {
+    it("is titled by the page's only top-level heading", () => {
         render(<Pricing />);
-        const section = screen.getByRole("region", { name: "Free now, extras later" });
-        expect(section).toHaveAttribute("id", "pricing");
+        const title = screen.getByRole("heading", { level: 1 });
+        expect(title).toHaveTextContent("Free now, extras later");
+        expect(screen.getByRole("region", { name: "Free now, extras later" })).toBeInTheDocument();
     });
 
     it("lets you start free and keeps the paid plans off sale", () => {

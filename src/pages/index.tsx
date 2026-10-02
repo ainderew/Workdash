@@ -12,8 +12,6 @@ import { Hero } from "../components/landingPage/heroSection/hero";
 import { WalkIn } from "../components/landingPage/walkInSection/walkIn";
 import { Marquee } from "../components/landingPage/marquee/marquee";
 import { DemoSection } from "../components/landingPage/demoSection/demoSection";
-import { Status } from "../components/landingPage/statusSection/status";
-import { Pricing } from "../components/landingPage/pricingSection/pricing";
 import { Faq, FAQ_ITEMS } from "../components/landingPage/faqSection/faq";
 import { Footer } from "../components/landingPage/footer/footer";
 import { Navbar } from "@/components/navbar/navbar";
@@ -86,8 +84,6 @@ export default function LandingPage() {
                 <Marquee />
                 <WalkIn />
                 <DemoSection />
-                <Status />
-                <Pricing />
                 <Faq />
                 <Footer />
             </div>

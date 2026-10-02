@@ -51,13 +51,8 @@ export function Navbar() {
             icon: <Users className="w-3 h-3" />,
         },
         {
-            name: "Status",
-            href: "/#status",
-            icon: <Globe className="w-3 h-3" />,
-        },
-        {
             name: "Pricing",
-            href: "/#pricing",
+            href: "/pricing",
             icon: <Tag className="w-3 h-3" />,
         },
         {
@@ -71,9 +66,10 @@ export function Navbar() {
         e: React.MouseEvent<HTMLAnchorElement>,
         href: string,
     ) => {
-        // Off the landing page these are real navigations; let the browser
-        // follow them instead of hunting for an element that is not here.
-        if (window.location.pathname !== "/") {
+        // Off the landing page, or for links to other pages, these are real
+        // navigations; let the browser follow them instead of hunting for an
+        // element that is not here.
+        if (window.location.pathname !== "/" || !href.startsWith("/#")) {
             setIsOpen(false);
             return;
         }

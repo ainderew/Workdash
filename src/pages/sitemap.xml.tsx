@@ -8,6 +8,7 @@ import { SITE_URL } from "@/common/config/site";
 const ROUTES = [
     { path: "/", changefreq: "weekly", priority: "1.0" },
     { path: "/vs", changefreq: "monthly", priority: "0.8" },
+    { path: "/pricing", changefreq: "monthly", priority: "0.7" },
     { path: "/changelog", changefreq: "weekly", priority: "0.6" },
     { path: "/login", changefreq: "monthly", priority: "0.5" },
     { path: "/privacy", changefreq: "yearly", priority: "0.3" },
