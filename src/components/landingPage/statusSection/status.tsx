@@ -5,7 +5,7 @@ import { ArrowRightIcon } from "lucide-react";
 import { Floaties, SPRITES } from "../floaties/floaties";
 
 const spec = [
-    { label: "Price", value: "Free — no card, no seats, no tiers" },
+    { label: "Price", value: "Free — no card, no seats, nothing for sale" },
     { label: "Room size", value: "Comfortable up to about 20 people" },
     { label: "Stage", value: "Early access. Expect rough edges." },
     { label: "Sign in", value: "Google, or a magic link by email" },
@@ -33,8 +33,7 @@ export function Status() {
                         </span>
                     </h2>
                     <p className="text-[var(--wd-text-muted)] max-w-2xl mx-auto text-lg">
-                        There is no pricing page yet because there is nothing to
-                        charge for yet.
+                        There is nothing to charge for yet.
                     </p>
                 </div>
 

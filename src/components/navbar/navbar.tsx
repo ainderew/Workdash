@@ -11,6 +11,7 @@ import {
     User,
     LayoutDashboard,
     Settings,
+    Tag,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { signOutWithCleanup } from "@/common/utils/signOutWithCleanup";
@@ -53,6 +54,11 @@ export function Navbar() {
             name: "Status",
             href: "/#status",
             icon: <Globe className="w-3 h-3" />,
+        },
+        {
+            name: "Pricing",
+            href: "/#pricing",
+            icon: <Tag className="w-3 h-3" />,
         },
         {
             name: "Compare",
