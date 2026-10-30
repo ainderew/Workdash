@@ -91,6 +91,7 @@ export function Navbar() {
     };
 
     const scrollToTop = (e: React.MouseEvent) => {
+        if (window.location.pathname !== "/") return;
         e.preventDefault();
         window.scrollTo({ top: 0, behavior: "smooth" });
     };

@@ -32,7 +32,9 @@
         "start": "next start -p 8080",
         "lint": "eslint 'src/**/*.{ts,tsx}' --fix && node scripts/theme-guardrails.cjs",
         "test": "vitest run",
-        "postinstall": "cp node_modules/@jitsi/rnnoise-wasm/dist/rnnoise.wasm public/rnnoise.wasm"
+        "postinstall": "cp node_modules/@jitsi/rnnoise-wasm/dist/rnnoise.wasm public/rnnoise.wasm",
+        "check:seo": "node scripts/check-seo.mjs",
+        "icons:generate": "node scripts/generate-icons.cjs"
     },
     "dependencies": {
         "@dnd-kit/core": "^6.3.1",

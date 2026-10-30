@@ -9,24 +9,22 @@ const ROUTES = [
     { path: "/", changefreq: "weekly", priority: "1.0" },
     { path: "/vs", changefreq: "monthly", priority: "0.8" },
     { path: "/gather-alternative", changefreq: "monthly", priority: "0.8" },
+    { path: "/discord-alternative", changefreq: "monthly", priority: "0.8" },
+    { path: "/hangout-with-friends", changefreq: "monthly", priority: "0.8" },
+    { path: "/about", changefreq: "monthly", priority: "0.6" },
+    { path: "/help", changefreq: "monthly", priority: "0.7" },
     { path: "/pricing", changefreq: "monthly", priority: "0.7" },
     { path: "/changelog", changefreq: "weekly", priority: "0.6" },
     { path: "/privacy", changefreq: "yearly", priority: "0.3" },
     { path: "/terms", changefreq: "yearly", priority: "0.3" },
 ];
 
-/**
- * Evaluated once when the server process boots, which on this deploy means
- * the moment the new container starts. That makes it an honest "last changed"
- * rather than a date that moves on every crawl.
- */
-const LASTMOD = new Date().toISOString().slice(0, 10);
-
+// Omit lastmod until actual per-page content modification dates are available.
+// A server restart is not a content update.
 export const getServerSideProps: GetServerSideProps = async ({ res }) => {
     const urls = ROUTES.map(
         (route) => `    <url>
         <loc>${SITE_URL}${route.path}</loc>
-        <lastmod>${LASTMOD}</lastmod>
         <changefreq>${route.changefreq}</changefreq>
         <priority>${route.priority}</priority>
     </url>`,

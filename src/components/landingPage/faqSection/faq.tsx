@@ -26,7 +26,7 @@ export const FAQ_ITEMS: FaqItem[] = [
     },
     {
         q: "How is this different from Discord?",
-        a: "A Discord voice channel is a door you open. WorkDash keeps one room running and shows you who is in it before you join. Once you are inside, voice works by room: you hear the people in the room you are in, and the private office keeps a conversation between the people inside it.",
+        a: "Discord has drop-in voice channels and shows who is in them. WorkDash adds a 2D world where entering a room joins its conversation. You hear everyone in your current room; audio does not fade with distance inside it.",
     },
     {
         q: "Do we have to leave Discord?",

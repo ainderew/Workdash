@@ -1,6 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { discoveryLinks } from "@/components/discovery/links";
 import { ArrowRightIcon } from "lucide-react";
 
 export function Footer() {
@@ -84,6 +85,9 @@ export function Footer() {
                         >
                             Gather alternative
                         </Link>
+                        {discoveryLinks.filter(link => link.href !== "/gather-alternative").map(link => (
+                            <Link key={link.href} href={link.href} className="hover:text-[var(--wd-landing-accent)] transition-colors">{link.label}</Link>
+                        ))}
                         <Link
                             href="/pricing"
                             className="hover:text-[var(--wd-landing-accent)] transition-colors"

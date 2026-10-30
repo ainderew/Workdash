@@ -32,9 +32,9 @@ export function Origin() {
                         </p>
                     </blockquote>
                     <figcaption className="mt-6 flex flex-wrap items-center justify-between gap-3 text-sm">
-                        <span className="font-bold text-[var(--wd-text-primary)]">
+                        <Link href="/about" className="font-bold text-[var(--wd-text-primary)] underline underline-offset-4">
                             Andrew Pinon, building WorkDash
-                        </span>
+                        </Link>
                         <Link
                             href="/changelog"
                             className="text-[var(--wd-text-muted)] underline underline-offset-4 hover:text-[var(--wd-landing-accent)] transition-colors"

@@ -21,7 +21,7 @@ const OPTIONS: Option[] = [
     {
         name: "Discord",
         line: "A voice channel is a door you open.",
-        body: "Someone has to start the call, and you can't see who's around until you join. Keep your server for everything else. WorkDash is the room you hang out in.",
+        body: "Join a voice channel and see who is already there. WorkDash adds a walkable world where entering a room joins its conversation. Keep your server for everything else.",
     },
     {
         name: "Gather",

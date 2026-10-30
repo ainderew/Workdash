@@ -1,0 +1,143 @@
+{
+  "local": {
+    "checkedAt": "2026-10-30T11:09:36.842Z",
+    "base": "http://localhost:8083",
+    "pages": [
+      {
+        "path": "/",
+        "title": "WorkDash: a free 2D hangout with proximity chat for friends",
+        "structuredDataBlocks": 2,
+        "analyticsPresent": false
+      },
+      {
+        "path": "/vs",
+        "title": "WorkDash vs Gather vs Discord \u2014 which one fits your group?",
+        "structuredDataBlocks": 0,
+        "analyticsPresent": false
+      },
+      {
+        "path": "/gather-alternative",
+        "title": "Free Gather Alternative for Small Groups (2026) | WorkDash",
+        "structuredDataBlocks": 0,
+        "analyticsPresent": false
+      },
+      {
+        "path": "/discord-alternative",
+        "title": "A Discord Alternative for Friends | WorkDash",
+        "structuredDataBlocks": 0,
+        "analyticsPresent": false
+      },
+      {
+        "path": "/hangout-with-friends",
+        "title": "Hang Out Online with Friends in a Virtual Room | WorkDash",
+        "structuredDataBlocks": 0,
+        "analyticsPresent": false
+      },
+      {
+        "path": "/about",
+        "title": "About WorkDash and Its Maker, Andrew Pinon",
+        "structuredDataBlocks": 1,
+        "analyticsPresent": false
+      },
+      {
+        "path": "/help",
+        "title": "WorkDash Help: Rooms, Voice Chat and Getting Started",
+        "structuredDataBlocks": 0,
+        "analyticsPresent": false
+      },
+      {
+        "path": "/pricing",
+        "title": "Pricing \u2014 WorkDash",
+        "structuredDataBlocks": 0,
+        "analyticsPresent": false
+      },
+      {
+        "path": "/changelog",
+        "title": "Changelog \u2014 WorkDash",
+        "structuredDataBlocks": 0,
+        "analyticsPresent": false
+      },
+      {
+        "path": "/privacy",
+        "title": "Privacy Policy \u2014 WorkDash",
+        "structuredDataBlocks": 0,
+        "analyticsPresent": false
+      },
+      {
+        "path": "/terms",
+        "title": "Terms of Service \u2014 WorkDash",
+        "structuredDataBlocks": 0,
+        "analyticsPresent": false
+      }
+    ],
+    "failures": [],
+    "warnings": [
+      "No Umami script found in server HTML. Check configured production build variables and browser loading; this does not prove analytics is absent.",
+      "This checks public HTML only. Search Console indexing, real crawler/WAF access, schema eligibility and analytics delivery need separate verification."
+    ]
+  },
+  "productionBeforeDeployment": {
+    "checkedAt": "2026-10-30T11:08:39.222Z",
+    "base": "https://workdash.site",
+    "pages": [
+      {
+        "path": "/",
+        "title": "WorkDash: a free 2D hangout with proximity chat for friends",
+        "structuredDataBlocks": 2,
+        "analyticsPresent": false
+      },
+      {
+        "path": "/vs",
+        "title": "WorkDash vs Gather vs Discord \u2014 which one fits your group?",
+        "structuredDataBlocks": 0,
+        "analyticsPresent": false
+      },
+      {
+        "path": "/gather-alternative",
+        "title": "Free Gather Alternative for Small Groups (2026) | WorkDash",
+        "structuredDataBlocks": 0,
+        "analyticsPresent": false
+      },
+      {
+        "path": "/pricing",
+        "title": "Pricing \u2014 WorkDash",
+        "structuredDataBlocks": 0,
+        "analyticsPresent": false
+      },
+      {
+        "path": "/changelog",
+        "title": "Changelog \u2014 WorkDash",
+        "structuredDataBlocks": 0,
+        "analyticsPresent": false
+      },
+      {
+        "path": "/privacy",
+        "title": "Privacy Policy \u2014 WorkDash",
+        "structuredDataBlocks": 0,
+        "analyticsPresent": false
+      },
+      {
+        "path": "/terms",
+        "title": "Terms of Service \u2014 WorkDash",
+        "structuredDataBlocks": 0,
+        "analyticsPresent": false
+      }
+    ],
+    "failures": [
+      "/about: missing from sitemap",
+      "/discord-alternative: missing from sitemap",
+      "/hangout-with-friends: missing from sitemap",
+      "/help: missing from sitemap"
+    ],
+    "warnings": [
+      "No Umami script found in server HTML. Check configured production build variables and browser loading; this does not prove analytics is absent.",
+      "This checks public HTML only. Search Console indexing, real crawler/WAF access, schema eligibility and analytics delivery need separate verification."
+    ]
+  },
+  "productionBrowserObservation": {
+    "analyticsScript": "https://analytics.workdash.site/script.js",
+    "umamiAvailable": true,
+    "pageViewRequestObserved": "https://analytics.workdash.site/api/send",
+    "limitation": "Request observed; dashboard receipt, traffic totals and conversion attribution not verified."
+  }
+}

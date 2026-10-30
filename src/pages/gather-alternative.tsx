@@ -1,4 +1,5 @@
 import React from "react";
+import { DiscoveryLinks, RoomPreview } from "@/components/discovery/DiscoveryPage";
 import Link from "next/link";
 import { ArrowRightIcon, CheckIcon, MinusIcon } from "lucide-react";
 import { Navbar } from "@/components/navbar/navbar";
@@ -104,7 +105,7 @@ export default function GatherAlternativePage() {
                 description="Gather ended its free plan in September 2025. WorkDash keeps proximity audio and a 2D world, free, for groups under 20. See what carries over and what doesn't."
                 path="/gather-alternative"
             />
-            <div className="w-full min-h-screen bg-[var(--wd-surface-base)] text-[var(--wd-text-primary)]">
+            <div className="wd-discovery w-full min-h-screen bg-[var(--wd-surface-base)] text-[var(--wd-text-primary)]">
                 <Navbar />
 
                 <main className="max-w-4xl mx-auto px-6 pt-32 pb-24">
@@ -134,6 +135,8 @@ export default function GatherAlternativePage() {
                             Compare with Discord too
                         </Link>
                     </div>
+
+                    <RoomPreview />
 
                     <div className="grid gap-10 md:grid-cols-2 mb-20">
                         <section aria-labelledby="carries-over">
@@ -238,6 +241,7 @@ export default function GatherAlternativePage() {
                     </section>
 
                     <OpenRoomButton location="gather_alternative_bottom" />
+                    <DiscoveryLinks current="/gather-alternative" />
                 </main>
 
                 <Footer />

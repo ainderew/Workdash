@@ -4320,3 +4320,8 @@ body:has(.wd-touch-stick.is-active) :is(.wd-tip[data-over-world], .wd-tip-halo, 
         transition: filter 0.2s ease-out;
     }
 }
+
+/* Search landing pages retain the brand orange with an accessible CTA fill. */
+.wd-discovery .wd-landing-btn-primary {
+    background: var(--wd-landing-accent-hover);
+}
