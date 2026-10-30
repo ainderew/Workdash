@@ -28,7 +28,7 @@ describe("WalkIn", () => {
 
     it("puts every feature in the page as real text", () => {
         render(<WalkIn />);
-        for (const name of ["Walk over. Start talking.", "Step in. Cameras up.", "Calm room. Loud moments."]) {
+        for (const name of ["Walk in. Start talking.", "Step in. Cameras up.", "Calm room. Loud moments."]) {
             expect(screen.getByRole("heading", { level: 3, name })).toBeInTheDocument();
         }
         expect(screen.getByRole("heading", { level: 3, name: /One glance tells you who’s on the couch/ })).toBeInTheDocument();

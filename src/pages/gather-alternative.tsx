@@ -1,4 +1,5 @@
 import React from "react";
+import { DiscoveryLinks, RoomPreview } from "@/components/discovery/DiscoveryPage";
 import Link from "next/link";
 import { ArrowRightIcon, CheckIcon, MinusIcon } from "lucide-react";
 import { Navbar } from "@/components/navbar/navbar";
@@ -61,7 +62,8 @@ const PLANS: Plan[] = [
 ];
 
 const CARRIES_OVER = [
-    "Proximity audio: walk up to someone to talk, wander off to stop",
+    "Proximity audio, by room: everyone in the same room hears each other",
+    "A private office for conversations that stay between the people inside",
     "A 2D world your avatar walks around in",
     "Video and screen sharing",
     "Text channels and threads, with the full history kept",
@@ -69,6 +71,7 @@ const CARRIES_OVER = [
 ];
 
 const DOES_NOT = [
+    "Audio that fades with distance. Voice works by room: walk into the café or the campfire and you hear everyone there.",
     "Big events and conferences. WorkDash is comfortable up to about 20 people.",
     "Maps you design yourself. There is one shared world for now.",
     "The polish of an established product. It is in early access, built by one person.",
@@ -102,7 +105,7 @@ export default function GatherAlternativePage() {
                 description="Gather ended its free plan in September 2025. WorkDash keeps proximity audio and a 2D world, free, for groups under 20. See what carries over and what doesn't."
                 path="/gather-alternative"
             />
-            <div className="w-full min-h-screen bg-[var(--wd-surface-base)] text-[var(--wd-text-primary)]">
+            <div className="wd-discovery w-full min-h-screen bg-[var(--wd-surface-base)] text-[var(--wd-text-primary)]">
                 <Navbar />
 
                 <main className="max-w-4xl mx-auto px-6 pt-32 pb-24">
@@ -132,6 +135,8 @@ export default function GatherAlternativePage() {
                             Compare with Discord too
                         </Link>
                     </div>
+
+                    <RoomPreview />
 
                     <div className="grid gap-10 md:grid-cols-2 mb-20">
                         <section aria-labelledby="carries-over">
@@ -236,6 +241,7 @@ export default function GatherAlternativePage() {
                     </section>
 
                     <OpenRoomButton location="gather_alternative_bottom" />
+                    <DiscoveryLinks current="/gather-alternative" />
                 </main>
 
                 <Footer />

@@ -177,14 +177,6 @@
     image-rendering: pixelated;
 }
 
-.ring {
-    position: absolute;
-    border-radius: 50%;
-    border: 2px solid rgb(232 93 4 / 0.9);
-    background: radial-gradient(circle, rgb(232 93 4 / 0.18), rgb(232 93 4 / 0.04) 70%);
-    opacity: 0;
-}
-
 .bubble {
     position: absolute;
     white-space: nowrap;
@@ -204,6 +196,74 @@
     border-radius: 6px;
     background: rgb(232 93 4 / 0.08);
     opacity: 0;
+}
+
+/* A voice zone drawn from map1.json's AudioZones; it can be any shape. */
+.zoneShape {
+    position: absolute;
+    left: 0;
+    top: 0;
+    overflow: visible;
+    pointer-events: none;
+    opacity: 0;
+}
+
+.zoneShape path {
+    fill: rgb(232 93 4);
+    fill-opacity: 0.08;
+    stroke: rgb(232 93 4 / 0.95);
+    stroke-width: 2;
+    stroke-dasharray: 6 4;
+    stroke-linejoin: round;
+}
+
+/* "In voice": sage bars over a head, the app's speaking signal. */
+.voice {
+    position: absolute;
+    display: flex;
+    align-items: flex-end;
+    gap: 0.18em;
+    height: 1.6em;
+    padding: 0.3em 0.42em;
+    border-radius: 0.55em;
+    background: #1d1511;
+    box-shadow: 0 0 0 0.14em #97c27f, 0 0 1em rgb(151 194 127 / 0.45);
+    transform: translate(-50%, -100%);
+    opacity: 0;
+}
+
+.voice i {
+    width: 0.26em;
+    height: 100%;
+    border-radius: 0.1em;
+    background: #97c27f;
+    transform-origin: bottom;
+    animation: wi-voice 0.9s ease-in-out infinite;
+}
+
+.voice i:nth-child(2) {
+    animation-delay: -0.3s;
+}
+
+.voice i:nth-child(3) {
+    animation-delay: -0.6s;
+}
+
+@keyframes wi-voice {
+    0%,
+    100% {
+        transform: scaleY(0.35);
+    }
+    50% {
+        transform: scaleY(1);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .voice i {
+        animation: none;
+        transform: scaleY(0.7);
+    }
 }
 
 .roomTag {

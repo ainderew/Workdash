@@ -6,18 +6,26 @@ import { SPRITES } from "../floaties/floaties";
 import styles from "./walkIn.module.css";
 import { WORLD_RASTER, WORLD_H, WORLD_W } from "./timeline";
 import {
+    ADAM_PATH,
+    AMELIA_LOUNGE,
     BEATS,
+    BOB_PATH,
     CAMERA_TILES,
     CONFETTI_COUNT,
     EMOTES,
     END_ACCENT,
     END_LINE,
+    FAR_FRIEND,
     FRAME,
     LAMPS,
+    MAIN_OFFICE_OUTLINE,
+    MAIN_OFFICE_TAG,
     PLAZA,
     PRESENCE,
     PRESENCE_EYEBROW,
     PRESENCE_SUB,
+    PRIVATE_OFFICE,
+    PRIVATE_PAIR,
     SHEETS,
     STATEMENT,
     TITLE,
@@ -109,16 +117,23 @@ export function WalkInStage({ progress, still }: Props) {
                                     }}
                                 />
                             ))}
-                            <div data-k="ring" className={styles.ring} />
-                            <Sprite k="adam" sheet="adam" x={600} y={470} frame={FRAME.up} />
-                            <Sprite sheet="amelia" x={716} y={414} frame={FRAME.down} />
+                            <svg data-k="zone" className={styles.zoneShape} width={WORLD_W} height={WORLD_H} viewBox={`0 0 ${WORLD_W} ${WORLD_H}`} aria-hidden="true">
+                                <path d={MAIN_OFFICE_OUTLINE} />
+                            </svg>
+                            <div data-k="zoneTag" className={styles.roomTag} style={MAIN_OFFICE_TAG}>Main office · everyone here can hear</div>
+                            <Sprite k="adam" sheet="adam" x={ADAM_PATH[0][0]} y={ADAM_PATH[0][1]} frame={FRAME.up} />
+                            <Sprite sheet="amelia" x={AMELIA_LOUNGE[0]} y={AMELIA_LOUNGE[1]} frame={FRAME.down} />
+                            <Sprite sheet="bob" x={FAR_FRIEND[0]} y={FAR_FRIEND[1]} frame={FRAME.left} />
                             <div data-k="bubble" className={styles.bubble}>got a sec?</div>
                             <div data-k="bubble" className={styles.bubble}>yeah, pull up</div>
-                            <div data-k="room" className={styles.roomOutline} style={{ left: 308, top: 582, width: 246, height: 176 }} />
-                            <div data-k="roomTag" className={styles.roomTag} style={{ left: 552, top: 766 }}>Glass Room · 3 on camera</div>
-                            <Sprite k="bob" sheet="bob" x={520} y={560} frame={FRAME.down} />
-                            <Sprite sheet="amelia" x={360} y={668} frame={FRAME.right} />
-                            <Sprite sheet="adam" x={400} y={700} frame={FRAME.up} />
+                            <div data-k="room" className={styles.roomOutline} style={PRIVATE_OFFICE} />
+                            <div data-k="roomTag" className={styles.roomTag} style={{ left: PRIVATE_OFFICE.left + 10, top: PRIVATE_OFFICE.top + 10, transform: "none" }}>Private office · 3 on camera</div>
+                            <Sprite k="bob" sheet="bob" x={BOB_PATH[0][0]} y={BOB_PATH[0][1]} frame={FRAME.left} />
+                            {PRIVATE_PAIR.map(([x, y, sheet, frame], i) => <Sprite key={i} sheet={sheet} x={x} y={y} frame={frame} />)}
+                            {/* "In voice" over each head: Adam, lounge Amelia, the far friend, Bob, then the private office pair */}
+                            {Array.from({ length: 6 }, (_, i) => (
+                                <div key={i} data-k="voice" className={styles.voice}><i /><i /><i /></div>
+                            ))}
                             {PLAZA.map(([x, y, sheet, frame], i) => <Sprite key={i} sheet={sheet} x={x} y={y} frame={frame} />)}
                             {EMOTES.map((e, i) => (
                                 <Image key={i} data-k="emote" src={SPRITES[e.kind].src} alt="" width={SPRITES[e.kind].width} height={SPRITES[e.kind].height} unoptimized className={styles.emote} />

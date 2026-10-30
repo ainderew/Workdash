@@ -1,4 +1,5 @@
 import React from "react";
+import { DiscoveryLinks } from "@/components/discovery/DiscoveryPage";
 import Link from "next/link";
 import { CheckIcon, MinusIcon } from "lucide-react";
 import { Navbar } from "@/components/navbar/navbar";
@@ -36,8 +37,8 @@ const ROWS: Row[] = [
         discord: "Free; Nitro is optional",
     },
     {
-        label: "Walk-up proximity audio",
-        workdash: true,
+        label: "Proximity audio in a 2D world",
+        workdash: "Yes, by room",
         gather: true,
         discord: false,
     },
@@ -126,11 +127,10 @@ export default function ComparePage() {
 
                     <div className="space-y-5 text-lg text-[var(--wd-text-muted)] leading-relaxed max-w-2xl mb-14">
                         <p>
-                            These three overlap, but they were built for
-                            different rooms. Discord is the default for talking
-                            to people online and is better at it than anything
-                            here &mdash; but a voice channel is a door you open,
-                            not a place you can see into.
+                            Discord offers drop-in voice channels, text, video
+                            and screen sharing. Members can see who is in a
+                            voice channel before joining. WorkDash adds a
+                            walkable world with conversations separated by room.
                         </p>
                         <p>
                             Gather put people on a map and made audio work by
@@ -140,8 +140,9 @@ export default function ComparePage() {
                             while.
                         </p>
                         <p>
-                            WorkDash is the small version of that idea, built
-                            for a group of friends who already talk every night
+                            WorkDash is the small version of that idea, with
+                            voice that works by room rather than by distance,
+                            built for a group of friends who already talk every night
                             and want one room that is simply always open. If you
                             need to run a 200-person event, use Gather. If you
                             want a server for a community, use Discord.
@@ -251,6 +252,7 @@ export default function ComparePage() {
                             What WorkDash does
                         </Link>
                     </div>
+                    <DiscoveryLinks current="/vs" />
                 </main>
 
                 <Footer />

@@ -72,8 +72,9 @@ export type CamKey = readonly [number, number, number, number];
 export const WORLD_CAM: ReadonlyArray<CamKey> = [
     [8, 1016, 880, 2400],
     [9.2, 860, 640, 1300],
-    [10, 725, 474, 560],
-    [10.5, 728, 470, 520],
+    // wide enough to frame the whole main_office voice zone while they talk
+    [10, 704, 440, 740],
+    [10.5, 706, 438, 720],
     [12.5, 610, 560, 760],
     [14.5, 431, 668, 520],
     [15, 433, 668, 490],
@@ -103,6 +104,36 @@ export function camAt(keys: ReadonlyArray<CamKey>, t: number): [number, number, 
     }
     const last = keys[keys.length - 1];
     return [last[1], last[2], last[3]];
+}
+
+export type Facing = "right" | "up" | "left" | "down";
+
+/**
+ * Position and facing at k (0-1) along a polyline, at constant speed, so a
+ * sprite can turn corners (through a doorway) instead of cutting through walls.
+ */
+export function along(
+    path: ReadonlyArray<readonly [number, number]>,
+    k: number,
+): [number, number, Facing] {
+    const lengths = path.slice(1).map(([x, y], i) => Math.hypot(x - path[i][0], y - path[i][1]));
+    const total = lengths.reduce((a, b) => a + b, 0);
+    let left = clamp(k, 0, 1) * total;
+    for (let i = 0; i < lengths.length; i++) {
+        const [x0, y0] = path[i];
+        const [x1, y1] = path[i + 1];
+        if (left <= lengths[i] || i === lengths.length - 1) {
+            const f = lengths[i] ? clamp(left / lengths[i], 0, 1) : 1;
+            const dx = x1 - x0;
+            const dy = y1 - y0;
+            const facing: Facing =
+                Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? "left" : "right") : dy < 0 ? "up" : "down";
+            return [lerp(x0, x1, f), lerp(y0, y1, f), facing];
+        }
+        left -= lengths[i];
+    }
+    const [x, y] = path[path.length - 1];
+    return [x, y, "down"];
 }
 
 /** Scale that fits a 16:9 view of width vw into w×h, covering it. */

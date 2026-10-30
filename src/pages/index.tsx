@@ -44,6 +44,7 @@ export default function LandingPage() {
                         __html: JSON.stringify({
                             "@context": "https://schema.org",
                             "@type": "WebApplication",
+                            "@id": `${SITE_URL}/#app`,
                             name: SITE_NAME,
                             url: SITE_URL,
                             description: SITE_DESCRIPTION,
@@ -59,6 +60,7 @@ export default function LandingPage() {
                             // for crawlers. Add it here if the repo goes public.
                             author: {
                                 "@type": "Person",
+                                "@id": `${SITE_URL}/about#andrew`,
                                 name: "Andrew Pinon",
                                 url: "https://github.com/ainderew",
                             },

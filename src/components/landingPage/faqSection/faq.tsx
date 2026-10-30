@@ -18,7 +18,7 @@ export const FAQ_ITEMS: FaqItem[] = [
     },
     {
         q: "Is WorkDash a free Gather alternative?",
-        a: "For small groups, yes. Gather ended its free plan in September 2025. WorkDash has the parts small groups use most (proximity audio, a 2D world, video and screen sharing) and is free. It is built for groups of up to about twenty, and it does not do large events or maps you design yourself.",
+        a: "For small groups, yes. Gather ended its free plan in September 2025. WorkDash has the parts small groups use most (a 2D world with voice by room, video and screen sharing) and is free. It is built for groups of up to about twenty, and it does not do large events or maps you design yourself.",
     },
     {
         q: "How many people fit in a room?",
@@ -26,7 +26,7 @@ export const FAQ_ITEMS: FaqItem[] = [
     },
     {
         q: "How is this different from Discord?",
-        a: "A Discord voice channel is a door you open. WorkDash keeps one room running and shows you who is in it before you join, and audio works by distance once you are inside, so you can walk up to someone instead of joining everyone at once.",
+        a: "Discord has drop-in voice channels and shows who is in them. WorkDash adds a 2D world where entering a room joins its conversation. You hear everyone in your current room; audio does not fade with distance inside it.",
     },
     {
         q: "Do we have to leave Discord?",

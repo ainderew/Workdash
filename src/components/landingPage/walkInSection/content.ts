@@ -21,10 +21,10 @@ export interface Beat {
 export const BEATS: ReadonlyArray<Beat> = [
     {
         eyebrow: "Proximity chat",
-        line1: "Walk over.",
+        line1: "Walk in.",
         line2: "Start talking.",
         lead: "No call to start.",
-        body: "Audio fades in as you get close and fades out when you wander off, the way a room works.",
+        body: "Everyone in the same room hears each other. Step into the private office and only the people inside can hear you.",
         range: [0.3, 0.325, 0.41, 0.435],
     },
     {
@@ -81,6 +81,55 @@ export const SHEETS: Record<Sheet, string> = {
 
 /** Walk sheets are 24 frames of 16×32: right, up, left, down (6 each). */
 export const FRAME = { right: 0, up: 6, left: 12, down: 18 } as const;
+
+/**
+ * Voice in the world is by audio zone (map1.json "AudioZones"), not by
+ * distance: everyone inside a zone hears everyone else in it, at full volume.
+ * These are the two zones the film uses, at half scale. main_office is two
+ * rects in the map (424-1005 x 277-590 and 559-1018 x 594-936), drawn as one
+ * outline. scenePaths.test.ts checks everyone shown "in voice" stands inside.
+ */
+export const MAIN_OFFICE_OUTLINE = "M424 277 H1005 V594 H1018 V936 H559 V590 H424 Z";
+/**
+ * Centred along the zone's top edge, under the beat's camera centre (x 704):
+ * phones crop the room on both sides, so a corner would fall off-screen.
+ */
+export const MAIN_OFFICE_TAG = { left: 706, top: 290, transform: "translateX(-50%)" } as const;
+export const PRIVATE_OFFICE = { left: 323, top: 626, width: 220, height: 125 } as const;
+
+/**
+ * Adam walks up to the lounge along the open floor right of the coffee table
+ * (the armchairs on the left are solid, and the sofas below are drawn where a
+ * route would cross them). Sprite top-left; checked in scenePaths.test.ts.
+ */
+export const ADAM_PATH: ReadonlyArray<readonly [number, number]> = [
+    [812, 528],
+    [796, 468],
+];
+export const AMELIA_LOUNGE = [716, 414] as const;
+/**
+ * Across the room from the lounge, nowhere near Adam, and still "in voice":
+ * the point of the first beat is that distance doesn't matter, the room does.
+ */
+export const FAR_FRIEND = [930, 338] as const;
+
+/** Already in the private office when Bob walks in: [x, y, sheet, frame]. */
+export const PRIVATE_PAIR: ReadonlyArray<readonly [number, number, Sheet, number]> = [
+    [360, 668, "amelia", FRAME.right],
+    [400, 700, "adam", FRAME.up],
+];
+
+/**
+ * Bob's route into the private office: along the corridor to the sliding
+ * door (tiles 29-30, rows 36-38), then straight down through it. Points are
+ * the sprite's top-left; its feet are 32 px lower. walkIn paths are checked
+ * against the map's collision layers in scenePaths.test.ts.
+ */
+export const BOB_PATH: ReadonlyArray<readonly [number, number]> = [
+    [520, 516],
+    [472, 516],
+    [472, 676],
+];
 
 /** Friends at the food-truck plaza: [x, y, sheet, facing frame]. */
 export const PLAZA: ReadonlyArray<readonly [number, number, Sheet, number]> = [
