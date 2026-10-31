@@ -1,3 +1,4 @@
+import { isGuestGame } from "@/features/guest/session";
 import { Scene } from "phaser";
 import { Player } from "../player/player";
 import { Multiplayer } from "../multiplayer/multiplayer";
@@ -149,7 +150,7 @@ export abstract class BaseGameScene extends Scene implements SolidMap {
             this.multiplayer = window.__MULTIPLAYER__;
             logger.log("Reusing existing multiplayer connection");
         } else {
-            if (!jwtToken) {
+            if (!jwtToken && !isGuestGame()) {
                 console.error(
                     "JWT token is missing! Cannot connect to multiplayer server.",
                 );
@@ -370,7 +371,7 @@ export abstract class BaseGameScene extends Scene implements SolidMap {
 
     protected setupAudio(map: Phaser.Tilemaps.Tilemap) {
         this.audioZoneManager = new AudioZoneManager(this);
-        this.audioZoneManager.initializeZones(map, this.playersLayer);
+        this.audioZoneManager.initializeZones(map);
 
         if (this.sound && "pauseOnBlur" in this.sound) {
             this.sound.pauseOnBlur = false;
@@ -724,7 +725,7 @@ export abstract class BaseGameScene extends Scene implements SolidMap {
             }
         }
 
-        this.audioZoneManager?.checkZoneExits(this.players);
+        this.audioZoneManager?.update(this.players);
 
         for (const obj of this.doors) {
             const door = obj as Phaser.GameObjects.Sprite;
@@ -773,7 +774,7 @@ export abstract class BaseGameScene extends Scene implements SolidMap {
         this.audioZoneManager?.destroy?.();
         this.audioZoneManager = new AudioZoneManager(this);
         if (this.map) {
-            this.audioZoneManager.initializeZones(this.map, this.playersLayer);
+            this.audioZoneManager.initializeZones(this.map);
         }
 
         // Join or switch workspace on the multiplayer connection

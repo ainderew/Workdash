@@ -5,6 +5,7 @@ import Head from "next/head";
 import { Loader2Icon, AlertCircleIcon } from "lucide-react";
 import Link from "next/link";
 import { trackEvent } from "@/common/utils/trackEvent";
+import { safeAuthReturn } from "@/common/utils/safeAuthReturn";
 
 type VerifyState = "verifying" | "success" | "error";
 
@@ -29,7 +30,7 @@ export default function MagicLinkVerifyPage() {
         trackEvent("sign_in_completed", { method: "magic_link" });
         setState("success");
         const redirect =
-          typeof callbackUrl === "string" ? callbackUrl : "/app";
+          safeAuthReturn(callbackUrl);
         void router.replace(redirect);
       } else {
         setState("error");

@@ -31,9 +31,10 @@ import MobileWorldControls from "./MobileWorldControls";
 
 interface UiControlsProps {
     isVisible?: boolean;
+    guest?: boolean;
 }
 
-function UiControls({ isVisible = true }: UiControlsProps) {
+function UiControls({ isVisible = true, guest = false }: UiControlsProps) {
     const {
         micControls,
         videoCamControls,
@@ -43,7 +44,7 @@ function UiControls({ isVisible = true }: UiControlsProps) {
         isMembersUiOpen,
         toggleCalendarMenu,
         isCalendarUiOpen,
-    } = useUiControls();
+    } = useUiControls(!guest);
 
     const { isMuted, toggleMic } = micControls();
     const { isVideoOff, toggleVideoCam } = videoCamControls();
@@ -92,6 +93,11 @@ function UiControls({ isVisible = true }: UiControlsProps) {
         }
         toggleVideoCam();
     };
+
+    if (guest) return <div className="fixed bottom-4 right-4 z-40 flex items-center gap-3 rounded-xl wd-bg-panel p-3 wd-text-primary" aria-label="World controls">
+        <MicSplitButton isMuted={isMuted} onToggleMic={toggleMic} size="lg" variant="block" />
+        <ReactionButton />
+    </div>;
 
     return (
         <>

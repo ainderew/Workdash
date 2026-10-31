@@ -1,5 +1,6 @@
 import React from "react";
 import Script from "next/script";
+import { useRouter } from "next/router";
 
 /**
  * Self-hosted Umami. Cookieless and collects no personal data, so it needs no
@@ -13,7 +14,8 @@ const UMAMI_URL = process.env.NEXT_PUBLIC_UMAMI_URL;
 const UMAMI_WEBSITE_ID = process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID;
 
 export function Analytics() {
-    if (!UMAMI_URL || !UMAMI_WEBSITE_ID) {
+    const router = useRouter();
+    if (router.pathname === "/try" || !UMAMI_URL || !UMAMI_WEBSITE_ID) {
         return null;
     }
 
@@ -21,6 +23,8 @@ export function Analytics() {
         <Script
             src={`${UMAMI_URL.replace(/\/+$/, "")}/script.js`}
             data-website-id={UMAMI_WEBSITE_ID}
+            data-exclude-search="true"
+            data-exclude-hash="true"
             strategy="afterInteractive"
         />
     );

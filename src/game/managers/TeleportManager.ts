@@ -1,3 +1,5 @@
+import { isGuestGame } from "@/features/guest/session";
+import { toast } from "sonner";
 import { Player } from "../player/player";
 import { BaseGameScene } from "../scenes/BaseGameScene";
 
@@ -78,6 +80,7 @@ export class TeleportManager {
         spawnX?: number,
         spawnY?: number,
     ) {
+        if (isGuestGame()) { toast("Sign in to join the soccer arena.", { id: "guest-arena" }); this.scene.time.delayedCall(2000, () => { this.isTransitioning = false; }); return; }
         this.scene.physics.pause();
 
         

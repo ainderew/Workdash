@@ -1,3 +1,4 @@
+import { isGuestGame, guestSocketConnection } from "@/features/guest/session";
 /*eslint-disable @typescript-eslint/no-explicit-any*/
 import io from "socket.io-client";
 import { MovementPacket, PlayerDto } from "./_types";
@@ -23,15 +24,18 @@ export class Multiplayer {
     private messageQueue: QueuedMessage[] = [];
     private currentScene: string = "MainMap";
     private pingInterval: any = null;
+    private guestJoin: { x: number; y: number; scene: string; workspaceId?: string } | null = null;
+    private connectedBefore = false;
 
     constructor(jwtToken?: string) {
-        this.socket = io(CONFIG.SFU_SERVER_URL, {
+        this.socket = io(isGuestGame() ? guestSocketConnection("game").url : CONFIG.SFU_SERVER_URL, {
             autoConnect: false,
-            auth: {
+            auth: isGuestGame() ? guestSocketConnection("game").auth : {
                 token: jwtToken || "",
             },
         });
 
+        this.socket.on("guest:ended", (data: { code: string }) => window.dispatchEvent(new CustomEvent("guest-ended", { detail: data.code })));
         this.setupLifecycleEvents();
     }
 
@@ -53,6 +57,14 @@ export class Multiplayer {
 
         this.socket.on(SfuEvents.SFU_INITIALIZED, () => {
             this.isBackendReady = true;
+            if (isGuestGame() && this.connectedBefore && this.guestJoin) {
+                this.messageQueue = [];
+                // Reload the same real scene, so its local player and audio zone
+                // use the new socket identity after a connection interruption.
+                window.location.reload();
+                return;
+            }
+            this.connectedBefore = true;
             this.flushMessageQueue();
         });
     }
@@ -61,6 +73,8 @@ export class Multiplayer {
         if (this.socket.connected && this.isBackendReady) {
             this.socket.emit(event, payload);
         } else {
+            if (isGuestGame() && event === "playerMovement") return;
+            if (isGuestGame() && this.messageQueue.length >= 16) return;
             this.messageQueue.push({ event, payload });
 
             if (!this.socket.connected) {
@@ -160,7 +174,8 @@ export class Multiplayer {
         workspaceId?: string,
     ) {
         this.currentScene = sceneName;
-        this.send("playerJoin", { x, y, scene: sceneName, workspaceId });
+        this.guestJoin = { x, y, scene: sceneName, workspaceId };
+        this.send("playerJoin", this.guestJoin);
     }
 
     public emitPlayerMovement(data: MovementPacket) {

@@ -1,0 +1,19 @@
+.entry { min-height: 100dvh; display: grid; place-items: center; padding: 24px; background: var(--wd-surface-base); color: var(--wd-text-primary); }
+.world { position: fixed; inset: 0; color: var(--wd-text-primary); }
+.panel { width: min(100%, 540px); display: grid; gap: 20px; }
+.toolbar { position: absolute; top: 12px; left: 12px; right: 12px; z-index: 45; width: fit-content; max-width: calc(100% - 24px); padding: 12px 16px; border-radius: 12px; background: var(--wd-surface-panel); box-shadow: 0 6px 20px rgb(0 0 0 / .25); display: grid; gap: 8px; }
+.toolbar h1, .panel h1 { font-size: 18px; font-weight: 700; margin: 0; }
+.toolbar p, .panel p { font-size: 14px; line-height: 1.5; max-width: 65ch; margin: 0; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.toolbar button, .panel button, .panel a { min-height: 44px; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--wd-border-subtle); font: inherit; cursor: pointer; }
+.toolbar button:hover, .panel button:hover { background: var(--wd-surface-elevated); }
+.toolbar button:disabled, .panel button:disabled { opacity: .55; cursor: wait; }
+.toolbar button:focus-visible, .panel button:focus-visible, .panel a:focus-visible { outline: 2px solid var(--wd-accent); outline-offset: 3px; }
+.toolbar .primary, .panel .primary { background: var(--primary); color: var(--primary-foreground); }
+.save { display: grid; gap: 12px; }
+.save label { display: flex; align-items: center; gap: 8px; min-height: 44px; }
+.error { color: var(--wd-text-primary); font-weight: 600; }
+.muted, .hint { color: var(--wd-text-secondary); }
+.people { display: grid; gap: 8px; max-height: 35dvh; overflow-y: auto; }
+.people > div { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+@media (max-width: 640px) { .toolbar { padding: 10px 12px; } .hint { display: none; } .toolbar h1 { font-size: 15px; } }

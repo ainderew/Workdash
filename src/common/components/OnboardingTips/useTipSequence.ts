@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import useUiStore, { type InteractionMode } from "@/common/store/uiStore";
+import useWorldAudioStore from "@/common/store/worldAudioStore";
 import { EventBus } from "@/game/EventBus";
 import { SEAT_PROMPT_EVENT, type SeatPrompt } from "@/game/seats/seatEvents";
 import { DESK_SETTLE_MS } from "./constants";
@@ -20,6 +21,7 @@ function nextTip(mode: InteractionMode, seen: SeenTips): TipId | null {
  * it is dismissed or when the user does the thing it teaches on their own.
  */
 export function useTipSequence() {
+    const audioHelpOpen = useWorldAudioStore(state => state.helpOpen);
     const mode = useUiStore((s) => s.interactionMode);
     const modeSwitchCount = useUiStore((s) => s.modeSwitchCount);
     const isChatOpen = useUiStore((s) => s.isChatWindowOpen);
@@ -64,7 +66,7 @@ export function useTipSequence() {
     }, [modeSwitchCount, mode, retire]);
 
     const candidate = nextTip(mode, seen);
-    const isHeld = isBusy || (mode === "world" && isWorldPanelOpen);
+    const isHeld = isBusy || audioHelpOpen || (mode === "world" && isWorldPanelOpen);
 
     // Readiness only builds while nothing is in the way, so closing a panel
     // never makes a tip pop straight up; it waits for the next walk.

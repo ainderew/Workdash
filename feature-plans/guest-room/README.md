@@ -1,0 +1,55 @@
+# Real platform guest access, October 31, 2026
+
+Implemented in the working tree. **Not deployed to production.** The production `/try` redirect remains in place until the replacement is rolled out.
+
+Follow the [production completion handoff](../../docs/handoffs/guest-room-production-completion-handoff.md) to finish the scoped release, production monitoring, real voice/save verification, capacity testing, public launch and acquisition measurement. It contains the ordered work, acceptance criteria and rollback procedure.
+
+`/try` uses the existing `CharacterCreationScreen`, then opens the same `App`, `PhaserGame`, `MainMap`, multiplayer, audio zones, `AudioChat` and microphone controls as `/app`. There is no image-based trial scene, polling movement protocol or second mediasoup worker. The small guest entry/HUD handles admission, invites, time remaining, moderation and saving. Account tools such as files, chat, video, screen sharing, the soccer arena and integrations remain account-only, as in the original trial constraints.
+
+## Server boundaries
+
+- The normal backend mounts `/internal/guest` and a `/guest` Socket.IO namespace. Account HTTP/JWT authentication stays separate. The guest namespace registers the **existing** game, reaction, zone and media handlers behind an event/role/payload allowlist.
+- Admission uses the retained Turnstile validation and HttpOnly cookie/BFF boundary. Browser-visible socket tickets last 60 seconds, use an independent signing key and audience, and bind one guest to one temporary workspace and socket role. A guest has at most one game socket and one media socket; replacement tabs evict the prior role.
+- The server enforces the original 20-minute room deadline, three-minute empty-room expiry, 45-second crash/reconnect presence lease, eight-place room cap, global admission limits, host-only kick/rotation/closure, quotas and 24-hour draft retention. No connection refresh or claim extends the trial. Explicit leave ends presence immediately. Crashed connections have up to 45 seconds of grace before the three empty minutes begin.
+- The bounded existing PostgreSQL admission ledger is retained for this launch. It stores lifecycle and claims, not live game positions. A separate two-connection pool and a fenced Redis owner lease bound its effect on account traffic. Redis/DB failures stop guest admission and disconnect guests. Horizontal guest ownership is deliberately unsupported until partitioning and coexistence tests are done.
+- Real SFU guest allocations are serialized and bounded to two transports, one audio microphone, seven consumers and a 64 kbit/s inbound bitrate request per send transport. Native transport statistics close a connection after two consecutive samples above 128 kbit/s; the browser uses 48 kbit/s Opus. Admission pauses above 3 Mbit/s guest ingress or 12 Mbit/s guest egress. Bitrate feedback alone is not a malicious-sender firewall: [mediasoup documents that it requires sender REMB support](https://mediasoup.org/documentation/v3/mediasoup/api/#transport-setMaxIncomingBitrate). Provider/ingress network flood controls are still required. Ownership checks now protect shared connect/produce/consume/resume/layer operations. Consumer access is rechecked after asynchronous allocation, and existing consumers close when zones separate.
+- Account game joins also verify workspace membership, closing the old client-supplied-workspace gap. No fake account IDs or anonymous database accounts are created.
+
+## Saving and first use
+
+The sign-in link returns to `/try`. The authenticated claim checks the real account and saves the full selected character. Existing characters require explicit replacement consent. Host room claims call the normal workspace creation service in the same transaction, including its roles, memberships, general channel and map. Retries are idempotent. Only the host can save a room, and the guest invite is revoked on conversion. Existing anonymous visitors retain only the original temporary room deadline, not access to the saved account workspace.
+
+Guests start muted. The microphone opens only from the existing mic control. People controls offer local mute, reporting and host removal. A disconnected game reloads the same scene with a fresh short-lived ticket. A server expiry/revocation ends play and leaves the sign-in/save option visible.
+
+Outdoor audio correction: uncovered MainMap paths and grass now use `outdoors`; authored offices, park, garden, cafe, sports and campfire zones take priority. This applies to the shared game for guests and accounts. Zone detection evaluates the player's feet every frame instead of relying on physics overlap callbacks that could skip a frame and falsely leave the zone. Direct zone changes release old audio subscriptions. Guest validation accepts the explicit outdoor zone within the existing room boundary and uses the server's recorded previous zone when leaving.
+
+Audio-area onboarding is shared by guest and account world mode. The label beside the microphone controls shows the server-confirmed area, other occupants and mic/call/focus state. First-time visitors receive dismissible help with optional map outlines and a tint on their current area. Dismissal is saved per browser; the area label reopens help. The guide does not request microphone access, and existing onboarding tips wait while it is open. Connection loss clears the area and occupant indicator.
+
+## Observability
+
+The existing backend exposes authenticated `/internal/guest/metrics`, using the metrics bearer secret. Metrics include guest occupancy/limits, connected sockets, admission rejection reasons, latency histograms, event-loop delay, process/container memory, guest/account/shared transport-producer-consumer counts, shared SFU worker CPU, and measured guest ingress/egress bitrate. Structured events use service `workdash-sfu-guest`, with bounded reasons and suppressed-log counts; the bounded Loki sink remains optional. The Grafana definition includes real guest occupancy and shared SFU panels. Prometheus scrape instructions and pressure/capacity/unavailability alerts are in `Workdash-SFU/deploy/observability`.
+
+The existing production dashboard still monitors host and TURN only. New panels will populate only after the replacement backend and scrape are deployed. The default 24 guest places are a configurable ceiling, not evidence of safe production capacity. External alert delivery is still unconfigured.
+
+## Rollout and remaining external validation
+
+1. Build a scoped release on the current deployed frontend/backend base. Both local repositories contain unrelated work; do not deploy these entire working directories.
+2. Use the normal backend and the existing normal SFU ports. Set a new independent `GUEST_SOCKET_SECRET`, retain Turnstile/proxy/invite/metrics/admin secrets, and set Next's `GUEST_INTERNAL_URL` to the backend's `/internal/guest` endpoint. Apply the existing guest migration through the normal migration workflow if absent.
+3. Configure and measure a memory limit for the existing backend container. The production admission guard refuses unknown or unlimited container memory. Start with `GUEST_ENABLED=false`, `GUEST_TEST_ENABLED=true` and trusted operator network hashes. Public enablement still requires `GUEST_CAPACITY_REVIEWED=true`. Add ingress connection/request limits, overwrite the trusted address header and prevent bypass of the proxy. Never expose guest admin/metrics through the Next BFF.
+4. TURN peer rules are now aligned with the running SFU range 10000–10500, with live/persistent firewall and external UDP/TCP/TLS relay checks passed. Recheck this range against the release configuration, supply the retained URLs/secret to the normal backend, and validate real bidirectional guest audio including forced TURN/TLS on a restrictive network. Protocol checks do not establish real browser audio quality or production capacity.
+5. Test production Google/magic-link return and claim, sustained guest/account coexistence, expiry/reconnect bursts, and alert delivery. Then remove the temporary Nginx `/try` redirect and enable the intended audience. Promote the searchable entry route only when public admission works; the development entry is currently `noindex`.
+
+## Local evidence
+
+- Final targeted runs passed 145 backend tests and 31 frontend tests; the eight database integration tests also passed separately. The backend builds, and the frontend type-checks. A pre-existing missing Vitest import in `media-test-utils.ts` was corrected to allow the frontend check.
+- Unit/regression tests cover guest policy/tickets, shared SFU limits and ownership, consumer authorization races, and the existing account workspace/media behavior.
+- Disposable PostgreSQL tests cover concurrent admission, immutable expiry, overwrite consent, host-only conversion, idempotent claims, rollback and expired-draft saves.
+- `scripts/guest-real-fixture.mjs` is a **local-only test entrypoint**, guarded by a loopback `guesttest` database and `NODE_ENV=test`. `scripts/guest-real-check.mjs` tests the real shared runtime over Socket.IO and native mediasoup, including movement, cross-room denial, voice producer/consumer allocation, kicks, rotation, closure and metrics. This is signaling/resource evidence, not audible RTP or production capacity evidence.
+- Browser verification entered the actual Phaser canvas without an account. Desktop and 390px phone views show the real world, the normal microphone control, and trial/save controls without horizontal overflow. Evidence: [desktop](evidence/2026-10-31/desktop.jpg), [phone](evidence/2026-10-31/mobile.jpg), [latest Socket.IO/native media checks](evidence/2026-10-31/socket-media-check.json). Microphone capture was not enabled during this browser walkthrough.
+- Outdoor correction checks passed 25 frontend and 56 backend tests, frontend type-check and backend build. The [native SFU transition check](evidence/2026-10-31/outdoor-audio-check.json) verifies outdoor subscription, return indoors, removal of old consumers, rejection across zones/rooms, and server handling of stale prior-zone input. It does not capture or decode microphone audio.
+- Audio-area onboarding passed 52 targeted tests and frontend type-check. Browser checks cover first-visit display, map outlines, dismissal, repeat visit and 390px layout. Evidence: [desktop help](evidence/2026-10-31/audio-help-desktop.jpg), [phone help](evidence/2026-10-31/audio-help-mobile.jpg).
+
+
+## Prototype cleanup
+
+The [follow-up audit](remnants-audit-20261031.md) records removed remnants and retained infrastructure. The live TURN port mismatch was subsequently corrected; see the [TURN firewall verification](evidence/2026-10-31/turn-firewall-verification.json). Earlier implementation and rollout notes are preserved in [prototype history](prototype-history.md). They do not describe the current runtime or establish its capacity. The [evidence index](evidence/README.md) separates the real integration from retired prototype results.

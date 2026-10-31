@@ -9,7 +9,7 @@ import { CallSignalingService } from "@/communication/callSignaling/callSignalin
 const audioService = AudioChat.getInstance();
 const videoCamService = VideoChatService.getInstance();
 
-function useUiControls() {
+function useUiControls(requestPermissionsOnMount = true) {
     // Individual selectors so this hot-path component only re-renders when its own values change
     const isMuted = useUiStore((s) => s.isMuted);
     const setIsMuted = useUiStore((s) => s.setIsMuted);
@@ -35,6 +35,7 @@ function useUiControls() {
     // returns labeled devices. The app-level useDeviceEnumeration hook
     // handles ongoing enumeration and devicechange events.
     useEffect(() => {
+        if (!requestPermissionsOnMount) return;
         const grantPermissions = async () => {
             try {
                 const mics = await audioService.getAvailableMicrophones();
@@ -58,7 +59,7 @@ function useUiControls() {
             }
         };
         grantPermissions();
-    }, []);
+    }, [requestPermissionsOnMount]);
 
 
     useEffect(() => {

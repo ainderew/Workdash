@@ -1,3 +1,5 @@
+import useWorldAudioStore from "@/common/store/worldAudioStore";
+import { isGuestGame, guestSocketConnection } from "@/features/guest/session";
 import { signOutWithCleanup } from "@/common/utils/signOutWithCleanup";
 import useUserStore from "@/common/store/useStore";
 import useCallStore from "@/common/store/callStore";
@@ -34,9 +36,9 @@ export class MediaTransportService {
     private isFirstSfuInit = true;
 
     constructor(jwtToken?: string) {
-        this.socket = io(CONFIG.SFU_SERVER_URL, {
+        this.socket = io(isGuestGame() ? guestSocketConnection("media").url : CONFIG.SFU_SERVER_URL, {
             autoConnect: false,
-            auth: {
+            auth: isGuestGame() ? guestSocketConnection("media").auth : {
                 token: jwtToken || "",
                 chatProtocolVersion: 2,
             },
@@ -44,7 +46,10 @@ export class MediaTransportService {
 
         this.device = new Device();
 
+        this.socket.on("guest:ended", (data: { code: string }) => window.dispatchEvent(new CustomEvent("guest-ended", { detail: data.code })));
+
         this.socket.on("connect", () => {
+            useWorldAudioStore.getState().resetConnection();
             if (this.socket.id) {
                 useUserStore
                     .getState()
@@ -60,15 +65,18 @@ export class MediaTransportService {
         });
 
         this.socket.on("disconnect", (reason: string) => {
+            useWorldAudioStore.getState().resetConnection();
             logger.log("MediaTransport socket disconnected:", reason);
         });
 
         this.socket.on(SfuEvents.SFU_INITIALIZED, async () => {
+            if (!isGuestGame()) {
             const statusClient = StatusClientService.init(this.socket);
             statusClient.setupListeners();
             statusClient.fetchDefinitions().catch((err) => logger.error("Failed to fetch status definitions:", err));
 
             ActivityClientService.getInstance().init(this.socket).setupListeners();
+            }
 
             // On reconnect (not first connect), re-initialize SFU transports
             if (!this.isFirstSfuInit) {
@@ -118,6 +126,7 @@ export class MediaTransportService {
     }
 
     public setAuthToken(jwtToken: string) {
+        if (isGuestGame()) return;
         const token = jwtToken.trim();
         // socket.io-client v4 supports `auth` at runtime but types omit it
         const sock = this.socket as unknown as {
@@ -176,8 +185,10 @@ export class MediaTransportService {
     }
 
     public disconnect() {
+        useWorldAudioStore.getState().resetConnection();
         this.recvTransport?.close();
         this.sendTransport?.close();
+        this.recvTransport = null; this.sendTransport = null;
         this.socket.disconnect();
     }
 
@@ -223,7 +234,7 @@ export class MediaTransportService {
             useUserStore.getState().updateUser({ socketId: this.socket.id });
         }
 
-        this.socket.emit("setUserInfo", user);
+        if (!isGuestGame()) this.socket.emit("setUserInfo", user);
     }
 
     private async createReceiveTransport() {
@@ -377,7 +388,8 @@ export class MediaTransportService {
                     { type },
                     (info: TransportOptions) => {
                         clearTimeout(timeout);
-                        resolve(info);
+                        if ((info as { error?: string }).error) reject(new Error((info as { error?: string }).error));
+                        else resolve(info);
                     },
                 );
             },

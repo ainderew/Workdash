@@ -1,0 +1,33 @@
+{
+  "source_base": "798a9b89dafa3e8831c297a381fe305f958b49ef",
+  "release_base": "798a9b89dafa3e8831c297a381fe305f958b49ef",
+  "tracked_guest_paths": [
+    ".dockerignore",
+    "prisma/schema.prisma",
+    "src/handlers/mediasoup.handlers.ts",
+    "src/index.ts",
+    "src/services/_types.ts",
+    "src/services/audioZone.service.ts",
+    "src/services/game.service.ts",
+    "src/services/mediasoup.service.test.ts",
+    "src/services/mediasoup.service.ts",
+    "src/services/soccer.service.ts"
+  ],
+  "new_guest_paths": [
+    "src/guest",
+    "prisma/migrations/20261030000000_guest_trial",
+    "scripts/guest-real-check.mjs",
+    "scripts/guest-real-fixture.mjs",
+    "scripts/guest-turn-config.mjs",
+    "scripts/guest-turn-probe.py",
+    "deploy"
+  ],
+  "mixed_hunks": [
+    "src/services/workspace.service.ts"
+  ],
+  "excluded_work": [
+    "ownership transfer",
+    "billing",
+    "GCS/chat uploads"
+  ]
+}

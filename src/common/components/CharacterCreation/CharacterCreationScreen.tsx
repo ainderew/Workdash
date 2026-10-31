@@ -24,6 +24,10 @@ interface CharacterCreationScreenProps {
     onCancel?: () => void;
     mode: "create" | "edit";
     isLoading?: boolean;
+    description?: string;
+    footer?: React.ReactNode;
+    completeLabel?: string;
+    completeDisabled?: boolean;
 }
 
 const CATEGORIES: CategoryTab[] = [
@@ -49,6 +53,7 @@ export function CharacterCreationScreen({
     onCancel,
     mode,
     isLoading = false,
+    description, footer, completeLabel, completeDisabled = false,
 }: CharacterCreationScreenProps) {
     const [customization, setCustomization] = useState<CharacterCustomization>(
         initialCustomization || DEFAULT_CUSTOMIZATION,
@@ -113,7 +118,7 @@ export function CharacterCreationScreen({
                     </div>
                 </div>
 
-                {}
+                {description && <p className="px-6 py-3 text-slate-300">{description}</p>}
                 <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
                     {}
                     <div className="md:w-1/3 p-6 flex flex-col items-center justify-center bg-slate-800/50">
@@ -168,7 +173,8 @@ export function CharacterCreationScreen({
                     </div>
                 </div>
                 <div className="p-6 border-t border-slate-700 bg-slate-800/30">
-                    <div className="flex justify-end gap-3">
+                    {footer}
+                    <div className="flex justify-end gap-3 mt-3">
                         {onCancel && (
                             <button
                                 onClick={onCancel}
@@ -179,14 +185,14 @@ export function CharacterCreationScreen({
                         )}
                         <button
                             onClick={handleComplete}
-                            disabled={isLoading}
+                            disabled={isLoading || completeDisabled}
                             className="px-6 py-2 rounded-lg bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-semibold hover:from-cyan-600 hover:to-purple-700 transition-all shadow-lg shadow-cyan-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {isLoading
                                 ? "Saving..."
-                                : mode === "create"
+                                : completeLabel || (mode === "create"
                                   ? "Create Character"
-                                  : "Save Changes"}
+                                  : "Save Changes")}
                         </button>
                     </div>
                 </div>

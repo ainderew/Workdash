@@ -1,3 +1,4 @@
+import type { GuestSnapshot } from "@/features/guest/session";
 import Phaser from "phaser";
 import React, { useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
@@ -5,6 +6,7 @@ import { useRouter } from "next/router";
 import { IRefPhaserGame, PhaserGame } from "./PhaserGame";
 import AudioElement from "./common/components/AudioElement";
 import UiControls from "./common/components/UiControls/UiControls";
+import AudioAreaIndicator from "./common/components/UiControls/AudioAreaIndicator";
 import useUserStore from "./common/store/useStore";
 import { User, UserStore } from "./common/store/_types";
 import { MediaTransportService } from "./communication/mediaTransportService/mediaTransportService";
@@ -70,7 +72,7 @@ function resolveModeFromStorage(): InteractionMode | null {
     return null;
 }
 
-function App() {
+function App({ guest }: { guest?: GuestSnapshot } = {}) {
     const interactionMode = useUiStore((state) => state.interactionMode);
     const setInteractionMode = useUiStore((state) => state.setInteractionMode);
     const showWorkspaceSelector = useUiStore(
@@ -82,7 +84,7 @@ function App() {
     );
     const currentCall = useCallStore((state) => state.currentCall);
     const [hasEverBeenWorldMode, setHasEverBeenWorldMode] = useState(() => {
-        const resolved = resolveModeFromStorage();
+        const resolved = guest ? "world" : resolveModeFromStorage();
         return resolved !== "desk"; // true for "world" or null (default is world)
     });
     const [isInitialized, setIsInitialized] = useState(false);
@@ -93,15 +95,10 @@ function App() {
     const { data: session, status } = useSession();
     const router = useRouter();
 
-    useKeyboardShortcuts();
-    useChatNotificationSound();
-    useAchievementListener();
     useDeviceEnumeration();
-    useActivityHeartbeat(isInitialized);
-    useLoungeNudges();
 
     useEffect(() => {
-        if (status !== "authenticated" || !session?.backendJwt) {
+        if (guest || status !== "authenticated" || !session?.backendJwt) {
             return;
         }
 
@@ -109,7 +106,7 @@ function App() {
     }, [bootstrapTheme, session?.backendJwt, status]);
 
     useEffect(() => {
-        if (status !== "authenticated" || !session?.backendJwt) return;
+        if (guest || status !== "authenticated" || !session?.backendJwt) return;
 
         tokenStore.setJwt(session.backendJwt);
         if (session.backendUser) {
@@ -166,6 +163,7 @@ function App() {
                 reactionService.routeReactionToPlayer(emojiData);
             };
 
+            if (!guest) {
             pollService.setupPollListeners();
 
             const callService = CallSignalingService.getInstance();
@@ -178,12 +176,13 @@ function App() {
             MusicClientService.getInstance()
                 .init(transport.socket)
                 .setupListeners();
+            }
 
             // Start listening for newProducer events (needed for music-bot
             // audio even when not in a call/huddle)
             AudioChat.getInstance().watchNewProducers();
 
-            void getMusicBotAvatarDataUri();
+            if (!guest) void getMusicBotAvatarDataUri();
 
             logStep("TOTAL initServices");
             setIsInitialized(true);
@@ -196,10 +195,23 @@ function App() {
         } finally {
             initInFlight.current = false;
         }
-    }, []);
+    }, [guest]);
 
     useEffect(() => {
-        if (status !== "authenticated" || !session?.backendJwt) {
+        if (guest) {
+            useUiStore.setState({ interactionMode: "world", showWorkspaceSelector: false });
+            useChatV2Store.setState({ selectedWorkspaceId: `guest:${guest.room.id}`, currentRoomId: null });
+            useUserStore.setState({ backendUser: null, user: { name: `Guest ${guest.selfId.slice(0, 4)}`, producerIds: [], characterCustomization: guest.appearance } });
+            void initServices("");
+            return () => {
+                AudioChat.getInstance().stopMic();
+                AudioChat.getInstance().closeAllAudioConsumers();
+                MediaTransportService.getInstance().disconnect();
+                window.__MULTIPLAYER__?.socket.disconnect();
+                delete window.__MULTIPLAYER__;
+            };
+        }
+        if (guest || status !== "authenticated" || !session?.backendJwt) {
             return;
         }
 
@@ -209,7 +221,7 @@ function App() {
         return () => {
             SoundboardService.getInstance().cleanup();
         };
-    }, [session?.backendJwt, status, initServices]);
+    }, [session?.backendJwt, status, initServices, guest]);
 
     const phaserRef = useRef<IRefPhaserGame | null>(null);
     const currentScene = (scene: Phaser.Scene) => {
@@ -225,6 +237,7 @@ function App() {
 
     const setUser = useUserStore((state: UserStore) => state.setUser);
     useEffect(() => {
+        if (guest) return;
         try {
             const storedUser = localStorage.getItem("user");
             if (storedUser) {
@@ -239,7 +252,7 @@ function App() {
     const user = useUserStore((state: UserStore) => state.user);
 
     useEffect(() => {
-        const resolvedMode = resolveModeFromStorage();
+        const resolvedMode = guest ? "world" : resolveModeFromStorage();
         if (resolvedMode) {
             setInteractionMode(resolvedMode);
         }
@@ -256,6 +269,7 @@ function App() {
     }, [interactionMode]);
 
     useEffect(() => {
+        if (guest) return;
         localStorage.setItem("workdash:interactionMode", interactionMode);
 
         const currentUrl = new URL(window.location.href);
@@ -283,7 +297,7 @@ function App() {
         (state) => state.fetchMyWorkspaces,
     );
     useEffect(() => {
-        if (!isInitialized) return;
+        if (guest || !isInitialized) return;
 
         const resolveWorkspace = async () => {
             // Always fetch workspace list first to validate membership
@@ -339,11 +353,11 @@ function App() {
         };
     }, []);
 
-    if (status === "loading") {
+    if (!guest && status === "loading") {
         return <SplashLoader step="Waking up…" progress={0.05} />;
     }
 
-    if (status === "unauthenticated") {
+    if (!guest && status === "unauthenticated") {
         void router.replace("/login");
         return null;
     }
@@ -356,7 +370,7 @@ function App() {
                 error={initError}
                 onRetry={() => {
                     const jwt = session?.backendJwt || tokenStore.getJwt();
-                    if (jwt) void initServices(jwt);
+                    if (jwt || guest) void initServices(jwt || "");
                 }}
             />
         );
@@ -378,25 +392,30 @@ function App() {
                     <WorldLoadingScreen active={interactionMode === "world"} />
                 </>
             )}
-            {interactionMode === "desk" && <DeskLayout />}
+            {!guest && <AccountEffects initialized={isInitialized} />}
+            {!guest && interactionMode === "desk" && <DeskLayout />}
             <AudioElement />
             {interactionMode === "world" && !showWorkspaceSelector && (
-                <UiControls />
+                <>
+                    <UiControls guest={!!guest} />
+                    <AudioAreaIndicator />
+                </>
             )}
 
             {}
-            {!(interactionMode === "desk" && currentCall !== null) && (
+            {!guest && !(interactionMode === "desk" && currentCall !== null) && (
                 <ScreenShareUi isGameReady={isGameReady} />
             )}
-            {interactionMode === "world" && (
+            {!guest && interactionMode === "world" && (
                 <VideoChatUi isGameReady={isGameReady} />
             )}
-            {interactionMode === "world" && (
+            {!guest && interactionMode === "world" && (
                 <FloatingPassiveCallIndicator />
             )}
             {interactionMode === "world" && <SeatPrompt />}
             {interactionMode === "world" && <TouchJoystick />}
 
+            {!guest && <>
             <LoungeAutoJoinPill />
 
             <ReactionToast />
@@ -413,8 +432,14 @@ function App() {
             <WorkspaceSelectorOverlay />
             <DevControlPanel />
             <ReadyCheckOverlay />
+            </>}
         </div>
     );
 }
 
+function AccountEffects({ initialized }: { initialized: boolean }) {
+    useKeyboardShortcuts(); useChatNotificationSound(); useAchievementListener();
+    useActivityHeartbeat(initialized); useLoungeNudges();
+    return null;
+}
 export default App;

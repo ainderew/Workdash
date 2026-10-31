@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import useCallStore from "@/common/store/callStore";
 import useUiStore from "@/common/store/uiStore";
+import useWorldAudioStore from "@/common/store/worldAudioStore";
 
 // ── Transport / device mocks ─────────────────────────────────────────────────
 
@@ -190,6 +191,37 @@ describe("AudioChat world voice", () => {
 
   // ── Leaving world voice ────────────────────────────────────────────────
 
+  describe("zone transitions", () => {
+    it("reports server-confirmed membership to the area indicator without counting duplicate or stale arrivals", async () => {
+      audio.initializeAudioChat(vi.fn());
+      await socketHandlers["zone-players"]!({ zone: "outdoors", players: [{ socketId: "peer", playerId: 2, name: "Peer", producerIds: [] }] });
+      await socketHandlers["player-joined-zone"]!({ zone: "outdoors", socketId: "peer", producerIds: [] });
+      await socketHandlers["player-joined-zone"]!({ zone: "main_office", socketId: "stale", producerIds: [] });
+      expect(useWorldAudioStore.getState()).toMatchObject({ connected: true, zoneId: "outdoors", peerIds: ["peer"] });
+      await socketHandlers["player-left-zone"]!({ zone: "outdoors", socketId: "peer" });
+      expect(useWorldAudioStore.getState().peerIds).toEqual([]);
+    });
+    it("releases office audio before subscribing outdoors and can return to the office", async () => {
+      audio.initializeAudioChat(vi.fn());
+      const order: string[] = [];
+      vi.spyOn(audio, "closeAllAudioConsumers").mockImplementation(() => { order.push("close"); });
+      vi.spyOn(internal, "consumeProducer").mockImplementation(async (id) => { order.push(id); });
+      const enter = (zone: string, id: string) => socketHandlers["zone-players"]!({ zone, players: [{ socketId: "peer", playerId: 2, name: "Peer", producerIds: [id] }] });
+      await enter("main_office", "office-mic");
+      await enter("outdoors", "outdoor-mic");
+      await enter("main_office", "office-mic");
+      expect(order).toEqual(["close", "office-mic", "close", "outdoor-mic", "close", "office-mic"]);
+    });
+
+    it("leaves call audio alone when the world zone changes", async () => {
+      audio.initializeAudioChat(vi.fn());
+      enterCall();
+      const close = vi.spyOn(audio, "closeAllAudioConsumers");
+      await socketHandlers["zone-players"]!({ zone: "outdoors", players: [] });
+      expect(close).not.toHaveBeenCalled();
+    });
+  });
+
   describe("stopWorldVoice()", () => {
     it("releases a world mic and stops zone voices", async () => {
       vi.spyOn(internal, "consumeProducer").mockResolvedValue(undefined);
@@ -244,4 +276,21 @@ describe("AudioChat world voice", () => {
       });
     });
   });
+  it("mutes a stable guest identity without muting an account or another guest", () => {
+    const state = audio as unknown as {
+      audioProducerUserIdMap: Map<string, number | string>;
+      producerToConsumerMap: Map<string, string>;
+      gainNodes: Map<string, { gain: { value: number } }>;
+    };
+    const guestGain = { gain: { value: 1 } }; const accountGain = { gain: { value: 1 } };
+    state.audioProducerUserIdMap.set('guest-mic', 'guest:alice');
+    state.audioProducerUserIdMap.set('account-mic', 12);
+    state.producerToConsumerMap.set('guest-mic', 'guest-consumer');
+    state.producerToConsumerMap.set('account-mic', 'account-consumer');
+    state.gainNodes.set('guest-consumer', guestGain); state.gainNodes.set('account-consumer', accountGain);
+    audio.setGuestMuted('guest:alice', true);
+    expect(guestGain.gain.value).toBe(0); expect(accountGain.gain.value).toBe(1);
+    audio.setGuestMuted('guest:alice', false); expect(guestGain.gain.value).toBe(1);
+  });
+
 });
