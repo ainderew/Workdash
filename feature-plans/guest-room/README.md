@@ -53,3 +53,11 @@ The existing production dashboard still monitors host and TURN only. New panels 
 ## Prototype cleanup
 
 The [follow-up audit](remnants-audit-20261031.md) records removed remnants and retained infrastructure. The live TURN port mismatch was subsequently corrected; see the [TURN firewall verification](evidence/2026-10-31/turn-firewall-verification.json). Earlier implementation and rollout notes are preserved in [prototype history](prototype-history.md). They do not describe the current runtime or establish its capacity. The [evidence index](evidence/README.md) separates the real integration from retired prototype results.
+
+## Restricted release — November 1, 2026
+
+The real Phaser/SFU integration is now deployed in the normal frontend and backend. Public entry remains closed. See the [completion handoff](../../docs/handoffs/guest-room-production-completion-handoff.md#execution-update--november-1-2026) for evidence and remaining launch gates. Restricted limits are eight total guests, two rooms and eight places per room, with a 2 GiB shared-backend memory cap. These values do not establish production capacity.
+
+The release adds owned-transport ICE recovery, explicit playback recovery that does not request a microphone, and bounded browser diagnostics for guest and account voice. First decoded audio is measured separately from audible speaker output. Production human voice, forced-relay, account-save and sustained coexistence checks remain required.
+
+Public trial discovery is controlled by the build-time `NEXT_PUBLIC_GUEST_TRIAL_PUBLIC` variable, default false. Only enable it after the public launch gates pass. `/try` contains public HTML explanations and the existing character creator; `/try?play=1` stays private/noindex and opens the same real game. Do not send invite fragments to page analytics. Trial action telemetry accepts only fixed event/source enums, and server ledger totals provide actual admission/save counts. Group retention metrics are still a separate pending implementation.

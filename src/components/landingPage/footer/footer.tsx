@@ -1,4 +1,5 @@
 import React from "react";
+import { GUEST_PUBLIC_DISCOVERY } from "@/features/guest/discovery";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { discoveryLinks } from "@/components/discovery/links";
@@ -47,12 +48,12 @@ export function Footer() {
                             className="flex flex-col sm:flex-row gap-4 justify-center"
                         >
                             <Link
-                                href="/app"
-                                data-umami-event="cta_open_room"
+                                href={GUEST_PUBLIC_DISCOVERY ? "/try?from=footer" : "/app"}
+                                data-umami-event={GUEST_PUBLIC_DISCOVERY ? "cta_guest_try" : "cta_open_room"}
                                 data-umami-event-location="footer"
                                 className="wd-landing-btn-primary group"
                             >
-                                Open the room
+                                {GUEST_PUBLIC_DISCOVERY ? "Try without signing up" : "Open the room"}
                                 <ArrowRightIcon className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                             </Link>
                         </motion.div>

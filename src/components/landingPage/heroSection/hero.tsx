@@ -1,3 +1,4 @@
+import { GUEST_PUBLIC_DISCOVERY } from "@/features/guest/discovery";
 import React, { useEffect, useState } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import { ArrowRightIcon, PlayIcon } from "lucide-react";
@@ -109,12 +110,12 @@ export function Hero() {
 
                     <div className="flex flex-col sm:flex-row gap-4">
                         <Link
-                            href="/app"
-                            data-umami-event="cta_open_room"
+                            href={GUEST_PUBLIC_DISCOVERY ? "/try?from=hero" : "/app"}
+                            data-umami-event={GUEST_PUBLIC_DISCOVERY ? "cta_guest_try" : "cta_open_room"}
                             data-umami-event-location="hero"
                             className="wd-landing-btn-primary flex-1 justify-center"
                         >
-                            Open the room{" "}
+                            {GUEST_PUBLIC_DISCOVERY ? "Try without signing up" : "Open the room"}{" "}
                             <ArrowRightIcon className="w-4 h-4" />
                         </Link>
 

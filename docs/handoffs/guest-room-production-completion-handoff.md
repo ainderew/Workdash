@@ -16,6 +16,31 @@ Account-only tools remain restricted, including unrestricted chat, files, camera
 
 Completion means all six phases below have their acceptance evidence. A deployment alone is insufficient. Fix failures and rerun the affected checks before advancing; do not silently omit voice, monitoring or signup to meet a release date.
 
+## Execution update — November 1, 2026
+
+The real release is deployed in the normal application containers, with restricted admission enabled for the operator network. Public admission and public discovery remain off. The backend has a finite 2 GiB memory limit and explicit restricted caps of eight guests across two rooms. These are provisional test caps, not a measured public ceiling.
+
+Release branches are in `worktrees/guest-release-frontend` and `worktrees/guest-release-backend`, both named `feat/guest-production-release`. Draft PRs: [frontend #43](https://github.com/ainderew/Workdash/pull/43), [backend #4](https://github.com/ainderew/Workdash-SFU/pull/4). The original dirty checkouts remain untouched.
+
+Evidence: [restricted production manifest](../../feature-plans/guest-room/evidence/2026-11-01/restricted-production-release.json), [local browser audio](../../feature-plans/guest-room/evidence/2026-11-01/browser-audio-local.json), [server-rendered trial entry](../../feature-plans/guest-room/evidence/2026-11-01/trial-entry-ssr.json). Browser audio evidence is local and uses the real shared SFU; it is not production TURN or human audibility evidence.
+
+Prometheus scrapes the authenticated real runtime, host and TURN; Loki receives current guest events; Grafana has the browser voice panels. Alert rules and missing-target/recovery fixtures pass. An external alert receiver and its firing/recovery receipt are still pending an approved destination.
+
+The operator entered the real production Phaser room through production Turnstile with the mic off. Public `/try` redirects, public admission remains off, and spoofed forwarding headers cannot enable it. Proxy/admin keys cannot read metrics. Invite rotation was verified. A second browser retained an old revoked cookie; the server rejected admission. The new UI gives that case a specific error and does not clear the revocation.
+
+The acquisition code adds server-rendered explanations/FAQs, canonical metadata and the existing inline character creator. `NEXT_PUBLIC_GUEST_TRIAL_PUBLIC` must remain false until launch gates pass. Setting it true at build time promotes the homepage/footer/discovery CTAs and sitemap entry; live `?play=1` remains noindex. Client intent telemetry has strict fixed fields and one-hour session/action deduplication; successful admissions and saves come from the transactional ledger.
+
+Next required work:
+
+1. Approve a test account and complete Google/magic-link save, overwrite, host conversion and normal account regression checks.
+2. Complete real two-device voice, mobile/network switching and forced-relay browser checks. A relay echo probe or decoded sample alone does not prove audible output.
+3. Configure an approved alert destination and verify firing plus recovery delivery.
+4. Run the Phase 4 sustained guest/account coexistence tiers, record the limiting resource and select measured public limits.
+5. Implement and fixture-test server-side saved-group activation and seven-day return aggregates. Current funnel actions are not retention metrics.
+6. Complete public canary gates before opening TURN client ingress/admission/discovery, observe a full lifecycle and review the following 24 hours.
+
+The sections below retain the full procedure and original baseline. Treat the dated execution evidence as the newer state.
+
 ## Starting state
 
 | Area | State at handoff | Remaining work |
@@ -215,9 +240,9 @@ Store dated, sanitized release evidence under `Workdash/feature-plans/guest-room
 
 ## Execution checklist
 
-- [ ] Create a clean, reviewed guest release without reverting newer landing or unrelated work.
-- [ ] Fix persistent deployment configuration, runtime compatibility, immutable images and the shared memory budget.
-- [ ] Deploy normal backend/frontend and admit only approved testers with server protections intact.
+- [x] Create a clean, reviewed guest release without reverting newer landing or unrelated work.
+- [x] Fix persistent deployment configuration, runtime compatibility, immutable images and the shared memory budget.
+- [x] Deploy normal backend/frontend and admit only approved testers with server protections intact.
 - [ ] Deploy current guest monitoring, voice-failure visibility and verified external alerts.
 - [ ] Pass real voice, sign-in/save, mobile, lifecycle, abuse and account-regression checks.
 - [ ] Complete capacity/coexistence testing and set the measured public ceiling.

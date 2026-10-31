@@ -1,3 +1,4 @@
+import { GUEST_PUBLIC_DISCOVERY } from "@/features/guest/discovery";
 import type { GetServerSideProps } from "next";
 import { SITE_URL } from "@/common/config/site";
 
@@ -22,7 +23,8 @@ const ROUTES = [
 // Omit lastmod until actual per-page content modification dates are available.
 // A server restart is not a content update.
 export const getServerSideProps: GetServerSideProps = async ({ res }) => {
-    const urls = ROUTES.map(
+    const routes = GUEST_PUBLIC_DISCOVERY ? [...ROUTES, { path: "/try", changefreq: "monthly", priority: "0.8" }] : ROUTES;
+    const urls = routes.map(
         (route) => `    <url>
         <loc>${SITE_URL}${route.path}</loc>
         <changefreq>${route.changefreq}</changefreq>

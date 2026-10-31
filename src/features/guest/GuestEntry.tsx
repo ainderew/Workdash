@@ -3,6 +3,7 @@ import dynamic from 'next/dynamic';
 import { useSession } from 'next-auth/react';
 import { CharacterCreationScreen } from '@/common/components/CharacterCreation/CharacterCreationScreen';
 import { CharacterType, type CharacterCustomization } from '@/game/character/_types';
+import { guestFunnelEvent } from './funnel';
 import { Challenge } from './Challenge';
 import { guestRequest, GuestRequestError, isGuestGame, type GuestSnapshot } from './session';
 import styles from './entry.module.css';
@@ -15,17 +16,24 @@ const messages: Record<string, string> = {
     ROOM_FULL: 'This room is full. Ask your friend to try again when a place opens.',
     GUEST_CAPACITY: 'All guest places are in use. Please try again shortly.',
     ROOM_CAPACITY: 'All guest rooms are in use. Please try again shortly.',
-    RATE_LIMITED: 'Too many attempts. Please wait a minute before trying again.',
+    RATE_LIMITED: 'Too many attempts. Please wait and try again later.',
     INVITE_UNAVAILABLE: 'This invite has expired or was replaced. Ask your friend for a new link.',
     ROOM_ENDED: 'Your trial room has ended. You can still sign in to save your character and room.',
     SESSION_EXPIRED: 'This guest session is no longer available.',
+    SESSION_REVOKED: 'This guest session was removed and can no longer join rooms.',
+    ALREADY_IN_ROOM: 'You already have a guest room open. Return to that room to continue.',
+    CREATION_PAUSED: 'New guest rooms are paused right now. Please try again later.',
+    JOINS_PAUSED: 'Joining guest rooms is paused right now. Please try again later.',
     SESSION_REPLACED: 'Your room is open in another tab. You can continue there.',
     CHARACTER_CHOICE_REQUIRED: 'Your account already has a character. Choose whether to replace it below.',
     WORKSPACE_LIMIT: 'Your account has reached the room limit. You can still save your character.',
 };
 const describe = (error: unknown) => messages[error instanceof GuestRequestError ? error.code : String(error)] || 'That did not work. Please try again.';
 
-export default function GuestEntry() {
+export default function GuestEntry({ embedded = false }: { embedded?: boolean }) {
+    const Container = embedded ? "section" : "main";
+    const Heading = embedded ? "h2" : "h1";
+    const entryClass = embedded ? styles.embedded : styles.entry;
     const { status } = useSession();
     const [ready, setReady] = useState(false);
     const [available, setAvailable] = useState(false);
@@ -49,7 +57,9 @@ export default function GuestEntry() {
     const onToken = useCallback((value: string) => setToken(value), []);
     useEffect(() => {
         let active = true;
-        setInvite(new URLSearchParams(window.location.hash.slice(1)).get('invite') || '');
+        const readInvite = () => setInvite(new URLSearchParams(window.location.hash.slice(1)).get('invite') || '');
+        readInvite();
+        window.addEventListener('hashchange', readInvite);
         void (async () => {
             try {
                 const bootstrap = await fetch('/api/guest', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Guest-Request': '1' }, body: JSON.stringify({ action: 'bootstrap' }) });
@@ -57,6 +67,7 @@ export default function GuestEntry() {
                 const config = await fetch('/api/guest').then(r => r.json());
                 if (!active) return;
                 setAvailable(!!config.enabled);
+                if (config.enabled && !isGuestGame()) guestFunnelEvent("entry_viewed");
                 try {
                     const draft = await guestRequest({ action: isGuestGame() ? 'resume' : 'inspect' });
                     if (!active) return;
@@ -68,7 +79,7 @@ export default function GuestEntry() {
         })();
         const ended = (e: Event) => { setGame(null); setError(describe((e as CustomEvent<string>).detail)); };
         window.addEventListener('guest-ended', ended);
-        return () => { active = false; window.removeEventListener('guest-ended', ended); };
+        return () => { active = false; window.removeEventListener('guest-ended', ended); window.removeEventListener('hashchange', readInvite); };
     }, []);
     useEffect(() => {
         if (!game) return;
@@ -112,21 +123,21 @@ export default function GuestEntry() {
         try { await navigator.clipboard.writeText(`${window.location.origin}/try#invite=${state.room.invite}`); setCopied(true); }
         catch { setError('Your browser could not copy the invite. Try allowing clipboard access.'); }
     };
-    const enterSave = () => { if (status === 'authenticated') setSave(true); else window.location.assign('/login?guest=1'); };
+    const enterSave = () => { guestFunnelEvent('save_intent'); if (status === 'authenticated') setSave(true); else window.location.assign('/login?guest=1'); };
     const remaining = Math.max(0, Math.ceil((deadline - now) / 1000));
-    if (!ready) return <main className={styles.entry}><p role="status">Getting your visit ready…</p></main>;
+    if (!ready) return <Container className={entryClass}><p role="status">Getting your visit ready…</p></Container>;
     if (!state && available && !isGuestGame()) return <CharacterCreationScreen
-        mode="create" isLoading={busy} completeDisabled={!!process.env.NEXT_PUBLIC_GUEST_TURNSTILE_SITE_KEY && !token}
+        inline={embedded} mode="create" isLoading={busy} completeDisabled={!!process.env.NEXT_PUBLIC_GUEST_TURNSTILE_SITE_KEY && !token}
         completeLabel={invite ? 'Join your friend' : 'Enter the world'}
-        description="Try WorkDash without an account. Walk around and talk with friends for up to 20 minutes. Rooms close after three empty minutes. Sign in to keep your character and room."
+        description={embedded ? "Choose your look. You can save it when you sign in." : "Try WorkDash without an account. Walk around and talk with friends for up to 20 minutes. Rooms close after three empty minutes. Sign in to keep your character and room."}
         onComplete={admit} onCancel={() => window.location.assign('/')}
         initialCustomization={{ type: CharacterType.ADULT, bodyId: 1, eyesId: 1, hairstyleId: 1, outfitId: 1 }}
         footer={<><Challenge onToken={onToken} attempt={attempt} />{error && <p role="alert">{error}</p>}</>}
     />;
-    return <main className={game ? styles.world : styles.entry}>
+    return <Container className={game ? styles.world : entryClass}>
         {game && <Platform guest={game} />}
         <section className={game ? styles.toolbar : styles.panel} aria-label="Your guest room">
-            <div><h1>{game ? 'Your guest room' : state ? 'Keep what you made' : 'Try WorkDash'}</h1>
+            <div><Heading>{game ? 'Your guest room' : state ? 'Keep what you made' : 'Try WorkDash'}</Heading>
                 <p>{game ? `${state?.participants.length ?? 1}/${state?.room.capacity ?? 8} here · ${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2, '0')} left` : state ? 'Save your character and make this room yours.' : 'Walk around the world and talk with friends, without an account.'}</p>
             </div>
             {error && <p className={styles.error} role="alert">{error}</p>}
@@ -165,5 +176,5 @@ export default function GuestEntry() {
             {!game && <p className={styles.muted}>{state ? 'Your draft is kept for 24 hours after the trial ends. Saving does not extend the temporary room or admit guests into your account workspace.' : <a href="/login">Sign in to WorkDash</a>}</p>}
             {game && <p className={styles.hint}>Move with WASD, arrow keys or touch. Turn on your microphone when you want to talk. Friends hear you in the same area.</p>}
         </section>
-    </main>;
+    </Container>;
 }

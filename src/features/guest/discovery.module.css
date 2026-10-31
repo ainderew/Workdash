@@ -1,0 +1,18 @@
+.page { min-height: 100dvh; background: var(--wd-surface-base); color: var(--wd-text-primary); padding: 24px max(20px, calc((100vw - 1152px) / 2)); }
+.nav { display: flex; justify-content: space-between; align-items: center; gap: 20px; margin-bottom: 32px; }
+.nav a { display: inline-flex; align-items: center; min-height: 44px; font-size: 16px; text-underline-offset: 4px; }
+.nav a:first-child { font-size: 22px; font-weight: 700; text-decoration: none; }
+.intro { max-width: 68ch; margin-bottom: 28px; }
+.intro h1 { font-size: clamp(28px, 4vw, 40px); line-height: 1.2; font-weight: 700; margin: 0 0 16px; text-wrap: balance; }
+.intro p, .answers p { font-size: 16px; line-height: 1.65; color: var(--wd-text-secondary); margin: 0 0 12px; }
+.answers { max-width: 72ch; padding: 48px 0 32px; }
+.answers h2 { font-size: 24px; line-height: 1.3; font-weight: 700; margin-bottom: 16px; }
+.answers details { border-bottom: 1px solid var(--wd-border-subtle); }
+.answers summary { display: list-item; padding: 14px 0; font-size: 16px; font-weight: 600; cursor: pointer; }
+.answers details p { padding: 0 0 8px; }
+.answers > p { margin-top: 24px; }
+.page a { text-decoration: underline; text-underline-offset: 4px; }
+.page a:hover { color: var(--wd-accent); }
+.page :is(a, summary):focus-visible { outline: 2px solid var(--wd-accent); outline-offset: 4px; }
+.page ::selection { background: var(--wd-accent-soft); }
+@media (max-width: 640px) { .page { padding: 16px; } .nav { margin-bottom: 24px; } }

@@ -16,7 +16,7 @@ const PrivacyPage = () => {
                         Privacy Policy
                     </h1>
                     <p className="text-slate-400">
-                        Effective Date: March 18, 2026
+                        Effective Date: November 1, 2026
                     </p>
                 </div>
 
@@ -60,6 +60,22 @@ const PrivacyPage = () => {
                             operating system.
                         </li>
                     </ul>
+                </section>
+
+                <section className="space-y-3 bg-slate-800/50 p-6 rounded-lg border border-slate-700">
+                    <h2 className="text-2xl font-semibold text-white">Guest trials</h2>
+                    <p className="text-slate-300 leading-relaxed">
+                        A necessary, secure session cookie identifies your guest visit for up to 25 hours.
+                        Your trial character and room draft remain available for 24 hours after the room deadline.
+                        Signing in lets you save them to your account. Cloudflare Turnstile checks trial admissions to limit abuse.
+                    </p>
+                    <p className="text-slate-300 leading-relaxed">
+                        Page analytics are disabled on the trial page. Our servers count trial entry, world entry,
+                        save-button use, successful admissions and saves. Browser reports include only named actions
+                        and a short source category, such as the homepage; they exclude invite links, room identifiers,
+                        email addresses and character details. A hashed session key prevents duplicate action counts
+                        for one hour. Voice diagnostics report connection outcomes and quality measurements, without recording conversations.
+                    </p>
                 </section>
 
                 <section className="space-y-3 bg-slate-800/50 p-6 rounded-lg border border-orange-500/30">

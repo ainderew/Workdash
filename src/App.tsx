@@ -1,3 +1,4 @@
+import { guestFunnelEvent } from "@/features/guest/funnel";
 import type { GuestSnapshot } from "@/features/guest/session";
 import Phaser from "phaser";
 import React, { useEffect, useRef, useState } from "react";
@@ -233,6 +234,7 @@ function App({ guest }: { guest?: GuestSnapshot } = {}) {
 
     const handleGameReady = () => {
         setIsGameReady(true);
+        if (guest) guestFunnelEvent("world_entered");
     };
 
     const setUser = useUserStore((state: UserStore) => state.setUser);

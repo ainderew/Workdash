@@ -54,3 +54,11 @@ describe('guest same-origin proxy boundary', () => {
         expect(res.status).toHaveBeenCalledWith(503);
     });
 });
+
+it('forwards bounded telemetry through the private route and preserves empty success responses', async () => {
+    vi.mocked(fetch).mockResolvedValue({ status: 204, headers: new Headers() } as Response);
+    const res = response();
+    await handler(request({ action: 'telemetry', event: 'save_intent', source: 'hero' }), res);
+    expect(fetch).toHaveBeenCalledWith('http://127.0.0.1:4000/internal/guest/telemetry', expect.objectContaining({ method: 'POST' }));
+    expect(res.status).toHaveBeenCalledWith(204); expect(res.end).toHaveBeenCalled();
+});

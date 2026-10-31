@@ -1,0 +1,57 @@
+{
+  "checks": [
+    {
+      "path": "/try",
+      "status": 200,
+      "robotsHeader": "noindex, nofollow",
+      "cache": "private, no-store",
+      "canonical": [
+        "https://workdash.site/try"
+      ],
+      "h1": [
+        "Try a room with your friends"
+      ],
+      "trialSitemapEntry": false,
+      "publicTrialCTA": false
+    },
+    {
+      "path": "/try?play=1",
+      "status": 200,
+      "robotsHeader": "noindex, nofollow",
+      "cache": "private, no-store",
+      "canonical": [
+        "https://workdash.site/try"
+      ],
+      "h1": [],
+      "trialSitemapEntry": false,
+      "publicTrialCTA": false
+    },
+    {
+      "path": "/sitemap.xml",
+      "status": 200,
+      "robotsHeader": null,
+      "cache": "public, max-age=3600",
+      "canonical": [],
+      "h1": [],
+      "trialSitemapEntry": false,
+      "publicTrialCTA": false
+    },
+    {
+      "path": "/",
+      "status": 200,
+      "robotsHeader": null,
+      "cache": null,
+      "canonical": [
+        "https://workdash.site/"
+      ],
+      "h1": [
+        "The room\u2019s <br/><span class=\"text-[var(--wd-landing-accent)]\">already open.</span>"
+      ],
+      "trialSitemapEntry": false,
+      "publicTrialCTA": false
+    }
+  ],
+  "discoveryFlag": false,
+  "publicPromotion": "pending launch gates",
+  "layout": "Desktop 1440x960 and mobile 390x844 reviewed; no horizontal page overflow; existing inline character creator retains scrollable categories."
+}

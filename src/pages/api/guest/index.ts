@@ -40,12 +40,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         headers.Authorization = `Bearer ${session.backendJwt}`;
     }
     try {
-        const response = await fetch(`${upstream.replace(/\/$/, '')}/${req.method === 'GET' ? 'config' : 'command'}`, {
+        const path = req.method === 'GET' ? 'config' : req.body?.action === 'telemetry' ? 'telemetry' : 'command';
+        const response = await fetch(`${upstream.replace(/\/$/, '')}/${path}`, {
             method: req.method, headers,
             ...(req.method === 'POST' ? { body: JSON.stringify(req.body) } : {}),
             signal: AbortSignal.timeout(9000), redirect: 'error',
         });
         if (response.headers.get('retry-after')) res.setHeader('Retry-After', response.headers.get('retry-after')!);
+        if (response.status === 204) return res.status(204).end();
         const data: unknown = await response.json();
         return res.status(response.status).json(data);
     } catch { return res.status(503).json({ code: 'UNAVAILABLE' }); }
