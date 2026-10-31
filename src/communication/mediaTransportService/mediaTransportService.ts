@@ -1,3 +1,4 @@
+import { observeMediaTransport } from "./mediaDiagnostics";
 import useWorldAudioStore from "@/common/store/worldAudioStore";
 import { isGuestGame, guestSocketConnection } from "@/features/guest/session";
 import { signOutWithCleanup } from "@/common/utils/signOutWithCleanup";
@@ -103,6 +104,8 @@ export class MediaTransportService {
     private async reinitializeSfu(): Promise<void> {
         if (this.resetting) return;
         this.resetting = true;
+        this.sendTransport?.close();
+        this.recvTransport?.close();
         this.sendTransport = null;
         this.recvTransport = null;
 
@@ -246,6 +249,9 @@ export class MediaTransportService {
         this.recvTransport = this.device!.createRecvTransport(
             receiveTransportOptions,
         );
+        observeMediaTransport(this.recvTransport, "recv", report => {
+            if (this.socket.connected) (this.socket as ReturnType<typeof io> & { volatile: { emit(event: string, payload: unknown): void } }).volatile.emit("media:diagnostic", report);
+        });
         this.recvTransport.on(
             "connect",
             this.handleConnect(this.recvTransport),
@@ -264,6 +270,9 @@ export class MediaTransportService {
         this.sendTransport =
             this.device!.createSendTransport(sendTransportOptions);
 
+        observeMediaTransport(this.sendTransport, "send", report => {
+            if (this.socket.connected) (this.socket as ReturnType<typeof io> & { volatile: { emit(event: string, payload: unknown): void } }).volatile.emit("media:diagnostic", report);
+        });
         this.sendTransport.on(
             "connect",
             this.handleConnect(this.sendTransport),
