@@ -6,7 +6,9 @@
     "typescript": "passed",
     "productionBuild": "passed after fixing JSX quote escaping",
     "designDetector": "no findings in changed trial entry targets",
-    "desktopAndMobile": "reviewed at 1440x960 and 390x844; second pass fixed mobile option clipping"
+    "desktopAndMobile": "reviewed at 1440x960 and 390x844; second pass fixed mobile option clipping",
+    "expiryRegression": "Two additional tests pass: server-ended rooms offer no re-entry; voluntary leavers can return to an active room.",
+    "deployedSource": "09ae0b9dfb800ea501c4bd0df032728834edfa49"
   },
   "backend": {
     "source": "63886256deb05c37c17c42e2b2f64d7b5cef8591",
@@ -29,7 +31,8 @@
       "authenticated metrics",
       "telemetry private authentication, schema privacy and retry deduplication"
     ],
-    "limits": "Native allocation checks do not prove audible RTP or production capacity."
+    "limits": "Native allocation checks do not prove audible RTP or production capacity.",
+    "deployedSource": "63886256deb05c37c17c42e2b2f64d7b5cef8591"
   },
   "pending": [
     "real production two-person audible voice and forced relay",
@@ -39,5 +42,6 @@
     "30-minute capacity/coexistence tiers",
     "server-side saved-group activation and seven-day return measurement",
     "public canary and 24-hour review"
-  ]
+  ],
+  "deploymentWorkflows": "Both completed successfully; see restricted-production-redeploy.json"
 }

@@ -1,0 +1,21 @@
+{
+  "checkedAt": "2026-10-31T19:20:57.837212+00:00",
+  "browserActions": [
+    "Loaded /try after redeploy; expired draft retained; no Return to room button",
+    "Selected Sign in to save; reached /login?guest=1; no credentials entered"
+  ],
+  "intentMetrics": [
+    "guest_events_total{event=\"funnel_entry_viewed\",reason=\"direct\"} 1",
+    "guest_events_total{event=\"funnel_save_intent\",reason=\"direct\"} 1"
+  ],
+  "differentNetworkSpoofCheck": {
+    "tryStatus": 302,
+    "redirect": "https://workdash.site/",
+    "admissionEnabled": false
+  },
+  "limitations": [
+    "Browser intents are untrusted, not successful claims",
+    "No production test account approved; save/conversion not completed",
+    "No group retention measurement implemented yet"
+  ]
+}
