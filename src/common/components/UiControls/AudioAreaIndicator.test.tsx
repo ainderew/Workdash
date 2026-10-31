@@ -1,6 +1,6 @@
 import React from "react";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import AudioAreaIndicator, { AUDIO_AREA_HELP_KEY } from "./AudioAreaIndicator";
 import useWorldAudioStore from "@/common/store/worldAudioStore";
 import useUiStore from "@/common/store/uiStore";
@@ -10,7 +10,7 @@ import useFocusStore from "@/common/store/focusStore";
 describe("audio area help", () => {
     beforeEach(() => {
         localStorage.removeItem(AUDIO_AREA_HELP_KEY);
-        useWorldAudioStore.setState({ connected: true, zoneId: "main_office", peerIds: [], showAreas: false, helpOpen: false });
+        useWorldAudioStore.setState({ playbackBlocked: false, connected: true, zoneId: "main_office", peerIds: [], showAreas: false, helpOpen: false });
         useUiStore.setState({ isMuted: true });
         useCallStore.getState().reset();
         useFocusStore.getState().reset();
@@ -54,6 +54,16 @@ describe("audio area help", () => {
         act(() => useWorldAudioStore.getState().resetConnection());
         expect(screen.getByRole("button", { name: /Connecting audio/ })).toBeInTheDocument();
         expect(screen.queryByText(/2 others/)).not.toBeInTheDocument();
+    });
+
+    it("enables playback without changing microphone state", () => {
+        useWorldAudioStore.setState({ playbackBlocked: true });
+        const enable = vi.fn(); window.addEventListener("workdash:enable-audio", enable);
+        render(<AudioAreaIndicator />);
+        fireEvent.click(screen.getByRole("button", { name: "Enable audio" }));
+        expect(enable).toHaveBeenCalledTimes(1);
+        expect(useUiStore.getState().isMuted).toBe(true);
+        window.removeEventListener("workdash:enable-audio", enable);
     });
 
     it("does not claim world audio is active during a call or focus mode", () => {

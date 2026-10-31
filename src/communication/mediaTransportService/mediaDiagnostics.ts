@@ -1,8 +1,8 @@
 import type { Transport } from 'mediasoup-client/types';
 
 type Direction = 'send' | 'recv';
-type Report = {
-    event: 'connecting' | 'connected' | 'disconnected' | 'failed' | 'quality' | 'audio_received';
+export type MediaDiagnostic = {
+    event: 'connecting' | 'connected' | 'disconnected' | 'failed' | 'quality' | 'audio_received' | 'microphone_denied' | 'microphone_unavailable' | 'playback_blocked' | 'allocation_refused' | 'media_error';
     direction: Direction;
     elapsedMs?: number;
     rttMs?: number;
@@ -17,7 +17,7 @@ const bounded = (n: unknown, max: number) => typeof n === 'number' && Number.isF
 export function audioDiagnosticSample(stats: RTCStatsReport, previous: Map<string, Counter>) {
     let lost = 0; let received = 0; let decoded = false;
     let rttMs: number | undefined; let jitterMs: number | undefined;
-    let path: Report['path'] = 'unknown';
+    let path: MediaDiagnostic['path'] = 'unknown';
     const seen = new Set<string>();
     for (const entry of stats.values()) {
         if (entry.type === 'candidate-pair' && entry.state === 'succeeded' && entry.nominated) {
@@ -43,10 +43,10 @@ export function audioDiagnosticSample(stats: RTCStatsReport, previous: Map<strin
 }
 
 /** Observes the real account/guest transports without changing their media behavior. */
-export function observeMediaTransport(transport: Transport, direction: Direction, send: (report: Report) => void) {
-    let started: number | undefined; let receivedAudio = false; let busy = false;
+export function observeMediaTransport(transport: Transport, direction: Direction, send: (report: MediaDiagnostic) => void) {
+    let started: number | undefined; let receivedAudio = false; let busy = false; let nextQuality = performance.now() + 15000;
     const previous = new Map<string, Counter>();
-    const report = (value: Report) => {
+    const report = (value: MediaDiagnostic) => {
         try { if (!transport.closed) send(value); } catch { /* Keep diagnostics out of the call control path. */ }
     };
     const stateChanged = (state: string) => {
@@ -57,13 +57,15 @@ export function observeMediaTransport(transport: Transport, direction: Direction
     transport.on('connectionstatechange', stateChanged);
     const timer = setInterval(() => {
         if (busy || transport.closed || transport.connectionState !== 'connected') return;
+        const qualityDue = performance.now() >= nextQuality;
+        if (!qualityDue && (direction !== 'recv' || receivedAudio)) return;
         busy = true;
         void transport.getStats().then(stats => {
             const { decoded, ...sample } = audioDiagnosticSample(stats, previous);
-            report({ event: 'quality', direction, ...sample });
-            if (decoded && !receivedAudio) { receivedAudio = true; report({ event: 'audio_received', direction, path: sample.path }); }
+            if (qualityDue) { nextQuality = performance.now() + 15000; report({ event: 'quality', direction, ...sample }); }
+            if (decoded && !receivedAudio) { receivedAudio = true; report({ event: 'audio_received', direction, path: sample.path, ...(started !== undefined ? { elapsedMs: bounded(performance.now() - started, 120000) } : {}) }); }
         }).catch(() => { /* Diagnostics must never disrupt a call. */ }).finally(() => { busy = false; });
-    }, 15000);
+    }, 1000);
     const cleanup = () => { clearInterval(timer); previous.clear(); transport.off('connectionstatechange', stateChanged); };
     transport.observer.once('close', cleanup);
     return cleanup;

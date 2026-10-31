@@ -1,0 +1,372 @@
+{
+  "date": "2026-11-01",
+  "backendSource": "1ff205f",
+  "frontendSource": "pending commit, audio recovery changes",
+  "normalAutoplayTwoWay": {
+    "passed": true,
+    "readings": [
+      [
+        {
+          "state": "connected",
+          "outputRms": [
+            0.00564044283416196
+          ],
+          "receivers": [
+            {
+              "enabled": true,
+              "muted": false,
+              "state": "live"
+            }
+          ],
+          "elements": [
+            {
+              "paused": true,
+              "muted": false,
+              "ready": 0,
+              "time": 0
+            },
+            {
+              "paused": false,
+              "muted": true,
+              "ready": 4,
+              "time": 1.98191,
+              "tracks": [
+                {
+                  "enabled": true,
+                  "muted": false
+                }
+              ]
+            }
+          ],
+          "senders": [
+            {}
+          ],
+          "source": [],
+          "contexts": [
+            "running",
+            "running",
+            "running"
+          ],
+          "rawTracks": [
+            {
+              "enabled": true,
+              "state": "live"
+            }
+          ],
+          "inbound": [
+            {
+              "packets": 90,
+              "samples": 85440,
+              "energy": 0,
+              "bytes": 10529,
+              "concealed": 0,
+              "silentConcealed": 0,
+              "codec": "audio/opus"
+            }
+          ]
+        },
+        {
+          "state": "connected",
+          "outputRms": [
+            0.00564044283416196
+          ],
+          "receivers": [
+            {
+              "enabled": true,
+              "muted": true,
+              "state": "live"
+            }
+          ],
+          "elements": [
+            {
+              "paused": true,
+              "muted": false,
+              "ready": 0,
+              "time": 0
+            },
+            {
+              "paused": false,
+              "muted": true,
+              "ready": 4,
+              "time": 1.982198,
+              "tracks": [
+                {
+                  "enabled": true,
+                  "muted": false
+                }
+              ]
+            }
+          ],
+          "senders": [
+            {
+              "enabled": true,
+              "state": "live"
+            }
+          ],
+          "source": [
+            {
+              "level": 0.9643238624225593,
+              "energy": 1.3490261081103199
+            }
+          ],
+          "contexts": [
+            "running",
+            "running",
+            "running"
+          ],
+          "rawTracks": [
+            {
+              "enabled": true,
+              "state": "live"
+            }
+          ],
+          "inbound": []
+        }
+      ],
+      [
+        {
+          "state": "connected",
+          "outputRms": [
+            0.012647806309382423
+          ],
+          "receivers": [
+            {
+              "enabled": true,
+              "muted": false,
+              "state": "live"
+            }
+          ],
+          "elements": [
+            {
+              "paused": true,
+              "muted": false,
+              "ready": 0,
+              "time": 0
+            },
+            {
+              "paused": false,
+              "muted": true,
+              "ready": 4,
+              "time": 1.985914,
+              "tracks": [
+                {
+                  "enabled": true,
+                  "muted": false
+                }
+              ]
+            }
+          ],
+          "senders": [
+            {}
+          ],
+          "source": [],
+          "contexts": [
+            "running",
+            "running",
+            "running"
+          ],
+          "rawTracks": [
+            {
+              "enabled": true,
+              "state": "live"
+            }
+          ],
+          "inbound": [
+            {
+              "packets": 90,
+              "samples": 85920,
+              "energy": 0,
+              "bytes": 10501,
+              "concealed": 0,
+              "silentConcealed": 0,
+              "codec": "audio/opus"
+            }
+          ]
+        },
+        {
+          "state": "connected",
+          "outputRms": [
+            0.012647806309382423
+          ],
+          "receivers": [
+            {
+              "enabled": true,
+              "muted": true,
+              "state": "live"
+            }
+          ],
+          "elements": [
+            {
+              "paused": true,
+              "muted": false,
+              "ready": 0,
+              "time": 0
+            },
+            {
+              "paused": false,
+              "muted": true,
+              "ready": 4,
+              "time": 1.986163,
+              "tracks": [
+                {
+                  "enabled": true,
+                  "muted": false
+                }
+              ]
+            }
+          ],
+          "senders": [
+            {
+              "enabled": true,
+              "state": "live"
+            }
+          ],
+          "source": [
+            {
+              "level": 0.8511612292855617,
+              "energy": 1.429920259000898
+            }
+          ],
+          "contexts": [
+            "running",
+            "running",
+            "running"
+          ],
+          "rawTracks": [
+            {
+              "enabled": true,
+              "state": "live"
+            }
+          ],
+          "inbound": []
+        }
+      ]
+    ],
+    "errors": [
+      {
+        "browser": 0,
+        "diagnostic": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      },
+      {
+        "browser": 1,
+        "diagnostic": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      }
+    ],
+    "scope": "Two isolated Chromium contexts using the real Phaser UI and actual SFU, synthetic spoken microphone input; desktop and emulated mobile. Local direct path only; does not prove production TURN, physical mobile or speaker playback.",
+    "expectedConsoleErrors": "The initial inspect request returns 401 when a fresh guest has no draft. No uncaught page errors."
+  },
+  "simulatedPlaybackBlockListener": {
+    "passed": true,
+    "readings": [
+      [
+        {
+          "state": "connected",
+          "outputRms": [
+            0.038982690544347
+          ],
+          "receivers": [
+            {
+              "enabled": true,
+              "muted": false,
+              "state": "live"
+            }
+          ],
+          "elements": [
+            {
+              "paused": true,
+              "muted": false,
+              "ready": 0,
+              "time": 0
+            },
+            {
+              "paused": false,
+              "muted": true,
+              "ready": 4,
+              "time": 3.079807,
+              "tracks": [
+                {
+                  "enabled": true,
+                  "muted": false
+                }
+              ]
+            }
+          ],
+          "senders": [
+            {}
+          ],
+          "source": [],
+          "contexts": [
+            "running",
+            "running"
+          ],
+          "rawTracks": [],
+          "inbound": [
+            {
+              "packets": 145,
+              "samples": 138240,
+              "energy": 0,
+              "bytes": 17384,
+              "concealed": 0,
+              "silentConcealed": 0,
+              "codec": "audio/opus"
+            }
+          ]
+        },
+        {
+          "state": "new",
+          "outputRms": [
+            0.038982690544347
+          ],
+          "receivers": [],
+          "elements": [
+            {
+              "paused": true,
+              "muted": false,
+              "ready": 0,
+              "time": 0
+            },
+            {
+              "paused": false,
+              "muted": true,
+              "ready": 4,
+              "time": 3.079939,
+              "tracks": [
+                {
+                  "enabled": true,
+                  "muted": false
+                }
+              ]
+            }
+          ],
+          "senders": [],
+          "source": [],
+          "contexts": [
+            "running",
+            "running"
+          ],
+          "rawTracks": [],
+          "inbound": []
+        }
+      ]
+    ],
+    "errors": [
+      {
+        "browser": 0,
+        "diagnostic": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      },
+      {
+        "browser": 1,
+        "diagnostic": "Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+      }
+    ],
+    "scope": "Real Phaser and shared SFU with a synthetic speaking host and a muted listener on an emulated mobile viewport. Injected playback block that holds AudioContext.resume until the explicit user action; explicit Enable audio restores nonzero received samples without requesting the listener microphone. Local direct path only.",
+    "expectedConsoleErrors": "The initial inspect request returns 401 when a fresh guest has no draft. No uncaught page errors."
+  },
+  "limits": [
+    "Local fixture with test-only challenge bypass; no production admission tested here.",
+    "Synthetic microphone audio only; no private conversation recorded.",
+    "Mobile viewport emulation is not a physical mobile test.",
+    "No production TURN, second-network, authenticated save or capacity conclusion."
+  ],
+  "method": "Measured nonzero samples from the actual Web Audio receive source in each browser. Chromium inbound totalAudioEnergy remained zero despite the nonzero source; RTP statistics alone are insufficient."
+}

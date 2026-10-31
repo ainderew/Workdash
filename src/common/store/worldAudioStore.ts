@@ -16,6 +16,8 @@ export const audioAreaName = (id: string) => audioAreaNames[id] ?? "Audio area";
 
 interface WorldAudioState {
     connected: boolean;
+    playbackBlocked: boolean;
+    setPlaybackBlocked: (blocked: boolean) => void;
     zoneId: string | null;
     peerIds: string[];
     showAreas: boolean;
@@ -29,6 +31,7 @@ interface WorldAudioState {
 }
 
 const useWorldAudioStore = create<WorldAudioState>((set) => ({
+    playbackBlocked: false, setPlaybackBlocked: (playbackBlocked) => set({ playbackBlocked }),
     connected: false, zoneId: null, peerIds: [], showAreas: false, helpOpen: false,
     setZone: (zoneId, peerIds) => set({ connected: true, zoneId, peerIds: [...new Set(peerIds)] }),
     addPeer: (zoneId, id) => set(state => state.zoneId === zoneId ? { peerIds: [...new Set([...state.peerIds, id])] } : {}),

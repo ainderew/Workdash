@@ -99,7 +99,7 @@ vi.mock("@/communication/callSignaling/callSignalingService", () => ({
 
 vi.mock("@/common/store/callStore", () => ({
   default: {
-    getState: vi.fn(() => ({ currentCall: null })),
+    getState: vi.fn(() => ({ currentCall: null, setMediaConnectionState: vi.fn() })),
   },
 }));
 
@@ -258,5 +258,37 @@ describe("MediaTransportService", () => {
 
       expect(service.resetting).toBe(false);
     });
+  });
+});
+
+
+describe("ICE restart keeps the existing media transports", () => {
+  beforeEach(() => { vi.clearAllMocks(); mockSocket.connected = true; });
+  it("requests new ICE parameters without allocating transports or changing mic state", async () => {
+    const { emitWithTimeout } = await import("@/communication/utils/emitWithTimeout");
+    const iceParameters = { usernameFragment: "new", password: "new-password" };
+    vi.mocked(emitWithTimeout).mockResolvedValue({ iceParameters });
+    const service = new MediaTransportService("test-token");
+    const transport = { id: "owned", closed: false, restartIce: vi.fn().mockResolvedValue(undefined) };
+    const internal = service as unknown as { recoverFromIceFailure: (transport: unknown) => Promise<void> };
+    const initialize = vi.spyOn(service, "initializeSfu");
+    await internal.recoverFromIceFailure(transport);
+    expect(emitWithTimeout).toHaveBeenCalledWith(expect.objectContaining({ event: "restartIce", data: { transportId: "owned" } }));
+    expect(transport.restartIce).toHaveBeenCalledWith({ iceParameters });
+    expect(initialize).not.toHaveBeenCalled();
+    expect(mockAudioChat.stopMic).not.toHaveBeenCalled();
+  });
+  it("deduplicates in-flight retries and does not apply a late response to a closed transport", async () => {
+    const { emitWithTimeout } = await import("@/communication/utils/emitWithTimeout");
+    let finish!: (value: unknown) => void;
+    vi.mocked(emitWithTimeout).mockImplementation(() => new Promise(resolve => { finish = resolve; }));
+    const service = new MediaTransportService("test-token");
+    const transport = { id: "owned", closed: false, restartIce: vi.fn() };
+    const internal = service as unknown as { recoverFromIceFailure: (transport: unknown) => Promise<void> };
+    const pending = internal.recoverFromIceFailure(transport);
+    await internal.recoverFromIceFailure(transport);
+    expect(emitWithTimeout).toHaveBeenCalledTimes(1);
+    transport.closed = true; finish({ iceParameters: {} }); await pending;
+    expect(transport.restartIce).not.toHaveBeenCalled();
   });
 });

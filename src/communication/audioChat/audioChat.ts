@@ -337,21 +337,30 @@ export class AudioChat {
      * Resume all AudioContexts (required for Firefox autoplay policy)
      * Call this on user interaction (click, key press, etc.)
      */
+    private markPlaybackBlocked() {
+        if (!useWorldAudioStore.getState().playbackBlocked) {
+            this.sfuService.reportDiagnostic({ event: "playback_blocked", direction: "recv" });
+        }
+        useWorldAudioStore.getState().setPlaybackBlocked(true);
+    }
+
+    public async playAudioElement(element: HTMLAudioElement) {
+        try { await element.play(); }
+        catch { this.markPlaybackBlocked(); }
+    }
+
     public async resumeAudioContexts(): Promise<void> {
         const contexts = [this.audioContext, this.outputAudioContext, this.musicAudioContext].filter(
-            (ctx): ctx is AudioContext => ctx !== null,
+            (ctx): ctx is AudioContext => ctx !== null && ctx.state !== "closed",
         );
-
-        for (const ctx of contexts) {
-            if (ctx.state === "suspended") {
-                try {
-                    await ctx.resume();
-                    logger.log("AudioContext resumed successfully");
-                } catch (error) {
-                    logger.error("Failed to resume AudioContext:", error);
-                }
-            }
-        }
+        // Invoke all resumes synchronously within the click's user activation.
+        const results = await Promise.allSettled([
+            ...contexts.filter(ctx => ctx.state === "suspended").map(ctx => ctx.resume()),
+            ...Array.from(this.audioElements.values(), element => element.play()),
+        ]);
+        const blocked = results.some(result => result.status === "rejected") || contexts.some(ctx => ctx.state === "suspended");
+        if (blocked) this.markPlaybackBlocked();
+        else useWorldAudioStore.getState().setPlaybackBlocked(false);
     }
 
     public async getAvailableMicrophones(): Promise<MediaDeviceInfo[]> {
@@ -503,6 +512,8 @@ export class AudioChat {
                     audio: this.getAudioConstraints(resolvedDeviceId),
                 });
             } catch (err) {
+                const name = err instanceof Error ? err.name : "";
+                this.sfuService.reportDiagnostic({ event: ["NotAllowedError", "SecurityError"].includes(name) ? "microphone_denied" : "microphone_unavailable", direction: "send" });
                 surfaceMediaDeviceError(err, "microphone");
                 throw err;
             }
@@ -739,7 +750,13 @@ export class AudioChat {
 
             // Firefox requires AudioContext to be resumed after user gesture
             if (ctx.state === "suspended") {
-                await ctx.resume();
+                const blockedTimer = setTimeout(() => { if (ctx.state === "suspended") this.markPlaybackBlocked(); }, 500);
+                // A blocked resume can wait indefinitely for a user gesture. Build the
+                // receive path now so the explicit Enable audio control can recover it.
+                void ctx.resume().then(() => {
+                    clearTimeout(blockedTimer);
+                    if (ctx.state === "running") useWorldAudioStore.getState().setPlaybackBlocked(false);
+                }).catch(() => { clearTimeout(blockedTimer); this.markPlaybackBlocked(); });
             }
 
             const source = ctx.createMediaStreamSource(remoteStream);
@@ -814,6 +831,7 @@ export class AudioChat {
                 this.closeConsumerByProducerId(producerId);
             }
         } catch (error) {
+            this.sfuService.reportDiagnostic({ event: "media_error", direction: "recv" });
             logger.error("Error consuming producer:", error);
         } finally {
             this.consumingInFlight.delete(producerId);

@@ -27,7 +27,7 @@ describe('privacy-safe media statistics', () => {
         expect(send).toHaveBeenCalledTimes(2);
         transport.closed = true; closed();
         await vi.advanceTimersByTimeAsync(30000);
-        expect(transport.getStats).toHaveBeenCalledTimes(1);
+        expect(transport.getStats).toHaveBeenCalledTimes(2);
         expect(vi.getTimerCount()).toBe(0);
     });
 });

@@ -33,6 +33,7 @@ vi.mock("@/communication/mediaTransportService/mediaTransportService", () => ({
   MediaTransportService: {
     getInstance: () => ({
       socket: mockSocket,
+      reportDiagnostic: vi.fn(),
       sendTransport: { produce: mockProduce, closed: false },
     }),
   },

@@ -1,4 +1,4 @@
-import { observeMediaTransport } from "./mediaDiagnostics";
+import { observeMediaTransport, type MediaDiagnostic } from "./mediaDiagnostics";
 import useWorldAudioStore from "@/common/store/worldAudioStore";
 import { isGuestGame, guestSocketConnection } from "@/features/guest/session";
 import { signOutWithCleanup } from "@/common/utils/signOutWithCleanup";
@@ -9,6 +9,7 @@ import { logger } from "@/common/utils/logger";
 import { Device } from "mediasoup-client";
 import {
     DtlsParameters,
+    IceParameters,
     MediaKind,
     RtpCapabilities,
     RtpParameters,
@@ -35,6 +36,7 @@ export class MediaTransportService {
     public sendTransport: Transport | null = null;
     public resetting = false;
     private isFirstSfuInit = true;
+    private recoveringIce = new Set<Transport>();
 
     constructor(jwtToken?: string) {
         this.socket = io(isGuestGame() ? guestSocketConnection("media").url : CONFIG.SFU_SERVER_URL, {
@@ -104,15 +106,14 @@ export class MediaTransportService {
     private async reinitializeSfu(): Promise<void> {
         if (this.resetting) return;
         this.resetting = true;
-        this.sendTransport?.close();
-        this.recvTransport?.close();
-        this.sendTransport = null;
-        this.recvTransport = null;
-
         const { AudioChat } = await import("@/communication/audioChat/audioChat");
         const audioChat = AudioChat.getInstance();
         const producer = audioChat.getAudioProducer();
         const hadProducer = !!producer && !producer.closed;
+        this.sendTransport?.close();
+        this.recvTransport?.close();
+        this.sendTransport = null;
+        this.recvTransport = null;
         audioChat.stopMic();
         audioChat.closeAllAudioConsumers();
 
@@ -126,6 +127,12 @@ export class MediaTransportService {
         } finally {
             this.resetting = false;
         }
+    }
+
+    public reportDiagnostic(report: MediaDiagnostic) {
+        try {
+            if (this.socket.connected) (this.socket as ReturnType<typeof io> & { volatile: { emit(event: string, payload: unknown): void } }).volatile.emit("media:diagnostic", report);
+        } catch { /* Diagnostics never change a call or queue data for reconnect. */ }
     }
 
     public setAuthToken(jwtToken: string) {
@@ -249,17 +256,13 @@ export class MediaTransportService {
         this.recvTransport = this.device!.createRecvTransport(
             receiveTransportOptions,
         );
-        observeMediaTransport(this.recvTransport, "recv", report => {
-            if (this.socket.connected) (this.socket as ReturnType<typeof io> & { volatile: { emit(event: string, payload: unknown): void } }).volatile.emit("media:diagnostic", report);
-        });
+        observeMediaTransport(this.recvTransport, "recv", report => this.reportDiagnostic(report));
         this.recvTransport.on(
             "connect",
             this.handleConnect(this.recvTransport),
         );
-        this.recvTransport.on(
-            "connectionstatechange",
-            this.handleTransportStateChange,
-        );
+        const receiveTransport = this.recvTransport;
+        receiveTransport.on("connectionstatechange", state => this.handleTransportStateChange(state, receiveTransport));
     }
 
     private async createSendTransport() {
@@ -270,18 +273,14 @@ export class MediaTransportService {
         this.sendTransport =
             this.device!.createSendTransport(sendTransportOptions);
 
-        observeMediaTransport(this.sendTransport, "send", report => {
-            if (this.socket.connected) (this.socket as ReturnType<typeof io> & { volatile: { emit(event: string, payload: unknown): void } }).volatile.emit("media:diagnostic", report);
-        });
+        observeMediaTransport(this.sendTransport, "send", report => this.reportDiagnostic(report));
         this.sendTransport.on(
             "connect",
             this.handleConnect(this.sendTransport),
         );
         this.sendTransport.on("produce", this.handleProduce);
-        this.sendTransport.on(
-            "connectionstatechange",
-            this.handleTransportStateChange,
-        );
+        const sendTransport = this.sendTransport;
+        sendTransport.on("connectionstatechange", state => this.handleTransportStateChange(state, sendTransport));
     }
 
     /**
@@ -289,7 +288,8 @@ export class MediaTransportService {
      * failure (ICE drops while the socket.io signaling channel stays alive)
      * freezes the call with no indication and nothing triggers recovery.
      */
-    private handleTransportStateChange = (state: string): void => {
+    private handleTransportStateChange = (state: string, transport: Transport): void => {
+        if (transport.closed) return;
         switch (state) {
             case "connected":
                 useCallStore.getState().setMediaConnectionState("connected");
@@ -300,31 +300,27 @@ export class MediaTransportService {
                 break;
             case "failed":
                 useCallStore.getState().setMediaConnectionState("reconnecting");
-                void this.recoverFromIceFailure();
+                void this.recoverFromIceFailure(transport);
                 break;
             // "new" | "connecting" | "closed" — no user-facing change
         }
     };
 
-    /**
-     * ICE failed and won't self-recover. Rebuild the transports and re-consume,
-     * mirroring the socket-reconnect path. Marks the call "lost" if it can't.
-     */
-    private async recoverFromIceFailure(): Promise<void> {
-        if (this.resetting) return;
+    /** Restart ICE on the owned transport without consuming another resource slot. */
+    private async recoverFromIceFailure(transport: Transport): Promise<void> {
+        if (this.resetting || this.recoveringIce.has(transport) || transport.closed || !this.socket.connected) return;
+        this.recoveringIce.add(transport);
         try {
-            await this.reinitializeSfu();
-            if (useCallStore.getState().currentCall) {
-                const { CallSignalingService } = await import(
-                    "@/communication/callSignaling/callSignalingService"
-                );
-                CallSignalingService.getInstance().loadCallProducers();
-            }
-            useCallStore.getState().setMediaConnectionState("connected");
+            const { iceParameters } = await emitWithTimeout<{ iceParameters: IceParameters }>({
+                socket: this.socket, event: "restartIce", data: { transportId: transport.id },
+                timeoutMs: SFU_TIMEOUTS.CONNECT_TRANSPORT, validate: validateNoError,
+            });
+            if (!transport.closed) await transport.restartIce({ iceParameters });
+            // The actual connection-state event confirms recovery, not this acknowledgement.
         } catch (err) {
             logger.error("ICE failure recovery failed:", err);
-            useCallStore.getState().setMediaConnectionState("lost");
-        }
+            if (!transport.closed) useCallStore.getState().setMediaConnectionState("lost");
+        } finally { this.recoveringIce.delete(transport); }
     }
 
     private handleProduce = async (
@@ -355,6 +351,7 @@ export class MediaTransportService {
             });
             callback({ id });
         } catch (err) {
+            this.reportDiagnostic({ event: "allocation_refused", direction: "send" });
             errback(err as Error);
         }
     };

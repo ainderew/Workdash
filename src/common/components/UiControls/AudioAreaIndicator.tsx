@@ -10,7 +10,7 @@ import styles from "./AudioAreaIndicator.module.css";
 export const AUDIO_AREA_HELP_KEY = "workdash:audio-area-help:v1";
 
 export default function AudioAreaIndicator() {
-    const { connected, zoneId, peerIds, showAreas, setShowAreas, helpOpen: open, setHelpOpen: setOpen } = useWorldAudioStore();
+    const { connected, playbackBlocked, zoneId, peerIds, showAreas, setShowAreas, helpOpen: open, setHelpOpen: setOpen } = useWorldAudioStore();
     const muted = useUiStore(state => state.isMuted);
     const inCall = useCallStore(state => !!state.currentCall || !!state.callOwnershipStatus);
     const focus = useFocusStore(state => state.localFocusMode);
@@ -49,6 +49,10 @@ export default function AudioAreaIndicator() {
         : !connected ? "Waiting for your audio area" : !zoneId ? "No shared audio here" : `${muted ? "Mic off" : "Mic on"} · ${peers}`;
 
     return <aside className={styles.root} aria-label="Audio area">
+        {playbackBlocked && !paused && <div className={styles.playback}>
+            <p>Your browser has paused sound. Enable it to hear people here.</p>
+            <button type="button" className={styles.done} onClick={() => window.dispatchEvent(new Event("workdash:enable-audio"))}>Enable audio</button>
+        </div>}
         {open && <div ref={panel} id={panelId} className={styles.help} role="region" aria-label="How audio areas work">
             <div className={styles.heading}>
                 <h2>Talk in the same area</h2>
