@@ -305,6 +305,6 @@
     "secondBrowser": "blocked by previously revoked session cookie; server rejection preserved; clear error copy prepared",
     "audibleProductionVoice": "pending human/network test",
     "signInAndSave": "pending approved test account",
-    "hardExpiry": "in progress"
+    "hardExpiry": "passed; see production-hard-expiry.json for cleanup counts and the UI regression found"
   }
 }

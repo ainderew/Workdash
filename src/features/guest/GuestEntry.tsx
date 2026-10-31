@@ -39,6 +39,7 @@ export default function GuestEntry({ embedded = false }: { embedded?: boolean })
     const [available, setAvailable] = useState(false);
     const [state, setState] = useState<GuestSnapshot | null>(null);
     const [game, setGame] = useState<GuestSnapshot | null>(null);
+    const [resumeAllowed, setResumeAllowed] = useState(true);
     const [error, setError] = useState('');
     const [notice, setNotice] = useState('');
     const [busy, setBusy] = useState(false);
@@ -77,7 +78,7 @@ export default function GuestEntry({ embedded = false }: { embedded?: boolean })
             } catch (e) { if (active) setError(describe(e)); }
             finally { if (active) setReady(true); }
         })();
-        const ended = (e: Event) => { setGame(null); setError(describe((e as CustomEvent<string>).detail)); };
+        const ended = (e: Event) => { setGame(null); setResumeAllowed(false); setNotice(''); setError(describe((e as CustomEvent<string>).detail)); };
         window.addEventListener('guest-ended', ended);
         return () => { active = false; window.removeEventListener('guest-ended', ended); window.removeEventListener('hashchange', readInvite); };
     }, []);
@@ -88,8 +89,8 @@ export default function GuestEntry({ embedded = false }: { embedded?: boolean })
         const poll = setInterval(() => {
             void guestRequest({ action: 'inspect' }).then(s => {
                 if (!active) return; setState(s);
-                if (!['active', 'converted'].includes(s.room.status)) { setGame(null); setError(messages.ROOM_ENDED); }
-            }).catch(e => { if (active) { setGame(null); setError(describe(e)); } });
+                if (!['active', 'converted'].includes(s.room.status)) { setGame(null); setResumeAllowed(false); setNotice(''); setError(messages.ROOM_ENDED); }
+            }).catch(e => { if (active) { setGame(null); setResumeAllowed(false); setNotice(''); setError(describe(e)); } });
         }, 10000);
         return () => { active = false; clearInterval(clock); clearInterval(poll); };
     }, [game]);
@@ -147,8 +148,8 @@ export default function GuestEntry({ embedded = false }: { embedded?: boolean })
             {state && <div className={styles.actions}>
                 {game && state.room.invite && <button onClick={copyInvite}>{copied ? 'Invite copied' : 'Invite a friend'}</button>}
                 {game && <button onClick={() => setPeople(v => !v)}>People</button>}
-                {!save && <button className={styles.primary} onClick={enterSave}>{status === 'authenticated' ? 'Save character & room' : 'Sign in to save'}</button>}
-                {!game && !save && available && ['active', 'converted'].includes(state.room.status) && <button onClick={() => window.location.assign('/try?play=1')}>Return to room</button>}
+                {!save && <button className={styles.primary} onClick={enterSave}>{status === 'authenticated' ? (state.room.canSaveRoom ? 'Save character & room' : 'Save character') : 'Sign in to save'}</button>}
+                {!game && !save && resumeAllowed && available && ['active', 'converted'].includes(state.room.status) && <button onClick={() => window.location.assign('/try?play=1')}>Return to room</button>}
                 {game && <button disabled={busy} onClick={async () => { const s = await command({ action: 'leave' }); if (s) { setGame(null); setNotice('You left the room. Your draft stays available for 24 hours after the trial ends.'); } }}>Leave</button>}
             </div>}
             {people && game && state && <div className={styles.people}>

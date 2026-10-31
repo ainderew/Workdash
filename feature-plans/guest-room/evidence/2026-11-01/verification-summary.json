@@ -1,0 +1,43 @@
+{
+  "date": "2026-11-01 Asia/Manila",
+  "frontend": {
+    "source": "4b80d2081c7ff88350e141da4e926f7403b02d11",
+    "targetedSuite": "55 tests passed; expanded funnel test separately passed 2 tests (one existing plus one additional privacy assertion)",
+    "typescript": "passed",
+    "productionBuild": "passed after fixing JSX quote escaping",
+    "designDetector": "no findings in changed trial entry targets",
+    "desktopAndMobile": "reviewed at 1440x960 and 390x844; second pass fixed mobile option clipping"
+  },
+  "backend": {
+    "source": "63886256deb05c37c17c42e2b2f64d7b5cef8591",
+    "typescriptBuild": "passed",
+    "funnelSchemaTest": "passed",
+    "nativeIntegration": "passed on disposable loopback fixture 4102 with actual mediasoup worker",
+    "nativeChecks": [
+      "real player DTO and movement",
+      "account-event denial",
+      "cross-room game denial",
+      "transport ownership",
+      "owned ICE restart produces fresh parameters",
+      "cross-socket ICE denial",
+      "actual producer/consumer allocation",
+      "video denial",
+      "cross-room and cross-zone media isolation",
+      "outdoor audio authorization and return indoors",
+      "kick and invite revocation",
+      "closure",
+      "authenticated metrics",
+      "telemetry private authentication, schema privacy and retry deduplication"
+    ],
+    "limits": "Native allocation checks do not prove audible RTP or production capacity."
+  },
+  "pending": [
+    "real production two-person audible voice and forced relay",
+    "approved account sign-in/save and account regression",
+    "mobile and second physical network",
+    "external alert firing and recovery delivery",
+    "30-minute capacity/coexistence tiers",
+    "server-side saved-group activation and seven-day return measurement",
+    "public canary and 24-hour review"
+  ]
+}

@@ -31,7 +31,7 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - name: Verify release
         run: |
-          npx vitest run src/communication/mediaTransportService/mediaTransportService.test.ts src/communication/mediaTransportService/mediaDiagnostics.test.ts src/features/guest/proxy.test.ts src/features/guest/funnel.test.ts src/common/utils/safeAuthReturn.test.ts src/common/components/UiControls/AudioAreaIndicator.test.tsx src/game/audioZoneManager/audioZoneManager.test.ts src/communication/audioChat/audioChat.test.ts
+          npx vitest run src/communication/mediaTransportService/mediaTransportService.test.ts src/communication/mediaTransportService/mediaDiagnostics.test.ts src/features/guest/proxy.test.ts src/features/guest/funnel.test.ts src/features/guest/GuestEntry.test.tsx src/common/utils/safeAuthReturn.test.ts src/common/components/UiControls/AudioAreaIndicator.test.tsx src/game/audioZoneManager/audioZoneManager.test.ts src/communication/audioChat/audioChat.test.ts
           npx tsc --noEmit
       - uses: docker/login-action@v3
         with:

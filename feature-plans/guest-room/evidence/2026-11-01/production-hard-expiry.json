@@ -1,0 +1,19 @@
+{
+  "checkedAt": "2026-10-31T19:13:45.183576+00:00",
+  "browser": "Real game removed at the fixed deadline; sign-in/save remained available. Stale Return to room button found and fixed with a regression test in the next frontend release.",
+  "metrics": {
+    "guest_active_rooms": 0.0,
+    "guest_active_guests": 0.0,
+    "guest_connected_sockets": 0.0,
+    "guest_healthy": 1.0,
+    "guest_media_transports": 0.0,
+    "guest_media_producers": 0.0,
+    "guest_media_consumers": 0.0,
+    "guest_account_sfu_transports": 2.0,
+    "guest_account_sfu_producers": 0.0,
+    "guest_account_sfu_consumers": 0.0,
+    "guest_account_connections": 1.0
+  },
+  "guestCleanupPassed": true,
+  "scope": "One mic-off production room; this is not sustained load or audible voice evidence."
+}
