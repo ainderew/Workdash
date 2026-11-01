@@ -76,6 +76,12 @@ const PrivacyPage = () => {
                         email addresses and character details. A hashed session key prevents duplicate action counts
                         for one hour. Voice diagnostics report connection outcomes and quality measurements, without recording conversations.
                     </p>
+                    <p className="text-slate-300 leading-relaxed">
+                        After a trial room is saved, our server measures whether at least two signed-in members
+                        use it together for five minutes and return together within seven days. This measurement
+                        stores workspace-level dates for up to 22 days and aggregate daily counts for 90 days.
+                        It does not store member lists or send workspace identifiers to analytics.
+                    </p>
                 </section>
 
                 <section className="space-y-3 bg-slate-800/50 p-6 rounded-lg border border-orange-500/30">
