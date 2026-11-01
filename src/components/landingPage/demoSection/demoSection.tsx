@@ -7,27 +7,59 @@ import styles from "./demoSection.module.css";
 
 export function DemoSection() {
     const sectionRef = useRef<HTMLElement>(null);
+    const videoRef = useRef<HTMLVideoElement>(null);
     const [inView, setInView] = useState(false);
+    const [hasEntered, setHasEntered] = useState(false);
     const [pageVisible, setPageVisible] = useState(true);
     const [paused, setPaused] = useState(false);
+    const [motionAllowed, setMotionAllowed] = useState(false);
+    const [videoReady, setVideoReady] = useState(false);
+    const [videoFailed, setVideoFailed] = useState(false);
+    const [playing, setPlaying] = useState(false);
     const href = GUEST_PUBLIC_DISCOVERY ? "/try?from=demo" : "/app";
     const action = GUEST_PUBLIC_DISCOVERY ? "Try WorkDash free" : "Open WorkDash";
     const event = GUEST_PUBLIC_DISCOVERY ? "cta_guest_try" : "cta_open_room";
-    const moving = inView && pageVisible && !paused;
+    const loadVideo = hasEntered && motionAllowed && !videoFailed;
+    const moving = loadVideo && inView && pageVisible && !paused;
 
     useEffect(() => {
         const section = sectionRef.current;
         if (!section) return;
-        const observer = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting));
+        const observer = new IntersectionObserver(([entry]) => {
+            setInView(entry.isIntersecting);
+            if (entry.isIntersecting) setHasEntered(true);
+        });
         observer.observe(section);
+        const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
+        const onMotion = () => {
+            setMotionAllowed(!motion.matches);
+            setVideoReady(false);
+        };
+        onMotion();
+        motion.addEventListener("change", onMotion);
         const onVisibility = () => setPageVisible(!document.hidden);
         onVisibility();
         document.addEventListener("visibilitychange", onVisibility);
         return () => {
             observer.disconnect();
+            motion.removeEventListener("change", onMotion);
             document.removeEventListener("visibilitychange", onVisibility);
         };
     }, []);
+
+    useEffect(() => {
+        const video = videoRef.current;
+        if (!video) return;
+        let active = true;
+        if (moving) {
+            void video.play().catch(() => {
+                if (active) setPaused(true);
+            });
+        } else {
+            video.pause();
+        }
+        return () => { active = false; video.pause(); };
+    }, [moving, loadVideo]);
 
     return (
         <section id="demo" ref={sectionRef} aria-labelledby="demo-heading" className={styles.section}>
@@ -51,20 +83,27 @@ export function DemoSection() {
                     <div className={styles.stage}>
                         <Link href={href} aria-label={`Explore the lounge: ${action}`} data-umami-event={event}
                             data-umami-event-location="demo" className={styles.previewLink}>
-                            {/* Move the original image as one plane. Never synthesize sprite motion. */}
-                            <div className={styles.camera} data-moving={moving}>
-                                <Image src="/assets/try-room-poster.faeaf1dd.webp"
+                            <div className={styles.camera}>
+                                <Image src="/assets/try-room-motion-poster.67f748c0.webp"
                                     alt="The real WorkDash lounge, with bookshelves, couches and a character beside the coffee table."
-                                    fill sizes="(max-width: 760px) 100vw, (max-width: 1280px) 70vw, 896px"
+                                    fill sizes="(max-width: 760px) 100vw, (max-width: 1280px) 55vw, 680px"
                                     className={styles.room} />
+                                {loadVideo && <video ref={videoRef}
+                                    src="/assets/try-room-motion.8bd53ffd.mp4"
+                                    className={styles.film} data-ready={videoReady}
+                                    muted loop playsInline preload="none" disablePictureInPicture
+                                    aria-hidden="true" tabIndex={-1}
+                                    onLoadedData={() => setVideoReady(true)}
+                                    onError={() => setVideoFailed(true)}
+                                    onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} />}
                             </div>
-                            <span className={styles.sceneShade} aria-hidden="true" />
                             <span className={styles.enterHint} aria-hidden="true">Explore the lounge <ArrowUpRight size={18} /></span>
                         </Link>
-                        <button type="button" className={styles.playback} onClick={() => setPaused(value => !value)}
-                            aria-label={paused ? "Play room preview" : "Pause room preview"}>
-                            {paused ? <Play size={16} aria-hidden="true" /> : <Pause size={16} aria-hidden="true" />}
-                        </button>
+                        {loadVideo && <button type="button" className={styles.playback}
+                            onClick={() => setPaused(playing)}
+                            aria-label={playing ? "Pause room preview" : "Play room preview"}>
+                            {playing ? <Pause size={16} aria-hidden="true" /> : <Play size={16} aria-hidden="true" />}
+                        </button>}
                     </div>
                 </div>
                 <div className={styles.footer}>
