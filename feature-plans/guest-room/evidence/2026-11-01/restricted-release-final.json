@@ -1,0 +1,362 @@
+{
+  "checkedAt": "2026-11-01T06:55:13.953649+00:00",
+  "releaseMode": "restricted; synthetic eight-guest capacity tier passed; final launch review and public access pending",
+  "containers": [
+    {
+      "name": "workdash-backend",
+      "running": true,
+      "imageId": "sha256:fed8eaf5bb42a6515e723ad2560d6490232330946e46bb8e29305e7bf7d40236",
+      "repoDigests": [
+        "ghcr.io/ainderew/workdash-sfu@sha256:fed8eaf5bb42a6515e723ad2560d6490232330946e46bb8e29305e7bf7d40236"
+      ],
+      "source": "a33b89df9d43eb8b20abca652d5471213abf3cda",
+      "memoryBytes": 2147483648,
+      "networkMode": "host"
+    },
+    {
+      "name": "workdash-frontend",
+      "running": true,
+      "imageId": "sha256:3a0fd39447a5d3ce1cdf3d8a8c558d6b74b72d07dc5af62a4b6806c988442d8b",
+      "repoDigests": [
+        "ghcr.io/ainderew/workdash@sha256:3a0fd39447a5d3ce1cdf3d8a8c558d6b74b72d07dc5af62a4b6806c988442d8b"
+      ],
+      "source": "41ec78b9267082bcc4795d16b5931c00fa77021c",
+      "memoryBytes": 0,
+      "networkMode": "host"
+    }
+  ],
+  "releaseManifests": {
+    "backend": [
+      "a33b89df9d43eb8b20abca652d5471213abf3cda",
+      "ghcr.io/ainderew/workdash-sfu@sha256:fed8eaf5bb42a6515e723ad2560d6490232330946e46bb8e29305e7bf7d40236",
+      "workdash-backend-rollback-20261101T061250Z"
+    ],
+    "frontend": [
+      "41ec78b9267082bcc4795d16b5931c00fa77021c",
+      "ghcr.io/ainderew/workdash@sha256:3a0fd39447a5d3ce1cdf3d8a8c558d6b74b72d07dc5af62a4b6806c988442d8b",
+      "workdash-frontend-rollback-20261101T054227Z"
+    ]
+  },
+  "configuration": {
+    "GUEST_ENABLED": "false",
+    "GUEST_TEST_ENABLED": "true",
+    "GUEST_CAPACITY_REVIEWED": "false",
+    "GUEST_MAX_GUESTS": "8",
+    "GUEST_MAX_ROOMS": "2",
+    "GUEST_ROOM_SIZE": "8",
+    "GUEST_CHALLENGE_BYPASS": "false",
+    "GUEST_TURN_RELAY_ONLY": "false",
+    "HTTP_HOST": "127.0.0.1"
+  },
+  "grafana": {
+    "uid": "workdash-guest-voice",
+    "title": "WorkDash guest rooms, voice and capacity",
+    "voicePanels": [
+      {
+        "id": 44,
+        "title": "Backend container memory / limit"
+      },
+      {
+        "id": 45,
+        "title": "Event loop p95, fixed 5-second windows"
+      },
+      {
+        "id": 46,
+        "title": "Admission resource gates (1 = blocked)"
+      },
+      {
+        "id": 50,
+        "title": "Browser voice outcomes and failure categories"
+      },
+      {
+        "id": 51,
+        "title": "Browser voice connection time, p95"
+      },
+      {
+        "id": 52,
+        "title": "Browser audio loss, mean percent"
+      },
+      {
+        "id": 53,
+        "title": "Browser audio received by direct or relay path"
+      },
+      {
+        "id": 54,
+        "title": "First decoded audio, p95"
+      },
+      {
+        "id": 55,
+        "title": "Trial actions reported by browsers"
+      },
+      {
+        "id": 56,
+        "title": "Successful trial actions (server ledger)"
+      },
+      {
+        "id": 57,
+        "title": "Saved groups: activation and mature seven-day return"
+      },
+      {
+        "id": 58,
+        "title": "Seven-day group return, mature cohorts only"
+      }
+    ]
+  },
+  "prometheus": {
+    "up{job=~\"workdash-.*\"}": [
+      {
+        "metric": {
+          "__name__": "up",
+          "instance": "127.0.0.1:9100",
+          "job": "workdash-host"
+        },
+        "value": [
+          1793516113.9,
+          "1"
+        ]
+      },
+      {
+        "metric": {
+          "__name__": "up",
+          "instance": "127.0.0.1:9641",
+          "job": "workdash-turn"
+        },
+        "value": [
+          1793516113.9,
+          "1"
+        ]
+      },
+      {
+        "metric": {
+          "__name__": "up",
+          "instance": "127.0.0.1:4000",
+          "job": "workdash-sfu-guest"
+        },
+        "value": [
+          1793516113.9,
+          "1"
+        ]
+      }
+    ],
+    "guest_healthy": [
+      {
+        "metric": {
+          "__name__": "guest_healthy",
+          "instance": "127.0.0.1:4000",
+          "job": "workdash-sfu-guest"
+        },
+        "value": [
+          1793516113.904,
+          "1"
+        ]
+      }
+    ],
+    "guest_admission_memory_blocked": [
+      {
+        "metric": {
+          "__name__": "guest_admission_memory_blocked",
+          "instance": "127.0.0.1:4000",
+          "job": "workdash-sfu-guest"
+        },
+        "value": [
+          1793516113.905,
+          "0"
+        ]
+      }
+    ],
+    "guest_admission_event_loop_blocked": [
+      {
+        "metric": {
+          "__name__": "guest_admission_event_loop_blocked",
+          "instance": "127.0.0.1:4000",
+          "job": "workdash-sfu-guest"
+        },
+        "value": [
+          1793516113.907,
+          "0"
+        ]
+      }
+    ],
+    "guest_event_loop_p95_seconds": [
+      {
+        "metric": {
+          "__name__": "guest_event_loop_p95_seconds",
+          "instance": "127.0.0.1:4000",
+          "job": "workdash-sfu-guest"
+        },
+        "value": [
+          1793516113.908,
+          "0.020791295"
+        ]
+      }
+    ],
+    "guest_log_sink_configured": [
+      {
+        "metric": {
+          "__name__": "guest_log_sink_configured",
+          "instance": "127.0.0.1:4000",
+          "job": "workdash-sfu-guest"
+        },
+        "value": [
+          1793516113.909,
+          "1"
+        ]
+      }
+    ],
+    "guest_max_guests": [
+      {
+        "metric": {
+          "__name__": "guest_max_guests",
+          "instance": "127.0.0.1:4000",
+          "job": "workdash-sfu-guest"
+        },
+        "value": [
+          1793516113.91,
+          "8"
+        ]
+      }
+    ],
+    "guest_max_rooms": [
+      {
+        "metric": {
+          "__name__": "guest_max_rooms",
+          "instance": "127.0.0.1:4000",
+          "job": "workdash-sfu-guest"
+        },
+        "value": [
+          1793516113.91,
+          "2"
+        ]
+      }
+    ],
+    "workdash_guest_runtime_expected": [
+      {
+        "metric": {
+          "__name__": "workdash_guest_runtime_expected"
+        },
+        "value": [
+          1793516113.911,
+          "1"
+        ]
+      }
+    ],
+    "guest_active_rooms": [
+      {
+        "metric": {
+          "__name__": "guest_active_rooms",
+          "instance": "127.0.0.1:4000",
+          "job": "workdash-sfu-guest"
+        },
+        "value": [
+          1793516113.913,
+          "0"
+        ]
+      }
+    ],
+    "guest_active_guests": [
+      {
+        "metric": {
+          "__name__": "guest_active_guests",
+          "instance": "127.0.0.1:4000",
+          "job": "workdash-sfu-guest"
+        },
+        "value": [
+          1793516113.914,
+          "0"
+        ]
+      }
+    ],
+    "guest_connected_sockets": [
+      {
+        "metric": {
+          "__name__": "guest_connected_sockets",
+          "instance": "127.0.0.1:4000",
+          "job": "workdash-sfu-guest"
+        },
+        "value": [
+          1793516113.915,
+          "0"
+        ]
+      }
+    ],
+    "workdash_guest_group_healthy": [
+      {
+        "metric": {
+          "__name__": "workdash_guest_group_healthy",
+          "definition": "v1",
+          "instance": "127.0.0.1:4000",
+          "job": "workdash-sfu-guest"
+        },
+        "value": [
+          1793516113.916,
+          "1"
+        ]
+      }
+    ],
+    "workdash_guest_group_saved": [
+      {
+        "metric": {
+          "__name__": "workdash_guest_group_saved",
+          "definition": "v1",
+          "instance": "127.0.0.1:4000",
+          "job": "workdash-sfu-guest"
+        },
+        "value": [
+          1793516113.917,
+          "0"
+        ]
+      }
+    ],
+    "workdash_guest_group_activated": [
+      {
+        "metric": {
+          "__name__": "workdash_guest_group_activated",
+          "definition": "v1",
+          "instance": "127.0.0.1:4000",
+          "job": "workdash-sfu-guest"
+        },
+        "value": [
+          1793516113.918,
+          "0"
+        ]
+      }
+    ],
+    "workdash_guest_group_matured": [
+      {
+        "metric": {
+          "__name__": "workdash_guest_group_matured",
+          "definition": "v1",
+          "instance": "127.0.0.1:4000",
+          "job": "workdash-sfu-guest"
+        },
+        "value": [
+          1793516113.919,
+          "0"
+        ]
+      }
+    ],
+    "workdash_guest_group_returned": [
+      {
+        "metric": {
+          "__name__": "workdash_guest_group_returned",
+          "definition": "v1",
+          "instance": "127.0.0.1:4000",
+          "job": "workdash-sfu-guest"
+        },
+        "value": [
+          1793516113.921,
+          "0"
+        ]
+      }
+    ]
+  },
+  "lokiEvents": [
+    {
+      "timestamp": "2026-11-01T06:13:54.412Z",
+      "event": "runtime_failed",
+      "reason": "dependency",
+      "service": "workdash-sfu-guest",
+      "build": "a33b89df9d43eb8b20abca652d5471213abf3cda"
+    }
+  ]
+}

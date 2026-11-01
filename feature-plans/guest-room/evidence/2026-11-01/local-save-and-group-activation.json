@@ -1,0 +1,27 @@
+{
+  "scope": "Disposable local database, Redis, NATS, real backend routes/NextAuth and normal Phaser client. Test mail was captured locally; no external email sent.",
+  "frontendRevision": "41ec78b9267082bcc4795d16b5931c00fa77021c",
+  "backendRevision": "58567297775c6b892df914171bacd20f7c3efb31",
+  "checks": {
+    "magicLinkVerifyAndNextAuthReturn": "passed with a locally captured real backend magic link",
+    "explicitCharacterReplacement": "server rejected omitted choice with CHARACTER_CHOICE_REQUIRED; checkbox enabled the successful claim",
+    "hostRoomClaim": "exactly one normal workspace owned by host, selected character retained; only host initially a member",
+    "normalAccountWorkspace": "saved room opened in real Phaser",
+    "secondAccountSignIn": "email form produced local test inbox message; verification created normal account session",
+    "normalAccountInvite": "second signed-in account accepted one-use workspace invite and joined saved room",
+    "groupActivation": "server recorded activation at 2026-11-01T05:28:58.729Z after two current members overlapped five minutes",
+    "normalWorldDeskRoundTrip": "passed in Chrome after scene cleanup fix and after accessible toolbar correction",
+    "productionSmtp": "connection and authentication verified without sending email; receipt/delivery not verified",
+    "browserErrorsAfterFix": "no console errors during the fresh Chrome reload and World/Desk round-trip checks"
+  },
+  "limitations": [
+    "Production external email delivery and Google OAuth remain unverified in this run.",
+    "Initial minimal auth fixture did not capture the first UI email send; a local API request supplied that link. Second-account UI send used the complete backend and passed.",
+    "Physical voice and mobile device/network checks remain unverified."
+  ],
+  "screenshot": "saved-room-account-local.png",
+  "groupScreenshot": "saved-group-world-local.png",
+  "originalJourneyRecordedAt": "2026-11-01T05:35:34.054816+00:00",
+  "updatedAt": "2026-11-01T06:34:42.573109+00:00",
+  "revisionScope": "The account-save and group-activation checks span frontend c9922ae and fe74aa3. The latest frontend revision records the subsequent reload and World/Desk checks after the toolbar correction. The account journey backend revision is recorded separately."
+}

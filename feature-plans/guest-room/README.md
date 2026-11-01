@@ -1,6 +1,6 @@
-# Real platform guest access, October 31, 2026
+# Real platform guest access
 
-Implemented in the working tree. **Not deployed to production.** The production `/try` redirect remains in place until the replacement is rolled out.
+Updated November 1, 2026. The real guest game is deployed in the normal production services with operator-only access. Public admission and discovery remain disabled while the completion handoff's launch gates are verified.
 
 Follow the [production completion handoff](../../docs/handoffs/guest-room-production-completion-handoff.md) to finish the scoped release, production monitoring, real voice/save verification, capacity testing, public launch and acquisition measurement. It contains the ordered work, acceptance criteria and rollback procedure.
 
@@ -29,9 +29,13 @@ Audio-area onboarding is shared by guest and account world mode. The label besid
 
 The existing backend exposes authenticated `/internal/guest/metrics`, using the metrics bearer secret. Metrics include guest occupancy/limits, connected sockets, admission rejection reasons, latency histograms, event-loop delay, process/container memory, guest/account/shared transport-producer-consumer counts, shared SFU worker CPU, and measured guest ingress/egress bitrate. Structured events use service `workdash-sfu-guest`, with bounded reasons and suppressed-log counts; the bounded Loki sink remains optional. The Grafana definition includes real guest occupancy and shared SFU panels. Prometheus scrape instructions and pressure/capacity/unavailability alerts are in `Workdash-SFU/deploy/observability`.
 
-The existing production dashboard still monitors host and TURN only. New panels will populate only after the replacement backend and scrape are deployed. The default 24 guest places are a configurable ceiling, not evidence of safe production capacity. External alert delivery is still unconfigured.
+The production dashboard now receives authenticated guest, account/SFU, host, TURN, voice-diagnostic, conversion and saved-group metrics. Structured guest logs reach Loki. Restricted settings allow eight total guests across two rooms; these settings are not a capacity certification. External alert delivery still needs an approved destination. Production Alertmanager firing and recovery were verified against a temporary local receiver.
 
-## Rollout and remaining external validation
+Event-loop admission uses fixed five-second measurement windows. Reading metrics does not reset them. Unknown or stale readings block admission, as does a p95 of at least 100 ms. Container-memory and event-loop admission states have separate metrics and dashboard panels.
+
+## Release procedure and remaining validation
+
+Release extraction, persistent configuration, the shared memory limit and restricted deployment are complete. The following procedure remains the reference for subsequent releases; current evidence and open gates are in the completion handoff.
 
 1. Build a scoped release on the current deployed frontend/backend base. Both local repositories contain unrelated work; do not deploy these entire working directories.
 2. Use the normal backend and the existing normal SFU ports. Set a new independent `GUEST_SOCKET_SECRET`, retain Turnstile/proxy/invite/metrics/admin secrets, and set Next's `GUEST_INTERNAL_URL` to the backend's `/internal/guest` endpoint. Apply the existing guest migration through the normal migration workflow if absent.
@@ -56,8 +60,10 @@ The [follow-up audit](remnants-audit-20261031.md) records removed remnants and r
 
 ## Restricted release — November 1, 2026
 
-The real Phaser/SFU integration is now deployed in the normal frontend and backend. Public entry remains closed. See the [completion handoff](../../docs/handoffs/guest-room-production-completion-handoff.md#execution-update--november-1-2026) for evidence and remaining launch gates. Restricted limits are eight total guests, two rooms and eight places per room, with a 2 GiB shared-backend memory cap. These values do not establish production capacity.
+The real Phaser/SFU integration is now deployed in the normal frontend and backend. Public entry remains closed. See the [completion handoff](../../docs/handoffs/guest-room-production-completion-handoff.md#execution-update--november-1-2026) for evidence and remaining launch gates. Restricted limits are eight total guests, two rooms and eight places per room, with a 2 GiB shared-backend memory cap. A 31.09-minute synthetic run supports this initial eight-guest ceiling, subject to the remaining launch gates. It does not establish the hardware maximum or physical-device quality.
 
-The release adds owned-transport ICE recovery, explicit playback recovery that does not request a microphone, and bounded browser diagnostics for guest and account voice. First decoded audio is measured separately from audible speaker output. Production human voice, forced-relay, account-save and sustained coexistence checks remain required.
+The release adds owned-transport ICE recovery, explicit playback recovery that does not request a microphone, and bounded browser diagnostics for guest and account voice. First decoded audio is measured separately from audible speaker output. Isolated production-host browser tests passed UDP, TCP and TLS relay paths with received waveforms. Local account testing passed character/room saving, normal workspace invitation and Phaser re-entry. An eight-guest plus two-account synthetic run passed 31.09 minutes, expiry/replacement and final cleanup. Physical device/network checks and supported production sign-in providers remain launch gates.
 
-Public trial discovery is controlled by the build-time `NEXT_PUBLIC_GUEST_TRIAL_PUBLIC` variable, default false. Only enable it after the public launch gates pass. `/try` contains public HTML explanations and the existing character creator; `/try?play=1` stays private/noindex and opens the same real game. Do not send invite fragments to page analytics. Trial action telemetry accepts only fixed event/source enums, and server ledger totals provide actual admission/save counts. Group retention metrics are still a separate pending implementation.
+Public trial discovery is controlled by the build-time `NEXT_PUBLIC_GUEST_TRIAL_PUBLIC` variable, default false. Only enable it after the public launch gates pass. `/try` contains public HTML explanations and the existing character creator; `/try?play=1` stays private/noindex and opens the same real game. Do not send invite fragments to page analytics. Trial action telemetry accepts only fixed event/source enums, and server ledger totals provide actual admission/save counts.
+
+Saved-group definition `v1` counts two distinct current signed-in members overlapping for five minutes. A separate five-minute visit on a later UTC day within seven days counts as return. The server checks current membership, excludes duplicate tabs and guests, bounds private associations and exposes aggregates. Deterministic tests and a real local five-minute group visit passed. Seven-day rates remain unavailable until cohorts mature.
