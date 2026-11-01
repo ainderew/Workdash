@@ -1,84 +1,118 @@
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { motion, useScroll, useTransform } from "framer-motion";
-import { Gamepad2Icon } from "lucide-react";
 import Link from "next/link";
-import { useRef } from "react";
+import { useReducedMotion } from "framer-motion";
+import { ArrowUpRight, Gamepad2Icon, Pause, Play } from "lucide-react";
+import { GUEST_PUBLIC_DISCOVERY } from "@/features/guest/discovery";
 import { Floaties, SPRITES } from "../floaties/floaties";
+import styles from "./demoSection.module.css";
+
+const PREVIEW_VIDEO = "/assets/try-room-preview.e84e44d7.mp4";
 
 export function DemoSection() {
-    const sectionRef = useRef(null);
-    const { scrollYProgress } = useScroll({
-        target: sectionRef,
-        offset: ["start end", "center center"],
-    });
-    const rotateX = useTransform(scrollYProgress, [0, 1], [8, 0]);
-    const opacity = useTransform(scrollYProgress, [0, 0.5], [0.6, 1]);
+    const stageRef = useRef<HTMLDivElement>(null);
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const reducedMotion = useReducedMotion();
+    const [inView, setInView] = useState(false);
+    const [userPaused, setUserPaused] = useState(false);
+    const [playing, setPlaying] = useState(false);
+    const [ready, setReady] = useState(false);
+    const [failed, setFailed] = useState(false);
+    const href = GUEST_PUBLIC_DISCOVERY ? "/try?from=demo" : "/app";
+    const action = GUEST_PUBLIC_DISCOVERY ? "Try WorkDash free" : "Open WorkDash";
+    const event = GUEST_PUBLIC_DISCOVERY ? "cta_guest_try" : "cta_open_room";
+
+    useEffect(() => {
+        const stage = stageRef.current;
+        if (!stage) return;
+        const observer = new IntersectionObserver(([entry]) => setInView(entry.isIntersecting));
+        observer.observe(stage);
+        return () => observer.disconnect();
+    }, []);
+
+    useEffect(() => {
+        const video = videoRef.current;
+        if (!video) return;
+        const syncPlayback = () => {
+            if (!inView || reducedMotion !== false || userPaused || failed || document.hidden) {
+                video.pause();
+                return;
+            }
+            // Load only when the preview is visible and motion is allowed.
+            if (!video.getAttribute("src")) video.src = PREVIEW_VIDEO;
+            void video.play().catch(() => { /* The still and play control remain usable. */ });
+        };
+        syncPlayback();
+        document.addEventListener("visibilitychange", syncPlayback);
+        return () => {
+            document.removeEventListener("visibilitychange", syncPlayback);
+            video.pause();
+        };
+    }, [inView, reducedMotion, userPaused, failed]);
+
+    function togglePlayback() {
+        const video = videoRef.current;
+        if (!video) return;
+        if (playing) {
+            setUserPaused(true);
+            video.pause();
+        } else {
+            setUserPaused(false);
+            void video.play().catch(() => {});
+        }
+    }
 
     return (
-        <section
-            id="demo"
-            ref={sectionRef}
-            className="py-24 bg-[var(--wd-surface-panel-2)] border-y border-[var(--wd-border-subtle)] relative overflow-hidden"
-        >
-            <Floaties
-                items={[
-                    { ...SPRITES.star, top: "8%", left: "5%", drift: -120, display: 32, opacity: 0.85 },
-                    { ...SPRITES.plant, top: "58%", right: "3%", drift: -70, display: 62, rotate: 8 },
-                ]}
-            />
-
-            <div className="max-w-7xl mx-auto px-6 text-center relative z-10" style={{ perspective: "1200px" }}>
-                <motion.div
-                    style={{ rotateX, opacity }}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    whileInView={{ opacity: 1, scale: 1 }}
-                    viewport={{ once: true }}
-                    className="relative rounded-2xl overflow-hidden border border-[var(--wd-border-subtle)] bg-[var(--wd-surface-panel)] shadow-2xl"
-                >
-                    {/* Browser chrome */}
-                    <div className="h-10 bg-[var(--wd-surface-panel-2)] flex items-center px-4 gap-2 border-b border-[var(--wd-border-subtle)]">
-                        <div className="flex gap-1.5">
-                            <div className="w-3 h-3 rounded-full bg-[var(--wd-danger)]" />
-                            <div className="w-3 h-3 rounded-full bg-[var(--wd-warning)]" />
-                            <div className="w-3 h-3 rounded-full bg-[var(--wd-success)]" />
+        <section id="demo" aria-labelledby="demo-heading" className={styles.section}>
+            <Floaties items={[
+                { ...SPRITES.star, top: "8%", left: "5%", drift: -120, display: 32, opacity: 0.85 },
+                { ...SPRITES.plant, top: "58%", right: "3%", drift: -70, display: 62, rotate: 8 },
+            ]} />
+            <div className={styles.container}>
+                <div className={styles.window}>
+                    <div className={styles.chrome}>
+                        <div className={styles.dots} aria-hidden="true"><i /><i /><i /></div>
+                        <span className={styles.address}>workdash.site{GUEST_PUBLIC_DISCOVERY ? "/try" : "/app"}</span>
+                        <span className={styles.previewLabel}>Animated room preview</span>
+                    </div>
+                    <div className={styles.stage} ref={stageRef}>
+                        <Link href={href} aria-label={`Step inside: ${action}`} data-umami-event={event}
+                            data-umami-event-location="demo" className={styles.previewLink}>
+                            <Image src="/assets/try-room-poster.faeaf1dd.webp" alt="WorkDash’s pixel-art lounge, with couches, bookshelves and a character by the coffee table."
+                                fill sizes="(max-width: 768px) 100vw, (max-width: 1280px) 90vw, 1152px"
+                                className={styles.poster} />
+                            <video ref={videoRef} muted loop playsInline preload="none" aria-hidden="true"
+                                className={styles.video} data-ready={ready && !failed && !reducedMotion}
+                                onPlaying={() => { setPlaying(true); setReady(true); }}
+                                onPause={() => setPlaying(false)} onError={() => setFailed(true)} />
+                            <span className={styles.enterHint} aria-hidden="true">
+                                <Gamepad2Icon size={18} /> {GUEST_PUBLIC_DISCOVERY ? "Step inside" : "Open the room"}
+                                <ArrowUpRight size={18} />
+                            </span>
+                        </Link>
+                        {!failed && (
+                            <button type="button" className={styles.playback} onClick={togglePlayback}
+                                aria-label={playing ? "Pause room preview" : "Play room preview"}>
+                                {playing ? <Pause size={18} /> : <Play size={18} />}
+                            </button>
+                        )}
+                    </div>
+                    <div className={styles.invitation}>
+                        <div className={styles.copy}>
+                            <h2 id="demo-heading">Make yourself at home.</h2>
+                            <p>Pick a character, invite a friend, and talk as you explore.</p>
+                            {GUEST_PUBLIC_DISCOVERY && <p className={styles.saveNote}>Like it here? Sign in to save your character and room.</p>}
                         </div>
-                        <div className="flex-1 text-center">
-                            <div className="inline-block px-4 py-1 bg-[var(--wd-surface-base)] rounded text-[10px] text-[var(--wd-text-muted)]">
-                                workdash.site/app
-                            </div>
+                        <div className={styles.action}>
+                            <Link href={href} data-umami-event={event} data-umami-event-location="demo"
+                                className={styles.tryButton}>
+                                <Gamepad2Icon size={21} aria-hidden="true" /> {action}
+                                <ArrowUpRight size={21} aria-hidden="true" />
+                            </Link>
+                            {GUEST_PUBLIC_DISCOVERY && <p>No account needed · 20-minute room</p>}
                         </div>
                     </div>
-
-                    <Link
-                        href="/app"
-                        data-umami-event="cta_open_room"
-                        data-umami-event-location="demo"
-                        className="relative aspect-[2000/1337] group block"
-                    >
-                        <Image
-                            src="/assets/lounge.webp"
-                            alt="The WorkDash world: a top-down pixel lounge with bookshelves, couches and a player by the coffee table, and a control bar showing microphone, camera and who is online."
-                            fill
-                            className="object-cover opacity-80 group-hover:opacity-40 transition-opacity duration-500"
-                        />
-
-                        <div className="absolute inset-0 flex items-center justify-center">
-                            <motion.div
-                                whileHover={{ scale: 1.1 }}
-                                className="w-20 h-20 bg-[var(--wd-landing-accent)] rounded-full flex items-center justify-center shadow-lg z-20"
-                            >
-                                <Gamepad2Icon className="w-8 h-8 text-[var(--wd-surface-base)]" />
-                            </motion.div>
-                        </div>
-
-                        <div className="absolute bottom-8 left-0 right-0 text-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                            <span className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--wd-surface-base)]/50 backdrop-blur rounded-full text-[var(--wd-landing-accent)] text-sm border border-[var(--wd-landing-accent)]/30">
-                                <Gamepad2Icon className="w-4 h-4" /> Open the room
-                            </span>
-                        </div>
-                    </Link>
-                </motion.div>
+                </div>
             </div>
         </section>
     );
