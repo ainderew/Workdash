@@ -1,0 +1,35 @@
+{
+  "passed": true,
+  "checks": [
+    {
+      "transport": "udp",
+      "unauthenticatedAllocationDenied": true,
+      "authenticatedAllocation": true,
+      "otherPeerDenied": true,
+      "relayEcho": false,
+      "peerPortBlocked": true,
+      "deallocated": true,
+      "tlsCertificateVerified": false
+    },
+    {
+      "transport": "tcp",
+      "unauthenticatedAllocationDenied": true,
+      "authenticatedAllocation": true,
+      "otherPeerDenied": true,
+      "relayEcho": false,
+      "peerPortBlocked": true,
+      "deallocated": true,
+      "tlsCertificateVerified": false
+    },
+    {
+      "transport": "tls",
+      "unauthenticatedAllocationDenied": true,
+      "authenticatedAllocation": true,
+      "otherPeerDenied": true,
+      "relayEcho": false,
+      "peerPortBlocked": true,
+      "deallocated": true,
+      "tlsCertificateVerified": true
+    }
+  ]
+}

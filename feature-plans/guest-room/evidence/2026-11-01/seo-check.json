@@ -1,0 +1,83 @@
+{
+  "checkedAt": "2026-11-01T16:31:04.289Z",
+  "base": "https://workdash.site",
+  "pages": [
+    {
+      "path": "/",
+      "title": "WorkDash: a free 2D hangout with proximity chat for friends",
+      "structuredDataBlocks": 2,
+      "analyticsPresent": false
+    },
+    {
+      "path": "/vs",
+      "title": "WorkDash vs Gather vs Discord — which one fits your group?",
+      "structuredDataBlocks": 0,
+      "analyticsPresent": false
+    },
+    {
+      "path": "/gather-alternative",
+      "title": "Free Gather Alternative for Small Groups (2026) | WorkDash",
+      "structuredDataBlocks": 0,
+      "analyticsPresent": false
+    },
+    {
+      "path": "/discord-alternative",
+      "title": "A Discord Alternative for Friends | WorkDash",
+      "structuredDataBlocks": 0,
+      "analyticsPresent": false
+    },
+    {
+      "path": "/hangout-with-friends",
+      "title": "Hang Out Online with Friends in a Virtual Room | WorkDash",
+      "structuredDataBlocks": 0,
+      "analyticsPresent": false
+    },
+    {
+      "path": "/about",
+      "title": "About WorkDash | A Shared Place for Your Group",
+      "structuredDataBlocks": 1,
+      "analyticsPresent": false
+    },
+    {
+      "path": "/help",
+      "title": "WorkDash Help: Rooms, Voice Chat and Getting Started",
+      "structuredDataBlocks": 0,
+      "analyticsPresent": false
+    },
+    {
+      "path": "/pricing",
+      "title": "Pricing — WorkDash",
+      "structuredDataBlocks": 0,
+      "analyticsPresent": false
+    },
+    {
+      "path": "/changelog",
+      "title": "Changelog — WorkDash",
+      "structuredDataBlocks": 0,
+      "analyticsPresent": false
+    },
+    {
+      "path": "/privacy",
+      "title": "Privacy Policy — WorkDash",
+      "structuredDataBlocks": 0,
+      "analyticsPresent": false
+    },
+    {
+      "path": "/terms",
+      "title": "Terms of Service — WorkDash",
+      "structuredDataBlocks": 0,
+      "analyticsPresent": false
+    },
+    {
+      "path": "/try",
+      "title": "Try WorkDash without an account | A room for your friends",
+      "structuredDataBlocks": 0,
+      "analyticsPresent": false
+    }
+  ],
+  "failures": [],
+  "warnings": [
+    "No Umami script found in server HTML. Check configured production build variables and browser loading; this does not prove analytics is absent.",
+    "This checks public HTML only. Search Console indexing, real crawler/WAF access, schema eligibility and analytics delivery need separate verification."
+  ]
+}

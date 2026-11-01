@@ -1,0 +1,44 @@
+{
+  "dateUtc": "2026-11-01",
+  "observedAtUtc": "2026-11-01T16:20:47.598Z",
+  "observation": "An ordinary anonymous browser session was disconnected with RATE_LIMITED. The old log did not identify the exhausted packet/control budget.",
+  "secondCanary": "failed; not a passing full lifecycle",
+  "reproduction": {
+    "scenario": "50 Hz positions, one-second delivery stall every five seconds, one ping per second",
+    "simulationSeconds": 120,
+    "legacyFixedWindowFirstRejectionMs": 1440,
+    "newRejections": 0
+  },
+  "serverLimits": {
+    "sustainedPacketsPerSecond": 60,
+    "packetBurstMaximum": 120,
+    "sustainedControlsPerSecond": 20,
+    "controlBurstMaximum": 40,
+    "violationsDisconnect": true,
+    "clock": "monotonic",
+    "publicCapacityUnchanged": true
+  },
+  "frontend": "Guest position messages use volatile delivery to drop obsolete updates under backpressure. Reliable controls and account messaging are unchanged.",
+  "observability": "Rate rejection logs identify the socket role and exhausted budget; bounded packet/control rejection counters are available. No participant/room identifiers are added.",
+  "pullRequests": [
+    "https://github.com/ainderew/Workdash-SFU/pull/9",
+    "https://github.com/ainderew/Workdash/pull/44"
+  ],
+  "validation": {
+    "backendUnitRegressionTests": 191,
+    "databaseIntegrationTests": "16 previously passed for the clock correction; rerun in normal release CI",
+    "frontendTargetedTests": 50,
+    "backendBuild": "passed",
+    "frontendTypecheckAndBuild": "passed",
+    "normalBackendReleaseCi": {
+      "tests": 207,
+      "files": 16,
+      "workflow": 41326424414
+    },
+    "normalFrontendMovementCi": {
+      "tests": 62,
+      "workflow": 41326652619
+    }
+  },
+  "status": "Both fixes deployed; final connected interval passed 15 minutes without rate rejection. Browser closure and explicit-leave cleanup passed; see public-canary-final.json for exact scope."
+}

@@ -1,0 +1,162 @@
+{
+  "checkedAt": "2026-11-01T16:19:53.947780+00:00",
+  "prometheus": {
+    "guest_healthy": [
+      {
+        "labels": {},
+        "value": "1"
+      }
+    ],
+    "guest_active_guests": [
+      {
+        "labels": {},
+        "value": "1"
+      }
+    ],
+    "guest_active_rooms": [
+      {
+        "labels": {},
+        "value": "1"
+      }
+    ],
+    "guest_max_guests": [
+      {
+        "labels": {},
+        "value": "8"
+      }
+    ],
+    "guest_max_rooms": [
+      {
+        "labels": {},
+        "value": "2"
+      }
+    ],
+    "guest_room_size": [
+      {
+        "labels": {},
+        "value": "8"
+      }
+    ],
+    "guest_characters_saved_total": [
+      {
+        "labels": {},
+        "value": "1"
+      }
+    ],
+    "guest_rooms_saved_total": [
+      {
+        "labels": {},
+        "value": "1"
+      }
+    ],
+    "guest_account_sfu_transports": [
+      {
+        "labels": {},
+        "value": "2"
+      }
+    ],
+    "guest_admission_memory_blocked": [
+      {
+        "labels": {},
+        "value": "0"
+      }
+    ],
+    "guest_admission_event_loop_blocked": [
+      {
+        "labels": {},
+        "value": "0"
+      }
+    ],
+    "max_over_time(guest_events_total{event=\"funnel_save_intent\"}[1h])": [
+      {
+        "labels": {
+          "event": "funnel_save_intent",
+          "reason": "direct"
+        },
+        "value": "1"
+      }
+    ],
+    "guest_events_total{event=\"funnel_entry_viewed\"}": [
+      {
+        "labels": {
+          "event": "funnel_entry_viewed",
+          "reason": "direct"
+        },
+        "value": "1"
+      }
+    ]
+  },
+  "recentGuestLogs": [
+    {
+      "timestamp": "2026-11-01T16:09:50.113Z",
+      "level": "info",
+      "service": "workdash-sfu-guest",
+      "event": "socket_closed",
+      "reason": "game"
+    },
+    {
+      "timestamp": "2026-11-01T16:09:50.422Z",
+      "level": "info",
+      "service": "workdash-sfu-guest",
+      "event": "socket_closed",
+      "reason": "media"
+    },
+    {
+      "timestamp": "2026-11-01T16:09:50.111Z",
+      "level": "warn",
+      "service": "workdash-sfu-guest",
+      "event": "event_rejected",
+      "reason": "RATE_LIMITED"
+    },
+    {
+      "timestamp": "2026-11-01T16:17:46.968Z",
+      "level": "info",
+      "service": "workdash-sfu-guest",
+      "event": "command_succeeded",
+      "reason": "create"
+    },
+    {
+      "timestamp": "2026-11-01T16:17:47.475Z",
+      "level": "info",
+      "service": "workdash-sfu-guest",
+      "event": "command_succeeded",
+      "reason": "resume"
+    },
+    {
+      "timestamp": "2026-11-01T16:17:33.674Z",
+      "level": "info",
+      "service": "workdash-sfu-guest",
+      "event": "funnel_entry_viewed",
+      "reason": "direct"
+    },
+    {
+      "timestamp": "2026-11-01T16:17:54.159Z",
+      "level": "info",
+      "service": "workdash-sfu-guest",
+      "event": "socket_connected",
+      "reason": "game"
+    },
+    {
+      "timestamp": "2026-11-01T16:17:48.707Z",
+      "level": "info",
+      "service": "workdash-sfu-guest",
+      "event": "socket_connected",
+      "reason": "media"
+    },
+    {
+      "timestamp": "2026-11-01T16:17:33.678Z",
+      "level": "warn",
+      "service": "workdash-sfu-guest",
+      "event": "command_rejected",
+      "reason": "SESSION_EXPIRED"
+    },
+    {
+      "timestamp": "2026-11-01T16:16:46.733Z",
+      "level": "warn",
+      "service": "workdash-sfu-guest",
+      "event": "runtime_failed",
+      "reason": "dependency"
+    }
+  ],
+  "alerts": []
+}

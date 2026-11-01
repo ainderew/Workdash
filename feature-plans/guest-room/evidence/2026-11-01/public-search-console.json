@@ -1,0 +1,26 @@
+{
+  "checkedAt": "2026-11-01T16:50:24.449303+00:00",
+  "property": "sc-domain:workdash.site",
+  "url": "https://workdash.site/try",
+  "liveInspection": "URL is available to Google; page can be indexed",
+  "indexingRequest": "Accepted; priority crawl queue",
+  "indexed": "not yet confirmed",
+  "sitemap": {
+    "url": "https://workdash.site/sitemap.xml",
+    "submission": "accepted",
+    "firstTableStatus": "Could not fetch (before asynchronous processing completed)",
+    "finalDetailStatus": "Sitemap processed successfully",
+    "discoveredPages": 12
+  },
+  "publicHtml": {
+    "tryIndexable": true,
+    "playSessionNoindex": true,
+    "canonical": "https://workdash.site/try",
+    "sitemapContainsTry": true,
+    "homepageAndFriendsEntryLinks": true
+  },
+  "manualCaptchaInteraction": false,
+  "limitations": [
+    "Indexing, rankings and AI citations are not guaranteed or claimed."
+  ]
+}

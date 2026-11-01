@@ -1,0 +1,395 @@
+{
+  "checkedAt": "2026-11-01T16:58:48.827209+00:00",
+  "prometheus": {
+    "up{job=~\"workdash-.*\"}": [
+      {
+        "labels": {
+          "job": "workdash-host"
+        },
+        "value": "1"
+      },
+      {
+        "labels": {
+          "job": "workdash-turn"
+        },
+        "value": "1"
+      },
+      {
+        "labels": {
+          "job": "workdash-sfu-guest"
+        },
+        "value": "1"
+      }
+    ],
+    "guest_healthy": [
+      {
+        "labels": {
+          "job": "workdash-sfu-guest"
+        },
+        "value": "1"
+      }
+    ],
+    "guest_active_guests": [
+      {
+        "labels": {
+          "job": "workdash-sfu-guest"
+        },
+        "value": "0"
+      }
+    ],
+    "guest_active_rooms": [
+      {
+        "labels": {
+          "job": "workdash-sfu-guest"
+        },
+        "value": "0"
+      }
+    ],
+    "guest_connected_sockets": [
+      {
+        "labels": {
+          "job": "workdash-sfu-guest"
+        },
+        "value": "0"
+      }
+    ],
+    "guest_max_guests": [
+      {
+        "labels": {
+          "job": "workdash-sfu-guest"
+        },
+        "value": "8"
+      }
+    ],
+    "guest_max_rooms": [
+      {
+        "labels": {
+          "job": "workdash-sfu-guest"
+        },
+        "value": "2"
+      }
+    ],
+    "guest_room_size": [
+      {
+        "labels": {
+          "job": "workdash-sfu-guest"
+        },
+        "value": "8"
+      }
+    ],
+    "guest_media_transports": [
+      {
+        "labels": {
+          "job": "workdash-sfu-guest"
+        },
+        "value": "0"
+      }
+    ],
+    "guest_account_sfu_transports": [
+      {
+        "labels": {
+          "job": "workdash-sfu-guest"
+        },
+        "value": "2"
+      }
+    ],
+    "guest_characters_saved_total": [
+      {
+        "labels": {
+          "job": "workdash-sfu-guest"
+        },
+        "value": "1"
+      }
+    ],
+    "guest_rooms_saved_total": [
+      {
+        "labels": {
+          "job": "workdash-sfu-guest"
+        },
+        "value": "1"
+      }
+    ],
+    "guest_admission_memory_blocked": [
+      {
+        "labels": {
+          "job": "workdash-sfu-guest"
+        },
+        "value": "0"
+      }
+    ],
+    "guest_admission_event_loop_blocked": [
+      {
+        "labels": {
+          "job": "workdash-sfu-guest"
+        },
+        "value": "0"
+      }
+    ],
+    "guest_log_sink_configured": [
+      {
+        "labels": {
+          "job": "workdash-sfu-guest"
+        },
+        "value": "1"
+      }
+    ],
+    "guest_events_total{event=~\"funnel_.*|socket_.*|event_rejected\"}": [
+      {
+        "labels": {
+          "event": "socket_connected",
+          "job": "workdash-sfu-guest",
+          "reason": "media"
+        },
+        "value": "3"
+      },
+      {
+        "labels": {
+          "event": "socket_connected",
+          "job": "workdash-sfu-guest",
+          "reason": "game"
+        },
+        "value": "3"
+      },
+      {
+        "labels": {
+          "event": "socket_closed",
+          "job": "workdash-sfu-guest",
+          "reason": "media"
+        },
+        "value": "3"
+      },
+      {
+        "labels": {
+          "event": "socket_closed",
+          "job": "workdash-sfu-guest",
+          "reason": "game"
+        },
+        "value": "3"
+      },
+      {
+        "labels": {
+          "event": "funnel_entry_viewed",
+          "job": "workdash-sfu-guest",
+          "reason": "hero"
+        },
+        "value": "2"
+      },
+      {
+        "labels": {
+          "event": "funnel_world_entered",
+          "job": "workdash-sfu-guest",
+          "reason": "hero"
+        },
+        "value": "1"
+      }
+    ],
+    "workdash_guest_group_healthy": [
+      {
+        "labels": {
+          "definition": "v1",
+          "job": "workdash-sfu-guest"
+        },
+        "value": "1"
+      }
+    ],
+    "workdash_guest_group_saved": [
+      {
+        "labels": {
+          "definition": "v1",
+          "job": "workdash-sfu-guest"
+        },
+        "value": "1"
+      }
+    ],
+    "workdash_guest_group_activated": [
+      {
+        "labels": {
+          "definition": "v1",
+          "job": "workdash-sfu-guest"
+        },
+        "value": "0"
+      }
+    ],
+    "workdash_guest_group_matured": [
+      {
+        "labels": {
+          "definition": "v1",
+          "job": "workdash-sfu-guest"
+        },
+        "value": "0"
+      }
+    ],
+    "workdash_guest_group_returned": [
+      {
+        "labels": {
+          "definition": "v1",
+          "job": "workdash-sfu-guest"
+        },
+        "value": "0"
+      }
+    ]
+  },
+  "recentGuestLogs": [
+    {
+      "timestamp": "2026-11-01T16:32:50.079Z",
+      "level": "warn",
+      "service": "workdash-sfu-guest",
+      "event": "runtime_failed",
+      "reason": "dependency",
+      "build": "2a82d8cc268e09fc7ad1dda22d5a97f6471d6b8b"
+    },
+    {
+      "timestamp": "2026-11-01T16:34:36.500Z",
+      "level": "info",
+      "service": "workdash-sfu-guest",
+      "event": "funnel_entry_viewed",
+      "reason": "hero",
+      "build": "2a82d8cc268e09fc7ad1dda22d5a97f6471d6b8b"
+    },
+    {
+      "timestamp": "2026-11-01T16:34:36.507Z",
+      "level": "warn",
+      "service": "workdash-sfu-guest",
+      "event": "command_rejected",
+      "reason": "SESSION_EXPIRED",
+      "build": "2a82d8cc268e09fc7ad1dda22d5a97f6471d6b8b"
+    },
+    {
+      "timestamp": "2026-11-01T16:36:08.888Z",
+      "level": "info",
+      "service": "workdash-sfu-guest",
+      "event": "command_succeeded",
+      "reason": "create",
+      "build": "2a82d8cc268e09fc7ad1dda22d5a97f6471d6b8b"
+    },
+    {
+      "timestamp": "2026-11-01T16:36:09.423Z",
+      "level": "info",
+      "service": "workdash-sfu-guest",
+      "event": "command_succeeded",
+      "reason": "resume",
+      "build": "2a82d8cc268e09fc7ad1dda22d5a97f6471d6b8b"
+    },
+    {
+      "timestamp": "2026-11-01T16:36:10.693Z",
+      "level": "info",
+      "service": "workdash-sfu-guest",
+      "event": "socket_connected",
+      "reason": "media",
+      "build": "2a82d8cc268e09fc7ad1dda22d5a97f6471d6b8b"
+    },
+    {
+      "timestamp": "2026-11-01T16:36:15.871Z",
+      "level": "info",
+      "service": "workdash-sfu-guest",
+      "event": "socket_connected",
+      "reason": "game",
+      "build": "2a82d8cc268e09fc7ad1dda22d5a97f6471d6b8b"
+    },
+    {
+      "timestamp": "2026-11-01T16:39:01.019Z",
+      "level": "warn",
+      "service": "workdash-sfu-guest",
+      "event": "command_rejected",
+      "reason": "CHALLENGE_REQUIRED",
+      "build": "2a82d8cc268e09fc7ad1dda22d5a97f6471d6b8b"
+    },
+    {
+      "timestamp": "2026-11-01T16:51:17.062Z",
+      "level": "info",
+      "service": "workdash-sfu-guest",
+      "event": "socket_closed",
+      "reason": "game",
+      "build": "2a82d8cc268e09fc7ad1dda22d5a97f6471d6b8b"
+    },
+    {
+      "timestamp": "2026-11-01T16:51:17.064Z",
+      "level": "info",
+      "service": "workdash-sfu-guest",
+      "event": "socket_closed",
+      "reason": "media",
+      "build": "2a82d8cc268e09fc7ad1dda22d5a97f6471d6b8b"
+    },
+    {
+      "timestamp": "2026-11-01T16:53:11.309Z",
+      "level": "info",
+      "service": "workdash-sfu-guest",
+      "event": "funnel_entry_viewed",
+      "reason": "hero",
+      "build": "2a82d8cc268e09fc7ad1dda22d5a97f6471d6b8b"
+    },
+    {
+      "timestamp": "2026-11-01T16:53:11.330Z",
+      "level": "warn",
+      "service": "workdash-sfu-guest",
+      "event": "command_rejected",
+      "reason": "SESSION_EXPIRED",
+      "build": "2a82d8cc268e09fc7ad1dda22d5a97f6471d6b8b"
+    },
+    {
+      "timestamp": "2026-11-01T16:53:35.484Z",
+      "level": "info",
+      "service": "workdash-sfu-guest",
+      "event": "command_succeeded",
+      "reason": "create",
+      "build": "2a82d8cc268e09fc7ad1dda22d5a97f6471d6b8b"
+    },
+    {
+      "timestamp": "2026-11-01T16:53:35.931Z",
+      "level": "info",
+      "service": "workdash-sfu-guest",
+      "event": "command_succeeded",
+      "reason": "resume",
+      "build": "2a82d8cc268e09fc7ad1dda22d5a97f6471d6b8b"
+    },
+    {
+      "timestamp": "2026-11-01T16:53:37.819Z",
+      "level": "info",
+      "service": "workdash-sfu-guest",
+      "event": "socket_connected",
+      "reason": "media",
+      "build": "2a82d8cc268e09fc7ad1dda22d5a97f6471d6b8b"
+    },
+    {
+      "timestamp": "2026-11-01T16:53:41.968Z",
+      "level": "info",
+      "service": "workdash-sfu-guest",
+      "event": "funnel_world_entered",
+      "reason": "hero",
+      "build": "2a82d8cc268e09fc7ad1dda22d5a97f6471d6b8b"
+    },
+    {
+      "timestamp": "2026-11-01T16:53:42.109Z",
+      "level": "info",
+      "service": "workdash-sfu-guest",
+      "event": "socket_connected",
+      "reason": "game",
+      "build": "2a82d8cc268e09fc7ad1dda22d5a97f6471d6b8b"
+    },
+    {
+      "timestamp": "2026-11-01T16:54:35.372Z",
+      "level": "info",
+      "service": "workdash-sfu-guest",
+      "event": "socket_closed",
+      "reason": "media",
+      "build": "2a82d8cc268e09fc7ad1dda22d5a97f6471d6b8b"
+    },
+    {
+      "timestamp": "2026-11-01T16:54:35.392Z",
+      "level": "info",
+      "service": "workdash-sfu-guest",
+      "event": "socket_closed",
+      "reason": "game",
+      "build": "2a82d8cc268e09fc7ad1dda22d5a97f6471d6b8b"
+    },
+    {
+      "timestamp": "2026-11-01T16:55:17.338Z",
+      "level": "info",
+      "service": "workdash-sfu-guest",
+      "event": "command_succeeded",
+      "reason": "leave",
+      "build": "2a82d8cc268e09fc7ad1dda22d5a97f6471d6b8b"
+    }
+  ],
+  "alerts": []
+}

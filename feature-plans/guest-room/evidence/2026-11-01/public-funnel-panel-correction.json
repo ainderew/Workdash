@@ -1,0 +1,12 @@
+{
+  "pullRequest": "https://github.com/ainderew/Workdash-SFU/pull/11",
+  "observation": "Hourly increase hid the first world-entry event because the first scrape already contained counter 1.",
+  "historicalPrometheusQueryTime": 1793552336,
+  "oldIncreaseResult": 0,
+  "newRawCounterResult": 1,
+  "panelId": 55,
+  "title": "Browser trial events since server start",
+  "scope": "Bounded browser intent counters, reset on server restart. Not unique people or completed conversions. Durable save panel unchanged.",
+  "provisioned": true,
+  "protectedBackup": true
+}

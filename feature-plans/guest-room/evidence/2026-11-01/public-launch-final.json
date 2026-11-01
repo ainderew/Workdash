@@ -1,0 +1,105 @@
+{
+  "checkedAt": "2026-11-01T17:10:10.075165+00:00",
+  "releaseMode": "public; initial ceiling eight total guests across two rooms",
+  "containers": [
+    {
+      "name": "workdash-backend",
+      "running": true,
+      "imageId": "sha256:44611bcb9021ded2d32d2da4e6555fed3e8f7dd58e01ff21c622110da3860831",
+      "repoDigests": [
+        "ghcr.io/ainderew/workdash-sfu@sha256:44611bcb9021ded2d32d2da4e6555fed3e8f7dd58e01ff21c622110da3860831"
+      ],
+      "source": "1a13059bd51111da6788c463436ce9e42a1a1ced",
+      "memoryBytes": 2147483648,
+      "networkMode": "host"
+    },
+    {
+      "name": "workdash-frontend",
+      "running": true,
+      "imageId": "sha256:78f9f22b21c25fab214c2ac12fea28139d361ec0d0618f761bfc6846a28c83c2",
+      "repoDigests": [
+        "ghcr.io/ainderew/workdash@sha256:78f9f22b21c25fab214c2ac12fea28139d361ec0d0618f761bfc6846a28c83c2"
+      ],
+      "source": "c0b25487c9681a51942fa71507befd1bae4eeb18",
+      "memoryBytes": 0,
+      "networkMode": "host"
+    }
+  ],
+  "releaseManifests": {
+    "backend": [
+      "1a13059bd51111da6788c463436ce9e42a1a1ced",
+      "ghcr.io/ainderew/workdash-sfu@sha256:44611bcb9021ded2d32d2da4e6555fed3e8f7dd58e01ff21c622110da3860831",
+      "workdash-backend-rollback-20261101T170835Z"
+    ],
+    "frontend": [
+      "c0b25487c9681a51942fa71507befd1bae4eeb18",
+      "ghcr.io/ainderew/workdash@sha256:78f9f22b21c25fab214c2ac12fea28139d361ec0d0618f761bfc6846a28c83c2",
+      "workdash-frontend-rollback-20261101T165053Z"
+    ]
+  },
+  "configuration": {
+    "GUEST_ENABLED": "true",
+    "GUEST_TEST_ENABLED": "false",
+    "GUEST_CAPACITY_REVIEWED": "true",
+    "GUEST_MAX_GUESTS": "8",
+    "GUEST_MAX_ROOMS": "2",
+    "GUEST_ROOM_SIZE": "8",
+    "GUEST_CHALLENGE_BYPASS": "false",
+    "GUEST_TURN_RELAY_ONLY": "false",
+    "HTTP_HOST": "127.0.0.1"
+  },
+  "testNetworkListEmpty": true,
+  "privateBackup": "/root/workdash/releases/public-launch-20261101T154721Z",
+  "backupMode": "0o700",
+  "turnListenerFirewall": [
+    "[ 4] 10000:10500/udp            ALLOW IN    Anywhere                   # workdash mediasoup RTC",
+    "[ 5] 10000:10500/tcp            ALLOW IN    Anywhere                   # workdash mediasoup RTC",
+    "[ 7] 194.233.79.158 3478/udp    ALLOW IN    Anywhere                   # WorkDash public TURN UDP",
+    "[ 8] 194.233.79.158 3478/tcp    ALLOW IN    Anywhere                   # WorkDash public TURN TCP",
+    "[ 9] 194.233.79.158 5349/tcp    ALLOW IN    Anywhere                   # WorkDash public TURN TLS",
+    "[13] 10000:10500/udp (v6)       ALLOW IN    Anywhere (v6)              # workdash mediasoup RTC",
+    "[14] 10000:10500/tcp (v6)       ALLOW IN    Anywhere (v6)              # workdash mediasoup RTC"
+  ],
+  "turnPeerFirewall": [
+    ":WORKDASH_TURN_PEER - [0:0]",
+    "-A WORKDASH_TURN_PEER -p udp -m udp --dport 10000:10500 -j RETURN",
+    "-A WORKDASH_TURN_PEER -j REJECT --reject-with icmp-port-unreachable",
+    "-A ufw-before-output -d 194.233.79.158/32 -m owner --uid-owner 19991 -j WORKDASH_TURN_PEER"
+  ],
+  "retiredNginxTesterMapIgnored": true,
+  "nginxValidation": true,
+  "adminControls": {
+    "stop": false,
+    "pause-create": false,
+    "pause-join": false
+  },
+  "publicDiscovery": {
+    "repositoryVariable": "NEXT_PUBLIC_GUEST_TRIAL_PUBLIC",
+    "value": "true",
+    "verifiedAfterFrontendRedeploy": true
+  },
+  "validation": {
+    "backendWorkflow": 41329657565,
+    "backendCiTests": 207,
+    "frontendWorkflow": 41328051703,
+    "frontendCiTests": 63,
+    "canary": "public-canary-final.json",
+    "ingress": "public-ingress-final.json",
+    "providers": "production-signin-save.json",
+    "turn": [
+      "turn-public-allowed.json",
+      "turn-public-blocked.json",
+      "turn-public-expired.json"
+    ],
+    "search": "public-search-console.json",
+    "monitoring": "public-monitoring-final.json",
+    "dashboardProvisioning": "public-funnel-panel-correction.json"
+  },
+  "subsequentDocumentationRelease": "This manifest records the validated code/configuration release before committing the evidence. The following frontend documentation-only merge runs normal deployment again; inspect its workflow for that image revision.",
+  "rollbackConstraint": "Use a post-UTC-fix backend, or stop guests before restoring account service with an older image. Never restore the pre-fix runtime with guests enabled.",
+  "pending": [
+    "First 24-hour review no earlier than 2026-11-02T16:36:00Z (2026-11-03 00:36 Asia/Manila).",
+    "Seven-day group results after activated cohorts mature.",
+    "Detailed physical device/network coverage was not supplied; no universal restrictive-network or TLS 443 claim."
+  ]
+}

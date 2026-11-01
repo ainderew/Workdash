@@ -1,0 +1,76 @@
+{
+  "checkedAt": "2026-11-01T16:39:00.062998+00:00",
+  "source": "production host, not operator network",
+  "checks": [
+    {
+      "path": "/try",
+      "status": 200,
+      "config": null,
+      "realEntryHtml": true
+    },
+    {
+      "path": "/api/guest",
+      "status": 200,
+      "config": {
+        "enabled": true,
+        "creation": true,
+        "joins": true,
+        "roomSize": 8,
+        "lifetimeSeconds": 1200,
+        "voice": true
+      },
+      "realEntryHtml": null
+    },
+    {
+      "host": "sfu.workdash.site",
+      "path": "/internal/guest",
+      "status": 404
+    },
+    {
+      "host": "sfu.workdash.site",
+      "path": "/internal/guest/admin",
+      "status": 404
+    },
+    {
+      "host": "sfu.workdash.site",
+      "path": "/internal/guest/metrics",
+      "status": 404
+    },
+    {
+      "host": "api.workdash.site",
+      "path": "/internal/guest",
+      "status": 404
+    },
+    {
+      "host": "api.workdash.site",
+      "path": "/internal/guest/admin",
+      "status": 404
+    },
+    {
+      "host": "api.workdash.site",
+      "path": "/internal/guest/metrics",
+      "status": 404
+    },
+    {
+      "case": "bootstrap",
+      "status": 200
+    },
+    {
+      "case": "missing challenge",
+      "status": 403,
+      "code": "CHALLENGE_REQUIRED"
+    },
+    {
+      "case": "foreign origin",
+      "status": 403
+    },
+    {
+      "case": "wrong method",
+      "status": 405
+    },
+    {
+      "case": "oversize body",
+      "status": 413
+    }
+  ]
+}
