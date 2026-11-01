@@ -1,0 +1,75 @@
+{
+  "checkedAt": "2026-11-01T05:25:27.557Z",
+  "result": "passed",
+  "scope": "Isolated hardened coturn and the then-deployed SFU image on the production host; operator-only test ports. Synthetic browser audio, no microphone capture or audible speaker assertion.",
+  "protocols": {
+    "udp": {
+      "samples": 6,
+      "participants": 2,
+      "everyPathRelayed": true,
+      "allStreamsDecoded": true,
+      "nonzeroDecodedWaveforms": true,
+      "packetsLost": 0
+    },
+    "tcp": {
+      "samples": 6,
+      "participants": 2,
+      "everyPathRelayed": true,
+      "allStreamsDecoded": true,
+      "nonzeroDecodedWaveforms": true,
+      "packetsLost": 0
+    },
+    "tls": {
+      "samples": 6,
+      "participants": 2,
+      "everyPathRelayed": true,
+      "allStreamsDecoded": true,
+      "nonzeroDecodedWaveforms": true,
+      "packetsLost": 0
+    }
+  },
+  "cleanup": {
+    "guest_active_rooms": 0,
+    "guest_active_guests": 0,
+    "guest_retained_drafts": 34,
+    "guest_connected_sockets": 0,
+    "guest_max_guests": 16,
+    "guest_max_rooms": 4,
+    "guest_room_size": 8,
+    "guest_healthy": 1,
+    "guest_admission_memory_blocked": 0,
+    "guest_event_loop_p95_seconds": 0.021626879,
+    "guest_process_rss_bytes": 288649216,
+    "guest_media_transports": 0,
+    "guest_media_producers": 0,
+    "guest_media_consumers": 0,
+    "guest_shared_sfu_transports": 0,
+    "guest_shared_sfu_producers": 0,
+    "guest_shared_sfu_consumers": 0,
+    "guest_account_sfu_transports": 0,
+    "guest_account_sfu_producers": 0,
+    "guest_account_sfu_consumers": 0,
+    "guest_account_connections": 0,
+    "guest_account_users": 0,
+    "guest_shared_sfu_worker_cpu_seconds_total": 451.828,
+    "guest_rooms_created_total": 8,
+    "guest_invites_joined_total": 26,
+    "guest_rooms_ended_total": 2,
+    "guest_characters_saved_total": 0,
+    "guest_rooms_saved_total": 0,
+    "guest_media_ingress_bps": 0,
+    "guest_media_egress_bps": 0,
+    "guest_container_memory_bytes": 251691008,
+    "guest_container_memory_limit_bytes": 2147483648,
+    "guest_log_sink_configured": 0,
+    "guest_log_queue_depth": 0,
+    "guest_log_delivery_failures_total": 0,
+    "guest_log_dropped_total": 0
+  },
+  "limitations": [
+    "Does not replace physical microphone/speaker or real mobile network testing.",
+    "Does not claim TLS 443 support; TLS fixture uses the same valid certificate and coturn settings on isolated 5449."
+  ],
+  "backendRevision": "63886256deb05c37c17c42e2b2f64d7b5cef8591",
+  "backendImage": "ghcr.io/ainderew/workdash-sfu@sha256:ee6abb090405051dcf2daaff4189c1d5b9d75ccef6c6e4cb65e73feb88fe007b"
+}

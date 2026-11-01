@@ -1,0 +1,73 @@
+{
+  "scope": "Previous attempts are preserved, including test defects and aborted runs. Numeric acceptance limits were not relaxed.",
+  "attempts": [
+    {
+      "file": "workdash-capacity-expiry-race-attempt.json",
+      "sha256": "a8e380803f62822a9beb24ac7be153a80e0031aa9b66a0289be8928301a70514",
+      "tierGuests": 16,
+      "startedAt": "2026-11-01T04:53:33.877Z",
+      "finishedAt": "2026-11-01T05:14:55.555Z",
+      "recordedStatus": "failed",
+      "failureMessages": [
+        "operation has timed out"
+      ],
+      "sampleCount": 176,
+      "assessment": "An expected room expiry raced an awaited heartbeat in the test driver. The driver was corrected; this incomplete run is not a capacity pass.",
+      "capacityPass": false
+    },
+    {
+      "file": "workdash-capacity-tunnel-quality-attempt-final.json",
+      "sha256": "9d012f3d00adaec4375de6b9055c0d364f0eb6d0c85007f58edda7a5010d02a0",
+      "tierGuests": 16,
+      "startedAt": "2026-11-01T05:28:04.113Z",
+      "finishedAt": "2026-11-01T05:40:16.098Z",
+      "recordedStatus": "failed",
+      "failureMessages": [
+        "Unexpected early room termination"
+      ],
+      "sampleCount": 82,
+      "assessment": "The operator stopped guest load after account signaling latency exceeded tolerance over SSH. The recorded early-termination error followed that stop. This is not a capacity pass.",
+      "capacityPass": false
+    },
+    {
+      "file": "workdash-capacity-direct-sixteen-timeout.json",
+      "sha256": "eb1ca207a7546e9482b81d0852df74318eb39a14a337d171e1255b494675fbd9",
+      "tierGuests": 16,
+      "startedAt": "2026-11-01T05:43:03.202Z",
+      "finishedAt": "2026-11-01T05:47:04.923Z",
+      "recordedStatus": "failed",
+      "failureMessages": [
+        "operation has timed out"
+      ],
+      "sampleCount": 28,
+      "assessment": "Direct HTTPS/WSS removed the SSH signaling path, but an operation timed out before the required duration. This is not a capacity pass.",
+      "capacityPass": false
+    },
+    {
+      "file": "workdash-capacity-eight-scrape-window-attempt.json",
+      "sha256": "c443cf4eb4e97239b3fb504c513513e0fbeacc70ea76fca000325408e477e235",
+      "tierGuests": 8,
+      "startedAt": "2026-11-01T05:49:33.683Z",
+      "finishedAt": "2026-11-01T06:02:07.339Z",
+      "recordedStatus": "failed",
+      "failureMessages": [
+        "Resource stop threshold reached"
+      ],
+      "sampleCount": 125,
+      "assessment": "The loop threshold stopped the test. Investigation found that metrics reads reset the admission histogram, making the window depend on scrape timing. The deployed fixed-window correction required a new run.",
+      "capacityPass": false
+    },
+    {
+      "file": "workdash-capacity-fixed-candidate-combined.json",
+      "sha256": "b75d82aa257e9460f43294ea7e3127261f380338466d84dcefb78afc5ca7e590",
+      "tierGuests": 8,
+      "startedAt": "2026-11-01T06:09:22.169Z",
+      "finishedAt": null,
+      "recordedStatus": "running",
+      "failureMessages": [],
+      "sampleCount": 61,
+      "assessment": "Intentionally stopped this candidate-overlay run before completion. The final run uses the exact deployed image and a separate account probe. This intermediate snapshot retains status=running and is not a pass.",
+      "capacityPass": false
+    }
+  ]
+}

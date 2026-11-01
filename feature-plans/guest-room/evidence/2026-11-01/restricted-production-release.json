@@ -1,0 +1,310 @@
+{
+  "checkedAt": "2026-10-31T19:05:30.755606+00:00",
+  "releaseMode": "restricted; public launch and measured capacity pending",
+  "containers": [
+    {
+      "name": "workdash-backend",
+      "running": true,
+      "imageId": "sha256:d1d8eb3c2ad8f2dc7602d05414293149b54a6cf6ae42c627d16f9e3684e020aa",
+      "repoDigests": [
+        "workdash-backend@sha256:d1d8eb3c2ad8f2dc7602d05414293149b54a6cf6ae42c627d16f9e3684e020aa",
+        "ghcr.io/ainderew/workdash-sfu@sha256:d1d8eb3c2ad8f2dc7602d05414293149b54a6cf6ae42c627d16f9e3684e020aa"
+      ],
+      "source": "b63653c80a2e9356cc79c74650eebbb2b99eecca",
+      "memoryBytes": 2147483648,
+      "networkMode": "host"
+    },
+    {
+      "name": "workdash-frontend",
+      "running": true,
+      "imageId": "sha256:f02fcaf996fd0814407763e5a0b627efc6c4b2ba37b42760883b3c099bef1d3f",
+      "repoDigests": [
+        "ghcr.io/ainderew/workdash@sha256:f02fcaf996fd0814407763e5a0b627efc6c4b2ba37b42760883b3c099bef1d3f"
+      ],
+      "source": "4e046953284c65a4caada914524483d6f7a066f0",
+      "memoryBytes": 0,
+      "networkMode": "host"
+    }
+  ],
+  "releaseManifests": {
+    "backend": [
+      "b63653c80a2e9356cc79c74650eebbb2b99eecca",
+      "ghcr.io/ainderew/workdash-sfu@sha256:d1d8eb3c2ad8f2dc7602d05414293149b54a6cf6ae42c627d16f9e3684e020aa",
+      "workdash-backend-rollback-20261031T184946Z"
+    ],
+    "frontend": [
+      "4e046953284c65a4caada914524483d6f7a066f0",
+      "ghcr.io/ainderew/workdash@sha256:f02fcaf996fd0814407763e5a0b627efc6c4b2ba37b42760883b3c099bef1d3f",
+      "workdash-frontend-rollback-20261031T184953Z"
+    ]
+  },
+  "configuration": {
+    "GUEST_ENABLED": "false",
+    "GUEST_TEST_ENABLED": "true",
+    "GUEST_CAPACITY_REVIEWED": "false",
+    "GUEST_MAX_GUESTS": "8",
+    "GUEST_MAX_ROOMS": "2",
+    "GUEST_ROOM_SIZE": "8",
+    "GUEST_CHALLENGE_BYPASS": "false",
+    "GUEST_TURN_RELAY_ONLY": "false",
+    "HTTP_HOST": "127.0.0.1"
+  },
+  "grafana": {
+    "uid": "workdash-guest-voice",
+    "title": "WorkDash infrastructure",
+    "voicePanels": [
+      {
+        "id": 50,
+        "title": "Browser voice outcomes and failure categories"
+      },
+      {
+        "id": 51,
+        "title": "Browser voice connection time, p95"
+      },
+      {
+        "id": 52,
+        "title": "Browser audio loss, mean percent"
+      },
+      {
+        "id": 53,
+        "title": "Browser audio received by direct or relay path"
+      },
+      {
+        "id": 54,
+        "title": "First decoded audio, p95"
+      }
+    ]
+  },
+  "prometheus": {
+    "up{job=~\"workdash-.*\"}": [
+      {
+        "metric": {
+          "__name__": "up",
+          "instance": "127.0.0.1:9100",
+          "job": "workdash-host"
+        },
+        "value": [
+          1793473530.695,
+          "1"
+        ]
+      },
+      {
+        "metric": {
+          "__name__": "up",
+          "instance": "127.0.0.1:9641",
+          "job": "workdash-turn"
+        },
+        "value": [
+          1793473530.695,
+          "1"
+        ]
+      },
+      {
+        "metric": {
+          "__name__": "up",
+          "instance": "127.0.0.1:4000",
+          "job": "workdash-sfu-guest"
+        },
+        "value": [
+          1793473530.695,
+          "1"
+        ]
+      }
+    ],
+    "guest_healthy": [
+      {
+        "metric": {
+          "__name__": "guest_healthy",
+          "instance": "127.0.0.1:4000",
+          "job": "workdash-sfu-guest"
+        },
+        "value": [
+          1793473530.701,
+          "1"
+        ]
+      }
+    ],
+    "guest_admission_memory_blocked": [
+      {
+        "metric": {
+          "__name__": "guest_admission_memory_blocked",
+          "instance": "127.0.0.1:4000",
+          "job": "workdash-sfu-guest"
+        },
+        "value": [
+          1793473530.705,
+          "0"
+        ]
+      }
+    ],
+    "guest_log_sink_configured": [
+      {
+        "metric": {
+          "__name__": "guest_log_sink_configured",
+          "instance": "127.0.0.1:4000",
+          "job": "workdash-sfu-guest"
+        },
+        "value": [
+          1793473530.711,
+          "1"
+        ]
+      }
+    ],
+    "guest_max_guests": [
+      {
+        "metric": {
+          "__name__": "guest_max_guests",
+          "instance": "127.0.0.1:4000",
+          "job": "workdash-sfu-guest"
+        },
+        "value": [
+          1793473530.715,
+          "8"
+        ]
+      }
+    ],
+    "guest_max_rooms": [
+      {
+        "metric": {
+          "__name__": "guest_max_rooms",
+          "instance": "127.0.0.1:4000",
+          "job": "workdash-sfu-guest"
+        },
+        "value": [
+          1793473530.718,
+          "2"
+        ]
+      }
+    ],
+    "workdash_guest_runtime_expected": [
+      {
+        "metric": {
+          "__name__": "workdash_guest_runtime_expected"
+        },
+        "value": [
+          1793473530.72,
+          "1"
+        ]
+      }
+    ],
+    "guest_active_rooms": [
+      {
+        "metric": {
+          "__name__": "guest_active_rooms",
+          "instance": "127.0.0.1:4000",
+          "job": "workdash-sfu-guest"
+        },
+        "value": [
+          1793473530.722,
+          "1"
+        ]
+      }
+    ],
+    "guest_active_guests": [
+      {
+        "metric": {
+          "__name__": "guest_active_guests",
+          "instance": "127.0.0.1:4000",
+          "job": "workdash-sfu-guest"
+        },
+        "value": [
+          1793473530.723,
+          "1"
+        ]
+      }
+    ],
+    "guest_connected_sockets": [
+      {
+        "metric": {
+          "__name__": "guest_connected_sockets",
+          "instance": "127.0.0.1:4000",
+          "job": "workdash-sfu-guest"
+        },
+        "value": [
+          1793473530.725,
+          "2"
+        ]
+      }
+    ]
+  },
+  "lokiEvents": [
+    {
+      "timestamp": "2026-10-31T18:52:32.971Z",
+      "event": "command_succeeded",
+      "reason": "create",
+      "service": "workdash-sfu-guest",
+      "build": "b63653c80a2e9356cc79c74650eebbb2b99eecca"
+    },
+    {
+      "timestamp": "2026-10-31T18:52:33.313Z",
+      "event": "command_succeeded",
+      "reason": "resume",
+      "service": "workdash-sfu-guest",
+      "build": "b63653c80a2e9356cc79c74650eebbb2b99eecca"
+    },
+    {
+      "timestamp": "2026-10-31T19:02:47.329Z",
+      "event": "command_succeeded",
+      "reason": "rotate",
+      "service": "workdash-sfu-guest",
+      "build": "b63653c80a2e9356cc79c74650eebbb2b99eecca"
+    },
+    {
+      "timestamp": "2026-10-31T18:52:49.853Z",
+      "event": "socket_connected",
+      "reason": "game",
+      "service": "workdash-sfu-guest",
+      "build": "b63653c80a2e9356cc79c74650eebbb2b99eecca"
+    },
+    {
+      "timestamp": "2026-10-31T18:52:34.931Z",
+      "event": "socket_connected",
+      "reason": "media",
+      "service": "workdash-sfu-guest",
+      "build": "b63653c80a2e9356cc79c74650eebbb2b99eecca"
+    },
+    {
+      "timestamp": "2026-10-31T18:52:09.620Z",
+      "event": "command_rejected",
+      "reason": "SESSION_EXPIRED",
+      "service": "workdash-sfu-guest",
+      "build": "b63653c80a2e9356cc79c74650eebbb2b99eecca"
+    },
+    {
+      "timestamp": "2026-10-31T18:54:13.073Z",
+      "event": "command_rejected",
+      "reason": "SESSION_EXPIRED",
+      "service": "workdash-sfu-guest",
+      "build": "b63653c80a2e9356cc79c74650eebbb2b99eecca"
+    },
+    {
+      "timestamp": "2026-10-31T19:01:07.801Z",
+      "event": "command_rejected",
+      "reason": "SESSION_EXPIRED",
+      "service": "workdash-sfu-guest",
+      "build": "b63653c80a2e9356cc79c74650eebbb2b99eecca"
+    },
+    {
+      "timestamp": "2026-10-31T19:01:33.831Z",
+      "event": "command_rejected",
+      "reason": "SESSION_REVOKED",
+      "service": "workdash-sfu-guest",
+      "build": "b63653c80a2e9356cc79c74650eebbb2b99eecca"
+    },
+    {
+      "timestamp": "2026-10-31T18:50:49.181Z",
+      "event": "runtime_failed",
+      "reason": "dependency",
+      "service": "workdash-sfu-guest",
+      "build": "b63653c80a2e9356cc79c74650eebbb2b99eecca"
+    }
+  ],
+  "browserChecks": {
+    "hostAdmission": "passed in real HTTPS IAB with production Turnstile and real Phaser; microphone remained off",
+    "inviteRotation": "passed; old disposable invitation revoked",
+    "secondBrowser": "blocked by previously revoked session cookie; server rejection preserved; clear error copy prepared",
+    "audibleProductionVoice": "pending human/network test",
+    "signInAndSave": "pending approved test account",
+    "hardExpiry": "passed; see production-hard-expiry.json for cleanup counts and the UI regression found"
+  }
+}

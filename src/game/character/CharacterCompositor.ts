@@ -31,12 +31,14 @@ export class CharacterCompositor {
         customization: CharacterCustomization,
         outputKey: string,
         isLocal: boolean = false,
+        stillActive: () => boolean = () => true,
     ): Promise<void> {
         const layerPaths = getCharacterLayerPathsArray(
             customization,
             BASE_PATH,
         );
         const loadedImages = await this.loadAllLayers(layerPaths);
+        if (!stillActive()) return;
 
         
         const CANVAS_WIDTH = 1824;
@@ -63,6 +65,7 @@ export class CharacterCompositor {
         }
 
         const kartImage = await this.loadKartSprite();
+        if (!stillActive()) return;
         if (kartImage) {
             ctx.drawImage(
                 kartImage,
@@ -91,6 +94,7 @@ export class CharacterCompositor {
         await new Promise<void>((resolve) => {
             const img = new Image();
             img.onload = () => {
+                if (!stillActive()) { resolve(); return; }
                 if (this.scene.textures.exists(outputKey))
                     this.scene.textures.remove(outputKey);
 

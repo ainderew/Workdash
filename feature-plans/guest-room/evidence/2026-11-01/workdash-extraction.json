@@ -1,0 +1,45 @@
+{
+  "source_base": "4835d85378cf482a553db9501cb81d4debb5aaab",
+  "release_base": "30bb0a4af131480196902e11e0fc908dcbf5176e",
+  "tracked_guest_paths": [
+    ".github/workflows/deploy.yml",
+    "Dockerfile",
+    "next.config.mjs",
+    "src/App.tsx",
+    "src/common/components/Analytics.tsx",
+    "src/common/components/CharacterCreation/CharacterCreationScreen.tsx",
+    "src/common/components/Login/LoginPage.tsx",
+    "src/common/components/OnboardingTips/useTipSequence.ts",
+    "src/common/components/UiControls/UiControls.tsx",
+    "src/common/components/UiControls/hooks/useUiControls.ts",
+    "src/communication/audioChat/audioChat.test.ts",
+    "src/communication/audioChat/audioChat.ts",
+    "src/communication/mediaTransportService/mediaTransportService.ts",
+    "src/game/audioZoneManager/audioZoneManager.ts",
+    "src/game/managers/TeleportManager.ts",
+    "src/game/multiplayer/multiplayer.ts",
+    "src/game/scenes/BaseGameScene.ts",
+    "src/pages/auth/magic-link/verify.tsx"
+  ],
+  "new_guest_paths": [
+    "src/features/guest",
+    "src/pages/api/guest",
+    "src/pages/try.tsx",
+    "src/common/utils/safeAuthReturn.ts",
+    "src/common/utils/safeAuthReturn.test.ts",
+    "src/common/store/worldAudioStore.ts",
+    "src/common/components/UiControls/AudioAreaIndicator.tsx",
+    "src/common/components/UiControls/AudioAreaIndicator.module.css",
+    "src/common/components/UiControls/AudioAreaIndicator.test.tsx",
+    "src/game/audioZoneManager/audioZoneManager.test.ts",
+    "feature-plans/guest-room",
+    "docs/handoffs/guest-room-production-completion-handoff.md",
+    "docs/handoffs/guest-room-trial-handoff.md"
+  ],
+  "mixed_hunks": [],
+  "excluded_work": [
+    "ownership transfer",
+    "billing",
+    "GCS/chat uploads"
+  ]
+}

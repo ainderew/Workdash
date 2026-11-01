@@ -1,3 +1,5 @@
+import useWorldAudioStore from "@/common/store/worldAudioStore";
+import { isGuestGame } from "@/features/guest/session";
 import { Consumer, Producer, RtpParameters } from "mediasoup-client/types";
 import { MediaTransportService } from "../mediaTransportService/mediaTransportService";
 import usePlayersStore from "@/common/store/playerStore";
@@ -29,7 +31,7 @@ interface ConsumerServerResponse {
 
 interface ZonePlayer {
     socketId: string;
-    playerId: number;
+    playerId: number | string;
     name: string;
     producerIds: string[];
 }
@@ -40,7 +42,7 @@ interface PlayerJoinedZoneData {
     zone: string;
     producerIds: string[];
     name: string;
-    userId?: number;
+    userId?: number | string;
 }
 
 export class AudioChat {
@@ -82,7 +84,7 @@ export class AudioChat {
         producerId: string;
         socketId?: string;
         userName?: string;
-        userId?: number;
+        userId?: number | string;
         source?: string;
         soundName?: string;
     }) => void) | null = null;
@@ -90,7 +92,7 @@ export class AudioChat {
     private musicBotProducerIds = new Set<string>();
 
     /** Maps producerId → userId for reliable active-speaker lookup */
-    private audioProducerUserIdMap: Map<string, number> = new Map();
+    private audioProducerUserIdMap: Map<string, number | string> = new Map();
 
     /** AnalyserNodes for active-speaker detection (keyed by consumerId) */
     private analyserNodes: Map<string, AnalyserNode> = new Map();
@@ -146,6 +148,14 @@ export class AudioChat {
                     `Entered zone ${data.zone} with ${data.players.length} players`,
                 );
 
+                useWorldAudioStore.getState().setZone(data.zone, data.players.map(player => player.socketId));
+
+                // Direct transitions (office -> outdoors) do not pass through
+                // null. Release old subscriptions before subscribing in the new zone.
+                if (data.zone !== this.currentZone && !useCallStore.getState().currentCall) {
+                    this.closeAllAudioConsumers();
+                }
+
                 if (data.zone === null) {
                     if (useCallStore.getState().currentCall) {
                         this.currentZone = null;
@@ -182,6 +192,7 @@ export class AudioChat {
         this.sfuService.socket.on(
             "player-left-zone",
             (data: { socketId: string; playerId: string; zone: string }) => {
+                useWorldAudioStore.getState().removePeer(data.zone, data.socketId);
                 logger.log(`Player ${data.playerId} left zone ${data.zone}`);
                 if (useCallStore.getState().currentCall) return;
                 this.closeConsumersForSocket(data.socketId);
@@ -191,6 +202,7 @@ export class AudioChat {
         this.sfuService.socket.on(
             "player-joined-zone",
             async (data: PlayerJoinedZoneData) => {
+                useWorldAudioStore.getState().addPeer(data.zone, data.socketId);
                 logger.log(`Player ${data.playerId} joined zone ${data.zone}`);
                 if (!this.isWorldVoiceAllowed()) return;
 
@@ -240,7 +252,7 @@ export class AudioChat {
             if (!consumer || consumer.closed) continue;
             entries.push({
                 producerId,
-                userId: this.audioProducerUserIdMap.get(producerId),
+                userId: typeof this.audioProducerUserIdMap.get(producerId) === "number" ? this.audioProducerUserIdMap.get(producerId) as number : undefined,
                 consumer,
             });
         }
@@ -325,21 +337,30 @@ export class AudioChat {
      * Resume all AudioContexts (required for Firefox autoplay policy)
      * Call this on user interaction (click, key press, etc.)
      */
+    private markPlaybackBlocked() {
+        if (!useWorldAudioStore.getState().playbackBlocked) {
+            this.sfuService.reportDiagnostic({ event: "playback_blocked", direction: "recv" });
+        }
+        useWorldAudioStore.getState().setPlaybackBlocked(true);
+    }
+
+    public async playAudioElement(element: HTMLAudioElement) {
+        try { await element.play(); }
+        catch { this.markPlaybackBlocked(); }
+    }
+
     public async resumeAudioContexts(): Promise<void> {
         const contexts = [this.audioContext, this.outputAudioContext, this.musicAudioContext].filter(
-            (ctx): ctx is AudioContext => ctx !== null,
+            (ctx): ctx is AudioContext => ctx !== null && ctx.state !== "closed",
         );
-
-        for (const ctx of contexts) {
-            if (ctx.state === "suspended") {
-                try {
-                    await ctx.resume();
-                    logger.log("AudioContext resumed successfully");
-                } catch (error) {
-                    logger.error("Failed to resume AudioContext:", error);
-                }
-            }
-        }
+        // Invoke all resumes synchronously within the click's user activation.
+        const results = await Promise.allSettled([
+            ...contexts.filter(ctx => ctx.state === "suspended").map(ctx => ctx.resume()),
+            ...Array.from(this.audioElements.values(), element => element.play()),
+        ]);
+        const blocked = results.some(result => result.status === "rejected") || contexts.some(ctx => ctx.state === "suspended");
+        if (blocked) this.markPlaybackBlocked();
+        else useWorldAudioStore.getState().setPlaybackBlocked(false);
     }
 
     public async getAvailableMicrophones(): Promise<MediaDeviceInfo[]> {
@@ -464,7 +485,7 @@ export class AudioChat {
             opusDtx: !isStudio,
             opusFec: true,
             // 48kbps mono is broadcast-quality for voice; higher bitrates encode noise in detail
-            opusMaxAverageBitrate: isStudio ? 128_000 : 48_000,
+            opusMaxAverageBitrate: isGuestGame() ? 48_000 : isStudio ? 128_000 : 48_000,
             ...(isStudio && { opusMaxPlaybackRate: 48000 }),
         };
     }
@@ -491,6 +512,8 @@ export class AudioChat {
                     audio: this.getAudioConstraints(resolvedDeviceId),
                 });
             } catch (err) {
+                const name = err instanceof Error ? err.name : "";
+                this.sfuService.reportDiagnostic({ event: ["NotAllowedError", "SecurityError"].includes(name) ? "microphone_denied" : "microphone_unavailable", direction: "send" });
                 surfaceMediaDeviceError(err, "microphone");
                 throw err;
             }
@@ -540,7 +563,7 @@ export class AudioChat {
             producerId: string;
             socketId?: string;
             userName?: string;
-            userId?: number;
+            userId?: number | string;
             source?: string;
             soundName?: string;
             scope?: "call" | "zone";
@@ -727,7 +750,13 @@ export class AudioChat {
 
             // Firefox requires AudioContext to be resumed after user gesture
             if (ctx.state === "suspended") {
-                await ctx.resume();
+                const blockedTimer = setTimeout(() => { if (ctx.state === "suspended") this.markPlaybackBlocked(); }, 500);
+                // A blocked resume can wait indefinitely for a user gesture. Build the
+                // receive path now so the explicit Enable audio control can recover it.
+                void ctx.resume().then(() => {
+                    clearTimeout(blockedTimer);
+                    if (ctx.state === "running") useWorldAudioStore.getState().setPlaybackBlocked(false);
+                }).catch(() => { clearTimeout(blockedTimer); this.markPlaybackBlocked(); });
             }
 
             const source = ctx.createMediaStreamSource(remoteStream);
@@ -755,7 +784,7 @@ export class AudioChat {
                 gainNode.gain.value = musicVol;
             } else {
                 const userId = this.audioProducerUserIdMap.get(consumerData.producerId);
-                if (userId != null) {
+                if (typeof userId === "number") {
                     const volumeState = useAudioStore
                         .getState()
                         .getUserVolume(userId);
@@ -764,7 +793,7 @@ export class AudioChat {
                         .isUserMuted(userId);
                     gainNode.gain.value = isMuted ? 0 : volumeState;
                 } else {
-                    gainNode.gain.value = 1.0;
+                    gainNode.gain.value = typeof userId === "string" && this.mutedGuests.has(userId) ? 0 : 1.0;
                 }
             }
 
@@ -802,6 +831,7 @@ export class AudioChat {
                 this.closeConsumerByProducerId(producerId);
             }
         } catch (error) {
+            this.sfuService.reportDiagnostic({ event: "media_error", direction: "recv" });
             logger.error("Error consuming producer:", error);
         } finally {
             this.consumingInFlight.delete(producerId);
@@ -1489,6 +1519,17 @@ export class AudioChat {
         return this.gainNodes.get(consumerId) || null;
     }
 
+    private mutedGuests = new Set<string>();
+    public setGuestMuted(guestId: string, muted: boolean): void {
+        if (muted) this.mutedGuests.add(guestId); else this.mutedGuests.delete(guestId);
+        for (const [producerId, owner] of this.audioProducerUserIdMap) {
+            if (owner !== guestId) continue;
+            const consumerId = this.producerToConsumerMap.get(producerId);
+            const gain = consumerId && this.gainNodes.get(consumerId);
+            if (gain) gain.gain.value = muted ? 0 : 1;
+        }
+    }
+
     public setUserVolume(userId: number, volume: number): void {
         const gainNode = this.getGainNodeByUserId(userId);
         if (gainNode) {
@@ -1519,7 +1560,8 @@ export class AudioChat {
     public getUserIdByName(userName: string): number | null {
         for (const [producerId, name] of Object.entries(this.audioOwnerMap)) {
             if (name === userName) {
-                return this.audioProducerUserIdMap.get(producerId) ?? null;
+                const id = this.audioProducerUserIdMap.get(producerId);
+                return typeof id === "number" ? id : null;
             }
         }
         return null;
@@ -1534,7 +1576,7 @@ export class AudioChat {
                 socketId: string;
                 source?: string;
                 userName?: string;
-                userId?: number;
+                userId?: number | string;
             }[]
         >((resolve) => {
             this.sfuService.socket.emit("getProducers", {}, resolve);

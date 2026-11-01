@@ -1,4 +1,5 @@
 import React from "react";
+import { GUEST_PUBLIC_DISCOVERY } from "@/features/guest/discovery";
 import Link from "next/link";
 import { DiscoveryPage } from "@/components/discovery/DiscoveryPage";
 
@@ -36,8 +37,12 @@ export default function HangoutWithFriends() {
                     sharing are also available.
                 </p>
             </section>
+            {GUEST_PUBLIC_DISCOVERY && <section>
+                <h2>Try it together first</h2>
+                <p><Link href="/try?from=friends">Create a trial room without an account</Link> for up to eight people and 20 minutes. Pick a character, invite your friends and talk in the same audio area. Sign in afterward to keep your character; the host can save the room.</p>
+            </section>}
             <section>
-                <h2>Your first night in the room</h2>
+                <h2>Your first night in a saved room</h2>
                 <ol className="list-decimal pl-6 space-y-4 max-w-2xl">
                     <li>
                         <strong>Create your group&apos;s workspace.</strong>{" "}

@@ -1,0 +1,31 @@
+{
+  "checkedAt": "2026-11-01T06:55:58.759388+00:00",
+  "testContainersStopped": {
+    "workdash-capacity-sfu": true,
+    "workdash-capacity-turn": true,
+    "workdash-capacity-db": true,
+    "workdash-capacity-redis": true
+  },
+  "temporaryUfwRulesAbsent": true,
+  "temporaryTurnChainAbsent": true,
+  "restrictedTurnRulesMatchCurrentOperator": true,
+  "nonOperatorHttpStatuses": {
+    "/try": 302,
+    "/__workdash_capacity__/fixture/metrics": 404
+  },
+  "monitoringRules": [
+    {
+      "name": "WorkdashGuestAdmissionPressure",
+      "health": "ok",
+      "state": "inactive",
+      "query": "guest_admission_memory_blocked > 0 or guest_admission_event_loop_blocked > 0 or guest_event_loop_p95_seconds >= 0.1"
+    },
+    {
+      "name": "WorkdashGuestGroupMeasurementUnavailable",
+      "health": "ok",
+      "state": "inactive",
+      "query": "(workdash_guest_runtime_expected == 1) and on () (absent(workdash_guest_group_healthy{job=\"workdash-sfu-guest\"}) or min(workdash_guest_group_healthy{job=\"workdash-sfu-guest\"}) == 0)"
+    }
+  ],
+  "publicAccessEnabled": false
+}

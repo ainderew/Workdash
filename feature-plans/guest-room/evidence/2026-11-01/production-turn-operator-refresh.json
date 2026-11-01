@@ -1,0 +1,20 @@
+{
+  "passed": true,
+  "checks": [
+    {
+      "transport": "udp",
+      "invalidCredentialRejected": true
+    },
+    {
+      "transport": "tcp",
+      "invalidCredentialRejected": true
+    },
+    {
+      "transport": "tls",
+      "invalidCredentialRejected": true
+    }
+  ],
+  "checkedAt": "2026-11-01T06:57:08.955408+00:00",
+  "scope": "Current production TURN listeners after refreshing only the restricted operator IP rules. TLS certificate validation succeeded. No media allocations were authorized by this invalid-credential check.",
+  "publicTurnIngressEnabled": false
+}

@@ -1,0 +1,33 @@
+{
+  "recordedOn": "2026-11-01",
+  "timezone": "Asia/Manila",
+  "scope": "Read-only handoff preparation; no release or public enablement performed",
+  "repositories": {
+    "frontend": {
+      "localHead": "4835d85378cf482a553db9501cb81d4debb5aaab",
+      "remoteMain": "30bb0a4af131480196902e11e0fc908dcbf5176e"
+    },
+    "backend": {
+      "localHead": "798a9b89dafa3e8831c297a381fe305f958b49ef",
+      "remoteMain": "798a9b89dafa3e8831c297a381fe305f958b49ef"
+    }
+  },
+  "runningImages": {
+    "frontend": {
+      "reference": "ghcr.io/ainderew/workdash:latest",
+      "imageId": "sha256:4a1675d8c004080d27fa0900bf2e12d737ad7061c4735ce8f774486da4819ca9",
+      "revisionLabel": null,
+      "memoryLimitBytes": 0
+    },
+    "backend": {
+      "reference": "ghcr.io/ainderew/workdash-sfu:latest",
+      "imageId": "sha256:b739fe037b08eed17917a505433156b5d47ffce3e00ddcb11453ac49946fe565",
+      "revisionLabel": null,
+      "memoryLimitBytes": 0
+    }
+  },
+  "productionTryRedirect": true,
+  "liveTurnPeerUdpRange": "10000:10500",
+  "turnIngress": "operator-only",
+  "publicGuestRuntimeDeployed": false
+}

@@ -1,4 +1,5 @@
 import React from "react";
+import { GUEST_PUBLIC_DISCOVERY } from "@/features/guest/discovery";
 import Image from "next/image";
 import Link from "next/link";
 import { Seo } from "@/common/components/Seo";
@@ -33,14 +34,15 @@ export function DiscoveryLinks({ current }: { current?: string }) {
 }
 
 export function RoomLink({ location }: { location: string }) {
+    const source = location.startsWith("hangout-with-friends") ? "friends" : "comparison";
     return (
         <Link
-            href="/app"
-            data-umami-event="cta_open_room"
+            href={GUEST_PUBLIC_DISCOVERY ? `/try?from=${source}` : "/app"}
+            data-umami-event={GUEST_PUBLIC_DISCOVERY ? "cta_guest_try" : "cta_open_room"}
             data-umami-event-location={location}
             className="wd-landing-btn-primary"
         >
-            Open a free room
+            {GUEST_PUBLIC_DISCOVERY ? "Try without signing up" : "Open a free room"}
         </Link>
     );
 }

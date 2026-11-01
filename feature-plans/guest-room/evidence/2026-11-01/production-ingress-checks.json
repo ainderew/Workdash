@@ -1,0 +1,47 @@
+{
+  "checks": [
+    {
+      "check": "cross-origin POST",
+      "expected": 403,
+      "actual": 403,
+      "passed": true
+    },
+    {
+      "check": "missing session",
+      "expected": 401,
+      "actual": 401,
+      "passed": true
+    },
+    {
+      "check": "unsupported method",
+      "expected": 405,
+      "actual": 405,
+      "passed": true
+    },
+    {
+      "check": "oversized request",
+      "expected": 413,
+      "actual": 413,
+      "passed": true
+    },
+    {
+      "check": "private SFU route",
+      "expected": 404,
+      "actual": 404,
+      "passed": true
+    },
+    {
+      "check": "private API route",
+      "expected": 404,
+      "actual": 404,
+      "passed": true
+    },
+    {
+      "check": "normal auth providers",
+      "expected": 200,
+      "actual": 200,
+      "passed": true
+    }
+  ],
+  "scope": "No authentication cookies, admission bypasses or load bursts used."
+}

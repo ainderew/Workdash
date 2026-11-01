@@ -1,0 +1,18 @@
+{
+  "passed": true,
+  "checks": [
+    "real Phaser player DTO and movement",
+    "account-event denial",
+    "cross-room game denial",
+    "transport ownership",
+    "real mediasoup audio producer/consumer",
+    "video denial",
+    "cross-room audio denial",
+    "consumer ownership",
+    "kick revocation",
+    "invite rotation",
+    "room closure",
+    "metrics"
+  ],
+  "note": "Signaling/resource test; does not prove audible RTP or production capacity."
+}

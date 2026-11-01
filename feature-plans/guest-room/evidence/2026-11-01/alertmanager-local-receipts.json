@@ -1,0 +1,20 @@
+{
+  "passed": true,
+  "scope": "Actual production Alertmanager to a temporary loopback receiver, no external messages or recipients",
+  "receipts": [
+    {
+      "status": "firing",
+      "alerts": [
+        "WorkdashGuestDeliveryProbe"
+      ],
+      "receivedAt": "2026-11-01T05:02:14.958779+00:00"
+    },
+    {
+      "status": "resolved",
+      "alerts": [
+        "WorkdashGuestDeliveryProbe"
+      ],
+      "receivedAt": "2026-11-01T05:02:21.953360+00:00"
+    }
+  ]
+}

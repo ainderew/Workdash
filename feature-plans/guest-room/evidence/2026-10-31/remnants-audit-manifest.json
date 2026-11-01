@@ -1,0 +1,31 @@
+{
+  "archive": "/Users/drew/.codex/private/workdash-guest-remnants-audit-20261031.tar.gz",
+  "beforeCleanup": {
+    "Workdash-SFU/src/guest/model.ts": "751596d7e43681eb936545ec79337d9071c7ebdac438dac5f077736afdcc6203",
+    "Workdash-SFU/src/guest/model.test.ts": "12e2110594a9a4c596e3a96f60ca83c25f4a891275b93f7169f60751c5b5d566",
+    "Workdash-SFU/src/guest/store.ts": "27defae0e9736cbe1d80a2313e9c47484752f44903aebb0dee6f8592ce31e5ca",
+    "Workdash-SFU/src/guest/store.integration.test.ts": "bac08bbb201f0af28a4b29f64d8302433831b40b0b2b132f8004d496f0be1d4a",
+    "Workdash-SFU/src/guest/telemetry.ts": "76e51bcc215c40f7077b39f5435eb6f665e5d89b79e57da9e237c752c75cb51b",
+    "Workdash-SFU/src/guest/telemetry.test.ts": "0c1868f588df4e4caf94aa8796213a6ec160008e8f41eeb114d1dfeca2f4545e",
+    "Workdash-SFU/src/guest/runtime.ts": "03c489c1b72b54c9ce9da0856ba412ab6f2ec59b360d9a0f2da2eacc0db29ecf",
+    "Workdash-SFU/deploy/guest.nginx.conf.example": "08c8a46fc64297cf55a79ffe6f1eb409d1c5a7a8c008a37c002cf40a90632056",
+    "Workdash-SFU/deploy/turn/peer-firewall.sh": "5524aeb17cf427ff45813367fa527f5cf5c2faadbb185a84703f793dc172b6cb",
+    "Workdash-SFU/deploy/turn/README.md": "ed0acba5ea14eb6b9a4ca70b77421c4952eef3eb7bcff0424a8ca1a846d640a7",
+    "Workdash-SFU/deploy/turn/PORT-443-PLAN.md": "5849f07e70f660b23170bbf1e7a911dec1d78e84ffa77ef8991827bc16f789f5",
+    "Workdash-SFU/deploy/observability/README.md": "adca2639a1ded8222162be0ba890cdecf25de062f4f98ba9f4c5219560236a8b",
+    "Workdash-SFU/deploy/ROLLOUT-20261031.md": "9e067fa3e5bc9f183ae6dbe09d78b959ee553afd61fbfad4c3c1b1ac13bdf64a",
+    "Workdash/src/pages/api/auth/[...nextauth].ts": "7402f8dcdf79f83f449589c184ee1629dd20ea0827bf58a982f38a3ed071d2dd",
+    "Workdash/src/features/guest/proxy.test.ts": "10237776a49d4bb6b706f007b9f139fbf8a704796fb74316670608769ada13d6",
+    "Workdash/feature-plans/guest-room/README.md": "7273581572667b439dbb1dd3a9ff2e5bab1284ca3873e1d57f0d5900e7a28e85",
+    "Workdash/feature-plans/guest-room/voice-capacity-plan.md": "a19f89d5b1c0624b16859c260d81b742903464c9e76912ecc15429a51ad754c5",
+    "Workdash/feature-plans/guest-room/voice-implementation-status.md": "ac952dd8537baf3c9cd994cf30bac2e52f67c58a0844b17dd1f4823b3285ab7c"
+  },
+  "additionalBackup": {
+    "path": "/Users/drew/.codex/private/workdash-guest-dashboard-before-remnants-20261031.json",
+    "sha256": "7ec66375551887ae413f719c6f6ee6ae3db2bf4b051a7ebf1733ab682f9d9fc4"
+  },
+  "proxyBackup": {
+    "archive": "/Users/drew/.codex/private/workdash-guest-proxy-before-remnants-20261031.tar.gz",
+    "sha256": "9f2db75d81838bfe1243749ec3aced4d91018ab5d85ed0107c2912265f232bf6"
+  }
+}

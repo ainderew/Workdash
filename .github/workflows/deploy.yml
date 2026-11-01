@@ -4,15 +4,12 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      deploy:
+        description: Deploy after building and testing
+        type: boolean
+        default: true
 
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ainderew/workdash
-
-# Queue runs instead of overlapping them. Every run deploys to the same droplet
-# by pulling :latest, so two overlapping runs could let the older build go live
-# if it finished last. A newer push replaces any run still waiting; a run that
-# has started is never cancelled mid-deploy.
 concurrency:
   group: ${{ github.workflow }}
   cancel-in-progress: false
@@ -23,25 +20,31 @@ jobs:
     permissions:
       contents: read
       packages: write
-
+    outputs:
+      image: ghcr.io/ainderew/workdash@${{ steps.image.outputs.digest }}
     steps:
       - uses: actions/checkout@v4
-
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Verify release
+        run: |
+          npx vitest run src/communication/mediaTransportService/mediaTransportService.test.ts src/communication/mediaTransportService/mediaDiagnostics.test.ts src/features/guest/proxy.test.ts src/features/guest/funnel.test.ts src/features/guest/GuestEntry.test.tsx src/common/utils/safeAuthReturn.test.ts src/common/components/UiControls/AudioAreaIndicator.test.tsx src/game/audioZoneManager/audioZoneManager.test.ts src/game/scenes/BaseGameScene.test.ts src/communication/audioChat/audioChat.test.ts
+          npx tsc --noEmit
       - uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
       - uses: docker/setup-buildx-action@v3
-
       - uses: docker/build-push-action@v5
+        id: image
         with:
           context: .
           push: true
-          tags: |
-            ghcr.io/${{ env.IMAGE_NAME }}:latest
-            ghcr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          tags: ghcr.io/ainderew/workdash:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
@@ -50,47 +53,77 @@ jobs:
             NEXT_PUBLIC_GIPHY_PICKER=${{ secrets.NEXT_PUBLIC_GIPHY_PICKER }}
             NEXT_PUBLIC_UMAMI_URL=${{ vars.NEXT_PUBLIC_UMAMI_URL }}
             NEXT_PUBLIC_UMAMI_WEBSITE_ID=${{ vars.NEXT_PUBLIC_UMAMI_WEBSITE_ID }}
-
+            NEXT_PUBLIC_GUEST_TURNSTILE_SITE_KEY=${{ vars.NEXT_PUBLIC_GUEST_TURNSTILE_SITE_KEY }}
+            NEXT_PUBLIC_GUEST_TRIAL_PUBLIC=${{ vars.NEXT_PUBLIC_GUEST_TRIAL_PUBLIC }}
+            SOURCE_REVISION=${{ github.sha }}
   deploy:
+    if: github.event_name == 'push' || inputs.deploy
     needs: build
     runs-on: ubuntu-latest
-
+    permissions:
+      contents: read
+      packages: read
     steps:
-      - name: Deploy to droplet
+      - name: Deploy exact tested image with rollback
         uses: appleboy/ssh-action@v1
         env:
-          GHCR_PAT: ${{ secrets.GHCR_PAT }}
-          GHCR_USER: ainderew
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_USER: ${{ github.actor }}
+          RELEASE_IMAGE: ${{ needs.build.outputs.image }}
+          RELEASE_SHA: ${{ github.sha }}
         with:
           host: ${{ secrets.DROPLET_IP }}
           username: root
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          envs: GHCR_PAT,GHCR_USER
+          command_timeout: 30m
+          envs: GHCR_TOKEN,GHCR_USER,RELEASE_IMAGE,RELEASE_SHA
           script: |
-            set -e
-            echo "$GHCR_PAT" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
-            # The droplet's IPv6 route to ghcr.io sometimes resets mid-download
-            # ("connection reset by peer"), so retry before failing the deploy.
+            set -eu
+            umask 077
+            trap 'docker logout ghcr.io >/dev/null 2>&1 || true' EXIT
+            printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
             for attempt in 1 2 3 4; do
-              docker pull ghcr.io/${{ env.IMAGE_NAME }}:latest && break
-              if [ "$attempt" -eq 4 ]; then
-                echo "docker pull failed after 4 attempts" >&2
-                exit 1
-              fi
-              echo "docker pull failed (attempt $attempt/4), retrying in $((attempt * 10))s" >&2
-              sleep $((attempt * 10))
+              docker pull "$RELEASE_IMAGE" && break
+              [ "$attempt" -lt 4 ] || exit 1
+              sleep "$((attempt * 10))"
             done
-            docker stop workdash-frontend || true
-            docker rm workdash-frontend || true
-            docker run -d \
-              --name workdash-frontend \
-              --network host \
-              --restart unless-stopped \
-              -e PORT=8080 \
-              -e HOSTNAME=0.0.0.0 \
-              -e NEXTAUTH_URL="${{ vars.NEXTAUTH_URL }}" \
-              -e NEXTAUTH_SECRET="${{ secrets.NEXTAUTH_SECRET }}" \
-              -e GOOGLE_CLIENT_ID="${{ secrets.GOOGLE_CLIENT_ID }}" \
-              -e GOOGLE_CLIENT_SECRET="${{ secrets.GOOGLE_CLIENT_SECRET }}" \
-              ghcr.io/${{ env.IMAGE_NAME }}:latest
-            docker image prune -f
+            revision=$(docker image inspect --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}' "$RELEASE_IMAGE")
+            [ "$revision" = "$RELEASE_SHA" ] || { echo 'Image revision mismatch' >&2; exit 1; }
+            test -s /root/workdash/.env.frontend
+            rollback="workdash-frontend-rollback-$(date -u +%Y%m%dT%H%M%SZ)"
+            had_previous=false
+            if docker inspect workdash-frontend >/dev/null 2>&1; then
+              previous=$(docker inspect --format '{{.Image}}' workdash-frontend)
+              docker tag "$previous" "workdash-frontend:$rollback"
+              docker stop --time 60 workdash-frontend
+              docker rename workdash-frontend "$rollback"
+              docker update --restart=no "$rollback" >/dev/null
+              had_previous=true
+            fi
+            restore() {
+              docker rm -f workdash-frontend >/dev/null 2>&1 || true
+              if [ "$had_previous" = true ]; then
+                docker rename "$rollback" workdash-frontend
+                docker update --restart=unless-stopped workdash-frontend >/dev/null
+                docker start workdash-frontend
+              fi
+            }
+            if ! docker run -d --name workdash-frontend --network host --restart unless-stopped \
+              --log-driver json-file --log-opt max-size=10m --log-opt max-file=3 \
+              -e GIT_SHA="$RELEASE_SHA" --env-file /root/workdash/.env.frontend \
+              -e PORT=8080 -e HOSTNAME=127.0.0.1 \
+              "$RELEASE_IMAGE"; then
+              restore; exit 1
+            fi
+            ready=false
+            for attempt in $(seq 1 30); do
+              if curl -fsS --max-time 3 http://127.0.0.1:8080/ >/dev/null; then ready=true; break; fi
+              sleep 2
+            done
+            if [ "$ready" != true ]; then
+              echo 'Release health check failed; restoring previous container' >&2
+              restore; exit 1
+            fi
+            mkdir -p /root/workdash/releases
+            printf '%s\n%s\n%s\n' "$RELEASE_SHA" "$RELEASE_IMAGE" "$rollback" > /root/workdash/releases/frontend-current.txt
+            # Retain rollback images and containers. Prune only after release acceptance.

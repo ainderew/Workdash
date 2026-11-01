@@ -107,7 +107,8 @@ export function LoginPage() {
     return new URLSearchParams(window.location.search).get("invite");
   }, []);
 
-  const callbackUrl = inviteCode ? `/invite/${inviteCode}` : undefined;
+  const guestReturn = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("guest") === "1";
+  const callbackUrl = guestReturn ? "/try" : inviteCode ? `/invite/${encodeURIComponent(inviteCode)}` : undefined;
 
   const handleSendMagicLink = useCallback(async () => {
     trackEvent("sign_in_started", { method: "magic_link" });
@@ -187,7 +188,7 @@ export function LoginPage() {
             </div>
             <div className="flex w-full flex-col gap-3">
               <Link
-                href="/app"
+                href={callbackUrl || "/app"}
                 className="flex items-center justify-center gap-2 rounded-xl py-3.5 text-center text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-[1px] hover:shadow-xl active:translate-y-0 active:shadow-none"
                 style={{ backgroundColor: "var(--wd-login-accent)" }}
               >

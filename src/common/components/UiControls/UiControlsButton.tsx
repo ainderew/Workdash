@@ -58,13 +58,14 @@ function UiControlsButton({
 }: UiControlsButtonProps) {
     return (
         <Tooltip>
-            <TooltipTrigger className="cursor-pointer relative">
+            <TooltipTrigger asChild>
                 <Button
                     onClick={onClick}
+                    aria-label={label}
                     data-onboarding-target={onboardingTarget}
                     variant="default"
                     size="icon"
-                    className={`cursor-pointer dark wd-bg-elevated hover:bg-[var(--wd-surface-base)] hover:text-[var(--wd-text-primary)]
+                    className={`relative cursor-pointer dark wd-bg-elevated hover:bg-[var(--wd-surface-base)] hover:text-[var(--wd-text-primary)]
                         ${buttonColorMap[color as ColorEnum]}
                         ${sizeMap[size as ButtonSizeEnum]}
                         ${textColorMap[textColor as ColorEnum]}
@@ -72,12 +73,12 @@ function UiControlsButton({
                         `}
                 >
                     {<Icon />}
+                    {badgeCount !== undefined && badgeCount > 0 && (
+                        <span className="absolute -top-1 -right-1 h-5 min-w-5 flex items-center justify-center bg-[var(--wd-danger)] text-white text-xs font-bold rounded-full px-1">
+                            {badgeCount > 99 ? "99+" : badgeCount}
+                        </span>
+                    )}
                 </Button>
-                {badgeCount !== undefined && badgeCount > 0 && (
-                    <span className="absolute -top-1 -right-1 h-5 min-w-5 flex items-center justify-center bg-[var(--wd-danger)] text-white text-xs font-bold rounded-full px-1">
-                        {badgeCount > 99 ? "99+" : badgeCount}
-                    </span>
-                )}
             </TooltipTrigger>
             <TooltipContent>
                 <span className="">{label}</span>

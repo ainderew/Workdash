@@ -1,3 +1,4 @@
+import { vi } from "vitest";
 /**
  * Shared mock factories for AV settings tests.
  */

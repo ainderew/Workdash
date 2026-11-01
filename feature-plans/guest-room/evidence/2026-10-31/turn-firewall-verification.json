@@ -1,0 +1,36 @@
+{
+  "passed": true,
+  "rtcWorkerArguments": [
+    "--rtcMinPort=10000",
+    "--rtcMaxPort=10500"
+  ],
+  "liveAndPersistentPeerRange": "10000:10500",
+  "firewallPolicyChecks": {
+    "previousRange": "10000:10500",
+    "desiredRange": "10000:10500",
+    "persistentRulesValid": true,
+    "applied": false
+  },
+  "wrongHostConfigurationRejected": true,
+  "onlyTurnPeerAndOperatorIngressChanged": true,
+  "servicesNotRestarted": true,
+  "health": {
+    "/": 200,
+    "/api/auth/providers": 200,
+    "/try": 302
+  },
+  "echoCounts": {
+    "9999": 0,
+    "10000": 3,
+    "10500": 0,
+    "10501": 0,
+    "11099": 0
+  },
+  "temporaryEchoStopped": true,
+  "temporaryServerCredentialsRemoved": true,
+  "turnAllocationsZero": true,
+  "turnMetricsAvailable": true,
+  "publicGuestAccessEnabled": false,
+  "operatorIngressOnly": true,
+  "backupDirectory": "/root/workdash/turn/real-sfu-firewall-fix-20261031"
+}

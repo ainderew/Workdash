@@ -1,0 +1,38 @@
+{
+  "definition": "v2: fixed five-second server windows, independent account probe on separate browser site, unchanged numeric limits",
+  "initialPublicProposal": {
+    "maxGuests": 8,
+    "maxRooms": 2,
+    "maxPerRoom": 8
+  },
+  "measuredTier": {
+    "guests": 8,
+    "accounts": 2,
+    "minutes": 31,
+    "audio": "all talk, synthetic broadband Opus, 64 kbps target",
+    "gameMovementHz": 20
+  },
+  "criteria": {
+    "voiceConnectionsSuccessAtLeast": 0.99,
+    "warmConnectionP95MsBelow": 3000,
+    "unexpectedSignalingFailureRateBelow": 0.01,
+    "accountPingP95RegressionMsAtMost": 50,
+    "accountPacketLossIncreasePercentagePointsAtMost": 0.5,
+    "accountJitterP95RegressionMsAtMost": 30,
+    "memoryRatioBelow": 0.7,
+    "eventLoopP95SecondsBelow": 0.1,
+    "hostAvailableMemoryRatioAbove": 0.3,
+    "allSubscribedTracksMustDecode": true,
+    "guestResourcesAfterCleanup": 0
+  },
+  "limitations": [
+    "Disposable backend runs on the production host with a separate worker, database and Redis, the deployed image and a 2 GiB limit. Ancillary production account services are not all represented.",
+    "Signaling uses the temporary operator-only HTTPS/WSS route; media travels directly over the network.",
+    "Synthetic audio proves transport and decoding, not physical speaker output or real mobile behavior.",
+    "Eight guests is the measured tier, not the hardware breaking point.",
+    "Normal account world voice is exercised; direct-call UI signaling is a separate journey check.",
+    "Account and guest pages use distinct browser sites but share one physical computer and network."
+  ],
+  "recordedAt": "2026-11-01T06:18:14.033162+00:00",
+  "metadataCorrection": "Corrected two stale limitation strings after the run began. The recorded numeric criteria, duration and participant counts are unchanged."
+}
