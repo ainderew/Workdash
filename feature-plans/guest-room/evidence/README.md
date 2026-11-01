@@ -11,7 +11,7 @@ Earlier prototype screenshots, raw logs and synthetic HTTP voice results are ret
 - [Current release manifest](2026-11-01/restricted-release-final.json): deployed sources, immutable images, restricted flags, rollback references, authenticated metrics and live dashboard panels.
 - [Local account save and group activation](2026-11-01/local-save-and-group-activation.json): real authentication callback, explicit overwrite consent, host conversion, normal invitation, Phaser re-entry and two members overlapping for five minutes. Test mail was captured locally; production delivery and Google OAuth remain unverified.
 - [Browser relay checks](2026-11-01/browser-relay-host.json): two participants selected UDP/TCP/TLS relay paths and received decoded waveforms on isolated production-host fixtures. Physical devices, restrictive mobile networks and TLS 443 are outside this result.
-- [Alert firing and recovery](2026-11-01/alertmanager-local-receipts.json): production Alertmanager delivered to a temporary loopback receiver. An approved external destination and external receipts remain pending.
+- [External email alert delivery](2026-11-01/email-alert-delivery.json): production Prometheus, Alertmanager and Resend delivered both firing and recovery emails to the approved operator inbox. The [earlier loopback check](2026-11-01/alertmanager-local-receipts.json) is retained as historical evidence.
 - [Follow-up deployment](2026-11-01/restricted-production-redeploy.json) and [actual intent receipts](2026-11-01/production-trial-funnel.json): historical restricted redeploy and privacy-safe funnel receipts.
 - [Deployed release and monitoring snapshot](2026-11-01/restricted-production-release.json): exact source/image references and safe restricted settings.
 - [Ingress checks](2026-11-01/production-ingress-checks.json): origin, session, method, body-size and private-route boundaries.
@@ -20,4 +20,4 @@ Earlier prototype screenshots, raw logs and synthetic HTTP voice results are ret
 - [Server-rendered entry checks](2026-11-01/trial-entry-ssr.json): explanatory HTML/canonical headers with public discovery still disabled.
 - [Real game screenshot](2026-11-01/real-game-local.png), [mobile entry](2026-11-01/trial-entry-mobile.png), and [playback recovery](2026-11-01/playback-recovery-mobile.png): local disposable fixture screenshots, not production audibility or mobile-device evidence.
 
-Public launch, real two-device/network voice, production sign-in providers and external alert receipts remain open in the completion handoff. Server-side group measurement is implemented, tested and populated by a real local visit. No mature seven-day retention results are claimed.
+Public launch, real two-device/network voice and production sign-in providers remain open in the completion handoff. Server-side group measurement is implemented, tested and populated by a real local visit. No mature seven-day retention results are claimed.

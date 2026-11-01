@@ -1,0 +1,48 @@
+{
+  "checkedAt": "2026-11-01T08:58:41.780Z",
+  "scope": "Production Prometheus -> Alertmanager -> existing Resend SMTP over verified TLS -> approved operator Gmail inbox",
+  "recipient": "Approved operator address retained in private server configuration",
+  "testAlert": "WorkdashEmailDeliveryTest",
+  "receipts": [
+    {
+      "subject": "[WorkDash][RESOLVED] WorkdashEmailDeliveryTest",
+      "receivedAt": "2026-11-01T08:57:20+00:00",
+      "inbox": true
+    },
+    {
+      "subject": "[WorkDash][FIRING] WorkdashEmailDeliveryTest",
+      "receivedAt": "2026-11-01T08:56:20+00:00",
+      "inbox": true
+    }
+  ],
+  "checks": {
+    "firingReceivedInInbox": true,
+    "resolvedReceivedInInbox": true,
+    "actualServiceOutageCaused": false,
+    "smtpPasswordCommitted": false
+  },
+  "publicGuestAdmissionEnabled": false,
+  "postCleanupVerification": {
+    "ordinaryRuleCount": 15,
+    "ordinaryRulesHealthy": true,
+    "temporaryRuleRemoved": true,
+    "temporaryRouteRemoved": true,
+    "approvedRecipientConfigured": true,
+    "sendResolvedConfigured": true,
+    "smtpPasswordMode": "0o400",
+    "smtpPasswordUid": 65534,
+    "smtpPasswordMountReadOnly": true,
+    "alertmanagerRunning": true,
+    "emailCounters": [
+      "alertmanager_notifications_failed_total{integration=\"email\",reason=\"authError\"} 0",
+      "alertmanager_notifications_failed_total{integration=\"email\",reason=\"clientError\"} 0",
+      "alertmanager_notifications_failed_total{integration=\"email\",reason=\"contextCanceled\"} 0",
+      "alertmanager_notifications_failed_total{integration=\"email\",reason=\"contextDeadlineExceeded\"} 0",
+      "alertmanager_notifications_failed_total{integration=\"email\",reason=\"other\"} 0",
+      "alertmanager_notifications_failed_total{integration=\"email\",reason=\"rateLimited\"} 0",
+      "alertmanager_notifications_failed_total{integration=\"email\",reason=\"serverError\"} 0",
+      "alertmanager_notifications_total{integration=\"email\"} 2"
+    ],
+    "publicGuestEnabled": "false"
+  }
+}
