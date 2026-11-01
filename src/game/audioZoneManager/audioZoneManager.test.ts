@@ -109,4 +109,13 @@ describe("real map audio coverage", () => {
         main.moveFeet(-1, 1960);
         expect(socket.emit).toHaveBeenLastCalledWith("player-zone-changed", expect.objectContaining({ toZone: null }));
     });
+
+    it("ignores late updates after the scene destroys its audio manager", () => {
+        const { manager, players, graphics } = setup();
+        manager.destroy(); manager.destroy();
+        useWorldAudioStore.setState({ connected: true, showAreas: true, zoneId: 'main_office' });
+        expect(() => manager.update(players)).not.toThrow();
+        expect(socket.emit).not.toHaveBeenCalled();
+        expect(graphics.strokeRect).not.toHaveBeenCalled();
+    });
 });

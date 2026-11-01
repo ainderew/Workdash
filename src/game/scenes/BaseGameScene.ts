@@ -51,6 +51,8 @@ export abstract class BaseGameScene extends Scene implements SolidMap {
     Hz: number = 1000 / 50;
     private wasAttacking: boolean = false;
     private hasJoinedGame: boolean = false;
+    private sceneStopped = true;
+    private sceneGeneration = 0;
 
     protected audioZoneManager!: AudioZoneManager;
     protected backgroundMusicManager!: BackgroundMusicManager;
@@ -71,6 +73,12 @@ export abstract class BaseGameScene extends Scene implements SolidMap {
     }
 
     create() {
+        this.sceneStopped = false;
+        this.sceneGeneration++;
+        this.hasJoinedGame = false;
+        // Phaser emits lifecycle events; it does not call this shutdown method.
+        this.events.once("shutdown", this.shutdown, this);
+        this.events.once("destroy", this.shutdown, this);
         
         this.currentSceneName = this.scene.key;
 
@@ -556,7 +564,9 @@ export abstract class BaseGameScene extends Scene implements SolidMap {
             dribbling: number;
         } | null,
     ): Promise<void> {
-        if (!this.scene || !this.physics || !this.playersLayer) {
+        const generation = this.sceneGeneration;
+        const stillActive = () => !this.sceneStopped && generation === this.sceneGeneration;
+        if (!stillActive() || !this.scene || !this.physics || !this.playersLayer) {
             console.warn(
                 "[createPlayer] Scene not ready, skipping player creation",
             );
@@ -585,7 +595,9 @@ export abstract class BaseGameScene extends Scene implements SolidMap {
                         customization,
                         spritesheetKey,
                         opts.isLocal,
+                        stillActive,
                     );
+                    if (!stillActive()) return;
 
                     if (this.textures.exists(spritesheetKey)) {
                         animManager.createCharacterAnimations(
@@ -606,7 +618,7 @@ export abstract class BaseGameScene extends Scene implements SolidMap {
                 spriteKey = SpriteKeys.ADAM;
             }
 
-            if (this.players.has(id)) return;
+            if (!stillActive() || this.players.has(id)) return;
 
             const playerInstance = new Player(
                 this,
@@ -665,7 +677,7 @@ export abstract class BaseGameScene extends Scene implements SolidMap {
             logger.log("CREATING" + name);
             logger.log(opts);
 
-            this.loadingPlayers.delete(id);
+            if (generation === this.sceneGeneration) this.loadingPlayers.delete(id);
         }
     }
 
@@ -762,6 +774,7 @@ export abstract class BaseGameScene extends Scene implements SolidMap {
     }
 
     private handleWorkspaceSwitch(data: { workspaceId: string }) {
+        if (this.sceneStopped) return;
         // Clear all remote players
         for (const [id, player] of this.players) {
             if (id !== this.localPlayerId) {
@@ -821,6 +834,12 @@ export abstract class BaseGameScene extends Scene implements SolidMap {
     }
 
     shutdown() {
+        if (this.sceneStopped) return;
+        this.sceneStopped = true;
+        this.sceneGeneration++;
+        this.hasJoinedGame = false;
+        this.events.off("shutdown", this.shutdown, this);
+        this.events.off("destroy", this.shutdown, this);
         EventBus.off("teleport", this.handleTeleportCommand, this);
         EventBus.off("workspace-switch", this.handleWorkspaceSwitch, this);
         this.multiplayer?.removeAllGameListeners();

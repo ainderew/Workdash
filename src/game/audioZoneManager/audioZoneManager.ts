@@ -7,6 +7,7 @@ import { logger } from "@/common/utils/logger";
 
 export class AudioZoneManager {
     private scene: Scene;
+    private destroyed = false;
     private zones: Phaser.GameObjects.Zone[] = [];
     private guideGraphics: Phaser.GameObjects.Graphics | null = null;
     private guideLabels: Phaser.GameObjects.Text[] = [];
@@ -22,6 +23,7 @@ export class AudioZoneManager {
     public initializeZones(
         map: Phaser.Tilemaps.Tilemap,
     ): void {
+        if (this.destroyed) return;
         const zoneLayer = map.getObjectLayer("AudioZones");
 
         if (!zoneLayer) {
@@ -49,6 +51,7 @@ export class AudioZoneManager {
     }
 
     public update(players: Map<string, Player>): void {
+        if (this.destroyed) return;
         this.updateAreaGuide();
         const socket = MediaTransportService.getInstance().socket;
         // Do not queue stale zone transitions while disconnected.
@@ -127,8 +130,13 @@ export class AudioZoneManager {
     }
 
     destroy() {
+        if (this.destroyed) return;
+        this.destroyed = true;
         this.clearAreaGuide();
         this.zones.forEach(zone => zone.destroy());
+        this.zones = [];
+        this.currentZone = null;
+        this.mediaSocketId = undefined;
         useWorldAudioStore.getState().resetConnection();
     }
 }
