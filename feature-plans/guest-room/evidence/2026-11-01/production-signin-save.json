@@ -1,0 +1,42 @@
+{
+  "dateUtc": "2026-11-01",
+  "frontendSha": "b44ce283d981faffa3f5bbac0388dc57ad9abe48",
+  "backendSha": "2452473d062d3996c309dcfcaec34373c10d4ced",
+  "google": {
+    "existingAuthorizedAccount": true,
+    "newScopesGranted": false,
+    "returnedTo": "/try",
+    "retainedDraft": true,
+    "explicitOverwriteGuard": true,
+    "originalCharacterReplaced": false
+  },
+  "magicLink": {
+    "deliveredToApprovedOperatorTestAlias": true,
+    "dedicatedTestAccountCreated": true,
+    "returnedTo": "/try",
+    "retainedDraft": true,
+    "defaultCharacterRequiredExplicitReplacement": true,
+    "characterSaved": true,
+    "roomSaved": true,
+    "openedNormalWorld": "/app?mode=world",
+    "workspaceCount": 1,
+    "workspaceName": "Our hangout",
+    "serverRoomsSavedTotal": 1,
+    "signedOutAfterTest": true
+  },
+  "recovery": {
+    "firstGoogleClaimDuringBackendRedeploy": "temporarily unavailable",
+    "retryAfterHealthyDeployment": "overwrite consent required; no mutation"
+  },
+  "manualTest": {
+    "userReported": "ok i tested it it works.",
+    "deviceAndNetworkDetails": "not supplied",
+    "providerCoverageQuestion": "No further response; do not infer additional coverage."
+  },
+  "limits": [
+    "Google existing-account return and refusal to overwrite were tested; no Google-account replacement was performed.",
+    "The magic-link claim saved an expired retained draft. This does not extend guest access.",
+    "Physical desktop/phone/network coverage is user-reported and not independently established.",
+    "The dedicated test account and one saved workspace are retained for review."
+  ]
+}

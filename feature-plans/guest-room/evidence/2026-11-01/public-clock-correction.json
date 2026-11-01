@@ -1,0 +1,40 @@
+{
+  "discoveredAtUtc": "2026-11-01T16:03:17Z",
+  "databaseTimezone": "Europe/Berlin",
+  "observedAdapterTimestampErrorSeconds": 3600,
+  "effect": "Relative room expiry used the intended duration, but late-issued TURN credentials could outlast it. Saved-group date decoding was affected too.",
+  "response": {
+    "firstCanary": "aborted, not a passing lifecycle test",
+    "creationAndJoining": "paused with persistent authenticated admin controls",
+    "discoveryBuild": "cancelled before deployment; build flag returned to false",
+    "privateLedgerBackup": true,
+    "oldGuestResourcesAfterCleanup": {
+      "sockets": 0,
+      "transports": 0,
+      "producers": 0,
+      "consumers": 0
+    },
+    "accountTransportsRetained": 2
+  },
+  "fix": {
+    "pullRequest": "https://github.com/ainderew/Workdash-SFU/pull/8",
+    "mergeSha": "3f1011ed35c2973ef47a6d3a84c2f5e87fcc2212",
+    "numericUnixMilliseconds": true,
+    "cohortTransactionTimezone": "UTC",
+    "legacyUpgrade": "Normalize once under the ledger row lock, close active anonymous rooms, preserve retained drafts/claims/saved workspace ownership.",
+    "databaseTimezoneChanged": false
+  },
+  "validation": {
+    "tests": 203,
+    "files": 15,
+    "disposablePostgresIntegrationTests": 16,
+    "timezones": [
+      "Europe/Berlin",
+      "America/New_York",
+      "Asia/Manila"
+    ],
+    "build": "passed",
+    "disposableDatabaseRemoved": true
+  },
+  "rollback": "Do not enable guests on a pre-fix image after the ledger clock upgrade. Keep guest stop enabled while restoring account service, or use a verified post-fix image."
+}
