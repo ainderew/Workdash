@@ -1,5 +1,5 @@
 {
   "createdAt": "2026-11-01T17:42:38.398170+00:00",
   "source": "public/assets/lounge.webp",
-  "prompt": "Not generated. Original owner-captured WorkDash screenshot cropped to 2000x1000 from top-left and resized to 1280x640; WebP quality 85. Used as a single stable image for a controlled CSS camera move. No synthesized character motion."
+  "prompt": "Not generated. Original owner-captured WorkDash screenshot cropped to 2000x1000 from top-left and resized to 1280x640; WebP quality 85. Source image composited into every frame of try-room-motion.8bd53ffd.mp4. No synthesized character motion."
 }
