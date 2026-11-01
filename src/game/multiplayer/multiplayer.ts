@@ -71,6 +71,12 @@ export class Multiplayer {
 
     private send(event: string, payload: any) {
         if (this.socket.connected && this.isBackendReady) {
+            // Positions are replaceable. Do not replay stale guest movement as
+            // a reliable-message burst after transport backpressure.
+            if (isGuestGame() && event === "playerMovement") {
+                this.socket.volatile.emit(event, payload);
+                return;
+            }
             this.socket.emit(event, payload);
         } else {
             if (isGuestGame() && event === "playerMovement") return;
