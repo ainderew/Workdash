@@ -1,15 +1,15 @@
 {
-  "checkedAt": "2026-11-01T17:01:51.188598+00:00",
+  "checkedAt": "2026-11-01T17:10:10.075165+00:00",
   "releaseMode": "public; initial ceiling eight total guests across two rooms",
   "containers": [
     {
       "name": "workdash-backend",
       "running": true,
-      "imageId": "sha256:68315070e89a34cc859206e261c3e207b0f924fcf502927cc30ac5fc0b01c187",
+      "imageId": "sha256:44611bcb9021ded2d32d2da4e6555fed3e8f7dd58e01ff21c622110da3860831",
       "repoDigests": [
-        "ghcr.io/ainderew/workdash-sfu@sha256:68315070e89a34cc859206e261c3e207b0f924fcf502927cc30ac5fc0b01c187"
+        "ghcr.io/ainderew/workdash-sfu@sha256:44611bcb9021ded2d32d2da4e6555fed3e8f7dd58e01ff21c622110da3860831"
       ],
-      "source": "817849daf9839e41a85b48f2c7a1c332de219389",
+      "source": "1a13059bd51111da6788c463436ce9e42a1a1ced",
       "memoryBytes": 2147483648,
       "networkMode": "host"
     },
@@ -27,9 +27,9 @@
   ],
   "releaseManifests": {
     "backend": [
-      "817849daf9839e41a85b48f2c7a1c332de219389",
-      "ghcr.io/ainderew/workdash-sfu@sha256:68315070e89a34cc859206e261c3e207b0f924fcf502927cc30ac5fc0b01c187",
-      "workdash-backend-rollback-20261101T170027Z"
+      "1a13059bd51111da6788c463436ce9e42a1a1ced",
+      "ghcr.io/ainderew/workdash-sfu@sha256:44611bcb9021ded2d32d2da4e6555fed3e8f7dd58e01ff21c622110da3860831",
+      "workdash-backend-rollback-20261101T170835Z"
     ],
     "frontend": [
       "c0b25487c9681a51942fa71507befd1bae4eeb18",
@@ -79,7 +79,7 @@
     "verifiedAfterFrontendRedeploy": true
   },
   "validation": {
-    "backendWorkflow": 41328941459,
+    "backendWorkflow": 41329657565,
     "backendCiTests": 207,
     "frontendWorkflow": 41328051703,
     "frontendCiTests": 63,
@@ -92,7 +92,8 @@
       "turn-public-expired.json"
     ],
     "search": "public-search-console.json",
-    "monitoring": "public-monitoring-final.json"
+    "monitoring": "public-monitoring-final.json",
+    "dashboardProvisioning": "public-funnel-panel-correction.json"
   },
   "subsequentDocumentationRelease": "This manifest records the validated code/configuration release before committing the evidence. The following frontend documentation-only merge runs normal deployment again; inspect its workflow for that image revision.",
   "rollbackConstraint": "Use a post-UTC-fix backend, or stop guests before restoring account service with an older image. Never restore the pre-fix runtime with guests enabled.",
