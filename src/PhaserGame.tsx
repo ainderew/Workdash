@@ -100,7 +100,7 @@ export const PhaserGame = forwardRef<IRefPhaserGame, IProps>(
                     };
                 }
 
-                if (scene_instance.scene.key === "Game" && onGameReady) {
+                if (["MainMap", "SoccerMap"].includes(scene_instance.scene.key) && onGameReady) {
                     onGameReady();
                 }
             };
