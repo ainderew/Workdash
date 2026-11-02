@@ -142,8 +142,8 @@ export default function ComparePage() {
                         <p>
                             WorkDash is the small version of that idea, with
                             voice that works by room rather than by distance,
-                            built for a group of friends who already talk every night
-                            and want one room that is simply always open. If you
+                            built for friends and small teams who want a shared
+                            place to catch up or work alongside each other. If you
                             need to run a 200-person event, use Gather. If you
                             want a server for a community, use Discord.
                         </p>

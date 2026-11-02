@@ -112,8 +112,8 @@ export default function DiscordAlternative() {
             <section>
                 <h2>When WorkDash fits</h2>
                 <p>
-                    Your group knows each other, wants somewhere to meet between
-                    games, and likes moving around a shared space. WorkDash is
+                    Your group knows each other, wants somewhere to catch up or
+                    work together, and likes moving around a shared space. WorkDash is
                     in early access and is intended for groups of about twenty.
                     That is a comfort guideline, not a tested capacity
                     guarantee.
@@ -127,7 +127,7 @@ export default function DiscordAlternative() {
                 </p>
             </section>
             <section>
-                <h2>Try one evening together</h2>
+                <h2>Spend some time together</h2>
                 <ol className="list-decimal pl-6 space-y-3 max-w-2xl">
                     <li>
                         Sign in with Google or an email link and create a
@@ -138,8 +138,8 @@ export default function DiscordAlternative() {
                         Friends need to sign in too.
                     </li>
                     <li>
-                        Meet in the same room, allow microphone access, and try
-                        voice before starting your game.
+                        Meet in the same room, allow microphone access, and
+                        turn on your microphone to start talking.
                     </li>
                 </ol>
                 <p className="mt-5">

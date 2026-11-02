@@ -66,7 +66,7 @@ export function Footer() {
                 <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
                     <div className="flex flex-col md:flex-row items-center gap-4">
                         <div className="text-[var(--wd-text-muted)] text-sm">
-                            &copy; 2026 WorkDash. Built for our Dota nights.
+                            &copy; 2026 WorkDash.
                         </div>
                         <a
                             href="https://buymeacoffee.com/andrewapinon"

@@ -7,7 +7,7 @@ export const TITLE = "What it actually";
 export const TITLE_ACCENT = "does.";
 
 export const STATEMENT =
-    "For friends who keep a call open at night, and teams who’d rather share a room than book a meeting.";
+    "For friends catching up, and teams who’d rather share a room than book a meeting.";
 
 export interface Beat {
     eyebrow: string;
@@ -47,7 +47,7 @@ export const BEATS: ReadonlyArray<Beat> = [
 
 export const PRESENCE_EYEBROW = "Presence";
 export const PRESENCE =
-    "One glance tells you who’s on the couch, who’s queuing, and who’s heads-down.";
+    "One glance tells you who’s around, who’s free to chat, and who’s heads-down.";
 export const PRESENCE_SUB = "When nobody’s on, it says so and leaves you alone.";
 
 export const END_LINE = "Andrew’s on the couch.";
@@ -67,7 +67,7 @@ export interface Lamp {
 export const LAMPS: ReadonlyArray<Lamp> = [
     { x: 725, y: 455, name: "Andrew", doing: "on the couch", at: 22.0 },
     { x: 950, y: 690, name: "Jo", doing: "heads-down", at: 22.6, above: true },
-    { x: 1290, y: 1060, name: "Mika", doing: "queuing for Dota", at: 23.2 },
+    { x: 1290, y: 1060, name: "Mika", doing: "taking a break", at: 23.2 },
     { x: 1546, y: 505, name: "Sam", doing: "at the campfire", at: 23.8 },
 ];
 

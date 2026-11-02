@@ -49,7 +49,7 @@ export default function AboutPage() {
                 title="About WorkDash | A Shared Place for Your Group"
                 description="WorkDash is a browser hangout for small groups. Explore a shared 2D world, talk by room, and stay connected through channels, video and screen sharing."
                 heading="A place to spend time together"
-                intro="WorkDash gives your group a shared place to hang out online. Meet before a game, work alongside each other, or catch up at the end of the day. Open it in your browser and come back to the same workspace whenever you want."
+                intro="WorkDash gives your group a shared place to hang out online. Catch up with friends, work alongside each other, or take a break together. Open it in your browser and come back to the same workspace whenever you want."
                 preview
             >
                 <section>
@@ -61,9 +61,9 @@ export default function AboutPage() {
                         for the next time you drop in.
                     </p>
                     <p className="mt-4">
-                        Use it alongside the games and chat apps your group
-                        already enjoys. There is no need to move everything
-                        into a new tool just to spend an evening together.
+                        Use it alongside the chat apps your group already
+                        uses. There is no need to move everything into a new
+                        tool just to spend time together.
                     </p>
                 </section>
                 <section>
@@ -79,7 +79,7 @@ export default function AboutPage() {
                         Desk mode lets you use channels and threads without
                         moving an avatar. Read{" "}
                         <Link href="/hangout-with-friends">
-                            how a group can spend an evening together
+                            how a group can spend time together
                         </Link>
                         .
                     </p>
@@ -124,7 +124,7 @@ export default function AboutPage() {
                 <p className="text-sm text-[var(--wd-text-muted)]">
                     WorkDash is an independent project created by{" "}
                     <a href="https://github.com/ainderew">Andrew Pinon</a>.
-                    It started with friends keeping a call open on Dota nights.
+                    It started with friends keeping a call open to spend time together.
                     Follow its progress in the <Link href="/changelog">changelog</Link>.
                 </p>
             </DiscoveryPage>

@@ -31,7 +31,7 @@ describe("WalkIn", () => {
         for (const name of ["Walk in. Start talking.", "Step in. Cameras up.", "Calm room. Loud moments."]) {
             expect(screen.getByRole("heading", { level: 3, name })).toBeInTheDocument();
         }
-        expect(screen.getByRole("heading", { level: 3, name: /One glance tells you who’s on the couch/ })).toBeInTheDocument();
+        expect(screen.getByRole("heading", { level: 3, name: /One glance tells you who’s around/ })).toBeInTheDocument();
     });
 
     it("ends on a way into the app", () => {
