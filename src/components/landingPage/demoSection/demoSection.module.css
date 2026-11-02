@@ -1,20 +1,13 @@
 .section {
-    --preview-ground: #f5f5f7;
-    --preview-ink: #1d1d1f;
-    --preview-secondary: #606066;
-    --preview-rule: #d1d1d6;
+    /* Share the page's resolved palette, including saved account themes. */
+    --preview-ground: var(--wd-surface-base);
+    --preview-ink: var(--wd-text-primary);
+    --preview-secondary: var(--wd-text-secondary);
+    --preview-rule: var(--wd-border-subtle);
     padding: 80px 24px;
     scroll-margin-top: 80px;
     background: var(--preview-ground);
     color: var(--preview-ink);
-}
-/* The public navbar uses next-themes light/dark; account palettes use a
-   separate data-theme attribute. Follow the public toggle for this preview. */
-:global(.dark) .section {
-    --preview-ground: #202124;
-    --preview-ink: #f5f5f7;
-    --preview-secondary: #b8b8be;
-    --preview-rule: #525258;
 }
 .window { max-width: 1280px; margin-inline: auto; }
 .composition {
