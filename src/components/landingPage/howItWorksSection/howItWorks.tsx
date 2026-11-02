@@ -2,12 +2,25 @@ import React from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowRightIcon } from "lucide-react";
+import { GUEST_PUBLIC_DISCOVERY } from "@/features/guest/discovery";
 
 /**
- * The real first-run path: sign in, "Create Workspace", then "Create Invite
- * Link" in the members panel. Keep these steps in sync with the app's flow.
+ * Match the public guest entry when enabled; otherwise show account setup.
  */
-const STEPS = [
+const STEPS = GUEST_PUBLIC_DISCOVERY ? [
+    {
+        title: "Choose your character",
+        body: "Create a guest character and enter the real WorkDash world. No account or download needed.",
+    },
+    {
+        title: "Invite your friends",
+        body: "Share your room's invite link. Walk into the same audio area and turn on your microphone to talk.",
+    },
+    {
+        title: "Keep it when you sign in",
+        body: "Try it for 20 minutes. Each guest can save their character; the host can also save the room.",
+    },
+] : [
     {
         title: "Sign in",
         body: "With Google, or a link sent to your email. Nothing to download.",
@@ -34,8 +47,7 @@ export function HowItWorks() {
                     id="how-title"
                     className="text-4xl md:text-5xl font-bold text-[var(--wd-text-primary)] mb-14 tracking-tight"
                 >
-                    Open a room in{" "}
-                    <span className="text-[var(--wd-landing-accent)]">two minutes</span>
+                    {GUEST_PUBLIC_DISCOVERY ? <>Start with a <span className="text-[var(--wd-landing-accent)]">guest room</span></> : <>Open a room in <span className="text-[var(--wd-landing-accent)]">two minutes</span></>}
                 </h2>
 
                 <ol className="grid gap-6 md:grid-cols-3 text-left">
@@ -65,12 +77,12 @@ export function HowItWorks() {
                 </ol>
 
                 <Link
-                    href="/app"
-                    data-umami-event="cta_open_room"
+                    href={GUEST_PUBLIC_DISCOVERY ? "/try?from=demo" : "/app"}
+                    data-umami-event={GUEST_PUBLIC_DISCOVERY ? "cta_guest_try" : "cta_open_room"}
                     data-umami-event-location="how_it_works"
                     className="wd-landing-btn-primary mt-12 group"
                 >
-                    Open the room
+                    {GUEST_PUBLIC_DISCOVERY ? "Try without signing up" : "Open the room"}
                     <ArrowRightIcon className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </Link>
             </div>

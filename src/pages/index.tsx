@@ -17,6 +17,12 @@ import { Origin } from "../components/landingPage/originSection/origin";
 import { Faq, FAQ_ITEMS } from "../components/landingPage/faqSection/faq";
 import { Footer } from "../components/landingPage/footer/footer";
 import { Navbar } from "@/components/navbar/navbar";
+import { GUEST_PUBLIC_DISCOVERY } from "@/features/guest/discovery";
+import { TRIAL_PREVIEW } from "@/components/landingPage/demoSection/content";
+
+const HOME_DESCRIPTION = GUEST_PUBLIC_DISCOVERY
+    ? "Try WorkDash free without signing up. Create a character, invite friends and explore a 2D world with voice chat in your browser. Sign in to save your character."
+    : SITE_DESCRIPTION;
 
 function ScrollProgressBar() {
     const { scrollYProgress } = useScroll();
@@ -34,7 +40,14 @@ export default function LandingPage() {
         <>
             {/* The searchable words live in the title; the H1 keeps the voice. */}
             <Seo
-                title={`${SITE_NAME}: a free 2D hangout with proximity chat for friends`}
+                title={GUEST_PUBLIC_DISCOVERY
+                    ? `${SITE_NAME}: free 2D hangouts and voice chat | No sign-up trial`
+                    : `${SITE_NAME}: a free 2D hangout with proximity chat for friends`}
+                description={HOME_DESCRIPTION}
+                image={TRIAL_PREVIEW.src}
+                imageAlt={TRIAL_PREVIEW.alt}
+                imageWidth={TRIAL_PREVIEW.width}
+                imageHeight={TRIAL_PREVIEW.height}
                 path="/"
             />
             <Head>
@@ -47,7 +60,17 @@ export default function LandingPage() {
                             "@id": `${SITE_URL}/#app`,
                             name: SITE_NAME,
                             url: SITE_URL,
-                            description: SITE_DESCRIPTION,
+                            description: HOME_DESCRIPTION,
+                            image: {
+                                "@type": "ImageObject",
+                                "@id": `${SITE_URL}/#campfire-preview`,
+                                contentUrl: `${SITE_URL}${TRIAL_PREVIEW.src}`,
+                                url: `${SITE_URL}${TRIAL_PREVIEW.src}`,
+                                name: TRIAL_PREVIEW.caption,
+                                description: TRIAL_PREVIEW.alt,
+                                width: TRIAL_PREVIEW.width,
+                                height: TRIAL_PREVIEW.height,
+                            },
                             applicationCategory: "CommunicationApplication",
                             operatingSystem: "Any (web browser)",
                             browserRequirements: "Requires JavaScript and WebRTC",

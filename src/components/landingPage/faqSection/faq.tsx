@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { ChevronDownIcon } from "lucide-react";
+import { GUEST_PUBLIC_DISCOVERY } from "@/features/guest/discovery";
+import { TRIAL_FAQ_ITEMS } from "../demoSection/content";
 
 export interface FaqItem {
     q: string;
@@ -12,6 +14,7 @@ export interface FaqItem {
  * search engine shows are literally the answers on the page.
  */
 export const FAQ_ITEMS: FaqItem[] = [
+    ...(GUEST_PUBLIC_DISCOVERY ? TRIAL_FAQ_ITEMS : []),
     {
         q: "Is WorkDash free?",
         a: "Yes. There is no card, no seats and nothing for sale, because there is no billing built yet. If paid extras ever arrive, voice, the room and your chat history stay free. It is in early access, so expect rough edges.",
@@ -22,7 +25,9 @@ export const FAQ_ITEMS: FaqItem[] = [
     },
     {
         q: "How many people fit in a room?",
-        a: "About twenty is comfortable. WorkDash is built for a friend group where everyone knows each other, not for a large community server.",
+        a: GUEST_PUBLIC_DISCOVERY
+            ? "Guest trial rooms allow up to eight people, including the host. Signed-in rooms are built for small groups of about twenty people. WorkDash is intended for friend groups, not large community servers."
+            : "About twenty is comfortable. WorkDash is built for a friend group where everyone knows each other, not for a large community server.",
     },
     {
         q: "How is this different from Discord?",

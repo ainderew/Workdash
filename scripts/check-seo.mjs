@@ -156,6 +156,52 @@ try {
             ...document.querySelectorAll('script[type="application/ld+json"]'),
         ].map((script) => JSON.parse(script.textContent));
         if (label === "/") {
+            const demo = document.querySelector("#demo");
+            check(Boolean(demo?.querySelector("h2")), "Homepage: missing demo heading in server HTML");
+            const demoImage = demo?.querySelector("img");
+            check(
+                /WorkDash.*campfire|campfire.*WorkDash/i.test(demoImage?.alt || ""),
+                "Homepage: campsite image needs descriptive alt text",
+            );
+            check(Boolean(demoImage?.getAttribute("srcset")), "Homepage: missing responsive demo image");
+            check(
+                Boolean(demoImage?.getAttribute("width")) && Boolean(demoImage?.getAttribute("height")),
+                "Homepage: demo image must reserve its dimensions",
+            );
+            if (urls.some((route) => route.pathname === "/try")) {
+                check(
+                    demo?.textContent.includes("No sign-up needed.") &&
+                        demo?.textContent.includes("20 minutes") &&
+                        demo?.textContent.includes("three empty minutes"),
+                    "Homepage: public trial terms missing from server HTML",
+                );
+                check(
+                    [...(demo?.querySelectorAll("a") || [])].some(
+                        (link) => link.getAttribute("href") === "/try?from=demo",
+                    ),
+                    "Homepage: missing crawlable trial CTA",
+                );
+            }
+            const appImage = schemas.find((schema) => schema["@type"] === "WebApplication")?.image;
+            check(appImage?.description === demoImage?.alt, "Homepage: image schema differs from alt text");
+            check(
+                og("image") === appImage?.contentUrl &&
+                    og("image:alt") === demoImage?.alt &&
+                    Number(og("image:width")) === appImage?.width &&
+                    Number(og("image:height")) === appImage?.height,
+                "Homepage: share image metadata differs from the campsite asset",
+            );
+            if (appImage?.contentUrl) {
+                const imageUrl = new URL(appImage.contentUrl);
+                check(imageUrl.origin === canonicalOrigin, "Homepage: unexpected image schema origin");
+                const imageResponse = await fetch(new URL(imageUrl.pathname, base), {
+                    signal: AbortSignal.timeout(20000),
+                });
+                check(imageResponse.ok && imageResponse.headers.get("content-type")?.startsWith("image/"),
+                    "Homepage: schema image is not reachable");
+            } else {
+                check(false, "Homepage: app schema missing campsite image");
+            }
             check(
                 schemas.some((schema) => schema["@type"] === "WebApplication"),
                 "Homepage: missing app schema",
