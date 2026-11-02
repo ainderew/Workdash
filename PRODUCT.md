@@ -7,22 +7,25 @@ product — app UI (desk mode chat/calls + world mode 2D spaces). Design serves 
 ## What it is
 
 A hangout platform that fuses Discord (channels, voice calls, threads) with Gather
-(2D sprite world, proximity audio). The flagship real-world use: a friend group of
-ex-coworkers who keep a voice call open while playing Dota 2 together at night.
+(2D sprite world, room-based audio). Friends and small teams use a shared world
+to catch up, work alongside each other, and spend breaks together.
+
+Public positioning should welcome these uses without centering a specific game,
+Dota nights, or a gamers-only audience.
 
 ## Target users
 
-- Friend groups of gamers who live in a voice call between and during matches
-- "Locked-in" software engineers co-working with ambient presence
+- Friend groups who want a shared place to catch up and spend time together
+- Small remote teams and coworkers who want to work alongside each other
 - Small communities (≤ ~20 people) where everyone knows everyone — not mass servers
 
 ## Desired outcome
 
-Opening Workdash at night should feel like walking into your friends' living room:
+Opening Workdash should feel like walking into your friends' living room:
 zero friction to join (one click into the Lounge), always aware of who's around,
 never nagged when nobody is.
 
-## Brand personality: Cozy gamer den
+## Brand personality: Cozy shared room
 
 Warm woods and lamplight. The app is a den, not a dashboard:
 

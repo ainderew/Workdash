@@ -10,17 +10,16 @@ export default function HangoutWithFriends() {
             title="Hang Out Online with Friends in a Virtual Room | WorkDash"
             description="Make a browser hangout for your friend group. WorkDash has a shared 2D world, room-based voice, video and screen sharing. Free in early access."
             heading="A virtual room to hang out with friends"
-            intro="Keep a place for the people you already talk to. WorkDash runs in a browser, so your group can meet in the lounge, talk between games, and come back to the same workspace another night."
+            intro="Keep a place for the people you already talk to. WorkDash runs in a browser, so your group can meet in the lounge, catch up, and come back to the same workspace whenever you like."
             preview
         >
             <section>
-                <h2>Built for the time between games</h2>
+                <h2>Make room for everyday conversations</h2>
                 <p>
-                    WorkDash started with a group of former coworkers who kept a
-                    call open while playing Dota. The shared world gives that
-                    group a place to meet before a match and hang out afterward.
-                    It is a separate browser app, not an in-game voice
-                    integration.
+                    Catch up with friends, take a break together, or work
+                    alongside each other. WorkDash gives your group a shared
+                    place to meet without scheduling a call every time. See
+                    who is around, walk over, and start a conversation.
                 </p>
             </section>
             <section>
@@ -42,7 +41,7 @@ export default function HangoutWithFriends() {
                 <p><Link href="/try?from=friends">Create a trial room without an account</Link> for up to eight people and 20 minutes. Pick a character, invite your friends and talk in the same audio area. Sign in afterward to keep your character; the host can save the room.</p>
             </section>}
             <section>
-                <h2>Your first night in a saved room</h2>
+                <h2>Your first visit to a saved room</h2>
                 <ol className="list-decimal pl-6 space-y-4 max-w-2xl">
                     <li>
                         <strong>Create your group&apos;s workspace.</strong>{" "}
@@ -56,8 +55,8 @@ export default function HangoutWithFriends() {
                     </li>
                     <li>
                         <strong>Meet in the same room.</strong> Allow microphone
-                        access and check that everyone can hear each other
-                        before launching a game.
+                        access, turn on your microphone, and check that
+                        everyone can hear each other.
                     </li>
                     <li>
                         <strong>Come back when you feel like it.</strong> Use

@@ -1,13 +1,13 @@
 # Workdash — Design System
 
 Current system lives in `src/styles/globals.css` (`--wd-*` tokens) and
-`docs/style-system.md`. This file documents the system **and** the "cozy gamer den"
+`docs/style-system.md`. This file documents the system **and** the "cozy shared room"
 direction it is evolving toward (see PRODUCT.md). New features should use the den
 palette; existing purple-accent surfaces migrate opportunistically.
 
 ## Visual theme
 
-Cozy gamer den: a warm, lamplit room. Deep warm charcoal surfaces, amber accent
+Cozy shared room: a warm, lamplit room. Deep warm charcoal surfaces, amber accent
 light, sage green for "alive" signals. Soft 12–16px radii. Personality in glow and
 copy, restraint in layout.
 

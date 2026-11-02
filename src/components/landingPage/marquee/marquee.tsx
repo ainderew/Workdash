@@ -3,10 +3,10 @@ import { WorkdashGlyph } from "./workdashGlyph";
 
 const WORDS = [
     "HANG OUT",
-    "QUEUE UP",
+    "CATCH UP",
     "SIT DOWN",
     "TALK",
-    "PLAY",
+    "TAKE A BREAK",
     "STAY A WHILE",
 ];
 

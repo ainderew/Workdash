@@ -15,13 +15,13 @@ export function Origin() {
                         id="origin-title"
                         className="text-sm font-bold uppercase tracking-wider text-[var(--wd-landing-accent)]"
                     >
-                        Built for our Dota nights
+                        A place to spend time together
                     </h2>
                     <blockquote className="mt-4 space-y-4 text-lg text-[var(--wd-text-secondary)] leading-relaxed">
                         <p>
                             WorkDash started with one group: a few of us who used
-                            to work together and still keep a call open most
-                            nights while we play Dota. We wanted a room we could
+                            to work together and still keep a call open.
+                            We wanted a room we could
                             leave open, where you can see who&rsquo;s around and
                             just walk over.
                         </p>
