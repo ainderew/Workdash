@@ -16,6 +16,8 @@ interface SeoProps {
     path?: string;
     image?: string;
     imageAlt?: string;
+    imageWidth?: number;
+    imageHeight?: number;
     /** Screens behind auth, one-time links and invites should stay out of search. */
     noindex?: boolean;
 }
@@ -26,6 +28,8 @@ export function Seo({
     path = "/",
     image = OG_IMAGE,
     imageAlt = OG_IMAGE_ALT,
+    imageWidth = 1200,
+    imageHeight = 630,
     noindex = false,
 }: SeoProps) {
     const pageTitle = title ?? SITE_NAME;
@@ -51,8 +55,8 @@ export function Seo({
             <meta property="og:url" content={url} />
             <meta property="og:locale" content="en_US" />
             <meta property="og:image" content={imageUrl} />
-            <meta property="og:image:width" content="1200" />
-            <meta property="og:image:height" content="630" />
+            <meta property="og:image:width" content={String(imageWidth)} />
+            <meta property="og:image:height" content={String(imageHeight)} />
             <meta property="og:image:alt" content={imageAlt} />
 
             <meta name="twitter:card" content="summary_large_image" />
